@@ -28,7 +28,7 @@ alias vim="nvim"
 
 # git
 
-alias wip="git add . && git commit -a -m 'WIP'"
+alias wip="git add --all && git commit -a -m 'WIP'"
 alias nah="git reset --hard HEAD"
 alias l8r="git stash"
 alias pop="git stash pop"
@@ -37,8 +37,27 @@ alias pop="git stash pop"
 
 alias c="cargo"
 alias cc="cargo check"
+alias cb="cargo build"
+alias cbr="cargo build --release"
 alias cr="cargo run"
 alias cw="cargo-watch -c"
+alias cwr="cargo-watch -c -x run"
+
+ct() {
+    if [ $# -eq 0 ]; then
+        cargo test
+    else
+        cargo test $@
+    fi
+}
+
+cwt() {
+    if [ $# -eq 0 ]; then
+        cw -x test
+    else
+        cw -x "'test $@'"
+    fi
+}
 
 # docker
 

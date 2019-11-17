@@ -3,8 +3,6 @@
 " ============================================================================
 
 syntax on
-set timeoutlen=300
-set ttimeoutlen=300
 set hidden              " A lot of plugins require this
 set ignorecase          " Make searching case insensitive
 set smartcase           " ... unless the query has capital letters.
