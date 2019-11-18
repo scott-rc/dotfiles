@@ -1,12 +1,23 @@
-export PATH=$HOME/bin:/usr/local/bin:$HOME/.cargo/bin:$HOME/.dotnet/tools:$HOME/.symfony/bin:/usr/local/opt/php@7.1/bin:/usr/local/opt/php@7.1/sbin:$PATH
+# PATH
+typeset -U path
+
+path=(
+    "$HOME/bin"           # default
+    "/usr/local/bin"      # homebrew
+    "$HOME/.cargo/bin"    # rust
+    "$HOME/.dotnet/tools" # csharp
+    "$HOME/.symfony/bin" "/usr/local/opt/php@7.1/bin" "/usr/local/opt/php@7.1/sbin" # php
+    $path
+)
+
+export PATH
 export SSH_KEY_PATH="~/.ssh/rsa_id"      # ssh
 export ZSH="$HOME/.oh-my-zsh"            # Path to your oh-my-zsh installation.
 
-ENABLE_CORRECTION="true"                 # command auto-correction.
 HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
 ZSH_THEME="robbyrussell"                 # theme
 
-plugins=(git yarn)
+plugins=()
 
 source $ZSH/oh-my-zsh.sh
 
@@ -28,10 +39,30 @@ alias vim="nvim"
 
 # git
 
-alias wip="git add --all && git commit -a -m 'WIP'"
-alias nah="git reset --hard HEAD"
+alias g="git"
+alias ga="git add"
+alias gaa="git add --all"
+alias gb="git branch"
+alias gc="git commit"
+alias gca="git commit -a"
+alias gcam="git commit -a -m"
+alias gco="git checkout"
+alias gd="git diff"
+alias gds="git diff --staged"
+alias gp="git pull"
+alias gps="git push"
+alias gs="git status -sb"
 alias l8r="git stash"
+alias nah="git reset --hard HEAD"
 alias pop="git stash pop"
+alias wip="git add --all && git commit -a -m 'WIP'"
+
+# js
+
+alias y="yarn"
+alias yi="yarn install"
+alias ya="yarn add"
+alias yad="yarn add -D"
 
 # rust
 
