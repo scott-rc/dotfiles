@@ -6,6 +6,7 @@ path=(
     "/usr/local/bin"      # homebrew
     "$HOME/.cargo/bin"    # rust
     "$HOME/.dotnet/tools" # csharp
+    "./node_modules/.bin" # node
     "$HOME/.symfony/bin" "/usr/local/opt/php@7.1/bin" "/usr/local/opt/php@7.1/sbin" # php
     $path
 )
@@ -44,18 +45,21 @@ alias ga="git add"
 alias gaa="git add --all"
 alias gb="git branch"
 alias gc="git commit"
+alias gc!="git commit --amend"
 alias gca="git commit -a"
-alias gcam="git commit -a -m"
+alias gca!="git commit -a --amend"
+alias gcam="git commit -am"
 alias gco="git checkout"
 alias gd="git diff"
 alias gds="git diff --staged"
+alias gl='git log --pretty=oneline --abbrev-commit'
 alias gp="git pull"
 alias gps="git push"
 alias gs="git status -sb"
 alias l8r="git stash"
 alias nah="git reset --hard HEAD"
 alias pop="git stash pop"
-alias wip="git add --all && git commit -a -m 'WIP'"
+alias wip="git add --all && git commit -am 'WIP'"
 
 # js
 
