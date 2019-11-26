@@ -11,14 +11,19 @@ path=(
     $path
 )
 
+
 export PATH
 export SSH_KEY_PATH="~/.ssh/rsa_id"      # ssh
 export ZSH="$HOME/.oh-my-zsh"            # Path to your oh-my-zsh installation.
 
 HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
-ZSH_THEME="robbyrussell"                 # theme
+ZSH_THEME="agnoster"                     # theme
 
-plugins=()
+autoload -U promptinit; promptinit
+prompt pure
+
+
+plugins=(zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -34,6 +39,13 @@ else
   export EDITOR='nvim'
 fi
 
+# Key bindings
+
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
+
 # Set personal aliases
 
 alias vim="nvim"
@@ -44,29 +56,35 @@ alias g="git"
 alias ga="git add"
 alias gaa="git add --all"
 alias gb="git branch"
-alias gc="git commit"
 alias gc!="git commit --amend"
-alias gca="git commit -a"
+alias gc="git commit"
 alias gca!="git commit -a --amend"
+alias gca="git commit -a"
 alias gcam="git commit -am"
 alias gco="git checkout"
 alias gd="git diff"
 alias gds="git diff --staged"
 alias gl='git log --pretty=oneline --abbrev-commit'
+alias gnah="git reset --hard HEAD"
 alias gp="git pull"
 alias gps="git push"
 alias gs="git status -sb"
-alias l8r="git stash"
-alias nah="git reset --hard HEAD"
-alias pop="git stash pop"
-alias wip="git add --all && git commit -am 'WIP'"
+alias gstp="git stash pop"
+alias gsts="git stash save"
+alias gwip!="git add --all && git commit -a --amend"
+alias gwip="git add --all && git commit -am 'WIP'"
 
 # js
 
 alias y="yarn"
-alias yi="yarn install"
 alias ya="yarn add"
 alias yad="yarn add -D"
+alias yb="yarn build"
+alias yd="yarn dev"
+alias yi="yarn install"
+alias yl="yarn lint"
+alias ys="yarn start"
+alias yt="yarn test"
 
 # rust
 
@@ -97,7 +115,22 @@ cwt() {
 # docker
 
 alias d="docker"
+alias db="docker build"
+alias de="docker exec"
+alias dei="docker exec -it"
+alias dl="docker logs"
+alias dlf="docker logs -f"
+alias dp="docker ps"
+alias dpa="docker ps -a"
+alias dr="docker run"
+alias drm="docker rm"
+alias drma="docker rm $(docker ps -a -q)"
+alias ds="docker stop"
+alias dsa="docker stop $(docker ps -a -q)"
+
 alias dc="docker-compose"
+alias dcu="docker-compose up -d"
+alias dcd="docker-compose down"
 
 # configs
 
