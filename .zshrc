@@ -1,56 +1,78 @@
-# PATH
+# vim:fileencoding=utf-8:ft=zsh:foldmethod=marker
+
+#: Path {{{
+
 typeset -U path
 
 path=(
-    "$HOME/bin"           # default
-    "/usr/local/bin"      # homebrew
-    "$HOME/.cargo/bin"    # rust
-    "$HOME/.dotnet/tools" # csharp
-    "./node_modules/.bin" # node
+    "$HOME/bin"                          # personal
+    "/usr/local/bin"                     # homebrew
+    "$HOME/.cargo/bin"                   # rust
+    "$HOME/.dotnet/tools"                # csharp
+    "./node_modules/.bin"                # node
     "$HOME/.symfony/bin" "/usr/local/opt/php@7.1/bin" "/usr/local/opt/php@7.1/sbin" # php
     $path
 )
 
+#: }}}
 
-export PATH
-export SSH_KEY_PATH="~/.ssh/rsa_id"      # ssh
-export ZSH="$HOME/.oh-my-zsh"            # Path to your oh-my-zsh installation.
+#: Exports {{{
 
-HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
-ZSH_THEME="agnoster"                     # theme
+export PATH                              # path
+export SSH_KEY_PATH="~/.ssh/rsa_id"      # path to ssh
+export ZSH="$HOME/.oh-my-zsh"            # path to oh-my-zsh installation.
+export GO_PATH="$HOME/.go"               # go crap
+export LANG=en_US.UTF-8                  # language environment
 
-autoload -U promptinit; promptinit
-prompt pure
-
-
-plugins=(zsh-syntax-highlighting)
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-export LANG=en_US.UTF-8 # set your language environment
-
-# Preferred editor for local and remote sessions
-
-if [[ -n $SSH_CONNECTION ]]; then
+if [[ -n $SSH_CONNECTION ]]; then        # editor
   export EDITOR='vim'
 else
   export EDITOR='nvim'
 fi
 
-# Key bindings
+
+#: }}}
+
+#: Settings {{{
+
+HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
+
+#: }}}
+
+#: Theme {{{
+
+autoload -U promptinit; promptinit
+prompt pure
+
+#: }}}
+
+#: Plugins {{{
+
+plugins=(zsh-syntax-highlighting)
+
+source $ZSH/oh-my-zsh.sh
+
+#: }}}
+
+#: Key Bindings {{{
 
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 
-# Set personal aliases
+#: }}}
 
+#: Aliases {{{
+
+#: Vim {{{
+
+alias v="nvim"
 alias vim="nvim"
 
-# git
+#: }}}
+
+#: Git {{{
 
 alias g="git"
 alias ga="git add"
@@ -61,6 +83,7 @@ alias gc="git commit"
 alias gca!="git commit -a --amend"
 alias gca="git commit -a"
 alias gcam="git commit -am"
+alias gcl="git clean"
 alias gco="git checkout"
 alias gd="git diff"
 alias gds="git diff --staged"
@@ -68,13 +91,18 @@ alias gl='git log --pretty=oneline --abbrev-commit'
 alias gnah="git reset --hard HEAD"
 alias gp="git pull"
 alias gps="git push"
+alias gr="git reset"
+alias grh="git reset --hard"
+alias grs="git reset --soft"
 alias gs="git status -sb"
 alias gstp="git stash pop"
 alias gsts="git stash save"
 alias gwip!="git add --all && git commit -a --amend"
 alias gwip="git add --all && git commit -am 'WIP'"
 
-# js
+#: }}}
+
+#: JavaScript {{{
 
 alias y="yarn"
 alias ya="yarn add"
@@ -86,7 +114,9 @@ alias yl="yarn lint"
 alias ys="yarn start"
 alias yt="yarn test"
 
-# rust
+#: }}}
+
+#: Rust {{{
 
 alias c="cargo"
 alias cc="cargo check"
@@ -112,7 +142,9 @@ cwt() {
     fi
 }
 
-# docker
+#: }}}
+
+#: Docker {{{
 
 alias d="docker"
 alias db="docker build"
@@ -132,7 +164,9 @@ alias dc="docker-compose"
 alias dcu="docker-compose up -d"
 alias dcd="docker-compose down"
 
-# configs
+#: }}}
+
+#: Configs {{{
 
 alias zshconf="nvim ~/.zshrc"
 alias rzshconf="source ~/.zshrc"
@@ -140,3 +174,7 @@ alias vimconf="nvim ~/.vimrc"
 alias nvimconf="nvim ~/.config/nvim/init.vim"
 alias tmuxconf="nvim ~/.tmux.conf"
 alias kittyconf="nvim ~/.config/kitty/kitty.conf"
+
+#: }}}
+
+#: }}}
