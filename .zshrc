@@ -21,7 +21,7 @@ path=(
 export PATH                              # path
 export SSH_KEY_PATH="~/.ssh/rsa_id"      # path to ssh
 export ZSH="$HOME/.oh-my-zsh"            # path to oh-my-zsh installation.
-export GO_PATH="$HOME/.go"               # go crap
+export GOPATH="$HOME/.go"               # go crap
 export LANG=en_US.UTF-8                  # language environment
 
 if [[ -n $SSH_CONNECTION ]]; then        # editor
@@ -34,6 +34,8 @@ fi
 #: }}}
 
 #: Settings {{{
+
+setopt extendedglob
 
 HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
 
@@ -78,12 +80,13 @@ alias g="git"
 alias ga="git add"
 alias gaa="git add --all"
 alias gb="git branch"
-alias gc!="git commit --amend"
+alias gc!="git commit --amend --no-edit"
 alias gc="git commit"
-alias gca!="git commit -a --amend"
+alias gca!="git commit -a --amend --no-edit"
 alias gca="git commit -a"
 alias gcam="git commit -am"
 alias gcl="git clean"
+alias gcm="git commit -m"
 alias gco="git checkout"
 alias gd="git diff"
 alias gds="git diff --staged"
@@ -97,7 +100,7 @@ alias grs="git reset --soft"
 alias gs="git status -sb"
 alias gstp="git stash pop"
 alias gsts="git stash save"
-alias gwip!="git add --all && git commit -a --amend"
+alias gwip!="git add --all && git commit -a --amend --no-edit"
 alias gwip="git add --all && git commit -am 'WIP'"
 
 #: }}}
@@ -141,6 +144,24 @@ cwt() {
         cw -x "'test $@'"
     fi
 }
+
+#: }}}
+
+#: CSharp {{{
+
+alias dn="dotnet"
+alias dna="dotnet add"
+alias dnap="dotnet add package"
+alias dnb="dotnet build"
+alias dnc="dotnet clean"
+alias dnr="dotnet run"
+alias dnrm="dotnet remove"
+alias dnrp="dotnet run --project"
+alias dnrmp="dotnet remove package"
+alias dnt="dotnet test --nologo"
+alias dnw="dotnet watch"
+alias dnwr="dotnet watch run"
+alias dnwt="dotnet watch test"
 
 #: }}}
 
