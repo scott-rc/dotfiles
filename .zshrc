@@ -54,6 +54,13 @@ plugins=(zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
+# gcloud completions
+source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc'
+source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc'
+
+# kubectl completions
+source <(kubectl completion zsh)
+
 #: }}}
 
 #: Key Bindings {{{
@@ -114,6 +121,8 @@ alias yb="yarn build"
 alias yd="yarn dev"
 alias yi="yarn install"
 alias yl="yarn lint"
+alias yr="yarn run"
+alias yrm="yarn remove"
 alias ys="yarn start"
 alias yt="yarn test"
 
