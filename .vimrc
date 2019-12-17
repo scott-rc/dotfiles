@@ -3,6 +3,7 @@
 " ============================================================================
 
 syntax on
+set nocompatible
 set hidden              " A lot of plugins require this
 set ignorecase          " Make searching case insensitive
 set smartcase           " ... unless the query has capital letters.

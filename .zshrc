@@ -43,8 +43,7 @@ HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history comma
 
 #: Theme {{{
 
-autoload -U promptinit; promptinit
-prompt pure
+eval "$(starship init zsh)"
 
 #: }}}
 
