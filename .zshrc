@@ -21,7 +21,7 @@ path=(
 export PATH                              # path
 export SSH_KEY_PATH="~/.ssh/rsa_id"      # path to ssh
 export ZSH="$HOME/.oh-my-zsh"            # path to oh-my-zsh installation.
-export GOPATH="$HOME/.go"               # go crap
+export GOPATH="$HOME/.go"                # go stuff
 export LANG=en_US.UTF-8                  # language environment
 
 if [[ -n $SSH_CONNECTION ]]; then        # editor
@@ -29,7 +29,6 @@ if [[ -n $SSH_CONNECTION ]]; then        # editor
 else
   export EDITOR='nvim'
 fi
-
 
 #: }}}
 
@@ -117,6 +116,7 @@ alias y="yarn"
 alias ya="yarn add"
 alias yad="yarn add -D"
 alias yb="yarn build"
+alias yc="yarn clean"
 alias yd="yarn dev"
 alias yi="yarn install"
 alias yl="yarn lint"
@@ -189,11 +189,13 @@ alias dl="docker logs"
 alias dlf="docker logs -f"
 alias dp="docker ps"
 alias dpa="docker ps -a"
+alias dpaq="docker ps -aq"
 alias dr="docker run"
 alias drm="docker rm"
-alias drma="docker rm $(docker ps -a -q)"
-alias ds="docker stop"
-alias dsa="docker stop $(docker ps -a -q)"
+alias drma='docker rm "`docker ps -a -q`"'
+alias ds="docker start"
+alias dst="docker stop"
+alias dsta='docker stop "`docker ps -a -q`"'
 
 alias dc="docker-compose"
 alias dcu="docker-compose up -d"
