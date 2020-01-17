@@ -72,6 +72,20 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 
 #: Aliases {{{
 
+#: LS {{{
+
+alias l="ls -G"
+alias la="ls -lAh"
+
+#: }}}
+
+#: EXA {{{
+
+alias e="exa --grid"
+alias ea="exa --all --long --header --git"
+
+#}}}
+
 #: Vim {{{
 
 alias v="nvim"
@@ -93,6 +107,7 @@ alias gcam="git commit -am"
 alias gcl="git clean"
 alias gcm="git commit -m"
 alias gco="git checkout"
+alias gcob="git checkout -b"
 alias gd="git diff"
 alias gds="git diff --staged"
 alias gl='git log --pretty=oneline --abbrev-commit'
