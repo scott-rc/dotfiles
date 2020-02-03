@@ -48,7 +48,7 @@ eval "$(starship init zsh)"
 
 #: Plugins {{{
 
-plugins=(zsh-syntax-highlighting)
+plugins=(zsh-syntax-highlighting docker docker-compose)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -74,15 +74,17 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 
 #: LS {{{
 
-alias l="ls -G"
-alias la="ls -lAh"
+alias ll="ls -lAh"
+alias lls="ls -G"
+alias lla="ls -lAh"
 
 #: }}}
 
 #: EXA {{{
 
-alias e="exa --grid"
-alias ea="exa --all --long --header --git"
+alias l="exa --all --long --header --git"
+alias ls="exa --grid"
+alias la="exa --all --long --header --git"
 
 #}}}
 
@@ -103,8 +105,10 @@ alias gc!="git commit --amend --no-edit"
 alias gc="git commit"
 alias gca!="git commit -a --amend --no-edit"
 alias gca="git commit -a"
+alias gcam!="git commit -a --amend"
 alias gcam="git commit -am"
 alias gcl="git clean"
+alias gcm!="git commit --amend --no-edit"
 alias gcm="git commit -m"
 alias gco="git checkout"
 alias gcob="git checkout -b"
@@ -118,6 +122,7 @@ alias gr="git reset"
 alias grh="git reset --hard"
 alias grs="git reset --soft"
 alias gs="git status -sb"
+alias gst="git stash"
 alias gstp="git stash pop"
 alias gsts="git stash save"
 alias gwip!="git add --all && git commit -a --amend --no-edit"
