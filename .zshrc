@@ -19,10 +19,11 @@ path=(
 #: Exports {{{
 
 export PATH                              # path
-export SSH_KEY_PATH="~/.ssh/rsa_id"      # path to ssh
+export SSH_KEY_PATH=~/.ssh/rsa_id        # path to ssh
 export ZSH="$HOME/.oh-my-zsh"            # path to oh-my-zsh installation.
 export GOPATH="$HOME/.go"                # go stuff
 export LANG=en_US.UTF-8                  # language environment
+export ZDOTDIR="$HOME/.zsh"
 
 if [[ -n $SSH_CONNECTION ]]; then        # editor
   export EDITOR='vim'
@@ -72,7 +73,11 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 
 #: Aliases {{{
 
-#: LS {{{
+#: LS / EXA {{{
+
+alias l="exa --all --long --header --git"
+alias ls="exa --grid"
+alias la="exa --all --long --header --git"
 
 alias ll="ls -lAh"
 alias lls="ls -G"
@@ -80,11 +85,27 @@ alias lla="ls -lAh"
 
 #: }}}
 
-#: EXA {{{
+#: CAT / BAT {{{
 
-alias l="exa --all --long --header --git"
-alias ls="exa --grid"
-alias la="exa --all --long --header --git"
+alias c=bat
+alias cat=bat
+alias ccat=cat
+
+#}}}
+
+#: FIND / FD {{{
+
+alias f=fd
+alias find=fd
+alias ffind=find
+
+#}}}
+
+#: GREP / RIPGREP {{{
+
+alias r=rg
+alias grep=rg
+alias ggrep=grep
 
 #}}}
 
@@ -149,15 +170,15 @@ alias yt="yarn test"
 
 #: Rust {{{
 
-alias c="cargo"
-alias cc="cargo check"
-alias cb="cargo build"
-alias cbr="cargo build --release"
-alias cr="cargo run"
-alias cw="cargo-watch -c"
-alias cwr="cargo-watch -c -x run"
+alias cg="cargo"
+alias cgc="cargo check"
+alias cgb="cargo build"
+alias cgbr="cargo build --release"
+alias cgr="cargo run"
+alias cgw="cargo-watch -c"
+alias cgwr="cargo-watch -c -x run"
 
-ct() {
+cgt() {
     if [ $# -eq 0 ]; then
         cargo test
     else
@@ -165,7 +186,7 @@ ct() {
     fi
 }
 
-cwt() {
+cgwt() {
     if [ $# -eq 0 ]; then
         cw -x test
     else
