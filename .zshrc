@@ -10,6 +10,7 @@ path=(
     "$HOME/.cargo/bin"                   # rust
     "$HOME/.dotnet/tools"                # csharp
     "./node_modules/.bin"                # node
+    "$HOME/.go/bin"                        # go
     "$HOME/.symfony/bin" "/usr/local/opt/php@7.1/bin" "/usr/local/opt/php@7.1/sbin" # php
     $path
 )
@@ -23,13 +24,11 @@ export SSH_KEY_PATH=~/.ssh/rsa_id        # path to ssh
 export ZSH="$HOME/.oh-my-zsh"            # path to oh-my-zsh installation.
 export GOPATH="$HOME/.go"                # go stuff
 export LANG=en_US.UTF-8                  # language environment
-export ZDOTDIR="$HOME/.zsh"
 
-if [[ -n $SSH_CONNECTION ]]; then        # editor
-  export EDITOR='vim'
-else
-  export EDITOR='nvim'
-fi
+# fzf
+export FZF_DEFAULT_COMMAND='fd --type file --follow --hidden --exclude .git --color=always'
+export FZF_DEFAULT_OPTS="--ansi"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 #: }}}
 
@@ -59,6 +58,9 @@ source '/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.
 
 # kubectl completions
 source <(kubectl completion zsh)
+
+# autojump completions
+[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
 
 #: }}}
 

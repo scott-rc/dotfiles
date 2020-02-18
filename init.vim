@@ -10,6 +10,7 @@ Plug 'drewtempelmeyer/palenight.vim'
 Plug 'ervandew/supertab'
 Plug 'jiangmiao/auto-pairs'
 Plug 'junegunn/fzf.vim'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'vim-airline/vim-airline'
@@ -37,7 +38,7 @@ let g:airline_powerline_fonts = 1
 " ============================================================================
 " fzf
 " ============================================================================
-nmap <C-p> :Files<CR>
+nmap <leader>p :Files<CR>
 nmap <leader>b :Buffers<CR>
 
 " ============================================================================
@@ -49,13 +50,13 @@ let g:NERDDefaultAlign = 'left'
 let g:NERDCommentEmptyLines = 1
 let g:NERDTrimTrailingWhitespace = 1
 let g:NERDToggleCheckAllLines = 1
-map <leader>cc <plug>NERDCommenterToggle
-vmap <leader>cc <plug>NERDCommenterToggle
+map <leader>/ <plug>NERDCommenterToggle
+vmap <leader>/ <plug>NERDCommenterToggle
 
 " ============================================================================
 " nerdtree
 " ============================================================================
-map <leader>p :NERDTreeToggle<CR>
+map <leader>1 :NERDTreeToggle<CR>
 
 " ============================================================================
 " supertab
@@ -66,3 +67,9 @@ let g:SuperTabDefaultCompletionType = "<c-n>"
 " auto-pairs
 " ============================================================================
 let g:AutoPairsShortcutToggle = ''
+
+" ============================================================================
+" coc
+" ============================================================================
+inoremap <silent><expr> <c-space> coc#refresh()
+
