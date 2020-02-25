@@ -24,6 +24,7 @@ set updatetime=750      " how long to wait before writing swap file
 set undofile            " use undo file
 set undodir=~/.vimdid   " ... and store them here
 set signcolumn=yes      " always show signcolumns
+set conceallevel=0      " don't hide any characters
 
 " ============================================================================
 " Globals

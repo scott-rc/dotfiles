@@ -137,6 +137,7 @@ alias gco="git checkout"
 alias gcob="git checkout -b"
 alias gd="git diff"
 alias gds="git diff --staged"
+alias gf="git fetch"
 alias gl='git log --pretty=oneline --abbrev-commit'
 alias gnah="git reset --hard HEAD"
 alias gp="git pull"
