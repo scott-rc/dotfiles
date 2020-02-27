@@ -4,27 +4,27 @@
 
 syntax on
 set nocompatible
-set hidden              " a lot of plugins require this
-set ignorecase          " make searching case insensitive
-set smartcase           " ... unless the query has capital letters.
-set gdefault            " use 'g' flag by default with :s/foo/bar/.
-set splitbelow          " new windows to the bottom
-set splitright          " new windows to the right
-set showmatch           " show matching brackets.
-set number              " show the line numbers on the left side.
-set formatoptions+=o    " continue comment marker in new lines.
-set expandtab           " insert spaces when TAB is pressed.
-set tabstop=4           " render TABs using this many spaces.
-set shiftwidth=4        " indentation amount for < and > commands.
-set autoindent          " auto indent new lines
-set nowrap              " don't wrap
-set nojoinspaces        " trim whitespace when joining lines
-set mouse=n             " allow using mouse in normal mode
-set updatetime=750      " how long to wait before writing swap file
-set undofile            " use undo file
-set undodir=~/.vimdid   " ... and store them here
-set signcolumn=yes      " always show signcolumns
-set conceallevel=0      " don't hide any characters
+set hidden                " a lot of plugins require this
+set ignorecase            " make searching case insensitive
+set smartcase             " ... unless the query has capital letters.
+set gdefault              " use 'g' flag by default with :s/foo/bar/.
+set splitbelow            " new windows to the bottom
+set splitright            " new windows to the right
+set showmatch             " show matching brackets.
+set number                " show the line numbers on the left side.
+set formatoptions+=o      " continue comment marker in new lines.
+set expandtab             " insert spaces when TAB is pressed.
+set tabstop=4             " render TABs using this many spaces.
+set shiftwidth=4          " indentation amount for < and > commands.
+set autoindent            " auto indent new lines
+set nowrap                " don't wrap
+set nojoinspaces          " trim whitespace when joining lines
+set mouse=n               " allow using mouse in normal mode
+set updatetime=750        " how long to wait before writing swap file
+set undofile              " use undo file
+set undodir=~/.vimdid     " ... and store them here
+set signcolumn=yes        " always show signcolumns
+set conceallevel=0        " don't hide any characters
 
 " ============================================================================
 " Globals
@@ -37,6 +37,9 @@ let mapleader = " "
 " ============================================================================
 
 nmap ; :
+
+nmap <leader>y "+y
+vmap <leader>y "+y
 
 " ============================================================================
 " Movement
