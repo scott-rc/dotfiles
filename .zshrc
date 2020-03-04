@@ -77,9 +77,9 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 
 #: LS / EXA {{{
 
-alias l="exa --all --long --header --git"
+alias l="exa --all --long --header --git --grid"
 alias ls="exa --grid"
-alias la="exa --all --long --header --git"
+alias la="exa --all --long --header --git --grid"
 
 alias ll="ls -lAh"
 alias lls="ls -G"
@@ -131,7 +131,7 @@ alias gca="git commit -a"
 alias gcam!="git commit -a --amend"
 alias gcam="git commit -am"
 alias gcl="git clean"
-alias gcm!="git commit --amend --no-edit"
+alias gcm!="git commit --amend"
 alias gcm="git commit -m"
 alias gco="git checkout"
 alias gcob="git checkout -b"
