@@ -11,7 +11,7 @@ path=(
     "$HOME/.dotnet/tools"                # csharp
     "./node_modules/.bin"                # node
     "$HOME/.go/bin"                        # go
-    "$HOME/.symfony/bin" "/usr/local/opt/php@7.1/bin" "/usr/local/opt/php@7.1/sbin" # php
+    "$HOME/.symfony/bin" "/usr/local/opt/php@7.2/bin" "/usr/local/opt/php@7.2/sbin" # php
     $path
 )
 
@@ -77,9 +77,9 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 
 #: LS / EXA {{{
 
-alias l="exa --all --long --header --git --grid"
+alias l="exa --all --long --header --git"
 alias ls="exa --grid"
-alias la="exa --all --long --header --git --grid"
+alias la="exa --all --long --header --git"
 
 alias ll="ls -lAh"
 alias lls="ls -G"
@@ -255,6 +255,13 @@ alias vimconf="nvim ~/.vimrc"
 alias nvimconf="nvim ~/.config/nvim/init.vim"
 alias tmuxconf="nvim ~/.tmux.conf"
 alias kittyconf="nvim ~/.config/kitty/kitty.conf"
+
+#: }}}
+
+#: Lazy {{{
+
+alias lzg="lazygit"
+alias lzd="lazydocker"
 
 #: }}}
 
