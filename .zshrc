@@ -168,6 +168,7 @@ alias yr="yarn run"
 alias yrm="yarn remove"
 alias ys="yarn start"
 alias yt="yarn test"
+alias yu="yarn upgrade-interactive --latest"
 
 #: }}}
 
