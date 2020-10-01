@@ -62,6 +62,10 @@ source <(kubectl completion zsh)
 # autojump completions
 [ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
 
+# terraform complettions
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /usr/local/bin/terraform terraform
+
 #: }}}
 
 #: Key Bindings {{{
@@ -267,3 +271,4 @@ alias lzd="lazydocker"
 #: }}}
 
 #: }}}
+
