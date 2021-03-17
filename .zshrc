@@ -182,6 +182,7 @@ alias gs="git status -sb"
 alias gst="git stash"
 alias gstp="git stash pop"
 alias gsts="git stash save"
+alias gui="gitui"
 alias gwip!="git add --all && git commit -a --amend --no-edit"
 alias gwip="git add --all && git commit -am 'WIP'"
 
@@ -225,13 +226,6 @@ alias yt="yarn test"
 alias yu="yarn upgrade-interactive --latest"
 alias yw="yarn workspace"
 alias yws="yarn workspaces"
-
-#: }}}
-
-#: Lazy {{{
-
-alias lzg="lazygit"
-alias lzd="lazydocker"
 
 #: }}}
 
@@ -289,5 +283,28 @@ alias vim="nvim"
 
 #: }}}
 
+# added by homebrew
 autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /usr/local/bin/bit bit
+
+# https://github.com/nvm-sh/nvm#calling-nvm-use-automatically-in-a-directory-with-a-nvmrc-file
+autoload -U add-zsh-hook
+load-nvmrc() {
+  local node_version="$(nvm version)"
+  local nvmrc_path="$(nvm_find_nvmrc)"
+
+  if [ -n "$nvmrc_path" ]; then
+    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+
+    if [ "$nvmrc_node_version" = "N/A" ]; then
+      nvm install
+    elif [ "$nvmrc_node_version" != "$node_version" ]; then
+      nvm use
+    fi
+  elif [ "$node_version" != "$(nvm version default)" ]; then
+    echo "Reverting to nvm default version"
+    nvm use default
+  fi
+}
+add-zsh-hook chpwd load-nvmrc
+load-nvmrc
