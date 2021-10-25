@@ -1,30 +1,42 @@
 # vim:fileencoding=utf-8:ft=zsh:foldmethod=marker
 
+#: Exports {{{
+
+export LANG=en_US.UTF-8
+
+export ZSH="$HOME/.oh-my-zsh"
+export HISTFILE=~/.zsh_history
+export SSH_KEY_PATH=~/.ssh/rsa_id
+export NVM_DIR="$HOME/.nvm"
+
+export CSHARPPATH="$HOME/.dotnet/tools"
+export GOPATH="$HOME/.go"
+export HOMEBREWPATH="/usr/local/bin"
+export JAVAPATH="/usr/local/opt/openjdk/bin"
+export PNPMPATH="/Users/scott/Library/pnpm"
+export RUSTPATH="$HOME/.cargo/bin"
+export NODEPATH="./node_modules/.bin"
+export PHPPATH="$HOME/.symfony/bin:/usr/local/opt/php@7.3/bin:/usr/local/opt/php@7.3/sbin"
+
+#: }}}
+
 #: Path {{{
 
 typeset -U path
 
 path=(
-    "$HOME/bin"                          # personal
-    "/usr/local/bin"                     # homebrew
-    "$HOME/.cargo/bin"                   # rust
-    "$HOME/.dotnet/tools"                # csharp
-    "./node_modules/.bin"                # node
-    "$HOME/.go/bin"                      # go
-    "$HOME/.symfony/bin" "/usr/local/opt/php@7.3/bin" "/usr/local/opt/php@7.3/sbin" # php
+    "$HOME/bin"
+    "$HOMEBREWPATH"
+    "$JAVAPATH"
+    "$RUSTPATH"                  
+    "$NODEPATH"
+    "$PNPMPATH"
+    "$GOPATH/bin"
+    "$PHPPATH"
     $path
 )
 
-#: }}}
-
-#: Exports {{{
-
 export PATH
-export SSH_KEY_PATH=~/.ssh/rsa_id
-export ZSH="$HOME/.oh-my-zsh"
-export GOPATH="$HOME/.go"
-export NVM_DIR="$HOME/.nvm"
-export LANG=en_US.UTF-8
 
 #: }}}
 
@@ -35,17 +47,18 @@ HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history comma
 
 #: }}}
 
-#: Prompt {{{
+#: Plugins {{{
+
+# export MCFLY_FUZZY=true
+export MCFLY_KEY_SCHEME=vim
 
 eval "$(starship init zsh)"
-
-#: }}}
-
-#: Plugins {{{
+eval "$(zoxide init zsh)"
+eval "$(mcfly init zsh)"
 
 plugins=(
     zsh-syntax-highlighting        # zsh
-    fasd fd gitfast                # utils
+    fd gitfast                     # utils
     docker docker-compose kubectl  # docker
     terraform aws gcloud           # cloud
     nvm npm yarn                   # node
@@ -58,22 +71,29 @@ source $ZSH/oh-my-zsh.sh
 
 #: Aliases {{{
 
-#: BAT / CAT {{{
+#: bat / cat {{{
 
-alias c=bat
-alias cat=bat
-alias ccat=cat
-
-#}}}
-
-#: BTM / TOP {{{
-
-alias top=btm
-alias ttop=top
+alias _cat="cat"
+alias cat="bat"
 
 #}}}
 
-#: Configs {{{
+#: btm / top {{{
+
+alias _top="top"
+alias top="btm"
+
+#}}}
+
+#: zoxie / cd {{{
+
+alias _cd="cd"
+alias cd="z"
+alias cdi="zi"
+
+#}}}
+
+#: configs {{{
 
 alias zshconf="nvim ~/.zshrc"
 alias rzshconf="source ~/.zshrc"
@@ -83,36 +103,17 @@ alias awsconf="nvim ~/.aws/credentials"
 
 #: }}}
 
-#: CSharp {{{
-
-alias dn="dotnet"
-alias dna="dotnet add"
-alias dnap="dotnet add package"
-alias dnb="dotnet build"
-alias dnc="dotnet clean"
-alias dnefd="dotnet ef database"
-alias dnefdu="dotnet ef database update"
-alias dnefm="dotnet ef migrations"
-alias dnefma="dotnet ef migrations add"
-alias dnefmr="dotnet ef migrations remove"
-alias dnefmra="dotnet ef migrations remove && dotnet ef migrations add"
-alias dnr="dotnet run"
-alias dnrm="dotnet remove"
-alias dnrmp="dotnet remove package"
-alias dnrp="dotnet run --project"
-alias dnt="dotnet test --nologo"
-alias dnw="dotnet watch"
-alias dnwr="dotnet watch run"
-alias dnwt="dotnet watch test"
-
-#: }}}
-
-#: Docker {{{
+#: docker {{{
 
 alias d="docker"
 alias db="docker build"
+alias dc="docker compose"
+alias dcd="docker compose down"
+alias dcu="docker compose up -d"
 alias de="docker exec"
 alias dei="docker exec -it"
+alias di="docker image"
+alias dis="docker images"
 alias dl="docker logs"
 alias dlf="docker logs -f"
 alias dp="docker ps"
@@ -120,30 +121,23 @@ alias dpa="docker ps -a"
 alias dpaq="docker ps -aq"
 alias dr="docker run"
 alias drm="docker rm"
-alias drma='docker rm "`docker ps -a -q`"'
+alias drma='docker rm "$(docker ps -a -q)"'
 alias ds="docker start"
 alias dst="docker stop"
-alias dsta='docker stop "`docker ps -a -q`"'
-
-alias dc="docker-compose"
-alias dcu="docker-compose up -d"
-alias dcd="docker-compose down"
+alias dsta='docker stop "$(docker ps -a -q)"'
 
 #: }}}
 
-#: EXA / LS {{{
+#: exa / ls {{{
 
-alias l="exa --all --long --header --git"
-alias ls="exa --grid"
-alias la="exa --all --long --header --git"
-
-alias ll="ls -lAh"
-alias lls="ls -G"
-alias lla="ls -lAh"
+alias _ls="ls"
+alias l="exa"
+alias ls="exa --all --long --header --git"
+alias lsg="exa --all --long --header --git --grid"
 
 #: }}}
 
-#: FD / FIND {{{
+#: fd / find {{{
 
 alias f=fd
 alias find=fd
@@ -151,7 +145,7 @@ alias ffind=find
 
 #}}}
 
-#: Git {{{
+#: git {{{
 
 alias g="git"
 alias ga="git add"
@@ -188,7 +182,7 @@ alias gwip="git add --all && git commit -am 'WIP'"
 
 #: }}}
 
-#: Go {{{
+#: go {{{
 
 alias gob="go build"
 alias gog="go generate"
@@ -196,9 +190,9 @@ alias gor="go run"
 
 #}}}
 
-#: JavaScript {{{
+#: js {{{
 
-alias n="npm"
+alias n="pnpm"
 alias nb="npm run build"
 alias nc="npm run clean"
 alias nd="npm run dev"
@@ -229,7 +223,7 @@ alias yws="yarn workspaces"
 
 #: }}}
 
-#: RIPGREP / GREP {{{
+#: ripgrep / grep {{{
 
 alias r=rg
 alias grep=rg
@@ -237,15 +231,17 @@ alias ggrep=grep
 
 #}}}
 
-#: Rust {{{
+#: rust {{{
 
-alias cg="cargo"
-alias cgc="cargo check"
-alias cgb="cargo build"
-alias cgbr="cargo build --release"
-alias cgr="cargo run"
-alias cgw="cargo-watch -c"
-alias cgwr="cargo-watch -c -x run"
+alias c="cargo"
+alias cc="cargo check"
+alias ccc="cargo check; cargo clippy"
+alias cb="cargo build"
+alias cbr="cargo build --release"
+alias cr="cargo run"
+alias crr="cargo run --release"
+alias cw="cargo-watch -c"
+alias cwr="cargo-watch -c -x run"
 
 cgt() {
     if [ $# -eq 0 ]; then
@@ -265,16 +261,17 @@ cgwt() {
 
 #: }}}
 
-#: Terraform {{{
+#: terraform {{{
 
 alias tf="terraform"
 alias tfa="terraform apply"
 alias tfd="terraform destroy"
+alias tfp="terraform plan"
 alias tfr="terraform refresh"
 
 #: }}}
 
-#: Vim {{{
+#: vim {{{
 
 alias v="nvim"
 alias vim="nvim"
@@ -285,26 +282,7 @@ alias vim="nvim"
 
 # added by homebrew
 autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /usr/local/bin/bit bit
 
-# https://github.com/nvm-sh/nvm#calling-nvm-use-automatically-in-a-directory-with-a-nvmrc-file
-autoload -U add-zsh-hook
-load-nvmrc() {
-  local node_version="$(nvm version)"
-  local nvmrc_path="$(nvm_find_nvmrc)"
-
-  if [ -n "$nvmrc_path" ]; then
-    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
-
-    if [ "$nvmrc_node_version" = "N/A" ]; then
-      nvm install
-    elif [ "$nvmrc_node_version" != "$node_version" ]; then
-      nvm use
-    fi
-  elif [ "$node_version" != "$(nvm version default)" ]; then
-    echo "Reverting to nvm default version"
-    nvm use default
-  fi
-}
-add-zsh-hook chpwd load-nvmrc
-load-nvmrc
+# tabtab source for packages
+# uninstall by removing these lines
+[[ -f ~/.config/tabtab/zsh/__tabtab.zsh ]] && . ~/.config/tabtab/zsh/__tabtab.zsh || true

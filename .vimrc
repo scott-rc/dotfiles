@@ -92,8 +92,6 @@ vmap fd <Esc>
 vmap <S-h> ^
 vmap <S-l> $
 vmap <leader>y "+y
-vmap J :move '>+1<CR>gv-gv
-vmap K :move '<-2<CR>gv-gv
 
 " ============================================================================
 " Insert Mode
