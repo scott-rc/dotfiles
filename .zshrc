@@ -7,16 +7,15 @@ export LANG=en_US.UTF-8
 export ZSH="$HOME/.oh-my-zsh"
 export HISTFILE=~/.zsh_history
 export SSH_KEY_PATH=~/.ssh/rsa_id
-export NVM_DIR="$HOME/.nvm"
 
 export CSHARPPATH="$HOME/.dotnet/tools"
 export GOPATH="$HOME/.go"
-export HOMEBREWPATH="/usr/local/bin"
-export JAVAPATH="/usr/local/opt/openjdk/bin"
-export PNPMPATH="/Users/scott/Library/pnpm"
-export RUSTPATH="$HOME/.cargo/bin"
+export HOMEBREWPATH="/opt/homebrew/bin"
+export JAVAPATH="/opt/homebrew/opt/openjdk/bin"
 export NODEPATH="./node_modules/.bin"
-export PHPPATH="$HOME/.symfony/bin:/usr/local/opt/php@7.3/bin:/usr/local/opt/php@7.3/sbin"
+export NVM_DIR="$HOME/.nvm"
+export PHPPATH="/opt/homebrew/opt/php@7.4/bin:/opt/homebrew/opt/php@7.4/sbin:$HOME/.symfony/bin"
+export RUSTPATH="$HOME/.cargo/bin"
 
 #: }}}
 
@@ -26,13 +25,12 @@ typeset -U path
 
 path=(
     "$HOME/bin"
+    "$PHPPATH"
     "$HOMEBREWPATH"
     "$JAVAPATH"
     "$RUSTPATH"                  
     "$NODEPATH"
-    "$PNPMPATH"
     "$GOPATH/bin"
-    "$PHPPATH"
     $path
 )
 
@@ -66,6 +64,13 @@ plugins=(
 )
 
 source $ZSH/oh-my-zsh.sh
+
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+autoload -U +X bashcompinit && bashcompinit
+
+# test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
 #: }}}
 
@@ -164,12 +169,13 @@ alias gco="git checkout"
 alias gcob="git checkout -b"
 alias gd="git diff"
 alias gds="git diff --staged"
+alias gd~="git diff HEAD~"
 alias gf="git fetch"
 alias gl='git log --pretty=oneline --abbrev-commit'
-alias gnah="git reset --hard HEAD"
 alias gp="git pull"
 alias gps="git push"
 alias gr="git reset"
+alias gr~="git reset HEAD~"
 alias grh="git reset --hard"
 alias grs="git reset --soft"
 alias gs="git status -sb"
@@ -192,17 +198,33 @@ alias gor="go run"
 
 #: js {{{
 
-alias n="pnpm"
-alias nb="npm run build"
-alias nc="npm run clean"
-alias nd="npm run dev"
 alias ni="npm install"
 alias nid="npm install --save-dev"
-alias nl="npm run lint"
 alias nr="npm run"
-alias nrm="npm remove"
-alias ns="npm run start"
-alias nt="npm run test"
+alias nrb="npm run build"
+alias nrcl="npm run clean"
+alias nrc="npm run check"
+alias nrd="npm run dev"
+alias nrdp="npm run deploy"
+alias nrf="npm run fmt"
+alias nrl="npm run lint"
+alias nrs="npm run start"
+alias nrt="npm run test"
+alias nx="npx"
+
+alias pi="pnpm install"
+alias pid="pnpm install --save-dev"
+alias pr="pnpm run"
+alias prb="pnpm run build"
+alias prcl="pnpm run clean"
+alias prc="pnpm run check"
+alias prd="pnpm run dev"
+alias prdp="pnpm run deploy"
+alias prf="pnpm run fmt"
+alias prl="pnpm run lint"
+alias prs="pnpm run start"
+alias prt="pnpm run test"
+alias px="pnpx"
 
 alias y="yarn"
 alias ya="yarn add"
@@ -210,7 +232,6 @@ alias yad="yarn add -D"
 alias yb="yarn build"
 alias yc="yarn clean"
 alias yd="yarn dev"
-alias yg="yarn generate"
 alias yi="yarn install"
 alias yl="yarn lint"
 alias yr="yarn run"
@@ -266,6 +287,7 @@ cgwt() {
 alias tf="terraform"
 alias tfa="terraform apply"
 alias tfd="terraform destroy"
+alias tfi="terraform init"
 alias tfp="terraform plan"
 alias tfr="terraform refresh"
 
@@ -279,10 +301,3 @@ alias vim="nvim"
 #: }}}
 
 #: }}}
-
-# added by homebrew
-autoload -U +X bashcompinit && bashcompinit
-
-# tabtab source for packages
-# uninstall by removing these lines
-[[ -f ~/.config/tabtab/zsh/__tabtab.zsh ]] && . ~/.config/tabtab/zsh/__tabtab.zsh || true
