@@ -1,21 +1,20 @@
-set runtimepath^=~/.vim runtimepath+=~/.vim/after
-let &packpath = &runtimepath
 source ~/.vimrc
 
+let data_dir = stdpath('data') . '/site/autoload/plug.vim'
+if empty(glob(data_dir))
+  silent execute '!curl -fLo ' . data_dir . ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+  autocmd VimEnter * PlugInstall --sync | source ~/.vimrc
+endif
+
 call plug#begin('~/.vim/plugged')
+Plug 'dag/vim-fish'
+Plug 'spinks/vim-leader-guide'
 Plug 'ervandew/supertab'
-Plug 'scrooloose/nerdcommenter'
+Plug 'tpope/vim-commentary'
 call plug#end()
 
-" ============================================================================
-" nerdcommenter
-" ============================================================================
-let g:NERDSpaceDelims = 1
-let g:NERDCompactSexyComs = 1
-let g:NERDDefaultAlign = 'left'
-let g:NERDCommentEmptyLines = 1
-let g:NERDTrimTrailingWhitespace = 1
-let g:NERDToggleCheckAllLines = 1
-map <leader>/ <plug>NERDCommenterToggle
-vmap <leader>/ <plug>NERDCommenterToggle
+nmap <leader>/ <Plug>CommentaryLine
+vmap <leader>/ <Plug>Commentary
 
+nnoremap <silent> <leader> :<c-u>LeaderGuide '<Space>'<CR>
+vnoremap <silent> <leader> :<c-u>LeaderGuideVisual '<Space>'<CR>

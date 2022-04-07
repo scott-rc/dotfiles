@@ -22,7 +22,7 @@ set nojoinspaces               " trim whitespace when joining lines
 set mouse=n                    " allow using mouse in normal mode
 set updatetime=750             " how long to wait before writing swap file
 set undofile                   " use undo file
-set undodir=~/.vimdid          " ...and store them here
+set undodir=~/.vim/undo        " ...and store them here
 set history=500                " how many lines of history to remember
 set wildmenu                   " use wild menu
 set backspace=eol,start,indent " make backspace act normal
@@ -54,8 +54,7 @@ syntax enable
 au FocusGained,BufEnter * checktime
 
 " enable filetype plugins
-filetype plugin on
-filetype indent on
+filetype plugin indent on
 
 " ============================================================================
 " Globals
@@ -63,7 +62,6 @@ filetype indent on
 
 let mapleader = " "
 let g:vim_json_conceal = 0
-
 
 " ============================================================================
 " Normal Mode
@@ -74,15 +72,12 @@ nmap ; :
 nmap <S-h> ^
 nmap <S-l> $
 nmap <leader>q :q<CR>
-nmap <leader>w :w<CR>
-nmap <leader>k <C-w>k
-nmap <leader>j <C-w>j
-nmap <leader>l <C-w>l
-nmap <leader>h <C-w>h
-nmap <leader>- :split<CR>
-nmap <leader>\ :vsplit<CR>
-nmap <leader>[ <C-^>
-nmap <leader>] <C-^>
+nmap <leader>w :q<CR>
+nmap <leader>s :w<CR>
+nmap <leader>t :tabnew<CR>
+nmap <leader>[ :tabp<CR>
+nmap <leader>] :tabn<CR>
+nmap <leader>% :source %<CR>
 
 " ============================================================================
 " Visual Mode
