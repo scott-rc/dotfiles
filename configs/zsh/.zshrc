@@ -28,7 +28,7 @@ path=(
     "$PHPPATH"
     "$HOMEBREWPATH"
     "$JAVAPATH"
-    "$RUSTPATH"                  
+    "$RUSTPATH"
     "$NODEPATH"
     "$GOPATH/bin"
     $path
@@ -40,8 +40,8 @@ export PATH
 
 #: Settings {{{
 
-DISABLE_UPDATE_PROMPT=true               # just do it
-HIST_STAMPS="yyyy-mm-dd"                 # time stamp shown in the history command output.
+DISABLE_UPDATE_PROMPT=true # just do it
+HIST_STAMPS="yyyy-mm-dd"   # time stamp shown in the history command output.
 
 #: }}}
 
@@ -55,18 +55,18 @@ eval "$(zoxide init zsh)"
 eval "$(mcfly init zsh)"
 
 plugins=(
-    zsh-syntax-highlighting        # zsh
-    fd gitfast                     # utils
-    docker docker-compose kubectl  # docker
-    terraform aws gcloud           # cloud
-    nvm npm yarn                   # node
-    golang                         # go
+    zsh-syntax-highlighting       # zsh
+    fd gitfast                    # utils
+    docker docker-compose kubectl # docker
+    terraform aws gcloud          # cloud
+    nvm npm yarn                  # node
+    golang                        # go
 )
 
 source $ZSH/oh-my-zsh.sh
 
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 
 autoload -U +X bashcompinit && bashcompinit
 

@@ -8,8 +8,8 @@ endif
 
 call plug#begin('~/.vim/plugged')
 Plug 'dag/vim-fish'
-Plug 'spinks/vim-leader-guide'
 Plug 'ervandew/supertab'
+Plug 'spinks/vim-leader-guide'
 Plug 'tpope/vim-commentary'
 call plug#end()
 
