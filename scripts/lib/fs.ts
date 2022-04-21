@@ -13,7 +13,7 @@ export async function ensureSymlink(from: string, to: string): Promise<void> {
       log.info(`creating symlink from ${from} -> ${to}`);
       await Deno.symlink(from, to);
     } else {
-      log.debug(`symlink ${from} -> ${to} already exists`);
+      log.debug(`symlink already exists ${from} -> ${to}`);
     }
   } catch (err) {
     if (toFileInfo?.isSymlink && err instanceof Deno.errors.NotFound) {

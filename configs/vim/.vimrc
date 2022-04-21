@@ -37,7 +37,7 @@ set novisualbell               " ...none
 set nobackup                   " turn backup off
 set nowb                       " ...since most stuff is in git anyway
 set noswapfile                 " ...right?
-set so=4                       " pad 4 lines when moving vertically using j/k
+set scrolloff=8                " pad 12 lines when moving vertically using j/k
 
 " extra options when running in GUI mode
 if has("gui_running")
@@ -103,4 +103,3 @@ cmap <expr> <up> wildmenumode() ? "\<left>" : "\<up>"
 cmap <expr> <down> wildmenumode() ? "\<right>" : "\<down>"
 cmap <expr> <left> wildmenumode() ? "\<up>" : "\<left>"
 cmap <expr> <right> wildmenumode() ? " \<bs>\<C-Z>" : "\<right>"
-

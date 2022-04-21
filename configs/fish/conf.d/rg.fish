@@ -2,6 +2,6 @@ if not status is-interactive
     return
 end
 
-brew_ensure bat
+brew_ensure rg ripgrep
 
-alias cat=bat
+alias grep=rg

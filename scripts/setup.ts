@@ -1,4 +1,4 @@
-#!/Users/scott/.deno/bin/deno run --no-check --allow-read --allow-env
+#!/usr/bin/env -S deno run --allow-read --allow-env
 
 import { $, fs, path, log } from "./lib/deps.ts";
 import { ensureSymlink, exists, args } from "./lib/mod.ts";
@@ -23,7 +23,7 @@ const paths = (() => {
 
 // homebrew
 if (await exists("/opt/homebrew/bin/brew")) {
-  log.debug("homebrew already installed");
+  log.debug("homebrew is already installed");
 } else {
   log.info("installing homebrew");
   await $`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`;
@@ -32,7 +32,7 @@ if (await exists("/opt/homebrew/bin/brew")) {
 
 // fish
 if (await exists("/opt/homebrew/bin/fish")) {
-  log.debug("fish already installed");
+  log.debug("fish is already installed");
 } else {
   log.info("installing fish");
   await $`/opt/homebrew/bin/brew install fish`;
@@ -40,13 +40,41 @@ if (await exists("/opt/homebrew/bin/fish")) {
 
 const etcShells = decoder.decode(await Deno.readFile("/etc/shells"));
 if (etcShells.includes("/opt/homebrew/bin/fish")) {
-  log.debug("fish already added to /etc/shells");
+  log.debug("fish is already added to /etc/shells");
 } else {
   log.info("adding fish to /etc/shells");
   await Deno.writeFile("/etc/shells", encoder.encode(etcShells.concat("\n", "/opt/homebrew/bin/fish")));
 }
 
 await ensureSymlink(`${paths.configs}/fish`, `${paths.home}/.config/fish`);
+
+// git
+await ensureSymlink(`${paths.configs}/git/.gitconfig`, `${paths.home}/.gitconfig`);
+
+$.stdout = "piped";
+$.stderr = "piped";
+
+// iterm2
+if ((await $o`defaults read com.googlecode.iterm2 PrefsCustomFolder`) === `${paths.configs}/iterm2`) {
+  log.debug("iterm2 is already loading preference from the correct location");
+} else {
+  log.info(`telling iterm2 that the preferences are located at ${paths.configs}/iterm2`);
+  await $`defaults write com.googlecode.iterm2 PrefsCustomFolder -string ${paths.configs}/iterm2`;
+}
+
+if ((await $o`defaults read com.googlecode.iterm2 LoadPrefsFromCustomFolder`) === "1") {
+  log.debug("iterm2 is already loading preference from custom location");
+} else {
+  log.info("telling iterm2 to load the preferences from the custom location");
+  await $`defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true`;
+}
+
+$.stdout = "inherit";
+$.stderr = "inherit";
+
+// karabiner
+await fs.ensureDir(`${paths.home}/.config/karabiner`);
+await ensureSymlink(`${paths.configs}/karabiner/karabiner.json`, `${paths.home}/.config/karabiner/karabiner.json`);
 
 // nix
 if (await exists("/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh")) {
@@ -58,12 +86,12 @@ if (await exists("/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh")) {
 
 await ensureSymlink(`${paths.configs}/nix/nix.conf`, `/etc/nix/nix.conf`);
 
-// git
-await ensureSymlink(`${paths.configs}/git/.gitconfig`, `${paths.home}/.gitconfig`);
+// nushell
+await ensureSymlink(`${paths.configs}/nu`, `${paths.home}/.config/nu`);
+await ensureSymlink(`${paths.configs}/nu`, `${paths.home}/Library/Application Support/nushell`);
 
-// karabiner
-await fs.ensureDir(`${paths.home}/.config/karabiner`);
-await ensureSymlink(`${paths.configs}/karabiner/karabiner.json`, `${paths.home}/.config/karabiner/karabiner.json`);
+// starship
+await ensureSymlink(`${paths.configs}/starship/starship.toml`, `${paths.home}/.config/starship.toml`);
 
 // vim
 await fs.ensureDir(`${paths.home}/.config/nvim`);
@@ -73,12 +101,5 @@ await ensureSymlink(`${paths.configs}/vim/init.vim`, `${paths.home}/.config/nvim
 
 // zsh
 await ensureSymlink(`${paths.configs}/zsh/.zshrc`, `${paths.home}/.zshrc`);
-
-// starship
-await ensureSymlink(`${paths.configs}/starship/starship.toml`, `${paths.home}/.config/starship.toml`);
-
-// nushell
-await ensureSymlink(`${paths.configs}/nu`, `${paths.home}/.config/nu`);
-await ensureSymlink(`${paths.configs}/nu`, `${paths.home}/Library/Application Support/nushell`);
 
 log.info("all done");

@@ -2,6 +2,6 @@ if not status is-interactive
     return
 end
 
-brew_ensure bat
+brew_ensure fd
 
-alias cat=bat
+alias find=fd

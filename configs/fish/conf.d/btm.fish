@@ -4,6 +4,4 @@ end
 
 brew_ensure btm bottom
 
-function top --wraps btm
-    command btm $argv
-end
+alias top=btm
