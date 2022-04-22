@@ -1,3 +1,6 @@
 [character]
 success_symbol = "[λ](green)"
 error_symbol = "[λ](red)"
+
+[gcloud]
+disabled = true
