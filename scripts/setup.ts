@@ -49,7 +49,9 @@ if (etcShells.includes("/opt/homebrew/bin/fish")) {
 await ensureSymlink(`${paths.configs}/fish`, `${paths.home}/.config/fish`);
 
 // git
+await fs.ensureDir(`${paths.home}/.config/git`);
 await ensureSymlink(`${paths.configs}/git/.gitconfig`, `${paths.home}/.gitconfig`);
+await ensureSymlink(`${paths.configs}/git/.gitignore_global`, `${paths.home}/.config/git/.gitignore_global`);
 
 $.stdout = "piped";
 $.stderr = "piped";

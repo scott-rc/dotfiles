@@ -2,14 +2,24 @@
 name = Scott Côtê
 email = scott.cote@hey.com
 
+[core]
+pager = delta
+excludesFile = ~/.config/git/.gitignore_global
+
+[interactive]
+diffFilter = delta --color-only
+
 [push]
 default = current
 
 [pull]
 rebase = true
 
-[filter "lfs"]
-smudge = git-lfs smudge -- %f
-process = git-lfs filter-process
-required = true
-clean = git-lfs clean -- %f
+[diff]
+colorMoved = zebra
+
+[merge]
+conflictStyle = diff3
+
+[delta]
+navigate = true

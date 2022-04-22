@@ -1,3 +1,9 @@
+if not status is-interactive
+    return
+end
+
+brew_ensure delta git-delta
+
 function gwip --description "Commits all changes with the message WIP (amends previous commit if it contains WIP)"
     command git add --all
 
