@@ -8,4 +8,4 @@ alias l=exa
 alias ls=exa
 
 abbr --add la exa --all --long --header --git
-abbr --add la exa --all --long --header --git --grid
+abbr --add lg exa --all --long --header --git --grid
