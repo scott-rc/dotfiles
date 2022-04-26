@@ -7,14 +7,20 @@ set --local now (date +%s)
 
 if test (math "$now" - (cat "$updated_at_file" 2>/dev/null || echo 0)) -gt 3600
     echo 'dotfiles: updating...'
+    pushd "$DOTFILES"
+
     if not git diff --quiet
-        echo 'dotfiles: you have uncommited changes'
+        echo 'dotfiles: cannot update (you have uncommited changes)'
+        popd
         return
     end
 
-    pushd "$DOTFILES"
     git pull
     ./scripts/setup.ts
-    echo "$now" >>"$updated_at_file"
+    echo "$now" >"$updated_at_file"
     popd
+end
+
+function edit_dotfiles
+    code "$DOTFILES"
 end
