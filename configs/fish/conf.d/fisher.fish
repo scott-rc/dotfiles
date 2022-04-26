@@ -4,7 +4,7 @@ end
 
 if not functions --query fisher
     echo 'installing fisher'
-    curl --fail --silent --show-error --location https://git.io/fisher | source && fisher install jorgebucaran/fisher
+    curl -fsSL https://git.io/fisher | source && fisher install jorgebucaran/fisher
 end
 
 if not functions --query bass

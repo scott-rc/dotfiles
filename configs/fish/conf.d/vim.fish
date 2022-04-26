@@ -4,8 +4,6 @@ end
 
 brew_ensure nvim neovim
 
-function vim --wraps nvim
-    command nvim $argv
-end
+alias vim=nvim
 
 abbr --add v nvim

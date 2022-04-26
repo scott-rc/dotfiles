@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-env
+#!/usr/bin/env -S deno run --allow-read --allow-env --allow-run
 
 import { $, fs, path, log } from "./lib/deps.ts";
 import { ensureSymlink, exists, args } from "./lib/mod.ts";
@@ -104,4 +104,4 @@ await ensureSymlink(`${paths.configs}/vim/init.vim`, `${paths.home}/.config/nvim
 // zsh
 await ensureSymlink(`${paths.configs}/zsh/.zshrc`, `${paths.home}/.zshrc`);
 
-log.info("all done");
+log.info("done ✨");

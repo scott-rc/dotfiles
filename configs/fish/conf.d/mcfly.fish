@@ -3,5 +3,4 @@ if not status is-interactive
 end
 
 brew_ensure mcfly
-
 mcfly init fish | source
