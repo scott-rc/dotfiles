@@ -1,5 +1,3 @@
-set --global DOTFILES $(realpath $(realpath $(status dirname))/../../..)
-
 /opt/homebrew/bin/brew shellenv | source
 
 function brew_ensure --argument-names dependency formula --description "Ensures a brew dependency is installed"

@@ -2,12 +2,13 @@ if not status is-interactive
     return
 end
 
-set --local updated_at_file "$DOTFILES/updated_at"
-set --local now (date +%s)
+function __dotfiles_path
+    echo (realpath (realpath (status dirname))/../../..)
+end
 
-if test (math "$now" - (cat "$updated_at_file" 2>/dev/null || echo 0)) -gt 3600
+function update_dotfiles
     echo 'dotfiles: updating...'
-    pushd "$DOTFILES"
+    pushd (__dotfiles_path)
 
     if not git diff --quiet
         echo 'dotfiles: cannot update (you have uncommited changes)'
@@ -17,10 +18,15 @@ if test (math "$now" - (cat "$updated_at_file" 2>/dev/null || echo 0)) -gt 3600
 
     git pull
     ./scripts/setup.ts
-    echo "$now" >"$updated_at_file"
+    echo (date +%s) >./updated_at
     popd
 end
 
 function edit_dotfiles
-    code "$DOTFILES"
+    code (__dotfiles_path)
+end
+
+
+if test (math (date +%s) - (cat (__dotfiles_path)"/updated_at" 2>/dev/null || echo 0)) -gt 3600
+    update_dotfiles
 end
