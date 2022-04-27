@@ -1,11 +1,5 @@
 updated_at
-
-configs/fish/completions/fisher.fish
 configs/fish/fish_variables
-configs/fish/functions/__bass.py
-configs/fish/functions/bass.fish
-configs/fish/functions/fisher.fish
-
 configs/nu/history.txt
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,windows,visualstudiocode,jetbrains+all
