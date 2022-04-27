@@ -26,7 +26,8 @@ function edit_dotfiles
     code (__dotfiles_path)
 end
 
+set --local updated_at (cat (__dotfiles_path)"/updated_at" 2>/dev/null || echo 0)
 
-if test (math (date +%s) - (cat (__dotfiles_path)"/updated_at" 2>/dev/null || echo 0)) -gt 3600
+if test (math (date +%s) - "$updated_at") -gt 3600
     update_dotfiles
 end
