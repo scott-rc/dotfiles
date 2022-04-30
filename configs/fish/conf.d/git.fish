@@ -45,6 +45,8 @@ alias g=git
 abbr --add ga git add
 abbr --add gaa git add --all
 abbr --add gb git branch
+abbr --add gbm git branch --move
+abbr --add gbd git branch --delete
 abbr --add gc git commit --verbose
 abbr --add gc! git commit --amend --no-edit
 abbr --add gca git commit --all --verbose
@@ -67,6 +69,7 @@ abbr --add gr git reset
 abbr --add grh git reset --hard
 abbr --add grs git reset --soft
 abbr --add gr~ git reset HEAD~
+abbr --add grb git rebase
 abbr --add gs git status --short --branch
 abbr --add gst git stash
 abbr --add gstp git stash pop
