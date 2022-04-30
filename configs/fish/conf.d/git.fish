@@ -45,12 +45,12 @@ alias g=git
 abbr --add ga git add
 abbr --add gaa git add --all
 abbr --add gb git branch
-abbr --add gc git commit
+abbr --add gc git commit --verbose
 abbr --add gc! git commit --amend --no-edit
-abbr --add gca git commit --all
+abbr --add gca git commit --all --verbose
 abbr --add gca! git commit --all --amend --no-edit
 abbr --add gcam 'git add --all && git commit --message'
-abbr --add gcam! 'git add --all && git commit --amend'
+abbr --add gcam! 'git add --all && git commit --verbose --amend'
 abbr --add gcm git commit --message
 abbr --add gcm! git commit --amend --message
 abbr --add gcl git clone
