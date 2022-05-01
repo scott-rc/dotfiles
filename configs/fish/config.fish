@@ -1,3 +1,3 @@
-fish_add_path "$HOME/bin"
+fish_add_path ~/bin
 
 abbr --add c. code .

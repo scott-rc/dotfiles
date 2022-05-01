@@ -26,7 +26,7 @@ if (await exists("/opt/homebrew/bin/brew")) {
   log.debug("homebrew is already installed");
 } else {
   log.info("installing homebrew");
-  await $`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`;
+  await $`/bin/bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`;
   await $`/opt/homebrew/bin/brew update --force`;
 }
 
@@ -83,7 +83,7 @@ if (await exists("/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh")) {
   log.debug("nix already installed");
 } else {
   log.info("installing nix");
-  await $`/bin/bash -c "$(curl -fsSL https://nixos.org/nix/install)"`;
+  await $`/bin/bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://nixos.org/nix/install)"`;
 }
 
 await ensureSymlink(`${paths.configs}/nix/nix.conf`, `/etc/nix/nix.conf`);

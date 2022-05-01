@@ -1,1 +1,1 @@
-fish_add_path "$HOME/.deno/bin"
+fish_add_path ~/.deno/bin

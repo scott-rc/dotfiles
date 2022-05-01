@@ -2,14 +2,5 @@
   "deno.enablePaths": ["."],
   "deno.path": "/Users/scott/.deno/bin/deno",
   "editor.tabSize": 2,
-  "cSpell.words": [
-    "googlecode",
-    "ideavimrc",
-    "iterm",
-    "karabiner",
-    "nushell",
-    "nvim",
-    "Prefs",
-    "vimrc"
-  ],
+  "cSpell.words": ["googlecode", "ideavimrc", "iterm", "karabiner", "nushell", "nvim", "Prefs", "vimrc"]
 }
