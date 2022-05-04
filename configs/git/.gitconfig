@@ -15,6 +15,9 @@ default = current
 [pull]
 rebase = true
 
+[rebase]
+autostash = true
+
 [diff]
 colorMoved = zebra
 

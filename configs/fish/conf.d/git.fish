@@ -16,17 +16,16 @@ function gwip --description "Commits all changes with the message WIP (amends pr
 end
 
 function gsquash --argument-names n --description "Squashes the last n commits"
-    if test -z "$n" || test "$n" -lt 1
-        echo "Argument n must be greater than 0"
+    if test -z "$n" -o "$n" -lt 2
+        echo "Argument n must be greater than 1"
         return 1
     end
 
-    set --local n_plus_one (math $n + 1)
-    set --local messages (command git log --abbrev HEAD~"$n_plus_one"..HEAD)
+    set --local logs (command git log --abbrev HEAD~"$n"..HEAD)
 
     echo "About to squash the following commits"
-    for message in $messages
-        echo "  $message"
+    for log in $logs
+        echo "  $log"
     end
     echo ''
 
@@ -35,8 +34,9 @@ function gsquash --argument-names n --description "Squashes the last n commits"
     switch "$answer"
         case y yes
             # https://stackoverflow.com/a/5201642/5842886
+            set --local messages (command git log --format=%B HEAD~"$n"..HEAD)
             command git reset --soft "HEAD~$n"
-            command git commit --edit --message (command git log --format=%B --reverse HEAD..HEAD@{"$n"})
+            command git commit --edit --message "$messages"
     end
 end
 
