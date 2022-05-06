@@ -4,26 +4,20 @@ end
 
 brew_ensure delta git-delta
 
-function gwip --description "Commits all changes with the message WIP (amends previous commit if it contains WIP)"
+function gwip --description "Commits all changes with the message WIP <current time>"
     command git add --all
-
-    switch "$(command git log -1 --pretty=%B)"
-        case '*WIP*'
-            command git commit --all --amend --no-edit
-        case '*'
-            command git commit --all --message WIP
-    end
+    command git commit --all --message "WIP - $(date +'%a, %b %d %I:%M %^p')"
 end
 
-function gsquash --argument-names n --description "Squashes the last n commits"
-    if test -z "$n" -o "$n" -lt 2
-        echo "Argument n must be greater than 1"
+function gsquash --argument-names N --description "Squashes the last N commits"
+    if test -z "$N" -o "$N" -lt 2
+        echo "gsquash: Argument N must be greater than 2"
         return 1
     end
 
-    set --local logs (command git log --abbrev HEAD~"$n"..HEAD)
+    set --local logs (command git log --abbrev HEAD~"$N"..HEAD)
 
-    echo "About to squash the following commits"
+    echo "gsquash: About to squash the following commits"
     for log in $logs
         echo "  $log"
     end
@@ -34,8 +28,8 @@ function gsquash --argument-names n --description "Squashes the last n commits"
     switch "$answer"
         case y yes
             # https://stackoverflow.com/a/5201642/5842886
-            set --local messages (command git log --format=%B HEAD~"$n"..HEAD)
-            command git reset --soft "HEAD~$n"
+            set --local messages (command git log --format=%B HEAD~"$N"..HEAD)
+            command git reset --soft "HEAD~$N"
             command git commit --edit --message "$messages"
     end
 end
