@@ -5,16 +5,23 @@ end
 brew_ensure zoxide
 zoxide init fish | source
 
-function cd --wraps z
-    if test -z $argv
-        return (z)
+function cd --argument-names DIR --wraps z
+    if test -z "$DIR"
+        z
+        return
     end
 
-    if test -d $argv
-        return (z $argv)
+    if test "$DIR" = -
+        z -
+        return
     end
 
-    return (zi $argv)
+    if test -d (realpath "$DIR")
+        z "$DIR"
+        return
+    end
+
+    zi "$DIR"
 end
 
 alias ci=zi
