@@ -6,7 +6,7 @@ brew_ensure delta git-delta
 
 function gwip --description "Commits all changes with the message WIP <current time>"
     command git add --all
-    command git commit --all --message "WIP - $(date +'%a, %b %d %I:%M %^p')"
+    command git commit --all --message "WIP - $(TZ=America/Toronto date +'%a, %b %d %I:%M %^p')"
 end
 
 function gsquash --argument-names N --description "Squashes the last N commits"
