@@ -17,11 +17,11 @@ function cd --argument-names DIR --wraps z
     end
 
     if test -d (realpath "$DIR")
-        z "$DIR"
+        z $argv
         return
     end
 
-    zi "$DIR"
+    zi $argv
 end
 
 alias ci=zi
