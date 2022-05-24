@@ -37,7 +37,7 @@ set novisualbell               " ...none
 set nobackup                   " turn backup off
 set nowb                       " ...since most stuff is in git anyway
 set noswapfile                 " ...right?
-set scrolloff=8                " pad 12 lines when moving vertically using j/k
+set scrolloff=8                " pad lines when moving vertically using j/k
 
 " extra options when running in GUI mode
 if has("gui_running")
