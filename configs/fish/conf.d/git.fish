@@ -41,6 +41,7 @@ abbr --add gaa git add --all
 abbr --add gb git branch
 abbr --add gbm git branch --move
 abbr --add gbd git branch --delete
+abbr --add gbD git branch -D
 abbr --add gc git commit --verbose
 abbr --add gc! git commit --amend --no-edit
 abbr --add gca git commit --all --verbose
