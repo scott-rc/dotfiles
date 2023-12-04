@@ -1,3 +1,5 @@
+# Fig pre block. Keep at the top of this file.
+[[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && . "$HOME/.fig/shell/zshrc.pre.zsh"
 # vim:fileencoding=utf-8:ft=zsh:foldmethod=marker
 
 #: Exports {{{
@@ -301,3 +303,6 @@ alias vim="nvim"
 #: }}}
 
 #: }}}
+
+# Fig post block. Keep at the bottom of this file.
+[[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && . "$HOME/.fig/shell/zshrc.post.zsh"

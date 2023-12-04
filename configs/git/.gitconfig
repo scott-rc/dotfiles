@@ -1,10 +1,23 @@
 [user]
 name = Scott Côté
 email = scott.cote@hey.com
+signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJwC+3cKXLbj8nc9vkthvBxwj529SpqX0VxfwFBbT4Va
+
+[gpg]
+format = ssh
+
+[gpg "ssh"]
+program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+
+[commit]
+gpgsign = true
 
 [core]
 pager = delta
 excludesFile = ~/.config/git/.gitignore_global
+
+[init]
+defaultBranch = main
 
 [interactive]
 diffFilter = delta --color-only
@@ -17,12 +30,17 @@ rebase = true
 
 [rebase]
 autostash = true
+updateRefs = true
 
 [diff]
 colorMoved = zebra
 
 [merge]
 conflictStyle = diff3
+tool = code
+
+[mergetool "code"]
+cmd = code --wait --merge $REMOTE $LOCAL $BASE $MERGED
 
 [delta]
 navigate = true

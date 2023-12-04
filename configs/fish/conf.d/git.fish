@@ -4,34 +4,76 @@ end
 
 brew_ensure delta git-delta
 
-function gwip --description "Commits all changes with the message WIP <current time>"
+function gwip --description "Commits all changes with the message WIP - <current time>"
     command git add --all
-    command git commit --all --message "WIP - $(TZ=America/Toronto date +'%a, %b %d %I:%M %^p')"
+    command git commit --all --message "WIP - $(TZ=America/Toronto date +'%a, %b %d %I:%M %p')"
 end
 
-function gsquash --argument-names N --description "Squashes the last N commits"
+function gsquash --argument-names N SUBJECT --description "Squashes the last N commits"
     if test -z "$N" -o "$N" -lt 2
         echo "gsquash: Argument N must be greater than 2"
         return 1
     end
 
-    set --local logs (command git log --abbrev HEAD~"$N"..HEAD)
+    set --function COMMITS (command git log --format='%h %s' HEAD~"$N"..HEAD)
 
-    echo "gsquash: About to squash the following commits"
-    for log in $logs
-        echo "  $log"
+    echo "gsquash: Squash the following commits?"
+    echo ""
+    for COMMIT in $COMMITS
+        echo "$COMMIT"
     end
-    echo ''
+    echo ""
 
-    read --function --prompt-str '(y/n) ' answer
+    read --function --prompt-str '(y/n) ' ANSWER
 
-    switch "$answer"
+    switch "$ANSWER"
         case y yes
-            # https://stackoverflow.com/a/5201642/5842886
-            set --local messages (command git log --format=%B HEAD~"$N"..HEAD)
+            if test -z "$SUBJECT"
+                set --function SUBJECT "WIP - $(TZ=America/Toronto date +'%a, %b %d %I:%M %p')"
+            end
+
+            set --function ARGS
+            for LINE in (command git log --format=%s HEAD~"$N"..HEAD)
+                set --function --append ARGS --message
+                set --function --append ARGS "- $LINE"
+            end
+
             command git reset --soft "HEAD~$N"
-            command git commit --edit --message "$messages"
+            command git commit --edit --message "$SUBJECT" $ARGS
     end
+end
+
+function gsearch --argument-names filter --description "Echos all commits matching the filter"
+    set --function COMMITS (command git log --format='%h %s' --grep="$filter")
+
+    if test -z "$COMMITS"
+        echo "gsearch: No commits found matching filter $filter"
+        return 1
+    end
+
+    for COMMIT in $COMMITS
+        echo "$COMMIT"
+    end
+end
+
+function gsw --description "Squashes consecutive WIP commits into one"
+    set --function COMMITS (command git log --format='%s')
+    set --function N 0
+
+    for COMMIT in $COMMITS
+        if echo "$COMMIT" | grep -q -E '^WIP( - .+)?$'
+            set --function N (math $N + 1)
+        else
+            break
+        end
+    end
+
+    gsquash "$N"
+end
+
+
+function gfixup
+    open 'https://stackoverflow.com/a/27721031/5842886'
 end
 
 alias g=git
@@ -49,10 +91,13 @@ abbr --add gca! git commit --all --amend --no-edit
 abbr --add gcam 'git add --all && git commit --message'
 abbr --add gcam! 'git add --all && git commit --verbose --amend'
 abbr --add gcm git commit --message
-abbr --add gcm! git commit --amend --message
+abbr --add gcm! git commit --verbose --amend
 abbr --add gcl git clone
 abbr --add gco git checkout
+abbr --add gco- git checkout -
 abbr --add gcob git checkout -b
+abbr --add gcom git checkout main
+abbr --add gcp git cherry-pick
 abbr --add gd git diff
 abbr --add gds git diff --staged
 abbr --add gd~ git diff HEAD~
@@ -62,9 +107,14 @@ abbr --add gp git pull
 abbr --add gps git push
 abbr --add gr git reset
 abbr --add grh git reset --hard
+abbr --add grh! 'git reset --hard && git clean -fd'
 abbr --add grs git reset --soft
 abbr --add gr~ git reset HEAD~
 abbr --add grb git rebase
+abbr --add grba git rebase --abort
+abbr --add grbc git rebase --continue
+abbr --add grbm git rebase main
+abbr --add grbmi git rebase main -i
 abbr --add gs git status --short --branch
 abbr --add gst git stash
 abbr --add gstp git stash pop

@@ -1,3 +1,4 @@
-.vscode
+.vscode/*
+!.vscode/settings.example.json
 .idea
 .DS_Store

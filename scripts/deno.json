@@ -1,0 +1,12 @@
+{
+  "lint": {
+    "rules": {
+      "include": ["camelcase", "explicit-module-boundary-types", "no-external-import"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "lineWidth": 120
+    }
+  }
+}

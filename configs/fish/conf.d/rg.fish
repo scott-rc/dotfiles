@@ -4,4 +4,4 @@ end
 
 brew_ensure rg ripgrep
 
-alias grep=rg
+# alias grep=rg
