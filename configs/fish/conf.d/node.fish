@@ -49,3 +49,5 @@ abbr --add yt yarn test
 abbr --add yu yarn upgrade-interactive --latest
 abbr --add yw yarn workspace
 abbr --add yws yarn workspaces
+
+abbr --add vt vitest
