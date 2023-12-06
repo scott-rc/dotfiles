@@ -4,12 +4,9 @@ end
 
 brew_ensure rg ripgrep
 
-# alias grep=rg
+alias grep=rg
 
-function rgkill --argument-names PATTERN
-    set --function PIDS
-    set --function COMMANDS
-
+function pgrep --argument-names PATTERN
     for LINE in (ps -xo pid,command | rg $PATTERN)
         if string match --quiet --regex "^ *[0-9]+ rg $PATTERN\$" $LINE
             # skip the current process
@@ -21,9 +18,16 @@ function rgkill --argument-names PATTERN
     end
 
     if test -z "$COMMANDS"
-        echo "rgkill: No processes found matching $PATTERN"
         return 1
     end
+
+    for COMMAND in $COMMANDS
+        echo $COMMAND
+    end
+end
+
+function pkill --argument-names PATTERN
+    set --function PIDS (pgrep $PATTERN | awk '{print $1}')
 
     echo "rgkill: Kill these processes?"
     echo ""
