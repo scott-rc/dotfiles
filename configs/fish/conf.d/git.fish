@@ -61,7 +61,7 @@ function gsw --description "Squashes consecutive WIP commits into one"
     set --function N 0
 
     for COMMIT in $COMMITS
-        if echo "$COMMIT" | grep -q -E '^WIP( - .+)?$'
+        if echo "$COMMIT" | command grep -q -E '^WIP( - .+)?$'
             set --function N (math $N + 1)
         else
             break
@@ -77,6 +77,7 @@ function gfixup
 end
 
 alias g=git
+alias gl="git log --pretty=format:'%h %C(blue)%d%C(reset) %s' --graph --date=short --branches --decorate"
 
 abbr --add ga git add
 abbr --add gaa git add --all
@@ -102,7 +103,6 @@ abbr --add gd git diff
 abbr --add gds git diff --staged
 abbr --add gd~ git diff HEAD~
 abbr --add gf git fetch
-abbr --add gl git log --pretty=oneline --abbrev-commit
 abbr --add gp git pull
 abbr --add gps git push
 abbr --add gr git reset
