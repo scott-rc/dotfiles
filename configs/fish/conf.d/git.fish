@@ -76,6 +76,15 @@ function gfixup
     open 'https://stackoverflow.com/a/27721031/5842886'
 end
 
+function gprune
+    if not test (string match -r 'main|master' (git symbolic-ref --short HEAD))
+        echo "gprune: must be on main branch to prune"
+        return 1
+    end
+
+    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
+end
+
 alias g=git
 alias gl="git log --pretty=format:'%h %C(blue)%d%C(reset) %s' --graph --date=short --branches --decorate"
 
