@@ -82,7 +82,8 @@ function gprune
         return 1
     end
 
-    git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
+    # git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
+    git branch --format '%(refname:short) %(upstream:track)' | awk '$2 == "[gone]" { print $1 }' | xargs -r git branch -D
 end
 
 alias g=git

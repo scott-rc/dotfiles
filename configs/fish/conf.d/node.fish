@@ -31,8 +31,8 @@ abbr --add pid pnpm install -D
 abbr --add pl pnpm run lint
 abbr --add pr pnpm run
 abbr --add prs pnpm run start
-abbr --add pt pnpm run test --
-abbr --add px pnpx
+abbr --add pt pnpm run test
+abbr --add px pnpm x
 
 alias y=yarn
 abbr --add ya yarn add
