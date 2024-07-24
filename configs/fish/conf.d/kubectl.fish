@@ -17,7 +17,7 @@ function ksh --argument-names POD --description "SSH into a pod"
         return 1
     end
 
-    set --local POD_NAME (kubectl get pods -o custom-columns=':metadata.name' | fzf_prompt "Select pod" "$POD")
+    set --local POD_NAME (kubectl get pods -o custom-columns=':metadata.name' | grep "$POD" | gum choose --select-if-one)
     if test -z "$POD_NAME"
         echo "ksh: No pod selected"
         return 1
