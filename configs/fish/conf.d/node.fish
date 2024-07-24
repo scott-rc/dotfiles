@@ -2,8 +2,6 @@ if not status is-interactive
     return
 end
 
-# fish_add_path '$PWD/node_modules/.bin'
-
 brew_ensure node
 
 alias n=npm
