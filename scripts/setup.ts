@@ -37,14 +37,15 @@ if (etcShells.includes("/opt/homebrew/bin/fish")) {
 
 await ensureSymlink(configs.join("fish"), home.join(".config/fish"));
 
+// ghosty
+await ensureSymlink(configs.join("ghostty/config"), home.join("Library/Application Support/com.mitchellh.ghostty/config"));
+
 // git
 await ensureSymlink(configs.join("git/.gitconfig"), home.join(".gitconfig"));
 await ensureSymlink(configs.join("git/.gitignore_global"), home.join(".config/git/.gitignore_global"));
 
 // iterm2
-if (
-  (await $`defaults read com.googlecode.iterm2 PrefsCustomFolder`.quiet().output()) == configs.join("iterm2").toString()
-) {
+if ((await $`defaults read com.googlecode.iterm2 PrefsCustomFolder`.quiet().output()) == configs.join("iterm2").toString()) {
   logger.debug("iterm2 is already loading preference from the correct location");
 } else {
   logger.info(`telling iterm2 that the preferences are located at ${configs}/iterm2`);
@@ -88,6 +89,9 @@ await ensureDir(home.join(".config/nvim"));
 await ensureSymlink(configs.join("vim/.vimrc"), home.join(".vimrc"));
 await ensureSymlink(configs.join("vim/.ideavimrc"), home.join(".ideavimrc"));
 await ensureSymlink(configs.join("vim/init.vim"), home.join(".config/nvim/init.vim"));
+
+// zellij
+await ensureSymlink(configs.join("zellij/config.kdl"), home.join(".config/zellij/config.kdl"));
 
 // zsh
 await ensureSymlink(configs.join("zsh/.zshrc"), home.join(".zshrc"));
