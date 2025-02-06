@@ -2,4 +2,5 @@ cursor-style-blink = false
 font-family = MonoLisa
 font-size = 14
 keybind = cmd+l=clear_screen
+macos-option-as-alt = true
 theme = dark:github dark,light:github dark
