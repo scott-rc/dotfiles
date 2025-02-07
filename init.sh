@@ -170,6 +170,10 @@ ensure_symlink "$CONFIGS/nix/nix.conf" "/etc/nix/nix.conf"
 ensure_symlink "$CONFIGS/nu" "$HOME/.config/nu"
 ensure_symlink "$CONFIGS/nu" "$HOME/Library/Application Support/nushell"
 
+# --- Orbstack ---
+
+ensure_symlink "$CONFIGS/orbstack/docker.json" "$HOME/.orbstack/config/docker.json"
+
 # --- Starship ---
 
 ensure_symlink "$CONFIGS/starship/starship.toml" "$HOME/.config/starship.toml"

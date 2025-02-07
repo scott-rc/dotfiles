@@ -1,0 +1,6 @@
+{
+  "features": {
+    "cdi": true,
+    "containerd-snapshotter": true
+  }
+}
