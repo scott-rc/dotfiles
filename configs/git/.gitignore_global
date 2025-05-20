@@ -1,4 +1,5 @@
+**/*.local.*
+.DS_Store
+.idea
 .vscode/*
 !.vscode/settings.example.json
-.idea
-.DS_Store

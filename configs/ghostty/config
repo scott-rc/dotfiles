@@ -1,6 +1,10 @@
+command = /opt/homebrew/bin/fish -lc 'zellij attach -c ghostty'
+cursor-style = bar
 cursor-style-blink = false
 font-family = MonoLisa
 font-size = 14
 keybind = cmd+l=clear_screen
 macos-option-as-alt = true
+shell-integration-features = no-cursor
 theme = dark:github dark,light:github dark
+

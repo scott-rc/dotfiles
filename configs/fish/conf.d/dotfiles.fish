@@ -21,6 +21,10 @@ function update_dotfiles
     popd
 end
 
+function reload_dotfiles
+    exec fish
+end
+
 function edit_dotfiles
     code (__dotfiles_dir)
 end
