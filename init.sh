@@ -150,6 +150,10 @@ fi
 
 ensure_symlink "$CONFIGS/atuin/config.toml" "$HOME/.config/atuin/config.toml"
 
+# --- direnv ---
+
+ensure_symlink "$CONFIGS/direnv/direnv.toml" "$HOME/.config/direnv/direnv.toml"
+
 # --- Karabiner ---
 
 ensure_symlink "$CONFIGS/karabiner/karabiner.json" "$HOME/.config/karabiner/karabiner.json"
