@@ -1,5 +1,6 @@
 **/*.local.*
 .DS_Store
+.cursor/mcp.json
 .idea
 .vscode/*
 !.vscode/settings.example.json
