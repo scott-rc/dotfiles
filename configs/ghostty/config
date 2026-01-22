@@ -1,4 +1,4 @@
-command = /opt/homebrew/bin/fish -lc 'zellij attach -c ghostty'
+command = /opt/homebrew/bin/fish -lc 'zellij attach -c terminal'
 cursor-style = bar
 cursor-style-blink = false
 font-family = MonoLisa
