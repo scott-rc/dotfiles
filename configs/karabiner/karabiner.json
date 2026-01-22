@@ -30,6 +30,20 @@
                         "description": "Change right_command+hjkl to arrow keys",
                         "manipulators": [
                             {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": ["com.apple.Terminal"],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "h",
+                                    "modifiers": { "mandatory": ["right_command", "left_command"] }
+                                },
+                                "to": [{ "key_code": "a", "modifiers": ["control"] }],
+                                "type": "basic"
+                            },
+                            {
                                 "from": {
                                     "key_code": "h",
                                     "modifiers": {
@@ -60,6 +74,20 @@
                                     }
                                 },
                                 "to": [{ "key_code": "up_arrow" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": ["com.apple.Terminal"],
+                                        "type": "frontmost_application_if"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "l",
+                                    "modifiers": { "mandatory": ["right_command", "left_command"] }
+                                },
+                                "to": [{ "key_code": "e", "modifiers": ["control"] }],
                                 "type": "basic"
                             },
                             {
