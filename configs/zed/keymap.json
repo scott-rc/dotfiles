@@ -9,7 +9,8 @@
       "cmd-]": "pane::GoForward",
 
       // Panels & Docks
-      "cmd-l": "workspace::ToggleLeftDock",
+      "cmd-1": "editor::ToggleFocus",
+      "cmd-l": "workspace::ToggleRightDock",
       "cmd-e": "project_panel::ToggleFocus",
       "cmd-g": "git_panel::ToggleFocus",
       "cmd-o": "outline_panel::ToggleFocus",
