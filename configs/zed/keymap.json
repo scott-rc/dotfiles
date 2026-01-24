@@ -1,0 +1,86 @@
+[
+  // Navigation
+  {
+    "bindings": {
+      "cmd-[": "pane::GoBack",
+      "cmd-]": "pane::GoForward"
+    }
+  },
+
+  // Sidebar
+  {
+    "bindings": {
+      "cmd-l": "workspace::ToggleLeftDock"
+    }
+  },
+
+  // Reload/Restart
+  {
+    "bindings": {
+      "cmd-shift-r": "workspace::Reload"
+    }
+  },
+
+  // Command Palette
+  {
+    "bindings": {
+      "cmd-p": "command_palette::Toggle"
+    }
+  },
+
+  // Editor - Save
+  {
+    "context": "Editor",
+    "bindings": {
+      "cmd-s": "workspace::SaveAll"
+    }
+  },
+
+  // Editor - Go to definition
+  {
+    "context": "Editor",
+    "bindings": {
+      "cmd-b": "editor::GoToDefinition"
+    }
+  },
+
+  // Editor - Rename
+  {
+    "context": "Editor",
+    "bindings": {
+      "cmd-r": "editor::Rename"
+    }
+  },
+
+  // Editor - Multi-cursor
+  {
+    "context": "Editor",
+    "bindings": {
+      "cmd-d": "editor::SelectNext",
+      "cmd-shift-d": "editor::UndoSelection"
+    }
+  },
+
+  // Editor - Hover
+  {
+    "context": "Editor && vim_mode == normal",
+    "bindings": {
+      "ctrl-space": "editor::Hover"
+    }
+  },
+
+  // Vim mode
+  {
+    "context": "Editor && vim_mode == insert",
+    "bindings": {
+      "f d": "vim::NormalBefore"
+    }
+  },
+
+  // Disable default quit
+  {
+    "bindings": {
+      "cmd-q": null
+    }
+  }
+]

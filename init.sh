@@ -191,6 +191,7 @@ ensure_symlink "$CONFIGS/vim/init.vim" "$HOME/.config/nvim/init.vim"
 # --- Zed ---
 
 ensure_symlink "$CONFIGS/zed/settings.json" "$HOME/.config/zed/settings.json"
+ensure_symlink "$CONFIGS/zed/keymap.json" "$HOME/.config/zed/keymap.json"
 
 # --- Zellij ---
 
