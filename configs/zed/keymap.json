@@ -1,151 +1,66 @@
 [
-  // Navigation
+  // ============================================================================
+  // Global (no context)
+  // ============================================================================
   {
     "bindings": {
+      // Navigation
       "cmd-[": "pane::GoBack",
       "cmd-]": "pane::GoForward",
-    },
-  },
 
-  // Sidebar
-  {
-    "bindings": {
+      // Panels & Docks
       "cmd-l": "workspace::ToggleLeftDock",
-    },
-  },
-
-  // Reload/Restart
-  {
-    "bindings": {
-      "cmd-shift-r": "workspace::Reload",
-    },
-  },
-
-  // Command Palette
-  {
-    "bindings": {
-      "cmd-p": "command_palette::Toggle",
-    },
-  },
-
-  // File Finder
-  {
-    "bindings": {
-      "cmd-k": "file_finder::Toggle",
-    },
-  },
-
-  // Project Panel
-  {
-    "bindings": {
       "cmd-e": "project_panel::ToggleFocus",
-    },
-  },
-
-  // Git Panel
-  {
-    "bindings": {
       "cmd-g": "git_panel::ToggleFocus",
-    },
-  },
-
-  // Outline Panel
-  {
-    "bindings": {
       "cmd-o": "outline_panel::ToggleFocus",
-    },
-  },
-
-  // Search in Files
-  {
-    "bindings": {
-      "cmd-shift-f": "pane::DeploySearch",
-    },
-  },
-
-  // Terminal
-  {
-    "bindings": {
       "cmd-t": "terminal_panel::ToggleFocus",
+
+      // Commands & Search
+      "cmd-p": "command_palette::Toggle",
+      "cmd-k": "file_finder::Toggle",
+      "cmd-shift-f": "pane::DeploySearch",
+
+      // Workspace
+      "cmd-shift-r": "workspace::Reload",
+
+      // Disable default quit
+      "cmd-q": null,
     },
   },
 
-  // Editor - Save
+  // ============================================================================
+  // Editor
+  // ============================================================================
   {
     "context": "Editor",
     "bindings": {
+      // Files
       "cmd-s": "workspace::SaveAll",
-    },
-  },
+      "cmd-f": "buffer_search::Deploy",
 
-  // Editor - Go to definition
-  {
-    "context": "Editor",
-    "bindings": {
+      // Code Intelligence
       "cmd-b": "editor::GoToDefinition",
-    },
-  },
-
-  // Editor - Rename
-  {
-    "context": "Editor",
-    "bindings": {
       "cmd-r": "editor::Rename",
-    },
-  },
+      "alt-enter": "editor::ToggleCodeActions",
+      "ctrl-p": "editor::GoToDiagnostic",
 
-  // Editor - Multi-cursor
-  {
-    "context": "Editor",
-    "bindings": {
+      // Multi-cursor
       "cmd-d": "editor::SelectNext",
       "cmd-shift-d": "editor::UndoSelection",
-    },
-  },
 
-  // Editor - Pane navigation
-  {
-    "context": "Editor",
-    "bindings": {
+      // Line manipulation
+      "alt-k": "editor::MoveLineUp",
+      "alt-j": "editor::MoveLineDown",
+
+      // Pane navigation
       "ctrl-h": "workspace::ActivatePaneLeft",
       "ctrl-l": "workspace::ActivatePaneRight",
     },
   },
 
-  // Editor - Move lines
-  {
-    "context": "Editor",
-    "bindings": {
-      "alt-k": "editor::MoveLineUp",
-      "alt-j": "editor::MoveLineDown",
-    },
-  },
-
-  // Editor - Quick fix
-  {
-    "context": "Editor",
-    "bindings": {
-      "alt-enter": "editor::ToggleCodeActions",
-    },
-  },
-
-  // Editor - Find
-  {
-    "context": "Editor",
-    "bindings": {
-      "cmd-f": "buffer_search::Deploy",
-    },
-  },
-
-  // Editor - Diagnostics
-  {
-    "context": "Editor",
-    "bindings": {
-      "ctrl-p": "editor::GoToDiagnostic",
-    },
-  },
-
-  // Editor - Hover
+  // ============================================================================
+  // Editor - Vim Normal Mode
+  // ============================================================================
   {
     "context": "Editor && vim_mode == normal",
     "bindings": {
@@ -153,7 +68,9 @@
     },
   },
 
-  // Vim mode
+  // ============================================================================
+  // Editor - Vim Insert Mode
+  // ============================================================================
   {
     "context": "Editor && vim_mode == insert",
     "bindings": {
@@ -161,7 +78,15 @@
     },
   },
 
-  // Project Panel - File operations
+  // ============================================================================
+  // Project Panel
+  // ============================================================================
+  {
+    "context": "ProjectPanel",
+    "bindings": {
+      "cmd-e": "workspace::ToggleRightDock",
+    },
+  },
   {
     "context": "ProjectPanel && not_editing",
     "bindings": {
@@ -172,7 +97,19 @@
     },
   },
 
-  // Terminal - Panel operations
+  // ============================================================================
+  // Git Panel
+  // ============================================================================
+  {
+    "context": "GitPanel",
+    "bindings": {
+      "cmd-g": "workspace::ToggleLeftDock",
+    },
+  },
+
+  // ============================================================================
+  // Terminal
+  // ============================================================================
   {
     "context": "Terminal",
     "bindings": {
@@ -181,13 +118,6 @@
       "cmd-w": "pane::CloseActiveItem",
       "cmd-l": "terminal::Clear",
       "cmd-m": "workspace::ToggleZoom",
-    },
-  },
-
-  // Disable default quit
-  {
-    "bindings": {
-      "cmd-q": null,
     },
   },
 ]
