@@ -1,0 +1,28 @@
+{
+  "attribution": {
+      "commit": "",
+      "pr": ""
+  },
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Skill",
+      "WebFetch",
+      "mcp__gadget-admin__*"
+    ],
+    "ask": [
+        "Bash(git push:*)",
+        "Bash(rm :*)",
+        "Bash(kubectl :*)"
+    ],
+    "defaultMode": "default",
+    "additionalDirectories": [
+      "/Users/scott/Code/gadget/global-infrastructure/tmp",
+      "/tmp"
+    ]
+  },
+  "respectGitignore": false
+}

@@ -150,6 +150,11 @@ fi
 
 ensure_symlink "$CONFIGS/atuin/config.toml" "$HOME/.config/atuin/config.toml"
 
+# --- Claude Code ---
+
+ensure_symlink "$CONFIGS/claude/settings.json" "$HOME/.claude/settings.json"
+ensure_symlink "$CONFIGS/claude/commands" "$HOME/.claude/commands"
+
 # --- direnv ---
 
 ensure_symlink "$CONFIGS/direnv/direnv.toml" "$HOME/.config/direnv/direnv.toml"
