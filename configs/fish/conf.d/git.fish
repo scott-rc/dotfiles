@@ -5,7 +5,6 @@ end
 brew_ensure delta git-delta
 
 alias g=git
-alias gl="git log --pretty=format:'%h %C(blue)%d%C(reset) %s' --graph --date=short --branches --decorate"
 alias gss=/opt/homebrew/bin/gs
 alias git-spice=/opt/homebrew/bin/gs
 
@@ -33,6 +32,7 @@ abbr --add gd git diff
 abbr --add gds git diff --staged
 abbr --add gd~ git diff HEAD~
 abbr --add gf git fetch
+abbr --add gl git log
 abbr --add gp git pull
 abbr --add gps git push
 abbr --add gr git reset
