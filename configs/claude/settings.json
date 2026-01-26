@@ -20,7 +20,7 @@
     ],
     "defaultMode": "default",
     "additionalDirectories": [
-      "/Users/scott/Code/gadget/global-infrastructure/tmp",
+      "./tmp",
       "/tmp"
     ]
   },
