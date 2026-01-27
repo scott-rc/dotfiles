@@ -1,10 +1,8 @@
 {
+  "respectGitignore": false,
   "attribution": {
-      "commit": "",
-      "pr": ""
-  },
-  "enabledPlugins": {
-    "gopls-lsp@claude-plugins-official": true
+    "commit": "",
+    "pr": ""
   },
   "permissions": {
     "allow": [
@@ -14,9 +12,9 @@
       "mcp__gadget-admin__*"
     ],
     "ask": [
-        "Bash(git push:*)",
-        "Bash(rm :*)",
-        "Bash(kubectl :*)"
+      "Bash(git push:*)",
+      "Bash(rm :*)",
+      "Bash(kubectl :*)"
     ],
     "defaultMode": "default",
     "additionalDirectories": [
@@ -24,5 +22,7 @@
       "/tmp"
     ]
   },
-  "respectGitignore": false
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true
+  }
 }

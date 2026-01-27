@@ -153,6 +153,7 @@ keybinds clear-defaults=true {
         bind "Alt o" { MoveTab "right"; }
         bind "Ctrl q" { Quit; }
         bind "Alt t" { NewTab; }
+        bind "Alt x" { CloseFocus; }
     }
     shared_except "locked" "move" {
         bind "Ctrl h" { SwitchToMode "move"; }
@@ -441,8 +442,8 @@ theme "github_dark"
 // Options:
 //   - true (default, enabled)
 //   - false
-// 
-// pane_frames false
+//
+pane_frames false
  
 // When attaching to an existing session with other users,
 // should the session be mirrored (true)

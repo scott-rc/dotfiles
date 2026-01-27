@@ -8,4 +8,4 @@ keybind = cmd+l=clear_screen
 macos-option-as-alt = true
 shell-integration-features = no-cursor
 theme = light:Github Dark Default,dark:Github Dark Default
-
+title = " "
