@@ -33,9 +33,16 @@ Create a new git worktree for the given task, or convert an existing branch into
      - Otherwise, use the current branch from the shell that invoked claude (shown in gitStatus at conversation start)
    - Run: `git worktree add -b sc/<task-name> ../<repo>-<task-name> <base-branch>`
 
-6. Copy `.envrc.local` to the new worktree if it exists in the original repo
+6. **Track with git-spice** (for new branch mode only):
+   - Check if git-spice is initialized: `gs repo init --check 2>/dev/null`
+   - If initialized, track the new branch from the worktree directory:
+     ```bash
+     cd <new-worktree-path> && gs branch track
+     ```
 
-7. Set up `.vscode/settings.json` in the new worktree:
+7. Copy `.envrc.local` to the new worktree if it exists in the original repo
+
+8. Set up `.vscode/settings.json` in the new worktree:
    - If `.vscode/settings.json` exists in the original repo:
      - Copy it to the new worktree (create `.vscode/` directory if needed)
      - Merge in the orange status bar customizations (add or update `workbench.colorCustomizations`)
@@ -54,5 +61,5 @@ Create a new git worktree for the given task, or convert an existing branch into
    }
    ```
 
-8. Report the new worktree path and branch to the user
-9. Ask if the user wants to open the worktree in Cursor (use `fish -lc 'gw <dirname>'` to open, where dirname is just the directory name, not the full path). The `gw` command handles `direnv allow` automatically.
+9. Report the new worktree path and branch to the user
+10. Ask if the user wants to open the worktree in Cursor (use `fish -lc 'gw <dirname>'` to open, where dirname is just the directory name, not the full path). The `gw` command handles `direnv allow` automatically.
