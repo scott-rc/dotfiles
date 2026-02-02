@@ -4,18 +4,21 @@ end
 
 brew_ensure zellij
 
-# Update Zellij tab name with git branch when changing directories
+# Update Zellij tab name with git branch when changing directories or switching branches
 # Uses --on-event fish_prompt which fires reliably after every command
 function _zellij_update_tabname --on-event fish_prompt
     # Only run inside Zellij
     test -n "$ZELLIJ" || return
 
-    # Skip if directory hasn't changed (avoid unnecessary zellij calls)
-    test "$_zellij_last_pwd" = "$PWD" && return
-    set -g _zellij_last_pwd $PWD
-
-    # Get git branch, or use directory name if not in a git repo
+    # Get branch early so we can check if it changed
     set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
+
+    # Skip if neither directory nor branch changed (avoid unnecessary zellij calls)
+    if test "$_zellij_last_pwd" = "$PWD" -a "$_zellij_last_branch" = "$branch"
+        return
+    end
+    set -g _zellij_last_pwd $PWD
+    set -g _zellij_last_branch $branch
     if test -n "$branch"
         set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
         # In a worktree, .git is a file
