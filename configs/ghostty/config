@@ -1,4 +1,5 @@
 command = /opt/homebrew/bin/fish -lc 'zellij attach -c terminal'
+confirm-close-surface = false
 cursor-style = bar
 cursor-style-blink = false
 font-family = MonaspiceAr Nerd Font Mono
