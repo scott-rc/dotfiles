@@ -36,7 +36,8 @@ function gw --argument-names name --description "Switch to a git worktree and op
     end
 
     # Open Cursor with direnv context
-    direnv exec "$selected" cursor "$selected"
+    # direnv exec "$selected" cursor "$selected"
+    cursor "$selected"
 end
 
 if not status is-interactive

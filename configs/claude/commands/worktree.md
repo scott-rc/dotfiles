@@ -25,7 +25,9 @@ Create a new git worktree for the given task, or convert an existing branch into
      - Otherwise, use the current branch from the shell that invoked claude (shown in gitStatus at conversation start)
    - Run: `git worktree add -b sc/<task-name> ../<repo>-<task-name> <base-branch>`
 
-6. Create `.vscode/settings.json` in the new worktree with a distinct orange status bar:
+6. Copy `.envrc.local` to the new worktree if it exists in the original repo
+
+7. Create `.vscode/settings.json` in the new worktree with a distinct orange status bar:
    ```json
    {
      "workbench.colorCustomizations": {
@@ -37,5 +39,5 @@ Create a new git worktree for the given task, or convert an existing branch into
    }
    ```
 
-7. Report the new worktree path and branch to the user
-8. Ask if the user wants to open the worktree in Cursor (use `fish -lc 'gw <dirname>'` to open, where dirname is just the directory name, not the full path). The `gw` command handles `direnv allow` automatically.
+8. Report the new worktree path and branch to the user
+9. Ask if the user wants to open the worktree in Cursor (use `fish -lc 'gw <dirname>'` to open, where dirname is just the directory name, not the full path). The `gw` command handles `direnv allow` automatically.

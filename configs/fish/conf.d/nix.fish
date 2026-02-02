@@ -1,7 +1,7 @@
-fish_add_path "/nix/store/25xpcw4nc7wnb4fmd15fxai6wazccny3-nixpkgs-fmt-1.3.0/bin/"
-
-if not status is-interactive
-    return
+# Source nix-daemon.fish if it exists (native fish support from Nix)
+# This avoids using bass which requires Python and can fail if direnv
+# modifies PATH before this script runs.
+set -l nix_fish_script "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.fish"
+if test -f $nix_fish_script
+    source $nix_fish_script
 end
-
-bass source "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"

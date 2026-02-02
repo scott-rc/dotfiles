@@ -175,6 +175,13 @@ fi
 
 ensure_symlink "$CONFIGS/nix/nix.conf" "/etc/nix/nix.conf"
 
+if command -v nixpkgs-fmt &> /dev/null; then
+	log_debug "nixpkgs-fmt is already installed"
+else
+	log_info "Installing nixpkgs-fmt"
+	nix profile install nixpkgs#nixpkgs-fmt
+fi
+
 # --- Nushell ---
 
 ensure_symlink "$CONFIGS/nu" "$HOME/.config/nu"
