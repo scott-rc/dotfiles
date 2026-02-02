@@ -46,6 +46,5 @@ Push commits and create/update PR.
      - Preserve that appended content
      - Update PR: `gh pr edit --title "<commit-title>" --body "<commit-body>\n\n<appended-content>"`
    - If PR already matches, no update needed
-   - **Do not wrap lines** in the PR description; GitHub renders markdown and handles line wrapping automatically
 
 8. Report the PR URL to the user
