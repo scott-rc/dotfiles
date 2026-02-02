@@ -5,8 +5,10 @@ Commit outstanding changes with a well-formatted message.
 ## Instructions
 
 1. **Check current branch**:
-   - If on `main` or `master`, ask the user if they want to create a new branch first
-   - If yes, create and switch to the new branch before committing
+   - If on `main` or `master`:
+     - Skip this check for `dotfiles` repo (committing directly to main is fine there)
+     - Otherwise, ask the user if they want to create a new branch first
+     - If yes, create and switch to the new branch before committing
 
 2. **Stage and commit changes**:
    - Review uncommitted changes

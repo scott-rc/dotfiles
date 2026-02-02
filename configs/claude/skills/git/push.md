@@ -5,8 +5,10 @@ Push commits and create/update PR.
 ## Instructions
 
 1. **Check current branch**:
-   - If on `main` or `master`, ask the user if they want to create a new branch first
-   - If the user chooses to stay on main, push directly and **skip PR creation** (steps 4-8)
+   - If on `main` or `master`:
+     - For `dotfiles` repo: push directly to main and **skip PR creation** (steps 4-8)
+     - Otherwise, ask the user if they want to create a new branch first
+     - If the user chooses to stay on main, push directly and **skip PR creation** (steps 4-8)
 
 2. Check for uncommitted changes:
    - If changes exist, commit them first (follow commit guidelines)
