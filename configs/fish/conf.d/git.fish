@@ -1,9 +1,16 @@
 function gw --argument-names query --description "Switch to a git worktree and open in Cursor"
     # Collect worktrees from all repos in ~/Code/*/*
+    # Excludes main worktrees and ~/.cursor/worktrees/*
     set -l worktrees
     for repo in ~/Code/*/*
         if test -d "$repo/.git"
-            set -a worktrees (git -C "$repo" worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+            for wt in (git -C "$repo" worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+                # Skip main worktree and Cursor worktrees
+                if test "$wt" = "$repo"; or string match -q "$HOME/.cursor/worktrees/*" "$wt"
+                    continue
+                end
+                set -a worktrees $wt
+            end
         end
     end
 
@@ -12,9 +19,12 @@ function gw --argument-names query --description "Switch to a git worktree and o
         return 1
     end
 
-    # Use current repo name as default query if none provided
+    # Use current repo name as default query if none provided (except for dotfiles)
     if test -z "$query"; and set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
-        set query (basename "$toplevel")
+        set -l repo_name (basename "$toplevel")
+        if test "$repo_name" != dotfiles
+            set query "$repo_name"
+        end
     end
 
     set -l selected (printf '%s\n' $worktrees | fzf_prompt "Worktree" "$query")
