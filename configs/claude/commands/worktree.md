@@ -18,6 +18,13 @@ Create a new git worktree for the given task, or convert an existing branch into
 4. **For existing branch mode**:
    - Use the branch name as-is for the worktree directory name
    - Run: `git worktree add ../<repo>-<branch-name> <branch-name>`
+   - Example directory structure after creating worktrees:
+     ```
+     ~/Code/gadget/
+     ├── api/                    # main repo
+     ├── api-fix-login-bug/      # worktree (sibling directory)
+     └── api-add-auth/           # worktree (sibling directory)
+     ```
 
 5. **For new branch mode**:
    - Convert task description to kebab-case branch name (lowercase, hyphens for spaces, remove special chars)

@@ -1,4 +1,8 @@
 function gw --argument-names query --description "Switch to a git worktree and open in Cursor"
+    # Ensure dependencies are available (needed for non-interactive use by Claude)
+    brew_ensure fzf
+    brew_ensure direnv
+
     # Collect worktrees from all repos in ~/Code/*/*
     # Excludes main worktrees and ~/.cursor/worktrees/*
     set -l worktrees
@@ -27,9 +31,34 @@ function gw --argument-names query --description "Switch to a git worktree and o
         end
     end
 
-    set -l selected (printf '%s\n' $worktrees | fzf_prompt "Worktree" "$query")
-    if test -z "$selected"
+    # Build display list with [group] prefix for easier scanning
+    # Path format: ~/Code/<group>/<repo>-<branch> -> [group] <repo>-<branch>
+    set -l display_items
+    for wt in $worktrees
+        set -l parent_dir (dirname $wt)
+        set -l group (basename $parent_dir)
+        set -l name (basename $wt)
+        set -a display_items "[$group] $name"
+    end
+
+    set -l selected_display (printf '%s\n' $display_items | fzf_prompt "Worktree" "$query")
+    if test -z "$selected_display"
         return 0 # User cancelled
+    end
+
+    # Extract path from display format: "[group] name" -> find matching worktree
+    set -l selected_name (string replace -r '^\[.*\] ' '' $selected_display)
+    set -l selected
+    for wt in $worktrees
+        if test (basename $wt) = "$selected_name"
+            set selected $wt
+            break
+        end
+    end
+
+    if test -z "$selected"
+        echo "Error: Could not find worktree path"
+        return 1
     end
 
     # Run direnv if .envrc exists
@@ -38,7 +67,10 @@ function gw --argument-names query --description "Switch to a git worktree and o
     end
 
     # Open Cursor using macOS open command to properly detach from terminal
-    open -a Cursor "$selected"
+    if not open -a Cursor "$selected" 2>/dev/null
+        echo "Error: Cursor is not installed. Opening in Finder instead."
+        open "$selected"
+    end
 end
 
 if not status is-interactive

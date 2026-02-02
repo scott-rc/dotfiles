@@ -5,8 +5,9 @@ Remove git worktrees whose branches have already been merged to main.
 ## Instructions
 
 1. Determine which repositories to scan:
-   - **If in a git repo**: Use only the current repository
-   - **If not in a git repo**: Scan all repositories in `~/Code/*/*` (e.g., `~/Code/personal/dotfiles`, `~/Code/gadget/foo`)
+   - **If in a git repo**: Use only the current repository (unless it's the dotfiles repo)
+   - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat as "not in a git repo" and scan other repositories
+   - **If not in a git repo**: Scan all repositories in `~/Code/*/*`, excluding the dotfiles repo
 
 2. For each repository, list all worktrees using `git worktree list --porcelain`
 
