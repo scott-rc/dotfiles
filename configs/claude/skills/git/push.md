@@ -2,6 +2,10 @@
 
 Push commits and create/update PR.
 
+> **Key Rule**: PR title and description MUST match the first commit on the branch.
+> This applies to all PR updates, not just initial creation. Never write custom PR
+> descriptions—always sync from the first commit. See step 7.
+
 ## Instructions
 
 1. **Check current branch**:
