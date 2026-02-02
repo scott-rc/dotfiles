@@ -2,4 +2,4 @@ if not status is-interactive
     return
 end
 
-abbr --add c. code .
+abbr --add c. cursor .
