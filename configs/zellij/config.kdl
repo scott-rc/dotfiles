@@ -136,6 +136,10 @@ keybinds clear-defaults=true {
         bind "Super w" { CloseFocus; }
         bind "Super {" { GoToPreviousTab; }
         bind "Super }" { GoToNextTab; }
+        bind "Super h" { MoveFocusOrTab "left"; }
+        bind "Super j" { MoveFocus "down"; }
+        bind "Super k" { MoveFocus "up"; }
+        bind "Super l" { MoveFocusOrTab "right"; }
         // Alt left/right unbound to allow word navigation to pass through
         // (Karabiner maps right_command+h/l to arrow keys, so right_command+option+h/l
         // sends Alt+Arrow. Use Alt h/l for pane navigation instead.)
