@@ -1,7 +1,6 @@
-function gw --argument-names query --description "Switch to a git worktree and open in Cursor"
+function gw --argument-names query --description "Switch to a git worktree"
     # Ensure dependencies are available (needed for non-interactive use by Claude)
     brew_ensure fzf
-    brew_ensure direnv
 
     # Collect worktrees from all repos in ~/Code/*/*
     # Excludes main worktrees and ~/.cursor/worktrees/*
@@ -61,16 +60,7 @@ function gw --argument-names query --description "Switch to a git worktree and o
         return 1
     end
 
-    # Run direnv if .envrc exists
-    if test -f "$selected/.envrc"
-        direnv allow "$selected"
-    end
-
-    # Open Cursor using macOS open command to properly detach from terminal
-    if not open -a Cursor "$selected" 2>/dev/null
-        echo "Error: Cursor is not installed. Opening in Finder instead."
-        open "$selected"
-    end
+    cd "$selected"
 end
 
 if not status is-interactive
