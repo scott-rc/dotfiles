@@ -27,14 +27,16 @@
   "permissions": {
     "allow": [
       "Bash",
+      "Read",
       "Skill",
       "WebFetch",
       "mcp__gadget-admin__*"
     ],
     "ask": [
       "Bash(git push:*)",
+      "Bash(kubectl :*)",
       "Bash(rm :*)",
-      "Bash(kubectl :*)"
+      "Read(./.envrc.local)"
     ],
     "defaultMode": "default",
     "additionalDirectories": [
