@@ -1,4 +1,8 @@
 {
+  "trustedDirectories": [
+    "/Users/scott/Code/gadget",
+    "/Users/scott/Code/personal"
+  ],
   "hooks": {
     "PreToolUse": [
       {
