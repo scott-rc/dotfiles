@@ -1,14 +1,31 @@
 function gw --argument-names name --description "Switch to a git worktree and open in Cursor"
-    # Get worktree list (format: /path/to/worktree  <sha> [branch])
-    set -l worktrees (git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+    # Collect worktrees from all repos in ~/Code/*/*
+    set -l worktrees
+    for repo in ~/Code/*/*
+        if test -d "$repo/.git"
+            set -a worktrees (git -C "$repo" worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+        end
+    end
 
     if test (count $worktrees) -eq 0
         echo "No worktrees found"
         return 1
     end
 
-    # If name provided, find matching worktree
-    if test -n "$name"
+    # Determine default query from current repo if inside one
+    set -l query ""
+    if set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
+        set query (basename "$toplevel")
+    end
+
+    # If no name provided, use fzf to select
+    if test -z "$name"
+        set selected (printf '%s\n' $worktrees | fzf_prompt "Worktree" "$query")
+        if test -z "$selected"
+            return 0 # User cancelled
+        end
+    else
+        # Find matching worktree
         for wt in $worktrees
             if string match -q "*$name*" $wt
                 set selected $wt
@@ -18,15 +35,6 @@ function gw --argument-names name --description "Switch to a git worktree and op
         if test -z "$selected"
             echo "No worktree matching '$name' found"
             return 1
-        end
-    # Auto-select if only one worktree
-    else if test (count $worktrees) -eq 1
-        set selected $worktrees[1]
-    # Otherwise let user choose
-    else
-        set selected (printf '%s\n' $worktrees | gum choose)
-        if test -z "$selected"
-            return 0 # User cancelled
         end
     end
 
