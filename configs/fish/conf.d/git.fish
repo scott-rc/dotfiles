@@ -27,9 +27,8 @@ function gw --argument-names query --description "Switch to a git worktree and o
         direnv allow "$selected"
     end
 
-    # Open Cursor in a fresh login shell to avoid inheriting current shell state
-    set -l fish_bin (command -s fish)
-    env -i HOME=$HOME USER=$USER $fish_bin -l -c "cursor '$selected'"
+    # Open Cursor using macOS open command to properly detach from terminal
+    open -a Cursor "$selected"
 end
 
 if not status is-interactive
