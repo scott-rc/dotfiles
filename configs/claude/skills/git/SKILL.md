@@ -29,6 +29,10 @@ See [push.md](push.md) for detailed instructions.
 Show current branch status, changes, and stack info.
 See [status.md](status.md) for detailed instructions.
 
+### CI
+Check GitHub Actions status and fetch failure logs to debug CI issues.
+See [ci.md](ci.md) for detailed instructions.
+
 ### Worktree
 Create a new git worktree for a task or convert an existing branch.
 See [worktree.md](worktree.md) for detailed instructions.
