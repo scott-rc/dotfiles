@@ -1,3 +1,44 @@
+function gw --argument-names name --description "Switch to a git worktree and open in Cursor"
+    # Get worktree list (format: /path/to/worktree  <sha> [branch])
+    set -l worktrees (git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+
+    if test (count $worktrees) -eq 0
+        echo "No worktrees found"
+        return 1
+    end
+
+    # If name provided, find matching worktree
+    if test -n "$name"
+        for wt in $worktrees
+            if string match -q "*$name*" $wt
+                set selected $wt
+                break
+            end
+        end
+        if test -z "$selected"
+            echo "No worktree matching '$name' found"
+            return 1
+        end
+    # Auto-select if only one worktree
+    else if test (count $worktrees) -eq 1
+        set selected $worktrees[1]
+    # Otherwise let user choose
+    else
+        set selected (printf '%s\n' $worktrees | gum choose)
+        if test -z "$selected"
+            return 0 # User cancelled
+        end
+    end
+
+    # Run direnv if .envrc exists
+    if test -f "$selected/.envrc"
+        direnv allow "$selected"
+    end
+
+    # Open Cursor with direnv context
+    direnv exec "$selected" cursor "$selected"
+end
+
 if not status is-interactive
     return
 end
@@ -26,6 +67,7 @@ abbr --add gcm! git commit --verbose --amend
 abbr --add gco git checkout
 abbr --add gco- git checkout -
 abbr --add gcob git checkout -b
+abbr --add gcoB git checkout -B
 abbr --add gcom git checkout main
 abbr --add gcp git cherry-pick
 abbr --add gd git diff
@@ -131,33 +173,4 @@ function gprune
 
     # git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
     git branch --format '%(refname:short) %(upstream:track)' | awk '$2 == "[gone]" { print $1 }' | xargs -r git branch -D
-end
-
-function gw --description "Switch to a git worktree and open in Cursor"
-    # Get worktree list (format: /path/to/worktree  <sha> [branch])
-    set -l worktrees (git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
-
-    if test (count $worktrees) -eq 0
-        echo "No worktrees found"
-        return 1
-    end
-
-    # Auto-select if only one worktree, otherwise let user choose
-    if test (count $worktrees) -eq 1
-        set -l selected $worktrees[1]
-    else
-        set -l selected (printf '%s\n' $worktrees | gum choose)
-
-        if test -z "$selected"
-            return 0 # User cancelled
-        end
-    end
-
-    # Run direnv if .envrc exists
-    if test -f "$selected/.envrc"
-        direnv allow "$selected"
-    end
-
-    # Open Cursor with direnv context
-    direnv exec "$selected" cursor "$selected"
 end
