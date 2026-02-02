@@ -1,4 +1,4 @@
-function gw --argument-names name --description "Switch to a git worktree and open in Cursor"
+function gw --argument-names query --description "Switch to a git worktree and open in Cursor"
     # Collect worktrees from all repos in ~/Code/*/*
     set -l worktrees
     for repo in ~/Code/*/*
@@ -12,30 +12,14 @@ function gw --argument-names name --description "Switch to a git worktree and op
         return 1
     end
 
-    # Determine default query from current repo if inside one
-    set -l query ""
-    if set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
+    # Use current repo name as default query if none provided
+    if test -z "$query"; and set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
         set query (basename "$toplevel")
     end
 
-    # If no name provided, use fzf to select
-    if test -z "$name"
-        set selected (printf '%s\n' $worktrees | fzf_prompt "Worktree" "$query")
-        if test -z "$selected"
-            return 0 # User cancelled
-        end
-    else
-        # Find matching worktree
-        for wt in $worktrees
-            if string match -q "*$name*" $wt
-                set selected $wt
-                break
-            end
-        end
-        if test -z "$selected"
-            echo "No worktree matching '$name' found"
-            return 1
-        end
+    set -l selected (printf '%s\n' $worktrees | fzf_prompt "Worktree" "$query")
+    if test -z "$selected"
+        return 0 # User cancelled
     end
 
     # Run direnv if .envrc exists
