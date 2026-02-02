@@ -8,7 +8,6 @@ function gw --argument-names query --description "Switch to a git worktree"
     for repo in ~/Code/*/*
         if test -d "$repo/.git"
             for wt in (git -C "$repo" worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
-                # Skip main worktree and Cursor worktrees
                 if test "$wt" = "$repo"; or string match -q "$HOME/.cursor/worktrees/*" "$wt"
                     continue
                 end
@@ -22,22 +21,13 @@ function gw --argument-names query --description "Switch to a git worktree"
         return 1
     end
 
-    # Use current repo name as default query if none provided (except for dotfiles)
-    if test -z "$query"; and set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
-        set -l repo_name (basename "$toplevel")
-        if test "$repo_name" != dotfiles
-            set query "$repo_name"
-        end
-    end
-
-    # Build display list with [group] prefix for easier scanning
-    # Path format: ~/Code/<group>/<repo>-<branch> -> [group] <repo>-<branch>
+    # Build display list - parse [group] from worktree name (format: <repo>-<branch>)
     set -l display_items
     for wt in $worktrees
-        set -l parent_dir (dirname $wt)
-        set -l group (basename $parent_dir)
         set -l name (basename $wt)
-        set -a display_items "[$group] $name"
+        set -l group (string split -m1 '-' $name)[1]
+        set -l branch (string replace "$group-" '' $name)
+        set -a display_items "[$group] $branch"
     end
 
     set -l selected_display (printf '%s\n' $display_items | fzf_prompt "Worktree" "$query")
@@ -45,8 +35,10 @@ function gw --argument-names query --description "Switch to a git worktree"
         return 0 # User cancelled
     end
 
-    # Extract path from display format: "[group] name" -> find matching worktree
-    set -l selected_name (string replace -r '^\[.*\] ' '' $selected_display)
+    # Extract path from display format: "[group] branch" -> find matching worktree
+    set -l selected_group (string match -r '^\[([^\]]+)\]' $selected_display)[2]
+    set -l selected_branch (string replace -r '^\[.*\] ' '' $selected_display)
+    set -l selected_name "$selected_group-$selected_branch"
     set -l selected
     for wt in $worktrees
         if test (basename $wt) = "$selected_name"
