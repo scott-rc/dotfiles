@@ -43,9 +43,9 @@ function gw --argument-names name --description "Switch to a git worktree and op
         direnv allow "$selected"
     end
 
-    # Open Cursor with direnv context
-    # direnv exec "$selected" cursor "$selected"
-    cursor "$selected"
+    # Open Cursor in a fresh login shell to avoid inheriting current shell state
+    set -l fish_bin (command -s fish)
+    env -i HOME=$HOME USER=$USER $fish_bin -l -c "cursor '$selected'"
 end
 
 if not status is-interactive
