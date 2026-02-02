@@ -48,7 +48,7 @@ keybinds clear-defaults=true {
         bind "j" { GoToNextTab; }
         bind "k" { GoToPreviousTab; }
         bind "l" { GoToNextTab; }
-        bind "n" { NewTab; SwitchToMode "normal"; }
+        bind "n" { NewTab { cwd "~"; }; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
         bind "Ctrl t" { SwitchToMode "normal"; }
@@ -131,8 +131,8 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" {
         // CMD keybindings (forwarded from Ghostty via unbind)
-        bind "Super n" { NewTab; }
-        bind "Super t" { NewTab; }
+        bind "Super n" { NewPane; }
+        bind "Super t" { NewTab { cwd "~"; }; }
         bind "Super w" { CloseFocus; }
         bind "Super Shift [" { GoToPreviousTab; }
         bind "Super Shift ]" { GoToNextTab; }
@@ -162,7 +162,7 @@ keybinds clear-defaults=true {
         bind "Alt n" { NewPane; }
         bind "Alt o" { MoveTab "right"; }
         bind "Ctrl q" { Quit; }
-        bind "Alt t" { NewTab; }
+        bind "Alt t" { NewTab { cwd "~"; }; }
         bind "Alt x" { CloseFocus; }
     }
     shared_except "locked" "move" {
@@ -241,7 +241,7 @@ keybinds clear-defaults=true {
         bind "," { SwitchToMode "renametab"; }
         bind "[" { SwitchToMode "scroll"; }
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
-        bind "c" { NewTab; SwitchToMode "normal"; }
+        bind "c" { NewTab { cwd "~"; }; SwitchToMode "normal"; }
         bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
         bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
