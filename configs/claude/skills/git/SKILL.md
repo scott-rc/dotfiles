@@ -40,3 +40,11 @@ See [worktree.md](worktree.md) for detailed instructions.
 ### Clean
 Remove worktrees whose branches have been merged to main.
 See [clean-worktrees.md](clean-worktrees.md) for detailed instructions.
+
+## Combined Operations
+
+Users often request multiple operations together. Handle these as follows:
+
+- **"commit and push"** → Run commit operation, then push operation
+- **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
+- **"sync"** / **"update branch"** → Same as rebase operation

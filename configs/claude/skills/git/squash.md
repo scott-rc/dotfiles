@@ -15,10 +15,15 @@ Squash all commits on the current branch into a single commit.
 
 4. Analyze all commits to understand what work was done and why.
 
-5. Squash all commits into one:
+5. **Confirm before squashing**:
+   - Show the commits that will be squashed (from step 2)
+   - Show what files will be in the final commit: `git diff --stat <base> HEAD`
+   - Ask the user to confirm before proceeding
+
+6. Squash all commits into one:
    ```bash
    git reset --soft <base>
    git commit
    ```
 
-6. Format the commit message following [commit-guidelines.md](commit-guidelines.md).
+7. Format the commit message following [commit-guidelines.md](commit-guidelines.md).

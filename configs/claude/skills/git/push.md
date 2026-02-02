@@ -29,9 +29,10 @@ Push commits and create/update PR.
    - Create one: `gh pr create --fill`
 
 7. **Sync PR title/description with first commit**:
-   - Get first commit on branch:
+   - Detect base branch and get first commit:
      ```bash
-     git log main..HEAD --reverse --format="%H" | head -1
+     base=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main')
+     git log $base..HEAD --reverse --format="%H" | head -1
      ```
    - Get its title and body:
      ```bash

@@ -27,7 +27,14 @@ Display the following information:
    - Show the branch's position in the stack
    - Show if any branches need restacking
 
-5. **Recent commits** (last 3):
+5. **Stash info** (only if stashes exist):
+   ```bash
+   git stash list | wc -l
+   ```
+   - Only display if count > 0
+   - Show count of stashed changes
+
+6. **Recent commits** (last 3):
    ```bash
    git log --oneline -3
    ```

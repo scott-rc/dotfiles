@@ -50,6 +50,11 @@ Check CI status and fetch failure logs to debug issues.
    - Lint failures: file locations and specific errors
    - Build failures: compilation errors
    - Keep output focused on actionable information
+   - **Log truncation**: CI logs can be very long. Focus on:
+     - The first failure in the output (subsequent failures are often cascading)
+     - For test failures: show just the failing test name + assertion message
+     - For build failures: show the error message, not full compilation output
+     - Truncate logs to the most relevant sections
 
 8. **Offer follow-up actions**:
    - For test failures: offer to look at failing tests
