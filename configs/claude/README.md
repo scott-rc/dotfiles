@@ -6,6 +6,7 @@ This directory contains configuration files for [Claude Code](https://claude.ai/
 
 - `settings.json` - Main Claude Code settings (permissions, plugins, etc.)
 - `commands/*.md` - Custom command definitions
+- `skills/` - Custom skill definitions (multi-file commands)
 
 ## Untracked Files
 
@@ -28,3 +29,4 @@ The following files/directories remain in `~/.claude/` but are NOT tracked in ve
 The `init.sh` script creates symlinks:
 - `~/.claude/settings.json` → `configs/claude/settings.json`
 - `~/.claude/commands/` → `configs/claude/commands/`
+- `~/.claude/skills/` → `configs/claude/skills/`

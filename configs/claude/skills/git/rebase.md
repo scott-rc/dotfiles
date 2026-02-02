@@ -1,4 +1,4 @@
-# Rebase
+# Rebase Operation
 
 Pull down the trunk branch and rebase the current branch (and its stack) onto it using git-spice.
 
