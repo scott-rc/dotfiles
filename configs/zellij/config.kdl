@@ -136,12 +136,24 @@ keybinds clear-defaults=true {
         bind "Super w" { CloseFocus; }
         bind "Super Shift [" { GoToPreviousTab; }
         bind "Super Shift ]" { GoToNextTab; }
-        bind "Super h" { MoveFocusOrTab "left"; }
+        bind "Super h" { MoveFocus "left"; }
         bind "Super j" { MoveFocus "down"; }
         bind "Super k" { MoveFocus "up"; }
-        bind "Super l" { MoveFocusOrTab "right"; }
+        bind "Super l" { MoveFocus "right"; }
         bind "Super f" { ToggleFocusFullscreen; }
-        bind "Super z" { ToggleFocusFullscreen; }        // Alt left/right unbound to allow word navigation to pass through
+        bind "Super z" { ToggleFocusFullscreen; }
+        bind "Super down" { MoveFocus "down"; }
+        bind "Super up" { MoveFocus "up"; }
+        bind "Super +" { Resize "Increase"; }
+        bind "Super -" { Resize "Decrease"; }
+        bind "Super =" { Resize "Increase"; }
+        bind "Super [" { PreviousSwapLayout; }
+        bind "Super \\" { ToggleFloatingPanes; }
+        bind "Super ]" { NextSwapLayout; }
+        bind "Super i" { MoveTab "left"; }
+        bind "Super o" { MoveTab "right"; }
+        bind "Super x" { CloseFocus; }
+        // Alt left/right unbound to allow word navigation to pass through
         // (Karabiner maps right_command+h/l to arrow keys, so right_command+option+h/l
         // sends Alt+Arrow. Use Alt h/l for pane navigation instead.)
         bind "Alt down" { MoveFocus "down"; }
@@ -155,11 +167,11 @@ keybinds clear-defaults=true {
         // Alt f conflicts with Alt Right (word navigation), so use Alt z instead
         bind "Alt z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
         bind "Ctrl g" { SwitchToMode "locked"; }
-        bind "Alt h" { MoveFocusOrTab "left"; }
+        bind "Alt h" { MoveFocus "left"; }
         bind "Alt i" { MoveTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
         bind "Alt k" { MoveFocus "up"; }
-        bind "Alt l" { MoveFocusOrTab "right"; }
+        bind "Alt l" { MoveFocus "right"; }
         bind "Alt n" { NewPane; }
         bind "Alt o" { MoveTab "right"; }
         bind "Ctrl q" { Quit; }
