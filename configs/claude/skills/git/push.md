@@ -10,15 +10,21 @@ Push commits and create/update PR.
 2. Push to remote:
    - `git push -u origin HEAD`
 
-3. Check if a PR already exists:
+3. Check if a PR already exists for this branch:
    ```bash
-   gh pr view --json url 2>/dev/null
+   gh pr view --json url,state,headRefOid 2>/dev/null
    ```
 
-4. **If NO PR exists**:
+4. **Validate the PR is current** (not stale from an old branch with the same name):
+   - If the PR's `state` is `MERGED` or `CLOSED`: treat as no PR exists (create a new one)
+   - If the PR is `OPEN`, verify its head commit is in current history:
+     - Check: `git merge-base --is-ancestor <headRefOid> HEAD`
+     - If NOT an ancestor: ask the user if they want to close the old PR and create a new one, or abort
+
+5. **If NO PR exists** (or old PR was merged/closed):
    - Create one: `gh pr create --fill`
 
-5. **Sync PR title/description with first commit**:
+6. **Sync PR title/description with first commit**:
    - Get first commit on branch:
      ```bash
      git log main..HEAD --reverse --format="%H" | head -1
@@ -34,4 +40,4 @@ Push commits and create/update PR.
      - Update PR: `gh pr edit --title "<commit-title>" --body "<commit-body>\n\n<appended-content>"`
    - If PR already matches, no update needed
 
-6. Report the PR URL to the user
+7. Report the PR URL to the user

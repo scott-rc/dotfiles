@@ -5,7 +5,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 ## Instructions
 
 1. Parse the command arguments to determine the mode:
-   - **Existing branch mode**: User specifies an existing branch name (check with `git show-ref --verify --quiet refs/heads/<name>`)
+   - **Existing branch mode**: User explicitly specifies an existing branch name they want to convert to a worktree
    - **New branch mode**: User provides a task description to create a new branch
 
 2. Determine the repository to use:
@@ -31,6 +31,10 @@ Create a new git worktree for the given task, or convert an existing branch into
    - Determine the base branch:
      - If user specifies "from <branch>", use that branch
      - Otherwise, use the current branch from the shell that invoked claude (shown in gitStatus at conversation start)
+   - **Check for existing branch with same name**: `git show-ref --verify --quiet refs/heads/sc/<task-name>`
+     - If the branch exists, check if it's an ancestor of the base branch (already merged): `git merge-base --is-ancestor sc/<task-name> <base-branch>`
+       - If merged: delete the old branch first with `git branch -d sc/<task-name>`
+       - If not merged: ask the user if they want to use the existing branch, delete it and start fresh, or use a different name
    - Run: `git worktree add -b sc/<task-name> ../<repo>-<task-name> <base-branch>`
 
 6. **Track with git-spice** (for new branch mode only):
