@@ -11,7 +11,7 @@ Handle git operations based on user request. Determine which operation is needed
 
 ### Commit
 Commit outstanding changes with a well-formatted message.
-See [commit-guidelines.md](commit-guidelines.md) for message formatting.
+See [commit.md](commit.md) for detailed instructions.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
