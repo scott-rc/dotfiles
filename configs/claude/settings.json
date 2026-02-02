@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/hooks/wrap-with-direnv.sh"
+          }
+        ]
+      }
+    ]
+  },
   "env": {
     "DIRENV_LOG_FORMAT": ""
   },
