@@ -41,12 +41,20 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 6. Copy `.envrc.local` to the new worktree if it exists in the original repo
 
-7. Run `direnv allow` in the new worktree directory to trust the environment:
+7. Copy additional local configuration files to the new worktree (if they exist in the original repo):
+   - `.env.local` - local environment variables
+   - `.tool-versions.local` - local asdf/mise version overrides
+   - `CLAUDE.local.md` - local Claude instructions
+   - `.claude/**/*.local.*` files (e.g., `.claude/settings.local.json`, `.claude/hooks/presubmit.local.sh`)
+     - Create the `.claude/` directory structure as needed
+     - Preserve the directory structure when copying (e.g., `.claude/hooks/foo.local.sh` → `.claude/hooks/foo.local.sh`)
+
+8. Run `direnv allow` in the new worktree directory to trust the environment:
    ```bash
    cd <new-worktree-path> && direnv allow
    ```
 
-8. Set up `.vscode/settings.json` in the new worktree:
+9. Set up `.vscode/settings.json` in the new worktree:
    - If `.vscode/settings.json` exists in the original repo:
      - Copy it to the new worktree (create `.vscode/` directory if needed)
      - Merge in the orange status bar customizations (add or update `workbench.colorCustomizations`)
@@ -65,8 +73,8 @@ Create a new git worktree for the given task, or convert an existing branch into
    }
    ```
 
-9. Report the new worktree path and branch to the user
-10. Print the command for the user to cd into the new worktree:
+10. Report the new worktree path and branch to the user
+11. Print the command for the user to cd into the new worktree:
     ```
     cd <new-worktree-path>
     ```
