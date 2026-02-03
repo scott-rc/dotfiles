@@ -18,9 +18,12 @@ The main setup script that:
 
 1. Installs Homebrew if missing
 2. Installs all packages via `brew bundle`
-3. Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)
-4. Configures iTerm2 preferences
-5. Installs Nix if missing
+3. Installs Fish shell if missing, adds to `/etc/shells`, sets as default
+4. Installs Nix package manager if missing
+5. Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)
+6. Configures iTerm2 preferences via `defaults write`
+7. Disables ApplePressAndHoldEnabled for key repeat
+8. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
 ### Brewfile
 
@@ -32,19 +35,28 @@ Configuration directories symlinked to their expected locations:
 
 | Directory | Target |
 |-----------|--------|
-| `claude/` | `~/.claude/` |
+| `atuin/` | `~/.config/atuin/config.toml` |
+| `claude/` | `~/.claude/{settings.json,commands,skills,hooks}` |
+| `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
-| `ghostty/` | `~/Library/Application Support/com.mitchellh.ghostty/` |
-| `git/` | `~/.gitconfig`, `~/.config/git/` |
-| `karabiner/` | `~/.config/karabiner/` |
-| `vim/` | `~/.vimrc`, `~/.ideavimrc`, `~/.config/nvim/` |
-| `zed/` | `~/.config/zed/` |
-| `zellij/` | `~/.config/zellij/` |
+| `ghostty/` | `~/Library/Application Support/com.mitchellh.ghostty/config` |
+| `git/` | `~/.gitconfig`, `~/.config/git/.gitignore_global` |
+| `iterm2/` | via `defaults write` (custom preferences folder) |
+| `karabiner/` | `~/.config/karabiner/karabiner.json` |
+| `nix/` | `/etc/nix/nix.conf` (sudo) |
+| `orbstack/` | `~/.orbstack/config/docker.json` |
+| `starship/` | `~/.config/starship.toml` |
+| `terminal/` | macOS Terminal color scheme |
+| `vim/` | `~/.vimrc`, `~/.ideavimrc`, `~/.config/nvim/init.vim` |
+| `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
+| `zellij/` | `~/.config/zellij/config.kdl` |
+| `zsh/` | `~/.zshrc` |
 
 ### Fish Shell Structure
 
 ```
 configs/fish/
+├── completions/     # Custom completions for tools
 ├── conf.d/          # Per-tool config (auto-loaded)
 │   ├── git.fish     # Aliases and abbreviations
 │   ├── node.fish    # npm/pnpm/yarn aliases
@@ -67,6 +79,6 @@ configs/fish/
 
 | Command | Description |
 |---------|-------------|
-| `update_dotfiles` | Pull latest changes and re-run setup |
-| `reload_dotfiles` | Restart fish shell |
-| `edit_dotfiles` | Open repo in VS Code |
+| `./init.sh` | Run setup |
+| `LOG_LEVEL=debug ./init.sh` | Verbose setup |
+| `reload` | Restart fish shell |
