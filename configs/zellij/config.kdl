@@ -79,7 +79,7 @@ keybinds clear-defaults=true {
         bind "up" { MovePane "up"; }
         bind "right" { MovePane "right"; }
         bind "h" { MovePane "left"; }
-        bind "Alt h" { SwitchToMode "normal"; }
+        bind "Alt m" { SwitchToMode "normal"; }
         bind "j" { MovePane "down"; }
         bind "k" { MovePane "up"; }
         bind "l" { MovePane "right"; }
@@ -176,14 +176,15 @@ keybinds clear-defaults=true {
         bind "Alt g" { SwitchToMode "locked"; }
     }
     shared_except "locked" "move" {
-        bind "Alt h" { SwitchToMode "move"; }
+        bind "Alt m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
         bind "Alt o" { SwitchToMode "session"; }
     }
-    shared_except "locked" "scroll" "search" "tmux" {
-        bind "Alt b" { SwitchToMode "tmux"; }
-    }
+    // tmux mode disabled - Alt+arrows conflict with terminal word navigation
+    // shared_except "locked" "scroll" "search" "tmux" {
+    //     bind "Alt b" { SwitchToMode "tmux"; }
+    // }
     shared_except "locked" "scroll" "search" {
         bind "Alt s" { SwitchToMode "scroll"; }
     }
