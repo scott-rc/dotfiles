@@ -8,15 +8,3 @@ set -gx FZF_ALT_C_COMMAND 'fd --type d --hidden --follow --exclude .git'
 
 # Use bat for fzf preview by default
 set -gx FZF_DEFAULT_OPTS '--preview "bat --color=always --style=numbers --line-range=:500 {}" --preview-window up --select-1 --height ~40% --reverse'
-
-function fzf_prompt --argument-names PROMPT QUERY
-    if test -z "$PROMPT"
-        set PROMPT ""
-    end
-
-    if test -z "$QUERY"
-        set QUERY ""
-    end
-
-    fzf --prompt "$PROMPT: " --query "$QUERY" --select-1 --height ~40% --reverse
-end
