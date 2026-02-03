@@ -66,6 +66,10 @@ Create a new git worktree for the given task, or convert an existing branch into
    ```
 
 9. Report the new worktree path and branch to the user
-10. Ask if the user wants to cd into the worktree. If yes, use `fish -lc 'gw <dirname>'` where dirname is just the directory name (e.g., `api-fix-login`), not the full path.
+10. Print the command for the user to cd into the new worktree:
+    ```
+    cd <new-worktree-path>
+    ```
+    Then exit Claude so the user can run the command in their shell.
 
 See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.
