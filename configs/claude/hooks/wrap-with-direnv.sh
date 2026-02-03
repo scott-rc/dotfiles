@@ -11,8 +11,9 @@ fi
 
 # Check if direnv is available and .envrc exists in the project
 if command -v direnv &> /dev/null && [ -f .envrc ]; then
-  # Wrap the command with direnv exec
-  WRAPPED_COMMAND="direnv exec . $COMMAND"
+  # Use printf %q to safely escape the command for shell reuse
+  ESCAPED_COMMAND=$(printf '%q' "$COMMAND")
+  WRAPPED_COMMAND="direnv exec . bash -c $ESCAPED_COMMAND"
 
   # Return JSON to modify the tool input
   jq -n \
