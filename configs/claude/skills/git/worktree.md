@@ -39,21 +39,14 @@ Create a new git worktree for the given task, or convert an existing branch into
    - Get the parent directory of the repo: `parent_dir=$(dirname <repo-path>)`
    - Run: `git worktree add -b sc/<task-name> "$parent_dir/<repo>-<task-name>" <base-branch>`
 
-6. **Track with git-spice** (for new branch mode only):
-   - Check if git-spice is initialized: `gs repo init --check 2>/dev/null`
-   - If initialized, track the new branch from the worktree directory:
-     ```bash
-     cd <new-worktree-path> && gs branch track
-     ```
+6. Copy `.envrc.local` to the new worktree if it exists in the original repo
 
-7. Copy `.envrc.local` to the new worktree if it exists in the original repo
-
-8. Run `direnv allow` in the new worktree directory to trust the environment:
+7. Run `direnv allow` in the new worktree directory to trust the environment:
    ```bash
    cd <new-worktree-path> && direnv allow
    ```
 
-9. Set up `.vscode/settings.json` in the new worktree:
+8. Set up `.vscode/settings.json` in the new worktree:
    - If `.vscode/settings.json` exists in the original repo:
      - Copy it to the new worktree (create `.vscode/` directory if needed)
      - Merge in the orange status bar customizations (add or update `workbench.colorCustomizations`)
@@ -72,7 +65,7 @@ Create a new git worktree for the given task, or convert an existing branch into
    }
    ```
 
-10. Report the new worktree path and branch to the user
-11. Ask if the user wants to cd into the worktree. If yes, use `fish -lc 'gw <dirname>'` where dirname is just the directory name (e.g., `api-fix-login`), not the full path.
+9. Report the new worktree path and branch to the user
+10. Ask if the user wants to cd into the worktree. If yes, use `fish -lc 'gw <dirname>'` where dirname is just the directory name (e.g., `api-fix-login`), not the full path.
 
 See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.

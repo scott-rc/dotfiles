@@ -18,7 +18,7 @@ Squash all commits on the current branch into a single commit.
 See [squash.md](squash.md) for detailed instructions.
 
 ### Rebase
-Pull trunk and rebase the current branch (and stack) using git-spice.
+Pull trunk and rebase the current branch.
 See [rebase.md](rebase.md) for detailed instructions.
 
 ### Push

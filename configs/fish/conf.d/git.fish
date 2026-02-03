@@ -3,7 +3,6 @@ if not status is-interactive
 end
 
 alias g=git
-alias gss=/opt/homebrew/bin/gs
 alias git-spice=/opt/homebrew/bin/gs
 
 abbr --add ga git add
@@ -46,7 +45,6 @@ abbr --add grh! 'git reset --hard && git clean -fd'
 abbr --add grs git reset --soft
 abbr --add gr~ git reset HEAD~
 abbr --add gs git status --short --branch
-abbr --add gsrs 'gss stack restack && gss stack submit'
 abbr --add gst git stash
 abbr --add gstp git stash pop
 abbr --add gsts git stash save
