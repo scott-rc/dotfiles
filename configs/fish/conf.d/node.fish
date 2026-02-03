@@ -2,8 +2,6 @@ if not status is-interactive
     return
 end
 
-brew_ensure node
-
 alias n=npm
 abbr --add nb npm run build
 abbr --add ncl npm run clean

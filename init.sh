@@ -97,14 +97,11 @@ else
 	/opt/homebrew/bin/brew update --force
 fi
 
-# --- Fish Shell ---
+# Install all packages from Brewfile
+log_info "Installing packages from Brewfile"
+/opt/homebrew/bin/brew bundle --file="$WORKSPACE_ROOT/Brewfile"
 
-if [ -x "/opt/homebrew/bin/fish" ]; then
-	log_debug "Fish is already installed"
-else
-	log_info "Installing Fish"
-	/opt/homebrew/bin/brew install fish
-fi
+# --- Fish Shell ---
 
 # Create a symlink for the fish configuration.
 ensure_symlink "$CONFIGS/fish" "$HOME/.config/fish"
@@ -182,11 +179,6 @@ else
 	log_info "Installing nixpkgs-fmt"
 	nix profile install nixpkgs#nixpkgs-fmt
 fi
-
-# --- Nushell ---
-
-ensure_symlink "$CONFIGS/nu" "$HOME/.config/nu"
-ensure_symlink "$CONFIGS/nu" "$HOME/Library/Application Support/nushell"
 
 # --- Orbstack ---
 

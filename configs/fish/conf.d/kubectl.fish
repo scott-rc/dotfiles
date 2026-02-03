@@ -4,8 +4,6 @@ if not status is-interactive
     return
 end
 
-brew_ensure kubectl kubernetes-cli
-
 alias k=kubectl
 
 abbr --add kcc kubectl config current-context

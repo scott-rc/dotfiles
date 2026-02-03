@@ -2,8 +2,6 @@ if not status is-interactive
     return
 end
 
-brew_ensure zellij
-
 # Update Zellij tab name with git branch when changing directories or switching branches
 # Uses --on-event fish_prompt which fires reliably after every command
 function _zellij_update_tabname --on-event fish_prompt

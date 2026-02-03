@@ -17,7 +17,7 @@ function update_dotfiles
     end
 
     git pull
-    WORKSPACE_ROOT=$dotfiles_dir ./scripts/setup.ts
+    ./init.sh
     popd
 end
 
