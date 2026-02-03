@@ -1,4 +1,4 @@
-function gw --argument-names query --description "Switch to a git worktree"
+function fgw --argument-names query --description "Switch to a git worktree"
     # Collect worktrees from all repos in ~/Code/*/*
     # Excludes main worktrees and ~/.cursor/worktrees/*
     set -l worktrees

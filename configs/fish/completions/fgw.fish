@@ -1,7 +1,7 @@
-# Completions for gw (git worktree switcher)
-complete --command gw --no-files --arguments '(__fish_gw_worktrees)'
+# Completions for fgw (git worktree switcher)
+complete --command fgw --no-files --arguments '(__fish_fgw_worktrees)'
 
-function __fish_gw_worktrees --description "List git worktree names for completion"
+function __fish_fgw_worktrees --description "List git worktree names for completion"
     for repo in ~/Code/*/*
         if test -d "$repo/.git"
             for wt in (git -C "$repo" worktree list --porcelain 2>/dev/null | grep '^worktree ' | sed 's/^worktree //')
