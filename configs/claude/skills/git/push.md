@@ -52,3 +52,5 @@ Push commits and create/update PR.
    - If PR already matches, no update needed
 
 8. Report the PR URL to the user
+
+See [git-patterns.md](git-patterns.md) for base branch detection and dotfiles exception patterns.

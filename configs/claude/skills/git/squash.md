@@ -18,15 +18,22 @@ Squash all commits on the current branch into a single commit.
 
 4. If there are uncommitted changes, commit them first (follow commit guidelines).
 
-5. Analyze all commits to understand what work was done and why.
+5. **Analyze all commits** to understand what work was done and why:
+   ```bash
+   git log origin/<base>..HEAD --format="%h %s%n%b"
+   ```
+   Note the overall purpose for crafting the squash message.
 
 6. **Verify scope before squashing**:
-   - Get files changed in original commits: `git diff --name-only origin/<base>...HEAD`
-   - Get files that will be in squashed commit: `git diff --name-only origin/<base> HEAD`
-   - If these lists differ, **STOP** and warn the user:
-     - Show the unexpected files (files in the second list but not the first)
-     - Explain this usually means the rebase picked up unrelated changes from conflict resolution
-     - Offer to help fix with: `git rebase -i origin/<base>` to drop/edit problematic commits, or reset and start fresh
+   - Show files that will be in the squashed commit:
+     ```bash
+     git diff --name-only origin/<base> HEAD
+     git diff --stat origin/<base> HEAD
+     ```
+   - Ask user to verify these files match the branch's intended scope
+   - If unexpected files appear, offer to:
+     - Investigate with `git log --oneline origin/<base>..HEAD`
+     - Fix with `git rebase -i origin/<base>` to drop/edit problematic commits
 
 7. **Confirm before squashing**:
    - Show the commits that will be squashed (from step 3)
@@ -40,3 +47,5 @@ Squash all commits on the current branch into a single commit.
    ```
 
 9. Format the commit message following [commit-guidelines.md](commit-guidelines.md).
+
+See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

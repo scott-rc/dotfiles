@@ -20,14 +20,18 @@ Fetch the latest from the base branch and rebase the current branch onto it.
    git rebase origin/<base>
    ```
 
-4. If the rebase succeeds, **verify branch scope**:
-   - Get files changed: `git diff --name-only origin/<base> HEAD`
-   - Get commit count: `git rev-list --count origin/<base>..HEAD`
-   - Show this summary to the user for verification
-   - If the file list contains unexpected files (files not related to the branch's purpose), warn the user:
-     - This may indicate the rebase pulled in unrelated changes during conflict resolution
-     - Offer to help investigate or abort with `git rebase --abort` (only works if rebase just completed and no new operations done)
-
-5. If there are conflicts:
-   - Report the conflicting files
+4. **If conflicts occur**:
+   - List conflicting files: `git diff --name-only --diff-filter=U`
+   - Report conflicts to the user
    - Offer to help resolve them or abort with `git rebase --abort`
+
+5. **If rebase succeeds**, verify branch scope:
+   - Show files changed: `git diff --name-only origin/<base> HEAD`
+   - Show file stats: `git diff --stat origin/<base> HEAD`
+   - Show commit count: `git rev-list --count origin/<base>..HEAD`
+   - If unexpected files appear, warn the user:
+     - This may indicate the rebase pulled in unrelated changes during conflict resolution
+     - Offer to investigate with `git log --oneline origin/<base>..HEAD`
+     - Offer to fix with `git rebase -i origin/<base>`
+
+See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

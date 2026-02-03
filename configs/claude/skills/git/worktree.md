@@ -74,3 +74,5 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 10. Report the new worktree path and branch to the user
 11. Ask if the user wants to cd into the worktree. If yes, use `fish -lc 'gw <dirname>'` where dirname is just the directory name (e.g., `api-fix-login`), not the full path.
+
+See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.

@@ -10,7 +10,14 @@ Commit outstanding changes with a well-formatted message.
      - Otherwise, ask the user if they want to create a new branch first
      - If yes, create and switch to the new branch before committing
 
-2. **Stage and commit changes**:
-   - Review uncommitted changes
-   - Stage relevant files
-   - Create commit following [commit-guidelines.md](commit-guidelines.md)
+2. **Review uncommitted changes**:
+   - Show status: `git status`
+   - Show changes: `git diff` (unstaged) and `git diff --staged` (staged)
+
+3. **Stage files**:
+   - If all changes belong together: `git add -A`
+   - If mixed changes: ask user which files to include, then `git add <files>`
+
+4. **Create commit** following [commit-guidelines.md](commit-guidelines.md)
+
+See [git-patterns.md](git-patterns.md) for dotfiles exception and main branch protection patterns.
