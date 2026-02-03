@@ -47,5 +47,6 @@
   },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true
-  }
+  },
+  "spinnerTipsEnabled": false
 }
