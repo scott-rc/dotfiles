@@ -13,10 +13,11 @@ Remove git worktrees whose branches have already been merged to main.
 
 3. For each worktree (excluding the main worktree):
    - Get the branch name from the worktree
-   - Check if the branch has been merged to main/master:
-     - First determine default branch: `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'` (fallback to "main")
-     - Fetch latest: `git fetch origin <default-branch> --quiet`
-     - Check if merged: `git branch --merged origin/<default-branch>` and see if the worktree's branch is in the list
+   - Determine default branch: `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'` (fallback to "main")
+   - Fetch and prune: `git fetch origin <default-branch> --prune --quiet`
+   - Check if the branch should be cleaned up (either condition):
+     - **Merged**: `git branch --merged origin/<default-branch>` includes the branch
+     - **Squash-merged**: Remote branch was deleted (check with `git ls-remote --heads origin <branch>` returning empty)
 
 4. Present the list of merged worktrees to the user:
    - Show the worktree path and branch name for each
@@ -26,7 +27,7 @@ Remove git worktrees whose branches have already been merged to main.
 
 6. For each confirmed worktree:
    - Run `git worktree remove <path>` to remove the worktree
-   - If the branch still exists, offer to delete it with `git branch -d <branch>`
+   - Delete the local branch: use `git branch -d <branch>`, or `git branch -D <branch>` for squash-merged branches
 
 7. Run `git worktree prune` to clean up any stale worktree references
 
