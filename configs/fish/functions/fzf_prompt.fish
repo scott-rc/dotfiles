@@ -1,4 +1,4 @@
-function fzf_prompt --argument-names PROMPT QUERY
+function fzf_prompt --description "Run fzf with custom prompt and query" --argument-names PROMPT QUERY
     if test -z "$PROMPT"
         set PROMPT ""
     end
