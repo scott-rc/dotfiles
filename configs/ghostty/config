@@ -28,7 +28,6 @@ keybind = cmd+shift+w=close_surface
 keybind = cmd+shift+n=new_window
 keybind = cmd+shift+left_bracket=unbind
 keybind = cmd+shift+right_bracket=unbind
-keybind = ctrl+q=unbind
 link-url = true
 macos-option-as-alt = true
 maximize = true

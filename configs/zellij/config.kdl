@@ -174,7 +174,6 @@ keybinds clear-defaults=true {
         bind "Alt l" { MoveFocus "right"; }
         bind "Alt n" { NewPane; }
         bind "Alt o" { MoveTab "right"; }
-        bind "Ctrl q" { Quit; }
         bind "Alt t" { NewTab { cwd "~"; }; }
         bind "Alt x" { CloseFocus; }
     }
