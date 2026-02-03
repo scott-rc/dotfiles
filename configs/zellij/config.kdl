@@ -153,29 +153,26 @@ keybinds clear-defaults=true {
         bind "Super i" { MoveTab "left"; }
         bind "Super o" { MoveTab "right"; }
         bind "Super x" { CloseFocus; }
-        // Alt left/right unbound to allow word navigation to pass through
-        // (Karabiner maps right_command+h/l to arrow keys, so right_command+option+h/l
-        // sends Alt+Arrow. Use Alt h/l for pane navigation instead.)
-        bind "Alt down" { MoveFocus "down"; }
-        bind "Alt up" { MoveFocus "up"; }
-        bind "Alt +" { Resize "Increase"; }
-        bind "Alt -" { Resize "Decrease"; }
-        bind "Alt =" { Resize "Increase"; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt \\" { ToggleFloatingPanes; }
-        bind "Alt ]" { NextSwapLayout; }
-        // Alt f conflicts with Alt Right (word navigation), so use Alt z instead
-        bind "Alt z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
+        // Alt keybindings commented out - using Super instead
+        // bind "Alt down" { MoveFocus "down"; }
+        // bind "Alt up" { MoveFocus "up"; }
+        // bind "Alt +" { Resize "Increase"; }
+        // bind "Alt -" { Resize "Decrease"; }
+        // bind "Alt =" { Resize "Increase"; }
+        // bind "Alt [" { PreviousSwapLayout; }
+        // bind "Alt \\" { ToggleFloatingPanes; }
+        // bind "Alt ]" { NextSwapLayout; }
+        // bind "Alt z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
+        // bind "Alt h" { MoveFocus "left"; }
+        // bind "Alt i" { MoveTab "left"; }
+        // bind "Alt j" { MoveFocus "down"; }
+        // bind "Alt k" { MoveFocus "up"; }
+        // bind "Alt l" { MoveFocus "right"; }
+        // bind "Alt n" { NewPane; }
+        // bind "Alt o" { MoveTab "right"; }
+        // bind "Alt t" { NewTab { cwd "~"; }; }
+        // bind "Alt x" { CloseFocus; }
         bind "Ctrl g" { SwitchToMode "locked"; }
-        bind "Alt h" { MoveFocus "left"; }
-        bind "Alt i" { MoveTab "left"; }
-        bind "Alt j" { MoveFocus "down"; }
-        bind "Alt k" { MoveFocus "up"; }
-        bind "Alt l" { MoveFocus "right"; }
-        bind "Alt n" { NewPane; }
-        bind "Alt o" { MoveTab "right"; }
-        bind "Alt t" { NewTab { cwd "~"; }; }
-        bind "Alt x" { CloseFocus; }
     }
     shared_except "locked" "move" {
         bind "Ctrl h" { SwitchToMode "move"; }
