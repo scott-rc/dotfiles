@@ -61,11 +61,10 @@ configs/fish/
 │   ├── git.fish     # Aliases and abbreviations
 │   ├── node.fish    # npm/pnpm/yarn aliases
 │   └── ...
-├── functions/       # One function per file (auto-loaded on first call)
-│   ├── gw.fish      # Git worktree switcher
-│   ├── gwip.fish    # WIP commit
-│   └── ...
-└── fish_plugins     # Fisher plugin list
+└── functions/       # One function per file (auto-loaded on first call)
+    ├── gw.fish      # Git worktree switcher
+    ├── gwip.fish    # WIP commit
+    └── ...
 ```
 
 **conf.d files** contain:
