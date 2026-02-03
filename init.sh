@@ -106,13 +106,21 @@ log_info "Installing packages from Brewfile"
 # Create a symlink for the fish configuration.
 ensure_symlink "$CONFIGS/fish" "$HOME/.config/fish"
 
-# Add fish to /etc/shells if it isn’t already there.
+# Add fish to /etc/shells if it isn't already there.
 if grep -q "/opt/homebrew/bin/fish" /etc/shells; then
 	log_debug "Fish is already added to /etc/shells"
 else
 	log_info "Adding fish to /etc/shells"
 	# Note: Writing to /etc/shells may require sudo privileges.
 	echo "/opt/homebrew/bin/fish" | sudo tee -a /etc/shells >/dev/null
+fi
+
+# Add Homebrew to fish_user_paths (universal variable, persists across sessions)
+if /opt/homebrew/bin/fish -c 'contains /opt/homebrew/bin $fish_user_paths'; then
+	log_debug "Homebrew is already in fish_user_paths"
+else
+	log_info "Adding Homebrew to fish_user_paths"
+	/opt/homebrew/bin/fish -c 'set -U fish_user_paths /opt/homebrew/bin $fish_user_paths'
 fi
 
 # --- Ghostty ---
