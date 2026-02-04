@@ -128,11 +128,47 @@
   {
     "context": "Terminal",
     "bindings": {
+      // Zed controls (keep)
       "cmd-t": "workspace::ToggleBottomDock",
-      "cmd-n": "workspace::NewTerminal",
-      "cmd-w": "pane::CloseActiveItem",
-      "cmd-l": "terminal::Clear",
       "cmd-m": "workspace::ToggleZoom",
+
+      // Zellij: Pane management (forward via CSI u escape sequences)
+      // Format: \u001b[<keycode>;<modifiers>u where Super=9, Alt=3, Super+Shift=10
+      "cmd-n": ["terminal::SendText", "\u001b[110;9u"],
+      "cmd-w": ["terminal::SendText", "\u001b[119;9u"],
+      "cmd-x": ["terminal::SendText", "\u001b[120;9u"],
+      "cmd-h": ["terminal::SendText", "\u001b[104;9u"],
+      "cmd-j": ["terminal::SendText", "\u001b[106;9u"],
+      "cmd-k": ["terminal::SendText", "\u001b[107;9u"],
+      "cmd-l": ["terminal::SendText", "\u001b[108;9u"],
+      "cmd-f": ["terminal::SendText", "\u001b[102;9u"],
+      "cmd-z": ["terminal::SendText", "\u001b[122;9u"],
+      "cmd-\\": ["terminal::SendText", "\u001b[92;9u"],
+
+      // Zellij: Tab management (forward except cmd-t)
+      "cmd-shift-[": ["terminal::SendText", "\u001b[91;10u"],
+      "cmd-shift-]": ["terminal::SendText", "\u001b[93;10u"],
+      "cmd-i": ["terminal::SendText", "\u001b[105;9u"],
+      "cmd-o": ["terminal::SendText", "\u001b[111;9u"],
+
+      // Zellij: Resize & layout (forward)
+      "cmd-+": ["terminal::SendText", "\u001b[43;9u"],
+      "cmd--": ["terminal::SendText", "\u001b[45;9u"],
+      "cmd-=": ["terminal::SendText", "\u001b[61;9u"],
+      "cmd-[": ["terminal::SendText", "\u001b[91;9u"],
+      "cmd-]": ["terminal::SendText", "\u001b[93;9u"],
+
+      // Zellij: Scroll mode (forward)
+      "cmd-s": ["terminal::SendText", "\u001b[115;9u"],
+
+      // Zellij: Alt mode switches (forward)
+      "alt-g": ["terminal::SendText", "\u001b[103;3u"],
+      "alt-m": ["terminal::SendText", "\u001b[109;3u"],
+      "alt-n": ["terminal::SendText", "\u001b[110;3u"],
+      "alt-o": ["terminal::SendText", "\u001b[111;3u"],
+      "alt-p": ["terminal::SendText", "\u001b[112;3u"],
+      "alt-s": ["terminal::SendText", "\u001b[115;3u"],
+      "alt-t": ["terminal::SendText", "\u001b[116;3u"],
     },
   },
 ]
