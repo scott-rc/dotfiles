@@ -13,11 +13,17 @@ function _zellij_update_tabname --on-event fish_prompt
         # In a worktree, .git is a file - get base repo name from common dir
         if test -f "$toplevel/.git"
             set -l common_dir (git rev-parse --git-common-dir 2>/dev/null)
-            set tab_name (basename (dirname "$common_dir"))
+            # Validate common_dir before using it
+            if test -n "$common_dir" -a -d "$common_dir"
+                set tab_name (basename (dirname "$common_dir"))
+            end
         else
             set tab_name (basename "$toplevel")
         end
-    else
+    end
+
+    # Fallback to PWD basename if tab_name is empty or invalid
+    if test -z "$tab_name"
         set tab_name (basename "$PWD")
     end
 
@@ -36,15 +42,15 @@ function _zellij_update_panename_preexec --on-event fish_preexec
     set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
     test -n "$branch" || return
 
-    # $argv[1] contains the command line
     set -l cmd $argv[1]
     set -l pane_name "$branch: $cmd"
 
     # Skip if name hasn't changed
-    if test "$_zellij_last_panename" = "$pane_name"
+    if test "$_zellij_panename" = "$pane_name"
         return
     end
-    set -g _zellij_last_panename $pane_name
+    set -g _zellij_panename $pane_name
+    set -g _zellij_cmd_running 1
     zellij action rename-pane "$pane_name"
 end
 
@@ -52,19 +58,23 @@ end
 function _zellij_update_panename_prompt --on-event fish_prompt
     test -n "$ZELLIJ" || return
 
+    # Only reset pane name if a command was running
+    if not set -q _zellij_cmd_running
+        return
+    end
+    set -e _zellij_cmd_running
+
     set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
-
     if test -z "$branch"
-        # Not in git repo - clear cache and let zellij use default
-        set -e _zellij_last_panename
+        set -e _zellij_panename
         return
     end
 
-    # Skip if name hasn't changed
-    if test "$_zellij_last_panename" = "$branch"
+    # Skip if already showing just the branch
+    if test "$_zellij_panename" = "$branch"
         return
     end
-    set -g _zellij_last_panename $branch
+    set -g _zellij_panename $branch
     zellij action rename-pane "$branch"
 end
 
