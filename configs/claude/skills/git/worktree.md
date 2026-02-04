@@ -74,10 +74,14 @@ Create a new git worktree for the given task, or convert an existing branch into
    ```
 
 10. Report the new worktree path and branch to the user
-11. Print the command for the user to cd into the new worktree:
+11. Copy the cd command to the clipboard and print it as a fallback:
+    ```bash
+    echo "cd <new-worktree-path>" | pbcopy
+    ```
+    Print the command as well:
     ```
     cd <new-worktree-path>
     ```
-    Then exit Claude so the user can run the command in their shell.
+    Tell the user the command is in their clipboard, then exit Claude so they can paste and run it.
 
 See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.
