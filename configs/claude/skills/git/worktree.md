@@ -43,7 +43,6 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 7. Copy additional local configuration files to the new worktree (if they exist in the original repo):
    - `.env.local` - local environment variables
-   - `.tool-versions.local` - local asdf/mise version overrides
    - `CLAUDE.local.md` - local Claude instructions
    - `.claude/**/*.local.*` files (e.g., `.claude/settings.local.json`, `.claude/hooks/presubmit.local.sh`)
      - Create the `.claude/` directory structure as needed
