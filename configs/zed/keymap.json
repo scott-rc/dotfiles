@@ -118,7 +118,8 @@
   {
     "context": "GitPanel",
     "bindings": {
-      "cmd-g": "workspace::ToggleLeftDock",
+      "cmd-g": "workspace::ToggleRightDock",
+      "cmd-d": "git::Diff",
     },
   },
 
