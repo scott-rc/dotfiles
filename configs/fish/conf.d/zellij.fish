@@ -29,6 +29,45 @@ function _zellij_update_tabname --on-event fish_prompt
     zellij action rename-tab "$tab_name"
 end
 
+# Set pane name to "branch: command" when a command starts
+function _zellij_update_panename_preexec --on-event fish_preexec
+    test -n "$ZELLIJ" || return
+
+    set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
+    test -n "$branch" || return
+
+    # $argv[1] contains the command line
+    set -l cmd $argv[1]
+    set -l pane_name "$branch: $cmd"
+
+    # Skip if name hasn't changed
+    if test "$_zellij_last_panename" = "$pane_name"
+        return
+    end
+    set -g _zellij_last_panename $pane_name
+    zellij action rename-pane "$pane_name"
+end
+
+# Set pane name to just "branch" when at prompt (no command running)
+function _zellij_update_panename_prompt --on-event fish_prompt
+    test -n "$ZELLIJ" || return
+
+    set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
+
+    if test -z "$branch"
+        # Not in git repo - clear cache and let zellij use default
+        set -e _zellij_last_panename
+        return
+    end
+
+    # Skip if name hasn't changed
+    if test "$_zellij_last_panename" = "$branch"
+        return
+    end
+    set -g _zellij_last_panename $branch
+    zellij action rename-pane "$branch"
+end
+
 # Auto-attach to Zellij in IDE terminals (per-directory sessions)
 if not is_truthy "$ZELLIJ"; and is_truthy "$ZELLIJ_AUTO_ATTACH"
     set -l session_name (basename $PWD)
