@@ -16,6 +16,7 @@
 
   "project_panel": {
     "dock": "right",
+    "default_width": 320,
   },
 
   "agent": {
