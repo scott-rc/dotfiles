@@ -1,14 +1,27 @@
 # Commit Message Guidelines
 
-Format commit messages following this structure:
+## Structure
 
 ```
-<concise title - one line summarizing the change>
+<title>
 
-<explain the motivation and reasoning behind these changes>
+<body>
 ```
 
-- **Title**: Clear, concise description (ideally under 50 characters, max 72)
-- **Context**: Explain _why_ these changes were made, not just _what_ changed. Ask the user if unsure.
-- **Do not wrap lines**: Lines can be longer than 72 characters. GitHub renders markdown and handles line wrapping automatically.
-- **Code formatting**: Wrap all code-related text with backticks (function names, variable names, type names, file paths, package names, flag names, environment variables)
+Separate title and body with a blank line. The body is optional for trivial changes.
+
+## Title
+
+- Keep under 72 characters (GitHub truncates longer titles)
+- Use imperative mood: "Add feature" not "Added feature"
+- Be specific: "Fix null pointer in UserService.load()" not "Fix bug"
+
+## Body
+
+- Explain the motivation and reasoning—why these changes were made, not just what changed
+- Write prose, not bullets (unless listing genuinely unrelated items)
+- Use backticks for code: function names, variables, file paths, flags, etc.
+
+## When Unsure
+
+If the commit scope or message is unclear, ask the user before committing.
