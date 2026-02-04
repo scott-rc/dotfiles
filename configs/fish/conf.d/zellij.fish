@@ -5,34 +5,28 @@ end
 # Update Zellij tab name with git branch when changing directories or switching branches
 # Uses --on-event fish_prompt which fires reliably after every command
 function _zellij_update_tabname --on-event fish_prompt
-    # Only run inside Zellij
     test -n "$ZELLIJ" || return
 
-    # Get branch early so we can check if it changed
-    set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
-
-    # Skip if neither directory nor branch changed (avoid unnecessary zellij calls)
-    if test "$_zellij_last_pwd" = "$PWD" -a "$_zellij_last_branch" = "$branch"
-        return
-    end
-    set -g _zellij_last_pwd $PWD
-    set -g _zellij_last_branch $branch
-    if test -n "$branch"
-        set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
-        # In a worktree, .git is a file
+    set -l toplevel (git rev-parse --show-toplevel 2>/dev/null)
+    set -l tab_name
+    if test -n "$toplevel"
+        # In a worktree, .git is a file - get base repo name from common dir
         if test -f "$toplevel/.git"
-            # Get base repo name from common git dir (e.g., /path/to/ggt/.git -> ggt)
             set -l common_dir (git rev-parse --git-common-dir 2>/dev/null)
-            set -l base_repo (basename (dirname "$common_dir"))
-            # Strip branch prefix (e.g., sc/fix-bug -> fix-bug)
-            set -l short_branch (string replace -r '^[^/]+/' '' "$branch")
-            zellij action rename-tab "$base_repo:$short_branch"
+            set tab_name (basename (dirname "$common_dir"))
         else
-            zellij action rename-tab "$(basename "$toplevel"):$branch"
+            set tab_name (basename "$toplevel")
         end
     else
-        zellij action rename-tab (basename "$PWD")
+        set tab_name (basename "$PWD")
     end
+
+    # Skip if name hasn't changed
+    if test "$_zellij_last_tabname" = "$tab_name"
+        return
+    end
+    set -g _zellij_last_tabname $tab_name
+    zellij action rename-tab "$tab_name"
 end
 
 # Auto-attach to Zellij in IDE terminals (per-directory sessions)
