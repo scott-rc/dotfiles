@@ -53,27 +53,8 @@ Create a new git worktree for the given task, or convert an existing branch into
    cd <new-worktree-path> && direnv allow
    ```
 
-9. Set up `.vscode/settings.json` in the new worktree:
-   - If `.vscode/settings.json` exists in the original repo:
-     - Copy it to the new worktree (create `.vscode/` directory if needed)
-     - Merge in the orange status bar customizations (add or update `workbench.colorCustomizations`)
-   - If no `.vscode/settings.json` exists:
-     - Create `.vscode/settings.json` with the orange status bar settings
-
-   Orange status bar settings to add/merge:
-   ```json
-   {
-     "workbench.colorCustomizations": {
-       "statusBar.background": "#c75b39",
-       "statusBar.foreground": "#ffffff",
-       "statusBar.debuggingBackground": "#c75b39",
-       "statusBar.noFolderBackground": "#c75b39"
-     }
-   }
-   ```
-
-10. Report the new worktree path and branch to the user
-11. Copy the cd command to the clipboard and print it as a fallback:
+9. Report the new worktree path and branch to the user
+10. Copy the cd command to the clipboard and print it as a fallback:
     ```bash
     echo "cd <new-worktree-path>" | pbcopy
     ```
