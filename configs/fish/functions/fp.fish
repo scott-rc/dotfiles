@@ -7,7 +7,7 @@ function fp --description "Fuzzy find file and copy path to clipboard"
         set unrestricted_flag -u
     end
 
-    set -l file (fzf_files $unrestricted_flag -- --query "$argv")
+    set -l file (fzf_files $unrestricted_flag --query "$argv")
     or return
 
     if set -q _flag_absolute

@@ -1,5 +1,5 @@
 function fzf_files --description "fzf with bat file preview"
-    argparse 'u/unrestricted' -- $argv
+    argparse --ignore-unknown 'u/unrestricted' -- $argv
     or return
 
     if set -q _flag_unrestricted

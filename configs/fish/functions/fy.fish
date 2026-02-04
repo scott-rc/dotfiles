@@ -7,7 +7,7 @@ function fy --description "Fuzzy find file and yank contents to clipboard"
         set unrestricted_flag -u
     end
 
-    set -l file (fzf_files $unrestricted_flag -- --query "$argv")
+    set -l file (fzf_files $unrestricted_flag --query "$argv")
     or return
 
     cat $file | pbcopy
