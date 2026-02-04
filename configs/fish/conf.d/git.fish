@@ -48,3 +48,4 @@ abbr --add gs git status --short --branch
 abbr --add gst git stash
 abbr --add gstp git stash pop
 abbr --add gsts git stash save
+abbr --add gpr gh pr view --web
