@@ -4,7 +4,13 @@
     {
       "context": "Chat",
       "bindings": {
-        "ctrl+tab": "chat:cycleMode"
+        "ctrl+;": "chat:cycleMode"
+      }
+    },
+    {
+      "context": "Chat",
+      "bindings": {
+        "ctrl+'": "chat:modelPicker"
       }
     }
   ]
