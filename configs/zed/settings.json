@@ -1,4 +1,7 @@
 {
+  "edit_predictions": {
+    "provider": "copilot",
+  },
   "agent": {
     "default_model": {
       "provider": "zed.dev",
@@ -9,9 +12,6 @@
   "buffer_font_family": "MonoLisa",
   "buffer_line_height": "comfortable",
   "buffer_font_fallbacks": ["MonaspiceAr Nerd Font Mono"],
-  "features": {
-    "edit_prediction_provider": "copilot",
-  },
   "collaboration_panel": {
     "dock": "right",
   },
@@ -36,7 +36,7 @@
   "terminal": {
     "cursor_shape": "bar",
     "env": {
-      "ZELLIJ_AUTO_ATTACH": "true",
+      // "ZELLIJ_AUTO_ATTACH": "true",
       "ZELLIJ_AUTO_EXIT": "true",
     },
     "font_family": "MonaspiceAr Nerd Font Mono",
