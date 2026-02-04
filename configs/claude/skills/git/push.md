@@ -2,10 +2,6 @@
 
 Push commits and create/update PR.
 
-> **Key Rule**: PR title and description MUST match the first commit on the branch.
-> This applies to all PR updates, not just initial creation. Never write custom PR
-> descriptions—always sync from the first commit. See step 7.
-
 ## Instructions
 
 1. **Check current branch**:
@@ -32,24 +28,15 @@ Push commits and create/update PR.
      - If NOT an ancestor: ask the user if they want to close the old PR and create a new one, or abort
 
 6. **If NO PR exists** (or old PR was merged/closed):
-   - Create one: `gh pr create --fill`
+   - Create one with `gh pr create --title "<title>" --body "<body>"`
+   - Write the title and body following [pr-guidelines.md](pr-guidelines.md)
 
-7. **Sync PR title/description with first commit**:
-   - Detect base branch and get first commit:
-     ```bash
-     base=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main')
-     git log $base..HEAD --reverse --format="%H" | head -1
-     ```
-   - Get its title and body:
-     ```bash
-     git log -1 --format="%s" <commit>  # title
-     git log -1 --format="%b" <commit>  # body
-     ```
+7. **If PR exists and description needs updating**:
+   - Rewrite description following [pr-guidelines.md](pr-guidelines.md)
    - Get current PR body: `gh pr view --json body -q .body`
-   - If PR body contains content not in the commit body (appended by bots like Cursor BugBot, Dependabot):
+   - If PR body contains content not in your new description (appended by bots like Cursor BugBot, Dependabot):
      - Preserve that appended content
-     - Update PR: `gh pr edit --title "<commit-title>" --body "<commit-body>\n\n<appended-content>"`
-   - If PR already matches, no update needed
+     - Update PR: `gh pr edit --title "<title>" --body "<new-body>\n\n<appended-content>"`
 
 8. Report the PR URL to the user
 
