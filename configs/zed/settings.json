@@ -31,6 +31,9 @@
     "dark": "GitHub Dark",
   },
   "vim_mode": true,
+  "vim": {
+    "use_system_clipboard": "never",
+  },
   "cursor_blink": false,
   "vertical_scroll_margin": 10,
   "terminal": {
