@@ -26,10 +26,6 @@ function ksh --description "Exec into a pod"
     if set -q _flag_shell
         kubectl $kubectl_flags exec -it $pod $container_flag -- $_flag_shell
     else
-        # Try bash, fall back to sh if bash not found (exit 126/127)
-        kubectl $kubectl_flags exec -it $pod $container_flag -- bash
-        if test $status -eq 126 -o $status -eq 127
-            kubectl $kubectl_flags exec -it $pod $container_flag -- sh
-        end
+        kubectl $kubectl_flags exec -it $pod $container_flag -- sh -c "clear; (bash || ash || sh)"
     end
 end
