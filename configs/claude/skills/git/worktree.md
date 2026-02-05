@@ -44,6 +44,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 7. Copy additional local configuration files to the new worktree (if they exist in the original repo):
    - `.env.local` - local environment variables
    - `CLAUDE.local.md` - local Claude instructions
+   - `.mcp.json` - local MCP configuration
    - `.claude/**/*.local.*` files (e.g., `.claude/settings.local.json`, `.claude/hooks/presubmit.local.sh`)
      - Create the `.claude/` directory structure as needed
      - Preserve the directory structure when copying (e.g., `.claude/hooks/foo.local.sh` → `.claude/hooks/foo.local.sh`)
