@@ -29,10 +29,10 @@ Push commits and create/update PR.
 
 6. **If NO PR exists** (or old PR was merged/closed):
    - Create one with `gh pr create --title "<title>" --body "<body>"`
-   - Write the title and body following [pr-guidelines.md](pr-guidelines.md)
+   - You MUST follow [pr-guidelines.md](pr-guidelines.md) for the title and body
 
 7. **If PR exists and description needs updating**:
-   - Rewrite description following [pr-guidelines.md](pr-guidelines.md)
+   - You MUST rewrite the description following [pr-guidelines.md](pr-guidelines.md)
    - Get current PR body: `gh pr view --json body -q .body`
    - If PR body contains content not in your new description (appended by bots like Cursor BugBot, Dependabot):
      - Preserve that appended content

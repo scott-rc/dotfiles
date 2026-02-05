@@ -1,6 +1,6 @@
 ---
 name: git
-description: Use for ALL git operations and version control tasks. This includes commit, push, pull, rebase, merge, squash, worktrees, branches, PRs, status, diff, log, stash, cherry-pick, reset, and any other git commands. Always use this skill when the user mentions git, version control, commits, branches, PRs, or wants to see changes.
+description: Use for ALL git operations and version control tasks. This includes commit, push, pull, fetch, rebase, merge, squash, worktrees, branches, PRs, pull requests, status, diff, log, stash, cherry-pick, reset, CI checks, and any other git commands. Always use this skill when the user mentions git, version control, commits, branches, PRs, or wants to see changes.
 ---
 
 # Git Operations

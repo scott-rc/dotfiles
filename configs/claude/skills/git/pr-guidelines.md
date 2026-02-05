@@ -1,6 +1,12 @@
 # PR Description Guidelines
 
-When creating or updating a PR description:
+When creating or updating a PR description, first detect the base branch:
+
+```bash
+base=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main')
+```
+
+Use `origin/<base>` in all commands below.
 
 ## Title
 
@@ -18,12 +24,14 @@ When creating or updating a PR description:
 
 ## Content
 
-- **Synthesize commits into a narrative**: Read all commits with `git log main..HEAD` and weave them into a coherent story. Don't just list what each commit did—explain the overall change and why it matters.
-- **Describe the net change, not the journey**: The PR description should reflect what's different between the base branch and the final state—not intermediate bugs, refactors, or course-corrections that happened along the way. If a bug was introduced in commit 1 and fixed in commit 3, don't mention the bug at all—it never existed in the base branch. Use `git diff main..HEAD` as your source of truth for what actually changed.
+**The diff is the source of truth.** ALWAYS base the PR description on `git diff origin/<base>..HEAD`, NOT on commit history. The PR description MUST represent the net change between the current branch and the base branch — what a reviewer will actually see when they open the PR.
+
+- **ALWAYS start with the diff**: Run `git diff origin/<base>..HEAD` and `git diff --stat origin/<base>..HEAD` to understand what is actually changing. This is what the reviewer sees. This is what the description MUST describe.
+- **Commit history is supplementary only**: You MAY read `git log origin/<base>..HEAD` for context on *why* changes were made, but NEVER let commit history drive the structure or content of the description. Commits reflect the journey; the diff reflects the destination.
+- **Describe the net change, not the journey**: If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug — it never existed in the base branch. If code was added then refactored, describe only the final form.
 - **Focus on the "why"**: Explain the motivation and reasoning, not just what changed.
 - **Include testing context**: Describe how the changes were verified, but as part of the narrative, not as a separate checklist.
 - **Link issues**: Use "Fixes #123" to auto-close issues on merge; use "Related to #456" for referenced-but-not-fixed issues.
-- **Single vs multiple commits**: For one commit, expand on its message. For multiple commits, read `git log main..HEAD` and synthesize into a narrative—don't list each commit separately.
 
 ## Updating PRs
 
