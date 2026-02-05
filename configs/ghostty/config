@@ -10,11 +10,13 @@ keybind = cmd+h=unbind
 keybind = cmd+j=unbind
 keybind = cmd+k=unbind
 keybind = cmd+l=unbind
+keybind = cmd+m=unbind
 keybind = cmd+n=unbind
 keybind = cmd+t=unbind
 keybind = cmd+w=unbind
 keybind = cmd+z=unbind
 keybind = cmd+f=unbind
+keybind = cmd+g=unbind
 keybind = cmd+down=unbind
 keybind = cmd+up=unbind
 keybind = cmd+equal=unbind
@@ -24,6 +26,8 @@ keybind = cmd+backslash=unbind
 keybind = cmd+right_bracket=unbind
 keybind = cmd+i=unbind
 keybind = cmd+o=unbind
+keybind = cmd+p=unbind
+keybind = cmd+s=unbind
 keybind = cmd+x=unbind
 keybind = cmd+shift+w=close_surface
 keybind = cmd+shift+n=new_window
