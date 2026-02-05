@@ -1,15 +1,20 @@
-function knsh --argument-names NODE --description "SSH into a node"
-    if test -z "$NODE"
-        echo "knsh: Argument NODE is required"
-        return 1
+function knsh --description "SSH into a node via gcloud"
+    argparse 'context=' 'zone=' 'project=' -- $argv
+    or return
+
+    set -l kubectl_flags
+    if set -q _flag_context
+        set -a kubectl_flags --context $_flag_context
     end
 
-    set --local NODE_NAME (kubectl get nodes -o custom-columns=':metadata.name' | grep "$NODE" | gum choose --select-if-one)
-    if test -z "$NODE_NAME"
-        echo "knsh: No node selected"
-        return 1
+    set -l gcloud_flags
+    if set -q _flag_zone
+        set -a gcloud_flags --zone $_flag_zone
+    end
+    if set -q _flag_project
+        set -a gcloud_flags --project $_flag_project
     end
 
-    echo "knsh: SSHing into node $NODE_NAME"
-    gcloud compute ssh "$NODE_NAME"
+    set -l node (kubectl $kubectl_flags get nodes -o name | sed 's|node/||' | fzf --select-1 --query "$argv")
+    and gcloud compute ssh $gcloud_flags $node
 end

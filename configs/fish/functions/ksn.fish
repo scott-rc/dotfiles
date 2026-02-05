@@ -1,9 +1,15 @@
-function ksn --argument-names NAMESPACE --description "Switch kubectl namespace"
-    set --local NEW_NAMESPACE (kubectl get namespace -o custom-columns=':metadata.name' | fzf_prompt "Select namespace" "$NAMESPACE")
-    if test -z "$NEW_NAMESPACE"
-        echo "kcc: No namespace selected"
-        return 1
+function ksn --description "Switch kubectl namespace"
+    argparse 'context=' 'kubeconfig=' -- $argv
+    or return
+
+    set -l kubectl_flags
+    if set -q _flag_context
+        set -a kubectl_flags --context $_flag_context
+    end
+    if set -q _flag_kubeconfig
+        set -a kubectl_flags --kubeconfig $_flag_kubeconfig
     end
 
-    kubectl config set-context --current --namespace="$NEW_NAMESPACE"
+    set -l ns (kubectl $kubectl_flags get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | fzf --select-1 --query "$argv")
+    and kubectl $kubectl_flags config set-context --current --namespace=$ns
 end
