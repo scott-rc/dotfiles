@@ -80,6 +80,7 @@ keybinds clear-defaults=true {
         bind "right" { MovePane "right"; }
         bind "h" { MovePane "left"; }
         bind "Alt m" { SwitchToMode "normal"; }
+        bind "Super m" { SwitchToMode "normal"; }
         bind "j" { MovePane "down"; }
         bind "k" { MovePane "up"; }
         bind "l" { MovePane "right"; }
@@ -177,6 +178,7 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" "move" {
         bind "Alt m" { SwitchToMode "move"; }
+        bind "Super m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
         bind "Alt o" { SwitchToMode "session"; }

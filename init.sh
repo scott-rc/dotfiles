@@ -78,6 +78,7 @@ if [ -z "${HOME:-}" ]; then
 fi
 
 defaults write -g ApplePressAndHoldEnabled -bool false
+defaults write NSGlobalDomain NSUserKeyEquivalents -dict-add "Minimize" '@~^$m'
 
 # Determine the workspace root (assumed to be the directory of this script)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
