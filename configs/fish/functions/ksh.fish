@@ -1,5 +1,5 @@
 function ksh --description "Exec into a pod"
-    argparse 'n/namespace=' 'context=' 'c/container=' 'shell=' -- $argv
+    argparse 'n/namespace=' 'c/context=' 'container=' 'shell=' -- $argv
     or return
 
     set -l kubectl_flags
@@ -15,8 +15,21 @@ function ksh --description "Exec into a pod"
         set container_flag -c $_flag_container
     end
 
-    set -l shell_cmd (test -n "$_flag_shell" && echo $_flag_shell || echo sh)
+    set -l pod
+    if test (count $argv) -gt 0
+        set pod $argv[1]
+    else
+        set pod (kubectl $kubectl_flags get pods -o name | sed 's|pod/||' | fzf --select-1)
+        or return
+    end
 
-    set -l pod (kubectl $kubectl_flags get pods -o name | sed 's|pod/||' | fzf --select-1 --query "$argv")
-    and kubectl $kubectl_flags exec -it $pod $container_flag -- $shell_cmd
+    if set -q _flag_shell
+        kubectl $kubectl_flags exec -it $pod $container_flag -- $_flag_shell
+    else
+        # Try bash, fall back to sh if bash not found (exit 126/127)
+        kubectl $kubectl_flags exec -it $pod $container_flag -- bash
+        if test $status -eq 126 -o $status -eq 127
+            kubectl $kubectl_flags exec -it $pod $container_flag -- sh
+        end
+    end
 end
