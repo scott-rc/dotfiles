@@ -1,5 +1,5 @@
 function knsh --description "SSH into a node via gcloud"
-    argparse 'context=' 'zone=' 'project=' -- $argv
+    argparse 'c/context=' 'zone=' 'project=' -- $argv
     or return
 
     set -l kubectl_flags

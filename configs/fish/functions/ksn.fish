@@ -1,5 +1,5 @@
 function ksn --description "Switch kubectl namespace"
-    argparse 'context=' 'kubeconfig=' -- $argv
+    argparse 'c/context=' 'kubeconfig=' -- $argv
     or return
 
     set -l kubectl_flags
