@@ -51,7 +51,11 @@ After fetching, reference remote branches as `origin/<branch>`.
 
 ## Scope Verification
 
-After rebase or before squash, verify the branch only contains expected changes:
+After rebase or before squash, verify the branch only contains expected changes.
+
+> **Important**: These comparisons assume the branch has been rebased onto `origin/<base>`.
+> If the branch has diverged (main advanced since the branch was created), the diff will
+> include the reversal of main's changes. Rebase first: `git rebase origin/<base>`
 
 ```bash
 # Show files that will be in the commit
