@@ -201,7 +201,7 @@ ensure_symlink "$CONFIGS/starship/starship.toml" "$HOME/.config/starship.toml"
 
 ensure_symlink "$CONFIGS/vim/.vimrc" "$HOME/.vimrc"
 ensure_symlink "$CONFIGS/vim/.ideavimrc" "$HOME/.ideavimrc"
-ensure_symlink "$CONFIGS/vim/init.vim" "$HOME/.config/nvim/init.vim"
+ensure_symlink "$CONFIGS/vim/init.lua" "$HOME/.config/nvim/init.lua"
 
 # --- Zed ---
 

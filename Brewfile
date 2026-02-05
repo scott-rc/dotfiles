@@ -24,6 +24,7 @@ brew "git-delta"
 brew "deno"
 brew "go"
 brew "node"
+brew "typescript-language-server"
 
 # Cloud & infrastructure
 cask "gcloud-cli"
