@@ -19,6 +19,7 @@ When creating or updating a PR description:
 ## Content
 
 - **Synthesize commits into a narrative**: Read all commits with `git log main..HEAD` and weave them into a coherent story. Don't just list what each commit did—explain the overall change and why it matters.
+- **Describe the net change, not the journey**: The PR description should reflect what's different between the base branch and the final state—not intermediate bugs, refactors, or course-corrections that happened along the way. If a bug was introduced in commit 1 and fixed in commit 3, don't mention the bug at all—it never existed in the base branch. Use `git diff main..HEAD` as your source of truth for what actually changed.
 - **Focus on the "why"**: Explain the motivation and reasoning, not just what changed.
 - **Include testing context**: Describe how the changes were verified, but as part of the narrative, not as a separate checklist.
 - **Link issues**: Use "Fixes #123" to auto-close issues on merge; use "Related to #456" for referenced-but-not-fixed issues.
