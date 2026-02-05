@@ -3,5 +3,4 @@ if not status is-interactive
 end
 
 alias vim=nvim
-
-abbr --add v nvim
+alias v=nvim
