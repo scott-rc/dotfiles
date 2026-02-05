@@ -35,6 +35,7 @@
     "use_system_clipboard": "never",
   },
   "cursor_blink": false,
+  "soft_wrap": "none",
   "vertical_scroll_margin": 10,
   "terminal": {
     "cursor_shape": "bar",
