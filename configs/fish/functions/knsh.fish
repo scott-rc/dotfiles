@@ -16,5 +16,6 @@ function knsh --description "SSH into a node via gcloud"
     end
 
     set -l node (kubectl $kubectl_flags get nodes -o name | sed 's|node/||' | fzf --select-1 --query "$argv")
-    and gcloud compute ssh $gcloud_flags $node
+    or return
+    gcloud compute ssh $gcloud_flags $node
 end

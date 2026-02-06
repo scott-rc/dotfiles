@@ -8,5 +8,6 @@ function ksc --description "Switch kubectl context"
     end
 
     set -l ctx (kubectl $kubectl_flags config get-contexts -o name | fzf --select-1 --query "$argv")
-    and kubectl $kubectl_flags config use-context $ctx
+    or return
+    kubectl $kubectl_flags config use-context $ctx
 end

@@ -11,5 +11,6 @@ function ksn --description "Switch kubectl namespace"
     end
 
     set -l ns (kubectl $kubectl_flags get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | fzf --select-1 --query "$argv")
-    and kubectl $kubectl_flags config set-context --current --namespace=$ns
+    or return
+    kubectl $kubectl_flags config set-context --current --namespace=$ns
 end
