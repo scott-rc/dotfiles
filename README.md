@@ -36,7 +36,7 @@ Configuration directories symlinked to their expected locations:
 | Directory | Target |
 |-----------|--------|
 | `atuin/` | `~/.config/atuin/config.toml` |
-| `claude/` | `~/.claude/{settings.json,keybindings.json,commands,skills,hooks}` |
+| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks}` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
 | `ghostty/` | `~/Library/Application Support/com.mitchellh.ghostty/config` |

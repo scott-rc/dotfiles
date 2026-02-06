@@ -163,6 +163,7 @@ ensure_symlink "$CONFIGS/claude/keybindings.json" "$HOME/.claude/keybindings.jso
 ensure_symlink "$CONFIGS/claude/commands" "$HOME/.claude/commands"
 ensure_symlink "$CONFIGS/claude/skills" "$HOME/.claude/skills"
 ensure_symlink "$CONFIGS/claude/hooks" "$HOME/.claude/hooks"
+ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 
 # --- direnv ---
 
