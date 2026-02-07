@@ -1,7 +1,0 @@
-source ~/.vimrc
-
-set visualbell
-set noerrorbells
-set ideajoin
-set sneak
-set surround
