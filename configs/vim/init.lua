@@ -1,9 +1,11 @@
 -- Source shared vimrc settings
 vim.cmd('source ~/.vimrc')
 
+-- ============================================================================
 -- Bootstrap lazy.nvim
+-- ============================================================================
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   vim.fn.system({
     'git', 'clone', '--filter=blob:none',
     'https://github.com/folke/lazy.nvim.git',
@@ -12,8 +14,11 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- ============================================================================
 -- Plugins
+-- ============================================================================
 require('lazy').setup({
+  -- Theme
   {
     'projekt0n/github-nvim-theme',
     lazy = false,
@@ -23,13 +28,33 @@ require('lazy').setup({
     end,
   },
 
-  -- Existing plugins
+  -- Syntax
   'dag/vim-fish',
-  { 'junegunn/fzf', build = ':call fzf#install()' },
-  'junegunn/fzf.vim',
-  'tpope/vim-commentary',
 
-  -- Completion (still needed - works with native LSP)
+  -- Fuzzy finder
+  { 'junegunn/fzf', build = ':call fzf#install()' },
+  {
+    'junegunn/fzf.vim',
+    config = function()
+      vim.g.fzf_vim = { preview_window = { 'up,60%', 'ctrl-/' } }
+    end,
+    keys = {
+      { '<leader>f', '<cmd>Files<CR>', desc = 'Find files' },
+      { '<leader>b', '<cmd>Buffers<CR>', desc = 'Find buffers' },
+      { '<leader>r', '<cmd>Rg<CR>', desc = 'Ripgrep search' },
+    },
+  },
+
+  -- Commenting
+  {
+    'tpope/vim-commentary',
+    keys = {
+      { '<leader>/', '<Plug>CommentaryLine', desc = 'Toggle comment' },
+      { '<leader>/', '<Plug>Commentary', mode = 'v', desc = 'Toggle comment' },
+    },
+  },
+
+  -- Completion
   {
     'hrsh7th/nvim-cmp',
     dependencies = {
@@ -50,44 +75,29 @@ require('lazy').setup({
           { name = 'buffer' },
         },
       })
+      vim.lsp.config('*', {
+        capabilities = require('cmp_nvim_lsp').default_capabilities(),
+      })
     end,
   },
 })
 
--- LSP Configuration (Neovim 0.11+ native API)
+-- ============================================================================
+-- LSP
+-- ============================================================================
 vim.lsp.config('ts_ls', {
   cmd = { 'typescript-language-server', '--stdio' },
   filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
   root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' },
 })
 
--- Enable language servers (add more as needed)
 vim.lsp.enable('ts_ls')
 
--- LSP keybindings on attach
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
-    local opts = { buffer = args.buf }
-    -- gd for go-to-definition (not a default)
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    -- [d and ]d for diagnostic navigation
-    vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
-    vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, {
+      buffer = args.buf,
+      desc = 'Go to definition',
+    })
   end,
 })
-
--- Advertise LSP capabilities for completion
-vim.lsp.config('*', {
-  capabilities = require('cmp_nvim_lsp').default_capabilities(),
-})
-
-vim.g.fzf_vim = { preview_window = {'up,60%', 'ctrl-/'} }
-
--- FZF mappings
-vim.keymap.set('n', '<leader>f', ':Files<CR>')
-vim.keymap.set('n', '<leader>b', ':Buffers<CR>')
-vim.keymap.set('n', '<leader>r', ':Rg<CR>')
-
--- Commentary mappings
-vim.keymap.set('n', '<leader>/', '<Plug>CommentaryLine')
-vim.keymap.set('v', '<leader>/', '<Plug>Commentary')
