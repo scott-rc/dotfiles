@@ -72,6 +72,8 @@ vim.lsp.config('*', {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
 })
 
+vim.g.fzf_vim = { preview_window = {'up,60%', 'ctrl-/'} }
+
 -- FZF mappings
 vim.keymap.set('n', '<leader>f', ':Files<CR>')
 vim.keymap.set('n', '<leader>b', ':Buffers<CR>')
