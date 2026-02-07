@@ -128,6 +128,11 @@ fi
 
 ensure_symlink "$CONFIGS/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 
+# --- gitui ---
+
+ensure_symlink "$CONFIGS/gitui/github-dark.ron" "$HOME/.config/gitui/theme.ron"
+ensure_symlink "$CONFIGS/gitui/github-dark-dimmed.ron" "$HOME/.config/gitui/github-dark-dimmed.ron"
+
 # --- Git ---
 
 ensure_symlink "$CONFIGS/git/.gitconfig" "$HOME/.gitconfig"

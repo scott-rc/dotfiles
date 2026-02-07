@@ -19,6 +19,7 @@ brew "zoxide"
 
 # Git
 brew "git-delta"
+brew "gitui"
 
 # Languages & runtimes
 brew "deno"
