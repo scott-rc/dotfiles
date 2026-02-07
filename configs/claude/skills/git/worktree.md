@@ -17,14 +17,14 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 4. **For existing branch mode**:
    - Use the branch name as-is for the worktree directory name
-   - Get the parent directory of the repo: `parent_dir=$(dirname <repo-path>)`
-   - Run: `git worktree add "$parent_dir/<repo>-<branch-name>" <branch-name>`
+   - Run: `git worktree add <repo-path>/.worktrees/<branch-name> <branch-name>`
    - Example directory structure after creating worktrees:
      ```
      ~/Code/gadget/
-     ├── api/                    # main repo
-     ├── api-fix-login-bug/      # worktree (sibling directory)
-     └── api-add-auth/           # worktree (sibling directory)
+     └── api/                       # main repo
+         └── .worktrees/
+             ├── fix-login-bug/     # worktree
+             └── add-auth/          # worktree
      ```
 
 5. **For new branch mode**:
@@ -36,8 +36,7 @@ Create a new git worktree for the given task, or convert an existing branch into
      - If the branch exists, check if it's an ancestor of the base branch (already merged): `git merge-base --is-ancestor sc/<task-name> <base-branch>`
        - If merged: delete the old branch first with `git branch -d sc/<task-name>`
        - If not merged: ask the user if they want to use the existing branch, delete it and start fresh, or use a different name
-   - Get the parent directory of the repo: `parent_dir=$(dirname <repo-path>)`
-   - Run: `git worktree add -b sc/<task-name> "$parent_dir/<repo>-<task-name>" <base-branch>`
+   - Run: `git worktree add -b sc/<task-name> <repo-path>/.worktrees/<task-name> <base-branch>`
 
 6. Copy `.envrc.local` to the new worktree if it exists in the original repo
 

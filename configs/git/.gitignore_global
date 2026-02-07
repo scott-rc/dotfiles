@@ -1,5 +1,6 @@
 **/*.local.*
 .DS_Store
+.worktrees
 .cursor/mcp.json
 .idea
 .vscode/*
