@@ -14,6 +14,15 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Plugins
 require('lazy').setup({
+  {
+    'projekt0n/github-nvim-theme',
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.cmd('colorscheme github_dark')
+    end,
+  },
+
   -- Existing plugins
   'dag/vim-fish',
   { 'junegunn/fzf', build = ':call fzf#install()' },
