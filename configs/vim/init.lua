@@ -72,6 +72,21 @@ vim.keymap.set('c', '<right>', function() return vim.fn.wildmenumode() == 1 and 
 
 local augroup = vim.api.nvim_create_augroup('user_config', { clear = true })
 
+vim.api.nvim_create_autocmd('VimEnter', {
+  group = augroup,
+  callback = function()
+    if vim.fn.argc() == 0 and vim.bo.buftype == '' then
+      local root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+      if vim.v.shell_error == 0 and root and root ~= '' then
+        require('neo-tree.command').execute({ action = 'focus', dir = root })
+      else
+        require('neo-tree.command').execute({ action = 'focus' })
+      end
+      vim.cmd('only')
+    end
+  end,
+})
+
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter' }, {
   group = augroup,
   command = 'checktime',
@@ -115,6 +130,26 @@ require('lazy').setup({
     event = 'VeryLazy',
     opts = {
       preset = 'modern',
+    },
+  },
+
+  -- File explorer
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'MunifTanjim/nui.nvim',
+      'nvim-tree/nvim-web-devicons',
+    },
+    opts = {
+      filesystem = {
+        follow_current_file = { enabled = true },
+        use_libuv_file_watcher = true,
+      },
+    },
+    keys = {
+      { '<leader>e', '<cmd>Neotree toggle<CR>', desc = 'File explorer' },
     },
   },
 
