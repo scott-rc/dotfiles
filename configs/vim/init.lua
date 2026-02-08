@@ -99,6 +99,19 @@ vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter' }, {
   command = 'checktime',
 })
 
+vim.api.nvim_create_autocmd('BufEnter', {
+  group = augroup,
+  callback = function()
+    vim.schedule(function()
+      local wins = vim.api.nvim_list_wins()
+      if #wins > 1 then return end
+      if vim.fn.bufname() == '' and not vim.bo.modified and vim.bo.buftype == '' then
+        vim.cmd('quit')
+      end
+    end)
+  end,
+})
+
 -- ============================================================================
 -- Bootstrap lazy.nvim
 -- ============================================================================
