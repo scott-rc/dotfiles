@@ -50,6 +50,12 @@ vim.keymap.set('n', ';', ':', { desc = 'Command mode' })
 vim.keymap.set({ 'n', 'v' }, '<S-h>', '^', { desc = 'Start of line' })
 vim.keymap.set({ 'n', 'v' }, '<S-l>', '$', { desc = 'End of line' })
 
+-- Window navigation
+vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Focus left window' })
+vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Focus below window' })
+vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Focus above window' })
+vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Focus right window' })
+
 -- Leader
 vim.keymap.set('n', '<leader>w', '<cmd>q<CR>', { desc = 'Close' })
 vim.keymap.set('n', '<leader>q', '<cmd>qa<CR>', { desc = 'Quit all' })
