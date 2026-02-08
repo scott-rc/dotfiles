@@ -4,6 +4,7 @@
 
 vim.g.mapleader = ' '
 vim.g.vim_json_conceal = 0
+vim.o.timeoutlen = 300
 
 -- Search
 vim.o.ignorecase = true
@@ -143,6 +144,11 @@ require('lazy').setup({
       'nvim-tree/nvim-web-devicons',
     },
     opts = {
+      window = {
+        mappings = {
+          ['<space>'] = { 'toggle_node', nowait = true },
+        },
+      },
       filesystem = {
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
