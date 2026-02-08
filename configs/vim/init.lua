@@ -152,7 +152,19 @@ require('lazy').setup({
     opts = {
       window = {
         mappings = {
-          ['<space>'] = { 'toggle_node', nowait = true },
+          ['<space>'] = {
+            function(state)
+              local node = state.tree:get_node()
+              if node.type == 'directory' then
+                require('neo-tree.sources.filesystem.commands').toggle_node(state)
+              else
+                require('neo-tree.sources.common.commands').open(state)
+                vim.cmd('Neotree reveal')
+              end
+            end,
+            nowait = true,
+            desc = 'Toggle directory or open file (keep focus)',
+          },
         },
       },
       filesystem = {
