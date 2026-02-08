@@ -43,6 +43,7 @@ Configuration directories symlinked to their expected locations:
 | `git/` | `~/.gitconfig`, `~/.config/git/.gitignore_global` |
 | `iterm2/` | via `defaults write` (custom preferences folder) |
 | `karabiner/` | `~/.config/karabiner/karabiner.json` |
+| `lazygit/` | `~/Library/Application Support/lazygit/config.yml` |
 | `nix/` | `/etc/nix/nix.conf` (sudo) |
 | `orbstack/` | `~/.orbstack/config/docker.json` |
 | `starship/` | `~/.config/starship.toml` |

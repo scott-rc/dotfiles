@@ -20,6 +20,7 @@ brew "zoxide"
 # Git
 brew "git-delta"
 brew "gitui"
+brew "lazygit"
 
 # Languages & runtimes
 brew "deno"

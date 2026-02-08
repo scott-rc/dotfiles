@@ -1,0 +1,25 @@
+gui:
+  nerdFontsVersion: "3"
+  scrollOffMargin: 8
+  scrollOffBehavior: margin
+  border: rounded
+  mouseEvents: false
+  filterMode: fuzzy
+git:
+  pagers:
+    - pager: delta --paging=never
+  parseEmoji: true
+os:
+  editPreset: nvim
+keybinding:
+  universal:
+    gotoTop: g # vim: gg (lazygit default: <)
+    gotoBottom: G # vim: G  (lazygit default: >)
+    prevPage: <c-u> # vim: ctrl-u (lazygit default: ,)
+    nextPage: <c-d> # vim: ctrl-d (lazygit default: .)
+    scrollUpMain: <c-b> # vim: ctrl-b
+    scrollDownMain: <c-f> # vim: ctrl-f
+    prevBlock: "{" # vim: { (jump sections)
+    nextBlock: "}" # vim: } (jump sections)
+quitOnTopLevelReturn: false
+disableStartupPopups: true
