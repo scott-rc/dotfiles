@@ -20,4 +20,6 @@ Commit outstanding changes with a well-formatted message.
 
 4. **Create commit** following [commit-guidelines.md](commit-guidelines.md)
 
+5. **If commit fails due to a pre-commit hook**: read the error output, fix the issue, re-stage changes, and retry the commit. Do NOT use `--no-verify`.
+
 See [git-patterns.md](git-patterns.md) for dotfiles exception and main branch protection patterns.

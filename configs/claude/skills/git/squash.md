@@ -9,10 +9,7 @@ Squash all commits on the current branch into a single commit.
    git fetch origin
    ```
 
-2. Detect the base branch:
-   ```bash
-   git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main'
-   ```
+2. Detect the base branch (see [git-patterns.md](git-patterns.md)).
 
 3. Get the list of commits to squash: `git log origin/<base>..HEAD --oneline`
 
@@ -30,28 +27,17 @@ Squash all commits on the current branch into a single commit.
    ```
    Note the overall purpose for crafting the squash message.
 
-7. **Verify scope before squashing**:
-   - Show files that will be in the squashed commit:
-     ```bash
-     git diff --name-only origin/<base> HEAD
-     git diff --stat origin/<base> HEAD
-     ```
-   - Ask user to verify these files match the branch's intended scope
-   - If unexpected files appear, offer to:
-     - Investigate with `git log --oneline origin/<base>..HEAD`
-     - Fix with `git rebase -i origin/<base>` to drop/edit problematic commits
+7. **Verify scope before squashing** following the scope verification pattern in [git-patterns.md](git-patterns.md).
 
 8. **Confirm before squashing**:
    - Show the commits that will be squashed (from step 3)
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
    - Ask the user to confirm before proceeding
 
-9. Squash all commits into one:
+9. Squash all commits into one, using a message that follows [commit-guidelines.md](commit-guidelines.md):
    ```bash
    git reset --soft origin/<base>
    git commit
    ```
-
-10. Format the commit message following [commit-guidelines.md](commit-guidelines.md).
 
 See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

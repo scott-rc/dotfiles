@@ -1,4 +1,4 @@
-# Worktree
+# Worktree Operation
 
 Create a new git worktree for the given task, or convert an existing branch into a worktree.
 

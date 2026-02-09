@@ -6,7 +6,7 @@ Check CI status and fetch failure logs to debug issues.
 
 1. **Verify GitHub Actions is available**:
    ```bash
-   ls -d .github/workflows 2>/dev/null
+   test -d "$(git rev-parse --show-toplevel)/.github/workflows"
    ```
    - If `.github/workflows/` does not exist, inform the user that no supported CI system was found.
 

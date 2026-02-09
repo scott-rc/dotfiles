@@ -1,12 +1,11 @@
 ---
 name: git
 description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, and CI checks with opinionated workflows. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, check CI status, or manage git worktrees.
-compatibility: Requires gh CLI (GitHub CLI) for PR and CI operations
 ---
 
 # Git Operations
 
-Handle git operations based on user request. Determine which operation is needed:
+Route to the appropriate operation based on user intent.
 
 ## Operations
 
@@ -43,6 +42,7 @@ See [clean-worktrees.md](clean-worktrees.md) for detailed instructions.
 Users often request multiple operations together. Handle these as follows:
 
 - **"commit and push"** → Run commit operation, then push operation
+- **"squash and push"** → Run squash operation, then push operation
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (sync PR title/description with first commit)

@@ -15,6 +15,7 @@ Push commits and create/update PR.
 
 3. Push to remote:
    - `git push -u origin HEAD`
+   - If push is rejected (non-fast-forward), offer to pull/rebase first or force push with `git push --force-with-lease`
 
 4. Check if a PR already exists for this branch:
    ```bash

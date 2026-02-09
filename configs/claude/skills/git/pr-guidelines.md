@@ -1,13 +1,5 @@
 # PR Description Guidelines
 
-When creating or updating a PR description, first detect the base branch:
-
-```bash
-base=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main')
-```
-
-Use `origin/<base>` in all commands below.
-
 ## Title
 
 - Match the first commit's title (the one that will be the squash commit)

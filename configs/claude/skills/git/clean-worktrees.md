@@ -1,6 +1,6 @@
-# Clean Worktrees
+# Clean Operation
 
-Remove git worktrees whose branches have already been merged to main.
+Remove worktrees whose branches have been merged to main.
 
 ## Instructions
 
@@ -13,7 +13,7 @@ Remove git worktrees whose branches have already been merged to main.
 
 3. For each worktree (excluding the main worktree):
    - Get the branch name from the worktree
-   - Determine default branch: `git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main'`
+   - Detect the base branch (see [git-patterns.md](git-patterns.md))
    - Fetch and prune: `git fetch origin <default-branch> --prune --quiet`
    - Check if the branch should be cleaned up (either condition):
      - **Merged**: `git branch --merged origin/<default-branch>` includes the branch
