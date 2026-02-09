@@ -1,8 +1,7 @@
 ---
 name: git
-description: Handles all git operations and version control tasks including commits, pushes, rebases, merges, squashes, worktrees, branches, PRs, diffs, stashes, cherry-picks, resets, and CI checks.
-compatibility:
-  - gh CLI (GitHub CLI) for PR and CI operations
+description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, and CI checks with opinionated workflows. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, check CI status, or manage git worktrees.
+compatibility: Requires gh CLI (GitHub CLI) for PR and CI operations
 ---
 
 # Git Operations
@@ -49,3 +48,11 @@ Users often request multiple operations together. Handle these as follows:
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (sync PR title/description with first commit)
 
 **Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
+
+## References
+
+These files are referenced by the operation instructions above:
+
+- [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
+- [commit-guidelines.md](commit-guidelines.md) - Commit message format, structure, and examples
+- [pr-guidelines.md](pr-guidelines.md) - PR title and description format
