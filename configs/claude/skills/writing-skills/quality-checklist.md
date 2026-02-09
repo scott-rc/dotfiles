@@ -30,9 +30,10 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 
 ## Scripts (if applicable)
 
+- [ ] **Error recovery**: Scripts handle errors with concrete recovery or useful messages rather than failing silently
 - [ ] **Error handling**: Scripts check for failure conditions and report useful error messages
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
-- [ ] **Dependencies declared**: Required tools are listed in the `compatibility` frontmatter field
+- [ ] **Dependencies declared**: Required tools are documented in the skill
 - [ ] **POSIX paths**: Scripts use forward slashes only
 
 ## Workflow Quality
@@ -41,6 +42,11 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
 - [ ] **Error cases**: Operations handle likely failure modes (missing files, invalid input, conflicts)
 - [ ] **Feedback to user**: Operations tell the agent when to report progress or results to the user
+
+## Testing
+
+- [ ] **Tested with target models**: The skill has been tested with the models it targets
+- [ ] **Evaluation cases exist**: At least one test scenario per operation exists to verify correct behavior
 
 ## Anti-patterns (FAIL if any are present)
 
@@ -51,3 +57,4 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **No inconsistent terms**: The same concept is not called by different names in different files
 - [ ] **No SKILL.md instructions**: SKILL.md routes to operation files, it does not contain step-by-step instructions itself
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
+- [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do

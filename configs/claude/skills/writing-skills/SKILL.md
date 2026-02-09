@@ -1,6 +1,6 @@
 ---
 name: writing-skills
-description: Creates and reviews Claude Code agent skills when users ask to scaffold, build, review, improve, or fix skills following agentskills.io best practices.
+description: Creates and reviews Claude Code agent skills when users ask to scaffold, build, review, improve, or fix skills following official best practices.
 ---
 
 # Writing Skills

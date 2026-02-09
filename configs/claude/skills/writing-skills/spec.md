@@ -5,6 +5,8 @@ Rules for authoring Claude Code agent skills. All operations in this skill valid
 ## Naming
 
 - **Skill name**: Lowercase, hyphens only. Max 64 characters. Use gerund form when it reads naturally (e.g., `writing-skills`, `managing-deploys`). The name must describe the skill's domain, not a single action.
+  - Must not contain XML tags
+  - Must not include reserved words: `anthropic`, `claude`
 - **File names**: Lowercase, hyphens only. Descriptive of content (e.g., `commit-guidelines.md`, not `guidelines.md`). Operation files are named after the operation (e.g., `create.md`, `review.md`).
 - **Directory name**: Must match the skill name exactly.
 
@@ -16,13 +18,10 @@ SKILL.md must start with YAML frontmatter delimited by `---`:
 ---
 name: <skill-name>              # Required. Must match directory name.
 description: <text>             # Required. See Description Rules below.
-compatibility: <text>           # Optional. Runtime requirements (CLIs, APIs, etc.)
-license: <text>                 # Optional. SPDX identifier.
-allowed-tools: [<tool>, ...]    # Optional. Tools the skill is allowed to use.
 ---
 ```
 
-No other frontmatter keys are recognized. Do not add custom keys.
+Only `name` and `description` are recognized frontmatter keys. Do not add custom keys.
 
 ## Description Rules
 
@@ -32,7 +31,8 @@ The `description` field is how Claude discovers and matches the skill to user in
 2. **State what AND when**: First clause says what it does, second says when to use it
 3. **Include trigger keywords**: Verbs and nouns a user would naturally say (e.g., "commit, push, rebase" for a git skill)
 4. **Be a single sentence**: One sentence, no line breaks, no bullet points
-5. **Stay under 200 characters**: Long descriptions get truncated in skill listings
+5. **Stay under 1024 characters**: Long descriptions get truncated in skill listings
+6. **No XML tags**: The description must not contain XML-style tags
 
 ## SKILL.md Body
 
@@ -61,6 +61,7 @@ Reference files contain shared knowledge used by multiple operations (patterns, 
 - **One level deep**: SKILL.md and operation files can reference these files. Reference files must NOT reference other reference files.
 - **Descriptive names**: Name describes the content type (e.g., `commit-guidelines.md`, `git-patterns.md`)
 - **No operation logic**: Reference files provide information, not step-by-step instructions
+- **Table of contents**: Include a table of contents for reference files over 100 lines
 
 ## Directory Structure
 
@@ -82,4 +83,5 @@ Subdirectories are optional and only needed when the skill has many files of a g
 - **Consistent terminology**: Pick one term and use it everywhere (e.g., "operation" not sometimes "command" and sometimes "action")
 - **POSIX paths**: Use forward slashes. No backslashes, no Windows paths.
 - **Markdown only**: All instruction files must be markdown. Use code blocks for shell commands.
+- **MCP tool names**: Use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **Progressive disclosure**: SKILL.md is concise, operation files are detailed, reference files go deep

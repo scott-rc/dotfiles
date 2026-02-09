@@ -24,7 +24,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
 4. **Write SKILL.md**:
    - Use the SKILL.md template from [skill-template.md](skill-template.md)
-   - Write the frontmatter: `name` matching directory name, `description` following [spec.md](spec.md) description rules, optional `compatibility` if dependencies exist
+   - Write the frontmatter: `name` matching directory name, `description` following [spec.md](spec.md) description rules
    - Write the Operations section with one H3 per operation, each with a one-line summary and file link
    - Write Combined Operations if multiple operations can be chained (map user phrases to operation sequences)
    - Write References section linking any shared reference files
@@ -52,4 +52,6 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 8. **Report results**:
    - List all files created with a one-line description of each
    - Show the full `description` field so the user can verify trigger keywords
-   - Suggest next steps: test the skill by invoking it, run the review operation to catch issues, iterate on operation details based on real usage
+   - Build evaluations: create at least one test scenario per operation (a user phrase and the expected behavior)
+   - Run the review operation on the new skill to catch issues
+   - Iterate on operation details based on real usage

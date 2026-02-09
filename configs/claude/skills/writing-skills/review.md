@@ -40,6 +40,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Reference files that contain operation logic (numbered steps telling the agent what to do)
    - Description field that is too vague to trigger on user intent
    - Missing combined operations when multiple operations could logically be chained
+   - Operation presents the user with multiple approaches when a single default with an escape hatch would be clearer
 
 6. **Estimate token usage**:
    - Count approximate tokens for each file (rough: 1 token per 4 characters)

@@ -8,7 +8,6 @@ Annotated templates for creating skill files. Replace placeholders (`<...>`) wit
 ---
 name: <skill-name>
 description: <Third-person sentence. What it does AND when to use it. Include trigger keywords.>
-compatibility: <Optional. Runtime requirements like CLIs or APIs.>
 ---
 
 # <Skill Title>
