@@ -113,7 +113,7 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
-        bind "Super Shift o" { SwitchToMode "normal"; }
+        bind "Super Shift s" { SwitchToMode "normal"; }
         bind "p" {
             LaunchOrFocusPlugin "plugin-manager" {
                 floating true
@@ -141,7 +141,7 @@ keybinds clear-defaults=true {
         bind "Super k" { MoveFocus "up"; }
         bind "Super l" { MoveFocus "right"; }
         bind "Super f" { ToggleFocusFullscreen; }
-        bind "Super z" { ToggleFocusFullscreen; }
+        bind "Super z" { TogglePaneFrames; }
         bind "Super down" { MoveFocus "down"; }
         bind "Super up" { MoveFocus "up"; }
         bind "Super +" { Resize "Increase"; }
@@ -179,7 +179,7 @@ keybinds clear-defaults=true {
         bind "Super m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
-        bind "Super Shift o" { SwitchToMode "session"; }
+        bind "Super Shift s" { SwitchToMode "session"; }
     }
     // tmux mode disabled - Alt+arrows conflict with terminal word navigation
     // shared_except "locked" "scroll" "search" "tmux" {
@@ -223,6 +223,8 @@ keybinds clear-defaults=true {
         bind "l" { PageScrollDown; }
         bind "Super s" { SwitchToMode "normal"; }
         bind "u" { HalfPageScrollUp; }
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
     }
     entersearch {
         bind "Ctrl c" { SwitchToMode "scroll"; }
