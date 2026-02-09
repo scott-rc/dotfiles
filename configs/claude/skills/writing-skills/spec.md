@@ -79,9 +79,11 @@ Subdirectories are optional and only needed when the skill has many files of a g
 
 ## Content Rules
 
+- **Context window is a public good**: Only add information Claude does not already have. Challenge each line: does this teach something new, or does it restate common knowledge? Every token in a skill must justify its cost.
 - **No time-sensitive information**: Don't reference specific versions, dates, or URLs that will rot
 - **Consistent terminology**: Pick one term and use it everywhere (e.g., "operation" not sometimes "command" and sometimes "action")
 - **POSIX paths**: Use forward slashes. No backslashes, no Windows paths.
 - **Markdown only**: All instruction files must be markdown. Use code blocks for shell commands.
 - **MCP tool names**: Use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **Progressive disclosure**: SKILL.md is concise, operation files are detailed, reference files go deep
+- **Degrees of freedom**: Match instruction specificity to the task. High freedom (prose, multiple valid approaches) for creative/variable tasks. Medium freedom (pseudocode with parameters) when a preferred pattern exists. Low freedom (exact scripts, few parameters) for fragile/critical operations.

@@ -36,6 +36,8 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Steps should be specific and actionable -- tell the agent exactly what to do, not vague guidance
    - Include decision points for conditional logic ("If X, do Y. Otherwise, do Z.")
    - Include error handling for likely failure modes
+   - Choose the right degree of freedom for each step (see [spec.md](spec.md) Content Rules)
+   - Apply content patterns from [skill-template.md](skill-template.md) where they fit: feedback loops for quality-critical steps, checklists for multi-step tracking, examples for ambiguous output
    - End each operation with a step that reports results to the user
 
 6. **Write reference files**:
@@ -49,9 +51,9 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
    - Fix any issues found before reporting to the user
 
-8. **Report results**:
+8. **Report and evaluate**:
    - List all files created with a one-line description of each
    - Show the full `description` field so the user can verify trigger keywords
-   - Build evaluations: create at least one test scenario per operation (a user phrase and the expected behavior)
-   - Run the review operation on the new skill to catch issues
-   - Iterate on operation details based on real usage
+   - Build evaluations before finalizing: create at least one test scenario per operation as a JSON object with `input` (user phrase), `expected` (correct behavior), and `criteria` (how to judge pass/fail)
+   - Run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails
+   - Run the review operation on the new skill to catch structural issues

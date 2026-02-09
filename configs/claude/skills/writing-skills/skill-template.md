@@ -71,3 +71,13 @@ When choosing a skill name, prefer:
 - **Gerund form** when natural: `writing-skills`, `managing-deploys`, `reviewing-code`
 - **Domain noun** when gerund is awkward: `git`, `docker`, `kubernetes`
 - **Hyphenated compound** for specificity: `pr-review`, `test-runner`, `db-migrations`
+
+## Content Patterns for Operation Steps
+
+Use these patterns inside operation files when they fit the task:
+
+- **Checklist pattern**: Give the agent a checklist to copy and track progress through multi-step work. Useful when steps can partially succeed.
+- **Feedback loop pattern**: Run validator/linter/tests, fix errors, repeat until clean. Dramatically improves output quality for code-generation or formatting tasks.
+- **Template pattern**: Provide a strict output template (low freedom) or a flexible one with optional sections (medium freedom).
+- **Examples pattern**: Show 1-2 input/output pairs when the desired style or format is ambiguous.
+- **Conditional routing pattern**: "If X, go to step N. If Y, go to step M." Use when an operation has meaningfully different paths.

@@ -31,7 +31,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Structure (frontmatter, naming, sections, file organization)
    - Content efficiency (token justification, redundancy, over-explaining, conciseness)
    - Scripts if applicable (error handling, constants, dependencies, paths)
-   - Workflow quality (sequential steps, decision points, error cases, feedback)
+   - Workflow quality (sequential steps, decision points, error cases, feedback, feedback loops, degrees of freedom)
    - Anti-patterns (nested references, vague names, Windows paths, time-sensitive content, inconsistent terms)
 
 5. **Check for additional anti-patterns**:
@@ -41,6 +41,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Description field that is too vague to trigger on user intent
    - Missing combined operations when multiple operations could logically be chained
    - Operation presents the user with multiple approaches when a single default with an escape hatch would be clearer
+   - Evaluation scenarios are missing or are just vague descriptions instead of structured input/expected/criteria
 
 6. **Estimate token usage**:
    - Count approximate tokens for each file (rough: 1 token per 4 characters)

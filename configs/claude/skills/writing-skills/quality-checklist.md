@@ -31,6 +31,7 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 ## Scripts (if applicable)
 
 - [ ] **Error recovery**: Scripts handle errors with concrete recovery or useful messages rather than failing silently
+- [ ] **Solve, don't punt**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for the agent to interpret
 - [ ] **Error handling**: Scripts check for failure conditions and report useful error messages
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
 - [ ] **Dependencies declared**: Required tools are documented in the skill
@@ -42,11 +43,14 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
 - [ ] **Error cases**: Operations handle likely failure modes (missing files, invalid input, conflicts)
 - [ ] **Feedback to user**: Operations tell the agent when to report progress or results to the user
+- [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
+- [ ] **Degrees of freedom**: Each step's specificity matches its fragility -- fragile/critical steps are prescriptive, variable/creative steps leave room
 
 ## Testing
 
 - [ ] **Tested with target models**: The skill has been tested with the models it targets
 - [ ] **Evaluation cases exist**: At least one test scenario per operation exists to verify correct behavior
+- [ ] **Structured evaluations**: Test scenarios specify input, expected behavior, and pass/fail criteria -- not just vague descriptions
 
 ## Anti-patterns (FAIL if any are present)
 
