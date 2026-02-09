@@ -1,6 +1,8 @@
 ---
 name: git
-description: Use for ALL git operations and version control tasks. This includes commit, push, pull, fetch, rebase, merge, squash, worktrees, branches, PRs, pull requests, status, diff, log, stash, cherry-pick, reset, CI checks, and any other git commands. Always use this skill when the user mentions git, version control, commits, branches, PRs, or wants to see changes.
+description: Handles all git operations and version control tasks including commits, pushes, rebases, merges, squashes, worktrees, branches, PRs, diffs, stashes, cherry-picks, resets, and CI checks.
+compatibility:
+  - gh CLI (GitHub CLI) for PR and CI operations
 ---
 
 # Git Operations
@@ -24,10 +26,6 @@ See [rebase.md](rebase.md) for detailed instructions.
 ### Push
 Push commits and create/update PR, syncing title/description with first commit.
 See [push.md](push.md) for detailed instructions.
-
-### Status
-Show current branch status, changes, and stack info.
-See [status.md](status.md) for detailed instructions.
 
 ### CI
 Check GitHub Actions status and fetch failure logs to debug CI issues.

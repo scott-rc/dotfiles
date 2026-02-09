@@ -8,7 +8,6 @@ Fetch the latest from the base branch and rebase the current branch onto it.
    ```bash
    git fetch origin
    ```
-   > **Note**: Never use `git fetch origin <branch>:<branch>` - this fails if the branch is checked out in another worktree. Always use `git fetch origin` and reference `origin/<branch>`.
 
 2. Detect the base branch:
    ```bash

@@ -34,6 +34,17 @@ Use `origin/<base>` in all commands below.
 - **Include testing context**: Describe how the changes were verified, but as part of the narrative, not as a separate checklist.
 - **Link issues**: Use "Fixes #123" to auto-close issues on merge; use "Related to #456" for referenced-but-not-fixed issues.
 
+## Example
+
+Title: `Add workspace-level snippet sharing`
+
+Body:
+```
+Users in the same workspace frequently recreate identical snippets. This introduces a shared snippet library scoped to the workspace, with copy-on-edit semantics so personal modifications don't affect the original.
+
+Storage uses the existing `snippets` table with an added `workspace_id` column and a composite index on `(workspace_id, name)`. The `SnippetService.list()` method now accepts an optional `workspaceId` parameter to fetch shared snippets alongside personal ones. Verified with integration tests against a multi-user workspace and confirmed no N+1 queries via `EXPLAIN ANALYZE`. Fixes #482.
+```
+
 ## Updating PRs
 
 - When the code changes significantly, update the description to match

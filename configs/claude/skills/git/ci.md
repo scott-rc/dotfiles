@@ -4,24 +4,18 @@ Check CI status and fetch failure logs to debug issues.
 
 ## Instructions
 
-1. **Detect the CI system**:
+1. **Verify GitHub Actions is available**:
    ```bash
-   ls -d .github/workflows .buildkite 2>/dev/null
+   ls -d .github/workflows 2>/dev/null
    ```
-   - If `.github/workflows/` exists → GitHub Actions
-   - If `.buildkite/` exists → Buildkite
-   - If neither or only Buildkite: inform user that only GitHub Actions is currently supported
+   - If `.github/workflows/` does not exist, inform the user that no supported CI system was found.
 
-2. **For GitHub Actions repos only**, proceed with the following steps.
-
-### GitHub Actions
-
-3. **Check if PR exists for current branch**:
+2. **Check if PR exists for current branch**:
    ```bash
    gh pr view --json number,url 2>/dev/null
    ```
 
-4. **Get CI status**:
+3. **Get CI status**:
 
    If PR exists:
    ```bash
@@ -33,11 +27,11 @@ Check CI status and fetch failure logs to debug issues.
    gh run list --branch $(git branch --show-current) --limit 5
    ```
 
-5. **Summarize the status**:
+4. **Summarize the status**:
    - Group by status (failed, pending, passed)
    - If all checks pass, report success and stop
 
-6. **For failures, fetch detailed logs**:
+5. **For failures, fetch detailed logs**:
    ```bash
    gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId,workflowName
    ```
@@ -45,7 +39,7 @@ Check CI status and fetch failure logs to debug issues.
    gh run view <run-id> --log-failed
    ```
 
-7. **Parse and present failure information**:
+6. **Parse and present failure information**:
    - Test failures: failing test names and assertion errors
    - Lint failures: file locations and specific errors
    - Build failures: compilation errors
@@ -56,7 +50,7 @@ Check CI status and fetch failure logs to debug issues.
      - For build failures: show the error message, not full compilation output
      - Truncate logs to the most relevant sections
 
-8. **Offer follow-up actions**:
+7. **Offer follow-up actions**:
    - For test failures: offer to look at failing tests
    - For lint failures: offer to fix lint errors
    - Always offer: re-run failed jobs with `gh run rerun <run-id> --failed`
