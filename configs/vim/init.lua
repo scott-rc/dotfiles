@@ -164,18 +164,19 @@ require('lazy').setup({
     },
     opts = {
       window = {
+        position = 'right',
         mappings = {
-          ['<space>'] = {
+          ['<space>'] = 'none',
+          ['<cr>'] = {
             function(state)
               local node = state.tree:get_node()
               if node.type == 'directory' then
-                require('neo-tree.sources.filesystem.commands').toggle_node(state)
+                require('neo-tree.sources.common.commands').toggle_node(state)
               else
                 require('neo-tree.sources.common.commands').open(state)
-                vim.cmd('Neotree reveal')
+                vim.cmd('Neotree reveal source=' .. state.name)
               end
             end,
-            nowait = true,
             desc = 'Toggle directory or open file (keep focus)',
           },
         },
@@ -184,10 +185,93 @@ require('lazy').setup({
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
       },
+      git_status = {
+        window = {
+          mappings = {
+            ['<cr>'] = {
+              function(state)
+                local node = state.tree:get_node()
+                if node.type == 'directory' then
+                  require('neo-tree.sources.common.commands').toggle_node(state)
+                  return
+                end
+
+                require('neo-tree.sources.common.commands').open(state)
+                vim.b.diff_base = state.git_base or 'HEAD'
+                vim.cmd('Neotree reveal source=' .. state.name)
+              end,
+              desc = 'Open file (diff against base branch)',
+            },
+          },
+        },
+      },
     },
     keys = {
       { '<leader>e', '<cmd>Neotree toggle<CR>', desc = 'File explorer' },
+      { '<C-e>', function()
+          if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'filesystem' then
+            vim.cmd('Neotree close')
+          else
+            vim.cmd('Neotree focus source=filesystem')
+          end
+        end, desc = 'Focus/toggle file explorer' },
+      {
+        '<leader>g',
+        function()
+          local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
+          local base = 'main'
+          if handle then
+            local result = handle:read('*a'):gsub('%s+', '')
+            handle:close()
+            local branch = result:match('origin/(.*)')
+            if branch and branch ~= '' then
+              base = branch
+            end
+          end
+          vim.cmd('Neotree git_status git_base=' .. base)
+        end,
+        desc = 'Changed files vs base branch',
+      },
+      { '<C-g>', function()
+          if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
+            vim.cmd('Neotree close')
+          else
+            local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
+            local base = 'main'
+            if handle then
+              local result = handle:read('*a'):gsub('%s+', '')
+              handle:close()
+              local branch = result:match('origin/(.*)')
+              if branch and branch ~= '' then base = branch end
+            end
+            vim.cmd('Neotree focus source=git_status git_base=' .. base)
+          end
+        end, desc = 'Focus/toggle git changes' },
     },
+  },
+
+  -- Git change indicators
+  {
+    'lewis6991/gitsigns.nvim',
+    opts = {
+      show_deleted = true,
+      on_attach = function(bufnr)
+        local base = vim.b[bufnr].diff_base
+        if base then
+          require('gitsigns').change_base(base)
+        end
+      end,
+    },
+  },
+
+  -- Scrollbar with git indicators
+  {
+    'petertriho/nvim-scrollbar',
+    dependencies = { 'lewis6991/gitsigns.nvim' },
+    config = function()
+      require('scrollbar').setup()
+      require('scrollbar.handlers.gitsigns').setup()
+    end,
   },
 
   -- Fuzzy finder
