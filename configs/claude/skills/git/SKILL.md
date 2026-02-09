@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, and CI checks with opinionated workflows. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, check CI status, or manage git worktrees.
+description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, CI checks, and PR reviews with opinionated workflows. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, check CI status, address review comments, or manage git worktrees.
 ---
 
 # Git Operations
@@ -29,6 +29,10 @@ See [push.md](push.md) for detailed instructions.
 Check GitHub Actions status and fetch failure logs to debug CI issues.
 See [ci.md](ci.md) for detailed instructions.
 
+### Review
+Fetch unresolved PR review threads and fix the issues reviewers described.
+See [review.md](review.md) for detailed instructions.
+
 ### Worktree
 Create a new git worktree for a task or convert an existing branch.
 See [worktree.md](worktree.md) for detailed instructions.
@@ -46,6 +50,8 @@ Users often request multiple operations together. Handle these as follows:
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (sync PR title/description with first commit)
+- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run review operation
+- **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
 
 **Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
 
