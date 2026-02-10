@@ -1,4 +1,4 @@
-function fp --description "Fuzzy find file and copy path to clipboard"
+function yp --description "Yank file path to clipboard"
     argparse 'a/absolute' 'u/unrestricted' -- $argv
     or return
 
@@ -7,8 +7,13 @@ function fp --description "Fuzzy find file and copy path to clipboard"
         set unrestricted_flag -u
     end
 
-    set -l file (fzf_files $unrestricted_flag --query "$argv")
-    or return
+    set -l file
+    if test (count $argv) -ge 1 -a -f "$argv"
+        set file $argv
+    else
+        set file (fzf_files $unrestricted_flag --query "$argv")
+        or return
+    end
 
     if set -q _flag_absolute
         set file (realpath $file)
