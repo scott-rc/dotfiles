@@ -124,6 +124,10 @@ else
 	/opt/homebrew/bin/fish -c 'set -U fish_user_paths /opt/homebrew/bin $fish_user_paths'
 fi
 
+# --- Glow ---
+
+ensure_symlink "$CONFIGS/glow/glow.yml" "$HOME/Library/Preferences/glow/glow.yml"
+
 # --- Ghostty ---
 
 ensure_symlink "$CONFIGS/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
