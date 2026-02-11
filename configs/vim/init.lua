@@ -293,6 +293,19 @@ require('lazy').setup({
     },
   },
 
+  -- Multi-cursor (cmd+d select next, cmd+shift+d undo selection)
+  {
+    'mg979/vim-visual-multi',
+    branch = 'master',
+    init = function()
+      vim.g.VM_maps = {
+        ['Find Under']         = '<D-d>',
+        ['Find Subword Under'] = '<D-d>',
+        ['Remove Region']      = '<D-S-d>',
+      }
+    end,
+  },
+
   -- Completion
   {
     'hrsh7th/nvim-cmp',
