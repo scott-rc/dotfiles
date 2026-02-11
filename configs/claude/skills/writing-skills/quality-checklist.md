@@ -30,9 +30,8 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 
 ## Scripts (if applicable)
 
-- [ ] **Error recovery**: Scripts handle errors with concrete recovery or useful messages rather than failing silently
-- [ ] **Solve, don't punt**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for the agent to interpret
-- [ ] **Error handling**: Scripts check for failure conditions and report useful error messages
+- [ ] **Error handling**: Scripts check for failure conditions and provide useful error messages rather than failing silently
+- [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for the agent to interpret
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
 - [ ] **Dependencies declared**: Required tools are documented in the skill
 - [ ] **POSIX paths**: Scripts use forward slashes only

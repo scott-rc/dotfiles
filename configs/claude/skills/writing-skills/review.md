@@ -17,13 +17,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - SHOULD read any scripts in `scripts/` if present
 
 3. **Validate structure against spec**:
-   MUST check each rule in [spec.md](spec.md):
-   - Frontmatter: `name` and `description` present, name matches directory
-   - Naming: all file names lowercase with hyphens, max 64 chars
-   - SKILL.md body: has Operations section, each operation links to a file
-   - Operation files: H1 matches SKILL.md, has numbered steps
-   - Reference files: not referenced by other reference files
-   - No orphan files (every file referenced from somewhere)
+   MUST validate the skill against every rule in [spec.md](spec.md), covering frontmatter, naming, SKILL.md body, operation files, reference files, and orphan files.
 
 4. **Evaluate content quality against checklist**:
    MUST run through every item in [quality-checklist.md](quality-checklist.md):
@@ -34,14 +28,10 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Workflow quality (sequential steps, decision points, error cases, feedback, feedback loops, degrees of freedom)
    - Anti-patterns (nested references, vague names, Windows paths, time-sensitive content, inconsistent terms)
 
-5. **Check for additional anti-patterns**:
-   - SKILL.md contains step-by-step instructions instead of routing to operation files
+5. **Check for additional anti-patterns** not covered by the checklist:
    - Operation files that duplicate content from other operation files
    - Reference files that contain operation logic (numbered steps telling the agent what to do)
-   - Description field that is too vague to trigger on user intent
    - Missing combined operations when multiple operations could logically be chained
-   - Operation presents the user with multiple approaches when a single default with an escape hatch would be clearer
-   - Evaluation scenarios are missing or are just vague descriptions instead of structured input/expected/criteria
 
 6. **Estimate token usage**:
    - Count approximate tokens for each file (rough: 1 token per 4 characters)
