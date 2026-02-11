@@ -39,6 +39,7 @@ keybind = cmd+shift+right_bracket=unbind
 link-url = true
 macos-option-as-alt = true
 maximize = true
+mouse-hide-while-typing = true
 shell-integration-features = no-cursor
 theme = light:Github Dark Default,dark:Github Dark Default
 title = " "
