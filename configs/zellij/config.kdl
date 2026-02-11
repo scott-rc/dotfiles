@@ -474,6 +474,12 @@ default_layout "compact"
 //
 pane_frames false
 
+ui {
+    pane_frames {
+        hide_session_name true
+    }
+}
+
 // When attaching to an existing session with other users,
 // should the session be mirrored (true)
 // or should each user have their own cursor (false)
