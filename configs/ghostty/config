@@ -36,6 +36,7 @@ keybind = cmd+shift+o=unbind
 keybind = cmd+shift+t=unbind
 keybind = cmd+shift+left_bracket=unbind
 keybind = cmd+shift+right_bracket=unbind
+keybind = cmd+slash=unbind
 link-url = true
 macos-option-as-alt = true
 maximize = true

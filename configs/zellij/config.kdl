@@ -173,6 +173,12 @@ keybinds clear-defaults=true {
         // bind "Alt o" { MoveTab "right"; }
         // bind "Alt t" { NewTab { cwd "~"; }; }
         // bind "Alt x" { CloseFocus; }
+        bind "Super /" {
+            Run "bash" "-c" "$HOME/.config/zellij/generate-cheatsheet.sh" {
+                floating true
+                close_on_exit true
+            }
+        }
         bind "Super g" { SwitchToMode "locked"; }
     }
     shared_except "locked" "move" {
@@ -440,7 +446,7 @@ theme "github_dark"
 // The name of the default layout to load on startup
 // Default: "default"
 //
-// default_layout "compact"
+default_layout "compact"
 
 // The folder in which Zellij will look for layouts
 // (Requires restart)
