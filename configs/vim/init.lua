@@ -328,6 +328,14 @@ vim.lsp.config('ts_ls', {
 
 vim.lsp.enable('ts_ls')
 
+vim.lsp.config('gopls', {
+  cmd = { 'gopls' },
+  filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+  root_markers = { 'go.work', 'go.mod', '.git' },
+})
+
+vim.lsp.enable('gopls')
+
 -- Only gd is mapped here; grn, gra, grr, K are Neovim 0.11+ built-in LSP defaults
 vim.api.nvim_create_autocmd('LspAttach', {
   group = augroup,
@@ -335,6 +343,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set('n', 'gd', vim.lsp.buf.definition, {
       buffer = args.buf,
       desc = 'Go to definition',
+    })
+    vim.keymap.set('n', '<C-Space>', vim.lsp.buf.hover, {
+      buffer = args.buf,
+      desc = 'Hover documentation',
     })
   end,
 })
