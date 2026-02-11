@@ -1,4 +1,4 @@
-function fe --description "Fuzzy find file and open in editor"
+function vf --description "Fuzzy find file and open in editor"
     set -l file (fzf_files --query "$argv")
     or return
 
