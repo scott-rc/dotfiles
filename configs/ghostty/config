@@ -29,6 +29,7 @@ keybind = cmd+o=unbind
 keybind = cmd+p=unbind
 keybind = cmd+r=unbind
 keybind = cmd+s=unbind
+keybind = cmd+c=unbind
 keybind = cmd+x=unbind
 keybind = cmd+shift+w=close_surface
 keybind = cmd+shift+n=new_window
