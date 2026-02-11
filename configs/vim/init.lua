@@ -65,6 +65,8 @@ vim.keymap.set('n', '<leader>[', '<cmd>tabp<CR>', { desc = 'Previous tab' })
 vim.keymap.set('n', '<leader>]', '<cmd>tabn<CR>', { desc = 'Next tab' })
 vim.keymap.set('n', '<leader>%', '<cmd>source %<CR>', { desc = 'Source file' })
 vim.keymap.set('v', '<leader>y', '"+y', { desc = 'Copy to clipboard' })
+vim.keymap.set('n', '<leader>yp', function() vim.fn.setreg('+', vim.fn.expand('%')) end, { desc = 'Copy relative path' })
+vim.keymap.set('n', '<leader>yP', function() vim.fn.setreg('+', vim.fn.expand('%:p')) end, { desc = 'Copy absolute path' })
 
 -- Wildmenu navigation
 vim.o.wildcharm = vim.fn.char2nr(vim.api.nvim_replace_termcodes('<C-z>', true, true, true))
