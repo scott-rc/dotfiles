@@ -169,18 +169,13 @@ require('lazy').setup({
         position = 'right',
         mappings = {
           ['<space>'] = 'none',
-          ['<cr>'] = {
-            function(state)
-              local node = state.tree:get_node()
-              if node.type == 'directory' then
-                require('neo-tree.sources.common.commands').toggle_node(state)
-              else
-                require('neo-tree.sources.common.commands').open(state)
-                vim.cmd('Neotree reveal source=' .. state.name)
-              end
-            end,
-            desc = 'Toggle directory or open file (keep focus)',
-          },
+          ['<cr>'] = function(state)
+            local node = state.tree:get_node()
+            require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+            if node.type ~= 'directory' then
+              vim.cmd('Neotree reveal source=' .. state.name)
+            end
+          end,
         },
       },
       filesystem = {
@@ -190,20 +185,14 @@ require('lazy').setup({
       git_status = {
         window = {
           mappings = {
-            ['<cr>'] = {
-              function(state)
-                local node = state.tree:get_node()
-                if node.type == 'directory' then
-                  require('neo-tree.sources.common.commands').toggle_node(state)
-                  return
-                end
-
-                require('neo-tree.sources.common.commands').open(state)
+            ['<cr>'] = function(state)
+              local node = state.tree:get_node()
+              require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+              if node.type ~= 'directory' then
                 vim.b.diff_base = state.git_base or 'HEAD'
                 vim.cmd('Neotree reveal source=' .. state.name)
-              end,
-              desc = 'Open file (diff against base branch)',
-            },
+              end
+            end,
           },
         },
       },
