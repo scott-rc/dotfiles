@@ -245,7 +245,7 @@ require('lazy').setup({
   {
     'lewis6991/gitsigns.nvim',
     opts = {
-      show_deleted = true,
+      -- show_deleted = true,
       on_attach = function(bufnr)
         local base = vim.b[bufnr].diff_base
         if base then
