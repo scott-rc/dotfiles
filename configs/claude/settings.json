@@ -41,17 +41,16 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline",
+    "padding": 0
+  },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "linear@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "starship-claude@starship-claude": true
-  },
-  "statusLine": {
-    "type": "command",
-    "padding": 0,
-    "command": "~/.local/bin/starship-claude"
+    "code-simplifier@claude-plugins-official": true
   },
   "spinnerTipsEnabled": false,
   "trustedDirectories": [

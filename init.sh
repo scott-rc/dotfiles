@@ -177,8 +177,7 @@ ensure_symlink "$CONFIGS/claude/commands" "$HOME/.claude/commands"
 ensure_symlink "$CONFIGS/claude/skills" "$HOME/.claude/skills"
 ensure_symlink "$CONFIGS/claude/hooks" "$HOME/.claude/hooks"
 ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
-ensure_symlink "$CONFIGS/claude/starship.toml" "$HOME/.claude/starship.toml"
-ensure_symlink "$CONFIGS/claude/starship-claude" "$HOME/.local/bin/starship-claude"
+ensure_symlink "$CONFIGS/claude/statusline" "$HOME/.claude/statusline"
 
 # --- direnv ---
 

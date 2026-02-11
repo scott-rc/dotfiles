@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# statusline - Claude Code status line with context bar + git branch
+#
+# Reads JSON from stdin (Claude Code status line protocol) and outputs:
+#   󰧑 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 25%  main
+#
+# Context bar is color-coded:
+#   Green:  0-39%
+#   Yellow: 40-59%
+#   Red:    60%+
+#
+set -o errexit -o nounset -o pipefail
+
+# Thresholds
+YELLOW=40
+RED=60
+COMPACT=80
+
+BAR_WIDTH=20
+
+payload="$(cat || true)"
+
+# Parse JSON
+if ! command -v jq >/dev/null 2>&1 || [ -z "$payload" ]; then
+  echo "no data"
+  exit 0
+fi
+
+read -r percent dir < <(
+  printf '%s' "$payload" | jq -r '[
+    (.context_window.used_percentage // 0),
+    (.workspace.current_dir // .workspace.project_dir // .cwd // "")
+  ] | @tsv'
+)
+
+percent="${percent%%.*}" # truncate any decimal
+: "${percent:=0}"
+
+# Git branch
+branch=""
+if [ -n "$dir" ] && [ -d "$dir" ]; then
+  branch="$(cd "$dir" && git branch --show-current 2>/dev/null || true)"
+fi
+
+# Color based on thresholds
+if [ "$percent" -ge "$RED" ]; then
+  color="\033[31m"
+elif [ "$percent" -ge "$YELLOW" ]; then
+  color="\033[33m"
+else
+  color="\033[32m"
+fi
+reset="\033[0m"
+
+# Build bar
+filled=$((percent * BAR_WIDTH / 100))
+[ "$filled" -gt "$BAR_WIDTH" ] && filled=$BAR_WIDTH
+empty=$((BAR_WIDTH - filled))
+
+bar=""
+[ "$filled" -gt 0 ] && bar="$(printf '%0.s▰' $(seq 1 "$filled"))"
+[ "$empty" -gt 0 ] && bar="${bar}$(printf '%0.s▱' $(seq 1 "$empty"))"
+
+# Output: context bar first, then git branch (if in a repo)
+right=""
+if [ -n "$branch" ]; then
+  right="  $branch"
+fi
+printf ' 󰧑 %b%s%b%s\n' "$color" "$bar" "$reset" "$right"
+
+# OSC 9;4 terminal progress bar
+if [ "$percent" -gt 0 ]; then
+  if [ "$percent" -ge "$COMPACT" ]; then
+    progress=100
+  else
+    progress=$((percent * 100 / COMPACT))
+  fi
+
+  if [ "$percent" -ge "$RED" ]; then
+    state=2
+  elif [ "$percent" -ge "$YELLOW" ]; then
+    state=4
+  else
+    state=1
+  fi
+  printf '\033]9;4;%d;%d\a' "$state" "$progress" >/dev/tty 2>/dev/null || true
+fi
