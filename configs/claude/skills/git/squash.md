@@ -4,18 +4,18 @@ Squash all commits on the current branch into a single commit.
 
 ## Instructions
 
-1. Fetch the latest from remote:
+1. **Fetch latest from remote**:
    ```bash
    git fetch origin
    ```
 
-2. Detect the base branch (see [git-patterns.md](git-patterns.md)).
+2. **Detect base branch** (see [git-patterns.md](git-patterns.md)).
 
-3. Get the list of commits to squash: `git log origin/<base>..HEAD --oneline`
+3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`
 
-4. If there are uncommitted changes, commit them first (follow commit guidelines).
+4. **Commit uncommitted changes** if any exist (follow commit guidelines).
 
-5. Rebase onto the base branch so all comparisons against `origin/<base>` are accurate:
+5. **Rebase onto base branch** so all comparisons against `origin/<base>` are accurate:
    ```bash
    git rebase origin/<base>
    ```
@@ -34,7 +34,7 @@ Squash all commits on the current branch into a single commit.
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
    - Ask the user to confirm before proceeding
 
-9. Squash all commits into one, using a message that follows [commit-guidelines.md](commit-guidelines.md):
+9. **Squash into a single commit**, using a message that follows [commit-guidelines.md](commit-guidelines.md):
    ```bash
    git reset --soft origin/<base>
    git commit

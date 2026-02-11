@@ -10,14 +10,14 @@ Push commits and create/update PR.
      - Otherwise, ask the user if they want to create a new branch first
      - If the user chooses to stay on main, push directly and **skip PR creation** (steps 4-8)
 
-2. Check for uncommitted changes:
+2. **Check for uncommitted changes**:
    - If changes exist, commit them first (follow commit guidelines)
 
-3. Push to remote:
+3. **Push to remote**:
    - `git push -u origin HEAD`
    - If push is rejected (non-fast-forward), offer to pull/rebase first or force push with `git push --force-with-lease`
 
-4. Check if a PR already exists for this branch:
+4. **Check for existing PR** on this branch:
    ```bash
    gh pr view --json url,state,headRefOid 2>/dev/null
    ```
@@ -39,6 +39,6 @@ Push commits and create/update PR.
      - Preserve that appended content
      - Update PR: `gh pr edit --title "<title>" --body "<new-body>\n\n<appended-content>"`
 
-8. Report the PR URL to the user
+8. **Report PR URL** to the user
 
 See [git-patterns.md](git-patterns.md) for base branch detection and dotfiles exception patterns.

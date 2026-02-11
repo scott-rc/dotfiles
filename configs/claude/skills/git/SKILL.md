@@ -55,6 +55,10 @@ Users often request multiple operations together. Handle these as follows:
 
 **Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
 
+## Dependencies
+
+Requires `git`, `gh` (GitHub CLI), and `jq`.
+
 ## References
 
 These files are referenced by the operation instructions above:

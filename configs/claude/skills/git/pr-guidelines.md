@@ -10,14 +10,14 @@
 
 - **Write prose, not bullets**: The default format is readable prose paragraphs. Only use bullet points when listing genuinely unrelated items where prose would be awkward.
 - **No rigid templates**: Don't use fill-in-the-blank sections like `## Summary` followed by bullets and `## Test plan` followed by bullets. Write naturally.
-- **NEVER wrap lines**: Do NOT wrap text to 72 characters or any other width. Write each thought as a single continuous line. GitHub renders markdown and handles line wrapping automatically.
+- **MUST NOT wrap lines**: Do NOT wrap text to 72 characters or any other width. Write each thought as a single continuous line. GitHub renders markdown and handles line wrapping automatically.
 - **Use backticks for code**: Wrap function names, variable names, file paths, etc.
 - **Use code blocks for multi-line code**: Use triple backticks with language identifier for code examples.
-- **ASCII only**: Use only ASCII characters in PR descriptions. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of `…`. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
+- **ASCII only**: MUST use only ASCII characters in PR descriptions. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of `…`. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
 
 ## Content
 
-**The diff is the source of truth.** ALWAYS base the PR description on `git diff origin/<base>..HEAD`, NOT on commit history. The PR description MUST represent the net change between the current branch and the base branch — what a reviewer will actually see when they open the PR.
+**The diff is the source of truth.** You MUST base the PR description on `git diff origin/<base>..HEAD`, NOT on commit history. The PR description MUST represent the net change between the current branch and the base branch — what a reviewer will actually see when they open the PR.
 
 - **ALWAYS start with the diff**: Run `git diff origin/<base>..HEAD` and `git diff --stat origin/<base>..HEAD` to understand what is actually changing. This is what the reviewer sees. This is what the description MUST describe.
 - **Commit history is supplementary only**: You MAY read `git log origin/<base>..HEAD` for context on *why* changes were made, but NEVER let commit history drive the structure or content of the description. Commits reflect the journey; the diff reflects the destination.

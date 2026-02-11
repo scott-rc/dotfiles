@@ -4,14 +4,14 @@ Fetch the latest from the base branch and rebase the current branch onto it.
 
 ## Instructions
 
-1. Fetch the latest from remote:
+1. **Fetch latest from remote**:
    ```bash
    git fetch origin
    ```
 
-2. Detect the base branch (see [git-patterns.md](git-patterns.md)).
+2. **Detect base branch** (see [git-patterns.md](git-patterns.md)).
 
-3. Rebase onto the base branch:
+3. **Rebase onto base branch**:
    ```bash
    git rebase origin/<base>
    ```
