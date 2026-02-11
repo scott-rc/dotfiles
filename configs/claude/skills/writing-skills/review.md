@@ -11,13 +11,13 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Read all skill files**:
-   - Read SKILL.md first
-   - Read every `.md` file linked from SKILL.md (operations and references)
-   - Read any other `.md` files in the directory to check for orphans
-   - Read any scripts in `scripts/` if present
+   - MUST read SKILL.md first
+   - MUST read every `.md` file linked from SKILL.md (operations and references)
+   - MUST check for orphan `.md` files in the directory not linked from anywhere
+   - SHOULD read any scripts in `scripts/` if present
 
 3. **Validate structure against spec**:
-   Check each rule in [spec.md](spec.md):
+   MUST check each rule in [spec.md](spec.md):
    - Frontmatter: `name` and `description` present, name matches directory
    - Naming: all file names lowercase with hyphens, max 64 chars
    - SKILL.md body: has Operations section, each operation links to a file
@@ -26,7 +26,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - No orphan files (every file referenced from somewhere)
 
 4. **Evaluate content quality against checklist**:
-   Run through every item in [quality-checklist.md](quality-checklist.md):
+   MUST run through every item in [quality-checklist.md](quality-checklist.md):
    - Core quality (description, line count, terminology, progressive disclosure, examples)
    - Structure (frontmatter, naming, sections, file organization)
    - Content efficiency (token justification, redundancy, over-explaining, conciseness)
@@ -51,19 +51,19 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
 7. **Present findings**:
    Group results by severity:
 
-   **Blocking** (must fix):
+   **Blocking** (MUST fix):
    - Missing required frontmatter fields
    - Broken file links
    - Missing operation files
    - Anti-patterns from the checklist
 
-   **Improvements** (should fix):
+   **Improvements** (SHOULD fix):
    - Vague description lacking trigger keywords
    - Missing error handling in operations
    - Redundant content between files
    - Missing combined operations section
 
-   **Suggestions** (nice to have):
+   **Suggestions** (MAY fix):
    - Better file naming
    - Additional examples
    - Token optimization opportunities
@@ -74,6 +74,6 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - What the fix would be (specific, not vague)
 
 8. **Offer to apply fixes**:
-   - Ask the user if they want to fix blocking issues automatically
-   - For improvements and suggestions, list them and let the user choose which to apply
-   - Apply fixes one at a time, confirming each change
+   - MUST ask the user about blocking fixes before applying them
+   - SHOULD list improvements and suggestions for the user to choose from
+   - MUST apply fixes one at a time, confirming each change

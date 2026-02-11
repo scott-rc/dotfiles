@@ -31,7 +31,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"<user phrase>"** → <Which operations to run, in what order>
 - **"<user phrase>"** → <Which operations to run>
 
-**Important**: For each operation, read and follow its detailed instruction file.
+**Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
 
 ## References
 
@@ -50,7 +50,7 @@ These files are referenced by the operation instructions above:
 ## Instructions
 
 1. **<Step name>**:
-   <What to do. Be specific and actionable.>
+   <What to do. Be specific and actionable. Use MUST for hard requirements, SHOULD for recommendations.>
 
 2. **<Step name>**:
    <What to do.>
@@ -59,10 +59,10 @@ These files are referenced by the operation instructions above:
 
 3. **<Step name>**:
    <What to do. Reference shared knowledge:>
-   See [<reference-file>.md](<reference-file>.md) for <what detail>.
+   MUST read [<reference-file>.md](<reference-file>.md) for <what detail> before proceeding.
 
 4. **<Step name>**:
-   <Report results to the user. Specify what to include.>
+   MUST report results to the user. <Specify what to include.>
 ```
 
 ## Naming Guidance
@@ -81,3 +81,4 @@ Use these patterns inside operation files when they fit the task:
 - **Template pattern**: Provide a strict output template (low freedom) or a flexible one with optional sections (medium freedom).
 - **Examples pattern**: Show 1-2 input/output pairs when the desired style or format is ambiguous.
 - **Conditional routing pattern**: "If X, go to step N. If Y, go to step M." Use when an operation has meaningfully different paths.
+- **Authority pattern**: Use RFC 2119 keywords (MUST, SHOULD, MAY) to signal instruction priority. Agents comply more reliably with capitalized directive keywords. Reserve MUST for steps where skipping breaks the workflow.

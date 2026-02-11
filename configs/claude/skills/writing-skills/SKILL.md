@@ -25,11 +25,11 @@ Users often request multiple operations together. Handle these as follows:
 - **"improve skill"** / **"fix skill"** → Run review operation, then apply the suggested fixes
 - **"scaffold"** / **"new skill"** → Same as create operation
 
-**Important**: For each operation, read and follow its detailed instruction file.
+**Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
 
 ## References
 
-These files are referenced by the operation instructions above:
+These files are referenced by the operation instructions. Operations that link to a reference file MUST read it before proceeding.
 
 - [spec.md](spec.md) - Naming, frontmatter, structure, and content rules for skills
 - [quality-checklist.md](quality-checklist.md) - Pass/fail evaluation criteria for skill quality

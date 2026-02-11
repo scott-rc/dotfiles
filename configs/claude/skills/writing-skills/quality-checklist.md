@@ -45,6 +45,7 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **Feedback to user**: Operations tell the agent when to report progress or results to the user
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
 - [ ] **Degrees of freedom**: Each step's specificity matches its fragility -- fragile/critical steps are prescriptive, variable/creative steps leave room
+- [ ] **RFC keyword usage**: MUST/SHOULD/MAY keywords are used to distinguish hard requirements from recommendations and optional behavior
 
 ## Testing
 
@@ -62,3 +63,4 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **No SKILL.md instructions**: SKILL.md routes to operation files, it does not contain step-by-step instructions itself
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
+- [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
