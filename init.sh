@@ -102,6 +102,11 @@ fi
 log_info "Installing packages from Brewfile"
 /opt/homebrew/bin/brew bundle --file="$WORKSPACE_ROOT/Brewfile"
 
+# --- Bat ---
+
+ensure_symlink "$CONFIGS/bat" "$HOME/.config/bat"
+bat cache --build
+
 # --- Fish Shell ---
 
 # Create a symlink for the fish configuration.
