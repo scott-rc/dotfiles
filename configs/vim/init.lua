@@ -144,7 +144,25 @@ require('lazy').setup({
     lazy = false,
     priority = 1000,
     config = function()
-      vim.cmd.colorscheme('github_dark')
+      local function is_dark_mode()
+        local result = vim.fn.system('defaults read -g AppleInterfaceStyle 2>/dev/null')
+        return result:match('Dark') ~= nil
+      end
+
+      local function apply_theme()
+        if is_dark_mode() then
+          vim.cmd.colorscheme('github_dark_default')
+        else
+          vim.cmd.colorscheme('github_dark_dimmed')
+        end
+      end
+
+      apply_theme()
+
+      -- Re-check on focus so theme follows system appearance changes
+      vim.api.nvim_create_autocmd('FocusGained', {
+        callback = apply_theme,
+      })
     end,
   },
 
