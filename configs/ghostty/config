@@ -1,4 +1,4 @@
-command = /opt/homebrew/bin/fish -lc 'zellij attach -c terminal'
+command = /opt/homebrew/bin/fish -lc 'zellij attach terminal; or zellij -n terminal -s terminal'
 confirm-close-surface = false
 cursor-style = bar
 cursor-style-blink = false
