@@ -46,6 +46,9 @@ vim.o.swapfile = false
 -- Escape
 vim.keymap.set({ 'n', 'v', 'i' }, 'fd', '<Esc>', { desc = 'Escape' })
 
+-- Option+Delete word deletion (Ghostty sends Alt/ESC prefix for Option key)
+vim.keymap.set('i', '<M-BS>', '<C-w>', { desc = 'Delete word backward' })
+
 -- Navigation
 vim.keymap.set('n', ';', ':', { desc = 'Command mode' })
 vim.keymap.set({ 'n', 'v' }, '<S-h>', '^', { desc = 'Start of line' })
@@ -307,6 +310,8 @@ require('lazy').setup({
       { '<leader>f', '<cmd>Files<CR>', desc = 'Find files' },
       { '<leader>b', '<cmd>Buffers<CR>', desc = 'Find buffers' },
       { '<leader>r', '<cmd>Rg<CR>', desc = 'Ripgrep search' },
+      { '<leader>p', '<cmd>Commands<CR>', desc = 'Command palette' },
+      { '<leader>m', '<cmd>Maps<CR>', desc = 'Keybindings' },
     },
   },
 
