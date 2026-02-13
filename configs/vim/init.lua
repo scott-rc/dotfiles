@@ -16,6 +16,7 @@ vim.o.splitbelow = true
 vim.o.splitright = true
 
 -- Display
+vim.o.showmode = false
 vim.o.showmatch = true
 vim.o.number = true
 vim.o.wrap = false
@@ -286,6 +287,13 @@ require('lazy').setup({
       require('scrollbar').setup()
       require('scrollbar.handlers.gitsigns').setup()
     end,
+  },
+
+  -- Statusline
+  {
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    opts = {},
   },
 
   -- Fuzzy finder
