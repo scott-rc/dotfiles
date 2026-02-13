@@ -22,6 +22,7 @@ vim.o.number = true
 vim.o.wrap = false
 vim.o.lazyredraw = true
 vim.o.scrolloff = 8
+vim.opt.listchars = { tab = '→ ', trail = '·', nbsp = '+', extends = '>', precedes = '<' }
 
 -- Indentation
 vim.o.expandtab = true
@@ -179,6 +180,18 @@ require('lazy').setup({
     event = 'VeryLazy',
     opts = {
       preset = 'modern',
+      spec = {
+        { '<leader>y', group = 'Yank path' },
+
+        { '<leader>o', group = 'Options' },
+        { '<leader>ow', '<cmd>set wrap!<cr>',           desc = 'Toggle wrap' },
+        { '<leader>on', '<cmd>set number!<cr>',          desc = 'Toggle line numbers' },
+        { '<leader>or', '<cmd>set relativenumber!<cr>',  desc = 'Toggle relative numbers' },
+        { '<leader>oh', '<cmd>nohlsearch<cr>',           desc = 'Clear search highlight' },
+        { '<leader>os', '<cmd>set spell!<cr>',           desc = 'Toggle spell check' },
+        { '<leader>ol', '<cmd>set list!<cr>',            desc = 'Toggle invisible chars' },
+        { '<leader>oi', '<cmd>set ignorecase!<cr>',      desc = 'Toggle ignore case' },
+      },
     },
   },
 
