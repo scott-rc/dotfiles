@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-control-regex
-import { splitAnsi, stripAnsi } from "./wrap.ts";
+import { splitAnsi, stripAnsi, visibleLength } from "./wrap.ts";
 
 export interface PagerOptions {
   filePath?: string;
@@ -31,6 +31,8 @@ const CLEAR_SCREEN = `${CSI}2J`;
 const REVERSE = `${CSI}7m`;
 const NO_REVERSE = `${CSI}27m`;
 const RESET = `${CSI}0m`;
+const DIM = `${CSI}2m`;
+const NO_DIM = `${CSI}22m`;
 
 const encoder = new TextEncoder();
 
@@ -171,6 +173,77 @@ export function findMatches(lines: string[], query: string): number[] {
   return matches;
 }
 
+export interface StatusBarInput {
+  mode: "normal" | "search";
+  searchInput: string;
+  searchMessage: string;
+  searchQuery: string;
+  searchMatches: number[];
+  currentMatch: number;
+  topLine: number;
+  lineCount: number;
+  contentHeight: number;
+  filePath?: string;
+}
+
+export function formatStatusBar(input: StatusBarInput, cols: number): string {
+  const endLine = Math.min(input.topLine + input.contentHeight, input.lineCount);
+  const range = `${input.topLine + 1}-${endLine}/${input.lineCount}`;
+
+  // Position indicator: TOP, END, or percentage
+  const atTop = input.topLine === 0;
+  const atEnd = endLine >= input.lineCount;
+  let position: string;
+  if (atTop) {
+    position = "TOP";
+  } else if (atEnd) {
+    position = "END";
+  } else {
+    const pct = input.lineCount > 0
+      ? Math.round((endLine / input.lineCount) * 100)
+      : 100;
+    position = `${pct}%`;
+  }
+
+  // Search input mode: just the prompt with cursor block, no right side
+  if (input.mode === "search") {
+    const prompt = `/${input.searchInput}${NO_REVERSE}\u2588${REVERSE}`;
+    return prompt.padEnd(cols + NO_REVERSE.length + REVERSE.length);
+  }
+
+  // Search message (e.g. "Copied: file.md"): full-width, no right side
+  if (input.searchMessage) {
+    return input.searchMessage.padEnd(cols);
+  }
+
+  // Build left and right sides
+  let left: string;
+  if (input.searchQuery && input.searchMatches.length > 0) {
+    left = `/${input.searchQuery} (${input.currentMatch + 1}/${input.searchMatches.length})`;
+  } else {
+    const filename = input.filePath?.split("/").pop() ?? "";
+    left = filename;
+  }
+
+  const right = `${DIM}${range}${NO_DIM} ${position}`;
+  const rightVisible = visibleLength(right);
+
+  // Ensure the bar fits exactly in cols
+  const gap = cols - left.length - rightVisible;
+  if (gap >= 1) {
+    return left + " ".repeat(gap) + right;
+  }
+
+  // Terminal too narrow: truncate left to preserve right
+  const availLeft = cols - rightVisible - 1;
+  if (availLeft >= 1) {
+    return left.slice(0, availLeft) + " " + right;
+  }
+
+  // Very narrow: just show right, truncated if needed
+  return right.padStart(cols);
+}
+
 function render(state: PagerState): void {
   const { rows, cols } = getTermSize();
   const contentHeight = rows - 1;
@@ -199,26 +272,19 @@ function render(state: PagerState): void {
 
   // Status bar
   write("\r\n" + CLEAR_LINE);
-  const endLine = Math.min(state.topLine + contentHeight, state.lines.length);
-  const pct = state.lines.length > 0
-    ? Math.round((endLine / state.lines.length) * 100)
-    : 100;
-
-  let statusText: string;
-  if (state.mode === "search") {
-    statusText = `/${state.searchInput}`;
-  } else if (state.searchMessage) {
-    statusText = state.searchMessage;
-  } else if (state.searchQuery && state.searchMatches.length > 0) {
-    statusText =
-      `/${state.searchQuery} (${state.currentMatch + 1}/${state.searchMatches.length})  lines ${state.topLine + 1}-${endLine}/${state.lines.length} ${pct}%`;
-  } else {
-    statusText = `lines ${state.topLine + 1}-${endLine}/${state.lines.length} ${pct}%`;
-  }
-
-  // Pad status to full width, render in reverse video
-  const padded = statusText.padEnd(cols).slice(0, cols);
-  write(`${REVERSE}${padded}${RESET}`);
+  const statusText = formatStatusBar({
+    mode: state.mode,
+    searchInput: state.searchInput,
+    searchMessage: state.searchMessage,
+    searchQuery: state.searchQuery,
+    searchMatches: state.searchMatches,
+    currentMatch: state.currentMatch,
+    topLine: state.topLine,
+    lineCount: state.lines.length,
+    contentHeight,
+    filePath: state.filePath,
+  }, cols);
+  write(`${REVERSE}${statusText}${RESET}`);
 }
 
 export type Key =

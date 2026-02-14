@@ -1,13 +1,15 @@
 import { assertEquals } from "@std/assert";
-import { stripAnsi } from "./wrap.ts";
+import { stripAnsi, visibleLength } from "./wrap.ts";
 import {
   findMatches,
   findNearestMatch,
+  formatStatusBar,
   highlightSearch,
   type Key,
   mapScrollPosition,
   mapToSourceLine,
   parseKey,
+  type StatusBarInput,
   truncateLine,
 } from "./pager.ts";
 
@@ -271,4 +273,118 @@ Deno.test("findNearestMatch: empty matches returns -1", () => {
 
 Deno.test("findNearestMatch: exact position match", () => {
   assertEquals(findNearestMatch([5, 10, 15], 10), 1);
+});
+
+// --- formatStatusBar ---
+
+function baseInput(overrides: Partial<StatusBarInput> = {}): StatusBarInput {
+  return {
+    mode: "normal",
+    searchInput: "",
+    searchMessage: "",
+    searchQuery: "",
+    searchMatches: [],
+    currentMatch: -1,
+    topLine: 0,
+    lineCount: 50,
+    contentHeight: 24,
+    filePath: "/path/to/README.md",
+    ...overrides,
+  };
+}
+
+Deno.test("formatStatusBar: normal mode with filename shows left/right layout", () => {
+  const result = formatStatusBar(baseInput(), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("README.md"), true);
+  assertEquals(plain.includes("1-24/50"), true);
+  assertEquals(plain.endsWith("TOP"), true);
+});
+
+Deno.test("formatStatusBar: normal mode without filename (stdin)", () => {
+  const result = formatStatusBar(baseInput({ filePath: undefined }), 60);
+  const plain = stripAnsi(result);
+  // Left side should be empty, right side has position
+  assertEquals(plain.includes("1-24/50"), true);
+  assertEquals(plain.endsWith("TOP"), true);
+});
+
+Deno.test("formatStatusBar: at top shows TOP", () => {
+  const result = formatStatusBar(baseInput({ topLine: 0 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.endsWith("TOP"), true);
+});
+
+Deno.test("formatStatusBar: at end shows END", () => {
+  const result = formatStatusBar(baseInput({ topLine: 26 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.endsWith("END"), true);
+});
+
+Deno.test("formatStatusBar: short doc (top AND end) shows TOP", () => {
+  const result = formatStatusBar(baseInput({ lineCount: 10 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.endsWith("TOP"), true);
+});
+
+Deno.test("formatStatusBar: scrolled mid-document shows percentage", () => {
+  const result = formatStatusBar(baseInput({ topLine: 10 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.endsWith("68%"), true);
+  assertEquals(plain.includes("11-34/50"), true);
+});
+
+Deno.test("formatStatusBar: search input mode shows cursor block", () => {
+  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query" }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("/query\u2588"), true);
+});
+
+Deno.test("formatStatusBar: search message shows message only", () => {
+  const result = formatStatusBar(baseInput({ searchMessage: "Copied: README.md" }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("Copied: README.md"), true);
+  // No position info on right
+  assertEquals(plain.includes("/50"), false);
+});
+
+Deno.test("formatStatusBar: active search with results", () => {
+  const result = formatStatusBar(baseInput({
+    searchQuery: "hello",
+    searchMatches: [5, 15, 25, 35, 45],
+    currentMatch: 1,
+  }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("/hello (2/5)"), true);
+  assertEquals(plain.includes("1-24/50"), true);
+});
+
+Deno.test("formatStatusBar: narrow terminal preserves right side", () => {
+  const result = formatStatusBar(baseInput(), 30);
+  const plain = stripAnsi(result);
+  // Right side (position) should still be present
+  assertEquals(plain.includes("TOP"), true);
+  assertEquals(plain.includes("1-24/50"), true);
+});
+
+Deno.test("formatStatusBar: very narrow terminal graceful degradation", () => {
+  const result = formatStatusBar(baseInput(), 10);
+  // Should not throw; output should have some content
+  const plain = stripAnsi(result);
+  assertEquals(plain.length > 0, true);
+});
+
+Deno.test("formatStatusBar: line range info is dimmed", () => {
+  const result = formatStatusBar(baseInput({ topLine: 10 }), 60);
+  // DIM (SGR 2) should appear before line range
+  assertEquals(result.includes("\x1b[2m"), true);
+  // NO_DIM (SGR 22) should appear after line range
+  assertEquals(result.includes("\x1b[22m"), true);
+});
+
+Deno.test("formatStatusBar: visible width matches cols exactly", () => {
+  for (const cols of [40, 60, 80, 120]) {
+    const result = formatStatusBar(baseInput({ topLine: 10 }), cols);
+    assertEquals(visibleLength(result), cols);
+  }
 });

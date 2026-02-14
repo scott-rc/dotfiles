@@ -41,7 +41,7 @@ deno task test      # Run tests
 | `highlight.ts` | Syntax highlighting for code blocks using shiki (`github-dark` theme) |
 | `style.ts` | Color palette (GitHub Dark Default from github-nvim-theme) and ANSI formatting |
 | `wrap.ts` | ANSI-aware word wrap with widow prevention |
-| `pager.ts` | Built-in pager with alternate screen, search highlighting, resize handling, and status bar |
+| `pager.ts` | Built-in pager with alternate screen, search highlighting, resize handling, and left/right split status bar |
 
 ## Pager Keybindings
 
@@ -61,3 +61,7 @@ deno task test      # Run tests
 | `y` | Copy raw markdown source to clipboard |
 | `v` | Open file in `$EDITOR` (default: nvim, readonly) |
 | `q` / `Ctrl-C` | Quit |
+
+## Status Bar
+
+The bottom status bar uses a left/right split layout (like `less`). The filename appears on the left, with a dimmed line range and position indicator on the right. Position shows `TOP` at the beginning, `END` at the bottom, or a percentage when scrolled mid-document. During search, the left side shows the query with match count; in input mode, a block cursor follows the typed text. When the terminal is too narrow, the left side truncates to preserve position info.
