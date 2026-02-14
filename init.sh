@@ -230,7 +230,6 @@ ensure_symlink "$CONFIGS/zed/keymap.json" "$HOME/.config/zed/keymap.json"
 # --- Zellij ---
 
 ensure_symlink "$CONFIGS/zellij/config.kdl" "$HOME/.config/zellij/config.kdl"
-ensure_symlink "$CONFIGS/zellij/generate-cheatsheet.sh" "$HOME/.config/zellij/generate-cheatsheet.sh"
 ensure_symlink "$CONFIGS/zellij/layouts" "$HOME/.config/zellij/layouts"
 
 # --- Zsh ---
