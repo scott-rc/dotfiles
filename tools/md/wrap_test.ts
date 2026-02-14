@@ -15,12 +15,14 @@ Deno.test("visibleLength ignores ANSI codes", () => {
 
 Deno.test("wordWrap wraps at word boundaries", () => {
   const result = wordWrap("the quick brown fox jumps over the lazy dog", 20);
-  assertEquals(result, "the quick brown fox\njumps over the lazy\ndog");
+  // Widow prevention pulls "lazy" down to join "dog" on the last line
+  assertEquals(result, "the quick brown\nfox jumps over the\nlazy dog");
 });
 
 Deno.test("wordWrap respects indent prefix", () => {
   const result = wordWrap("hello world foo", 15, "  ");
-  assertEquals(result, "  hello world\n  foo");
+  // Widow prevention pulls "world" down to join "foo"
+  assertEquals(result, "  hello\n  world foo");
 });
 
 Deno.test("wordWrap handles ANSI codes without counting toward width", () => {
@@ -48,4 +50,28 @@ Deno.test("wordWrap handles single word longer than width", () => {
 Deno.test("wordWrap handles text exactly at width", () => {
   const result = wordWrap("12345", 5);
   assertEquals(result, "12345");
+});
+
+Deno.test("wordWrap avoids widow (single word on last line)", () => {
+  const result = wordWrap("the quick brown fox jumps over the lazy dog", 20);
+  const lines = result.split("\n");
+  const lastWords = lines[lines.length - 1].trim().split(/\s+/);
+  assertEquals(lastWords.length >= 2, true);
+});
+
+Deno.test("wordWrap keeps opening backtick with code content", () => {
+  // Simulate styled code span: gray(`) + orange(code) + gray(`)
+  const gray = "\x1b[38;2;139;148;158m";
+  const orange = "\x1b[38;2;255;166;87m";
+  const reset = "\x1b[39m";
+  const codeSpan = `${gray}\`${reset}${orange}code${reset}${gray}\`${reset}`;
+  const text = `some text ${codeSpan} end`;
+  // "some text `" = 11 chars, "code" = 4 more → 15 > 12, wraps.
+  // Without fix: line 1 ends with dangling "`"
+  // With fix: "`code`" stays together on line 2
+  const result = wordWrap(text, 12);
+  const lines = result.split("\n");
+  const firstVisible = stripAnsi(lines[0]).trimEnd();
+  assertEquals(firstVisible.endsWith("`"), false);
+  assertEquals(firstVisible, "some text");
 });

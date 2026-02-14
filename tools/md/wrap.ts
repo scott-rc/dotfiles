@@ -45,10 +45,35 @@ export function wordWrap(
 
 /**
  * Wrap a single line (no embedded newlines) to fit within `width` visible characters.
+ * Applies widow prevention: if the last line would contain a single word,
+ * retries with narrower widths to pull a second word onto the last line.
+ */
+function wrapLine(line: string, width: number): string[] {
+  const results = wrapLineGreedy(line, width);
+
+  // Widow prevention: avoid a single word on the last line
+  if (results.length >= 2) {
+    const lastVisible = stripAnsi(results[results.length - 1]).trim();
+    if (/^\S+$/.test(lastVisible)) {
+      for (let w = width - 1; w >= width - 15 && w > 0; w--) {
+        const alt = wrapLineGreedy(line, w);
+        const altLastVisible = stripAnsi(alt[alt.length - 1]).trim();
+        if (!/^\S+$/.test(altLastVisible)) {
+          return alt;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Greedy line wrapping: fit as many words as possible on each line.
  * Preserves ANSI codes by splitting on word boundaries in the visible text
  * and then reconstructing with the original codes.
  */
-function wrapLine(line: string, width: number): string[] {
+function wrapLineGreedy(line: string, width: number): string[] {
   if (visibleLength(line) <= width) return [line];
 
   // Split into segments: alternating text and ANSI codes
@@ -88,8 +113,28 @@ function wrapLine(line: string, width: number): string[] {
 
       // If adding this word would exceed width, wrap
       if (currentWidth + wordLen > width && currentWidth > 0) {
-        // Trim trailing spaces from current line
-        results.push(currentLine.replace(/ +$/, ""));
+        let lineToSave = currentLine.replace(/ +$/, "");
+
+        // Don't leave a dangling opening backtick at end of line.
+        // Odd visible backtick count means the last one is an unpaired opener.
+        const vis = stripAnsi(lineToSave);
+        const btCount = (vis.match(/`/g) || []).length;
+        if (btCount % 2 === 1 && vis.trimEnd().endsWith("`")) {
+          const m = lineToSave.match(
+            /((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$/,
+          );
+          if (m) {
+            lineToSave = lineToSave.slice(0, -m[0].length).replace(/ +$/, "");
+            if (stripAnsi(lineToSave).trim().length > 0) {
+              results.push(lineToSave);
+            }
+            currentLine = m[1] + word;
+            currentWidth = 1 + wordLen;
+            continue;
+          }
+        }
+
+        results.push(lineToSave);
         currentLine = "";
         currentWidth = 0;
 

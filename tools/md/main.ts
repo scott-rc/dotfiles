@@ -2,6 +2,8 @@ import { parseArgs } from "@std/cli/parse-args";
 import { setColorEnabled } from "@std/fmt/colors";
 import { renderMarkdown } from "./mod.ts";
 
+const MAX_WIDTH = 80;
+
 const args = parseArgs(Deno.args, {
   boolean: ["help", "no-color", "no-pager"],
   string: ["width"],
@@ -17,7 +19,7 @@ Usage:
   md --help       Show this help
 
 Options:
-  -w, --width <n>   Set output width (default: terminal width)
+  -w, --width <n>   Set output width (default: min(terminal, ${MAX_WIDTH}))
   --no-color        Disable color output
   --no-pager        Disable built-in pager`);
   Deno.exit(0);
@@ -27,15 +29,18 @@ if (args["no-color"]) {
   setColorEnabled(false);
 }
 
+let terminalWidth: number | null = null;
+try {
+  terminalWidth = Deno.consoleSize().columns;
+} catch {
+  // Not a TTY
+}
+
 const width = args.width
   ? parseInt(args.width, 10)
-  : (() => {
-      try {
-        return Deno.consoleSize().columns;
-      } catch {
-        return 80;
-      }
-    })();
+  : terminalWidth !== null
+    ? Math.min(terminalWidth, MAX_WIDTH)
+    : MAX_WIDTH;
 
 const file = args._[0] as string | undefined;
 
@@ -52,6 +57,15 @@ if (file === "-" || (!file && !Deno.stdin.isTerminal())) {
 
 const output = renderMarkdown(input, { width });
 
+// Center content in terminal
+const margin = terminalWidth !== null
+  ? " ".repeat(Math.floor(Math.max(0, terminalWidth - width) / 2))
+  : "";
+
+const centered = margin
+  ? output.split("\n").map((line) => margin + line).join("\n")
+  : output;
+
 const shouldPage =
   !args["no-pager"] &&
   Deno.stdout.isTerminal() &&
@@ -60,14 +74,14 @@ const shouldPage =
 
 if (shouldPage) {
   const height = Deno.consoleSize().rows;
-  if (output.split("\n").length > height) {
+  if (centered.split("\n").length > height) {
     const { runPager } = await import("./pager.ts");
-    await runPager(output);
+    await runPager(centered);
     Deno.exit(0);
   }
 }
 
-console.log(output);
+console.log(centered);
 
 async function readStdin(): Promise<Uint8Array> {
   const chunks: Uint8Array[] = [];
