@@ -1,4 +1,4 @@
-# Create Operation
+# Create Skill
 
 Scaffold a new Claude Code skill interactively, producing a complete skill directory with SKILL.md, operation files, and reference files.
 
@@ -14,7 +14,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Where to create it (default: `~/.claude/skills/` or the project's skill directory)
 
 2. **Determine skill name**:
-   - MUST apply naming rules from [spec.md](spec.md): lowercase, hyphens, max 64 chars
+   - MUST apply naming rules from the Skill Specification section of [spec.md](spec.md): lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
    - MUST confirm the name with the user before proceeding
 
@@ -24,7 +24,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
 4. **Write SKILL.md**:
    - MUST use the SKILL.md template from [skill-template.md](skill-template.md)
-   - MUST write the frontmatter: `name` matching directory name, `description` following [spec.md](spec.md) description rules
+   - MUST write the frontmatter: `name` matching directory name, `description` following the Skill Specification section of [spec.md](spec.md)
    - MUST write the Operations section with one H3 per operation, each with a one-line summary and file link
    - SHOULD write Combined Operations if multiple operations can be chained (map user phrases to operation sequences)
    - SHOULD write References section linking any shared reference files
@@ -37,7 +37,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - MUST end each operation with a step that reports results to the user
    - Steps MUST be specific and actionable -- tell the agent exactly what to do, not vague guidance
    - SHOULD include error handling for likely failure modes
-   - SHOULD choose the right degree of freedom for each step (see [spec.md](spec.md) Content Rules)
+   - SHOULD choose the right degree of freedom for each step (see Skill Content Rules in [spec.md](spec.md))
    - SHOULD apply content patterns from [skill-template.md](skill-template.md) where they fit: feedback loops for quality-critical steps, checklists for multi-step tracking, examples for ambiguous output
 
 6. **Write reference files**:

@@ -1,16 +1,16 @@
 # Quality Checklist
 
-Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS or FAIL. A skill must pass all items in a category to pass that category.
+Pass/fail criteria for evaluating Claude Code skills and rules files. Each item is either PASS or FAIL. A skill or rules file must pass all items in a category to pass that category.
 
 ## Core Quality
 
-- [ ] **Description specificity**: The `description` field names concrete actions and triggers, not vague capabilities (FAIL: "Helps with various tasks")
-- [ ] **Line count**: SKILL.md is under 500 lines and under 5000 tokens
+- [ ] **Description specificity** *(Skills only)*: The `description` field names concrete actions and triggers, not vague capabilities (FAIL: "Helps with various tasks")
+- [ ] **Line count** *(Skills only)*: SKILL.md is under 500 lines and under 5000 tokens
 - [ ] **Terminology consistency**: The same concept uses the same word everywhere (e.g., always "operation" or always "command", never both)
-- [ ] **Progressive disclosure**: SKILL.md summarizes, operation files detail, reference files go deep -- no level repeats information from another
-- [ ] **Examples where needed**: Operations that produce formatted output (commit messages, PR descriptions, file scaffolds) include at least one example
+- [ ] **Progressive disclosure** *(Skills only)*: SKILL.md summarizes, operation files detail, reference files go deep -- no level repeats information from another
+- [ ] **Examples where needed** *(Skills only)*: Operations that produce formatted output (commit messages, PR descriptions, file scaffolds) include at least one example
 
-## Structure
+## Structure — Skills
 
 - [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields
 - [ ] **Name matches directory**: The `name` in frontmatter matches the directory name exactly
@@ -21,14 +21,24 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **No orphan files**: Every `.md` file in the directory is referenced from SKILL.md or an operation file
 - [ ] **H1 headings match**: Each operation file's H1 starts with the operation name from SKILL.md
 
+## Structure — Rules
+
+- [ ] **Appropriate file location**: The rules file is in the correct location for its scope (project root, subdirectory, global, or `.claude/rules/`)
+- [ ] **@file references resolve**: Every `@filename` reference points to a file that exists
+- [ ] **No content duplication**: Information in referenced files (`@README.md`, etc.) is not repeated in the rules file
+- [ ] **Scoped rules have paths**: Files in `.claude/rules/` have `paths:` frontmatter with valid glob patterns
+- [ ] **Flat heading hierarchy**: Headings do not go deeper than H3
+
 ## Content Efficiency
 
 - [ ] **Token justification**: Every file contributes unique information -- no file exists just for organizational aesthetics
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
 - [ ] **No over-explaining**: Steps don't explain basic concepts the agent already knows (e.g., "markdown is a formatting language")
-- [ ] **Concise steps**: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
+- [ ] **Concise steps** *(Skills only)*: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
+- [ ] **Only novel information** *(Rules only)*: Every instruction teaches something Claude cannot infer from the codebase or common knowledge
+- [ ] **Actionable instructions** *(Rules only)*: Every instruction is specific enough to act on (FAIL: "write clean code", "follow best practices")
 
-## Scripts (if applicable)
+## Scripts (if applicable, Skills only)
 
 - [ ] **Error handling**: Scripts check for failure conditions and provide useful error messages rather than failing silently
 - [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for the agent to interpret
@@ -36,7 +46,7 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **Dependencies declared**: Required tools are documented in the skill
 - [ ] **POSIX paths**: Scripts use forward slashes only
 
-## Workflow Quality
+## Workflow Quality (Skills only)
 
 - [ ] **Sequential steps**: Operations use numbered steps that flow logically from start to finish
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
@@ -46,7 +56,15 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 - [ ] **Degrees of freedom**: Each step's specificity matches its fragility -- fragile/critical steps are prescriptive, variable/creative steps leave room
 - [ ] **RFC keyword usage**: MUST/SHOULD/MAY keywords are used to distinguish hard requirements from recommendations and optional behavior
 
-## Testing
+## Rules Quality
+
+- [ ] **Appropriate granularity**: CLAUDE.md files under ~200 lines; split into scoped rules or `@file` references if longer
+- [ ] **No common knowledge**: Does not teach Claude things it already knows (language syntax, standard library, well-known patterns)
+- [ ] **No README duplication**: Uses `@README.md` instead of copying project setup information
+- [ ] **Stable content**: No version numbers, specific dates, or URLs that will rot
+- [ ] **Correct scope placement**: Instructions that apply to a subset of the codebase use scoped rules, not the main CLAUDE.md
+
+## Testing (Skills only)
 
 - [ ] **Tested with target models**: The skill has been tested with the models it targets
 - [ ] **Evaluation cases exist**: At least one test scenario per operation exists to verify correct behavior
@@ -54,12 +72,24 @@ Pass/fail criteria for evaluating a Claude Code skill. Each item is either PASS 
 
 ## Anti-patterns (FAIL if any are present)
 
-- [ ] **No nested references**: Reference files do not link to other reference files
-- [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
-- [ ] **No Windows paths**: No backslashes in file paths
+### Shared Anti-patterns
+
 - [ ] **No time-sensitive content**: No specific version numbers, dates, or URLs that will rot
 - [ ] **No inconsistent terms**: The same concept is not called by different names in different files
+- [ ] **No Windows paths**: No backslashes in file paths
+
+### Skill Anti-patterns
+
+- [ ] **No nested references**: Reference files do not link to other reference files
+- [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
 - [ ] **No SKILL.md instructions**: SKILL.md routes to operation files, it does not contain step-by-step instructions itself
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
+
+### Rules Anti-patterns
+
+- [ ] **No duplicated README content**: Uses `@file` references instead of copying content from other files
+- [ ] **No vague instructions**: Every instruction is specific and actionable, not generic advice
+- [ ] **No common knowledge**: Does not explain things Claude already knows
+- [ ] **No excessive length**: CLAUDE.md stays under ~200 lines; uses scoped rules and `@file` for overflow

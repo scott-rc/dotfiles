@@ -1,4 +1,4 @@
-# Review Operation
+# Review Skill
 
 Evaluate a Claude Code skill against best practices, report findings grouped by severity, and offer to fix issues.
 
@@ -17,16 +17,16 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - SHOULD read any scripts in `scripts/` if present
 
 3. **Validate structure against spec**:
-   MUST validate the skill against every rule in [spec.md](spec.md), covering frontmatter, naming, SKILL.md body, operation files, reference files, and orphan files.
+   MUST validate the skill against every rule in the Skill Specification section of [spec.md](spec.md), covering frontmatter, naming, SKILL.md body, operation files, reference files, and orphan files.
 
 4. **Evaluate content quality against checklist**:
    MUST run through every item in [quality-checklist.md](quality-checklist.md):
    - Core quality (description, line count, terminology, progressive disclosure, examples)
-   - Structure (frontmatter, naming, sections, file organization)
+   - Structure — Skills (frontmatter, naming, sections, file organization)
    - Content efficiency (token justification, redundancy, over-explaining, conciseness)
    - Scripts if applicable (error handling, constants, dependencies, paths)
    - Workflow quality (sequential steps, decision points, error cases, feedback, feedback loops, degrees of freedom)
-   - Anti-patterns (nested references, vague names, Windows paths, time-sensitive content, inconsistent terms)
+   - Skill anti-patterns (nested references, vague names, Windows paths, time-sensitive content, inconsistent terms)
 
 5. **Check for additional anti-patterns** not covered by the checklist:
    - Operation files that duplicate content from other operation files
