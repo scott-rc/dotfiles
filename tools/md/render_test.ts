@@ -17,72 +17,69 @@ function renderPlain(md: string): string {
 
 // Headings
 
-Deno.test("h1 is uppercased with underline", () => {
+Deno.test("h1 is uppercased with # prefix", () => {
   const result = renderPlain("# Hello");
-  const lines = result.split("\n");
-  assertEquals(lines[0], "HELLO");
-  assertEquals(lines[1][0], "═");
+  assertEquals(result, "# HELLO");
 });
 
-Deno.test("h2 has underline", () => {
+Deno.test("h2 has ## prefix", () => {
   const result = renderPlain("## Section");
-  const lines = result.split("\n");
-  assertEquals(lines[0], "Section");
-  assertEquals(lines[1][0], "─");
+  assertEquals(result, "## Section");
 });
 
-Deno.test("h3 renders without underline", () => {
+Deno.test("h3 has ### prefix", () => {
   const result = renderPlain("### Sub");
-  assertEquals(result, "Sub");
+  assertEquals(result, "### Sub");
 });
 
-Deno.test("h4-h6 render without underline", () => {
-  assertEquals(renderPlain("#### H4").trim(), "H4");
-  assertEquals(renderPlain("##### H5").trim(), "H5");
-  assertEquals(renderPlain("###### H6").trim(), "H6");
+Deno.test("h4-h6 have # prefixes", () => {
+  assertEquals(renderPlain("#### H4"), "#### H4");
+  assertEquals(renderPlain("##### H5"), "##### H5");
+  assertEquals(renderPlain("###### H6"), "###### H6");
 });
 
 // Inline formatting
 
-Deno.test("bold text has ANSI bold codes", () => {
-  const result = render("**bold**");
-  assertEquals(stripAnsi(result), "bold");
-  // Should contain ANSI codes (more chars than visible)
-  assertEquals(result.length > "bold".length, true);
+Deno.test("bold text preserves ** markers", () => {
+  const result = renderPlain("**bold**");
+  assertEquals(result, "**bold**");
 });
 
-Deno.test("italic text has ANSI italic codes", () => {
-  const result = render("*italic*");
-  assertEquals(stripAnsi(result), "italic");
-  assertEquals(result.length > "italic".length, true);
+Deno.test("italic text preserves * markers", () => {
+  const result = renderPlain("*italic*");
+  assertEquals(result, "*italic*");
 });
 
-Deno.test("inline code is padded", () => {
+Deno.test("inline code has backticks", () => {
   const result = renderPlain("use `foo` here");
-  assertEquals(result.includes(" foo "), true);
+  assertEquals(result.includes("`foo`"), true);
 });
 
 // Code blocks
 
-Deno.test("code block has box borders", () => {
+Deno.test("code block has ``` fences", () => {
   const result = renderPlain("```\nhello\n```");
-  assertEquals(result.includes("┌"), true);
-  assertEquals(result.includes("└"), true);
-  assertEquals(result.includes("│"), true);
+  const lines = result.split("\n");
+  assertEquals(lines[0], "```");
+  assertEquals(lines[1], "hello");
+  assertEquals(lines[2], "```");
 });
 
-Deno.test("code block shows language label", () => {
+Deno.test("code block shows language on opening fence", () => {
   const result = renderPlain("```typescript\nconst x = 1;\n```");
-  assertEquals(result.includes("typescript"), true);
+  const lines = result.split("\n");
+  assertEquals(lines[0], "```typescript");
+  assertEquals(lines[1], "const x = 1;");
+  assertEquals(lines[2], "```");
 });
 
 // Lists
 
-Deno.test("unordered list uses bullet", () => {
+Deno.test("unordered list uses -", () => {
   const result = renderPlain("- one\n- two\n- three");
-  assertEquals(result.includes("•"), true);
-  assertEquals(result.includes("one"), true);
-  assertEquals(result.includes("two"), true);
+  assertEquals(result.includes("- one"), true);
+  assertEquals(result.includes("- two"), true);
+  assertEquals(result.includes("- three"), true);
 });
 
 Deno.test("ordered list uses numbers", () => {
@@ -101,25 +98,25 @@ Deno.test("nested lists indent", () => {
 
 // Blockquote
 
-Deno.test("blockquote has border prefix", () => {
+Deno.test("blockquote has > prefix", () => {
   const result = renderPlain("> quoted text");
-  assertEquals(result.includes("│"), true);
+  assertEquals(result.includes(">"), true);
   assertEquals(result.includes("quoted text"), true);
 });
 
 // Links
 
-Deno.test("link shows text and URL", () => {
+Deno.test("link preserves [text](url) format", () => {
   const result = renderPlain("[example](https://example.com)");
-  assertEquals(result.includes("example"), true);
-  assertEquals(result.includes("https://example.com"), true);
+  assertEquals(result.includes("[example]"), true);
+  assertEquals(result.includes("](https://example.com)"), true);
 });
 
 // Horizontal rule
 
-Deno.test("hr renders full-width line", () => {
+Deno.test("hr renders as ---", () => {
   const result = renderPlain("---");
-  assertEquals(result, "─".repeat(WIDTH));
+  assertEquals(result, "---");
 });
 
 // Word wrapping
@@ -156,12 +153,12 @@ const x = 1;
 `;
 
   const result = renderPlain(md);
-  assertEquals(result.includes("TITLE"), true);
-  assertEquals(result.includes("bold"), true);
-  assertEquals(result.includes("italic"), true);
+  assertEquals(result.includes("# TITLE"), true);
+  assertEquals(result.includes("**bold**"), true);
+  assertEquals(result.includes("*italic*"), true);
   assertEquals(result.includes("const x = 1;"), true);
-  assertEquals(result.includes("•"), true);
-  assertEquals(result.includes("│"), true);
-  assertEquals(result.includes("─"), true);
-  assertEquals(result.includes("link"), true);
+  assertEquals(result.includes("- item"), true);
+  assertEquals(result.includes(">"), true);
+  assertEquals(result.includes("---"), true);
+  assertEquals(result.includes("[link]"), true);
 });

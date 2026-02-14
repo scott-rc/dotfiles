@@ -1,14 +1,14 @@
 import {
+  blue,
   bold,
   cyan,
   dim,
-  green,
+  gray,
   italic,
-  magenta,
   setColorEnabled,
   stripAnsiCode,
   underline,
-  yellow,
+  white,
 } from "@std/fmt/colors";
 
 export { setColorEnabled, stripAnsiCode };
@@ -21,36 +21,30 @@ const ansiUpperCase = (s: string) =>
     part.startsWith("\x1b") ? part : part.toUpperCase()
   ).join("");
 
-export const h1 = (s: string) => bold(magenta(ansiUpperCase(s)));
-export const h2 = (s: string) => bold(cyan(s));
-export const h3 = (s: string) => bold(yellow(s));
-export const h4 = (s: string) => bold(green(s));
-export const h5 = (s: string) => bold(magenta(s));
-export const h6 = (s: string) => bold(dim(s));
+export const h1 = (s: string) => bold(blue(ansiUpperCase(s)));
+export const h2 = (s: string) => bold(blue(s));
+export const h3 = (s: string) => bold(s);
+export const h4 = (s: string) => white(s);
+export const h5 = (s: string) => gray(s);
+export const h6 = (s: string) => dim(s);
+
+// Syntax markers (#, >, -, **, *, ```, [, ], (, ))
+export const marker = gray;
 
 // Inline
 export const strongStyle = bold;
 export const emStyle = italic;
-export const codeSpan = (s: string) => dim(` ${s} `);
+export const codeSpan = (s: string) => `\`${s}\``;
 
 // Code block
-export const codeBorder = dim;
-export const codeLanguage = (s: string) => dim(italic(s));
+export const codeLanguage = (s: string) => italic(gray(s));
 
 // Links
-export const linkText = bold;
+export const linkText = (s: string) => bold(blue(s));
 export const linkUrl = (s: string) => cyan(underline(s));
 
 // Blockquote
-export const blockquoteBorder = (s: string) => dim(s);
-export const blockquoteText = (s: string) => dim(italic(s));
-
-// Lists
-export const bullet = dim;
+export const blockquoteText = italic;
 
 // Horizontal rule
-export const hrStyle = dim;
-
-// Heading underlines
-export const h1Underline = "═";
-export const h2Underline = "─";
+export const hrStyle = gray;

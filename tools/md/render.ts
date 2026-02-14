@@ -53,24 +53,15 @@ function renderToken(token: Token, options: RenderOptions): string | null {
 
 function renderHeading(
   token: Tokens.Heading,
-  options: RenderOptions,
+  _options: RenderOptions,
 ): string {
   const text = renderInline(token.tokens);
+  const prefix = style.marker("#".repeat(token.depth)) + " ";
   const styleFn = [style.h1, style.h2, style.h3, style.h4, style.h5, style.h6][
     token.depth - 1
   ] ?? style.h6;
 
-  const styled = styleFn(text);
-  const visWidth = Math.min(visibleLength(styled), options.width);
-
-  if (token.depth === 1) {
-    return styled + "\n" + style.h1(style.h1Underline.repeat(visWidth));
-  }
-  if (token.depth === 2) {
-    return styled + "\n" + style.codeBorder(style.h2Underline.repeat(visWidth));
-  }
-
-  return styled;
+  return prefix + styleFn(text);
 }
 
 function renderParagraph(
@@ -83,25 +74,14 @@ function renderParagraph(
 
 function renderCodeBlock(
   token: Tokens.Code,
-  options: RenderOptions,
+  _options: RenderOptions,
 ): string {
-  const lines = token.text.split("\n");
-  const maxLineLen = Math.max(...lines.map((l) => l.length));
-  const boxWidth = Math.min(maxLineLen + 4, options.width);
-  const innerWidth = boxWidth - 4; // "│ " + content + " │"
-
   const parts: string[] = [];
 
-  if (token.lang) {
-    parts.push(style.codeLanguage(token.lang));
-  }
-
-  parts.push(style.codeBorder("┌" + "─".repeat(boxWidth - 2) + "┐"));
-  for (const line of lines) {
-    const padded = line + " ".repeat(Math.max(0, innerWidth - line.length));
-    parts.push(style.codeBorder("│") + " " + padded + " " + style.codeBorder("│"));
-  }
-  parts.push(style.codeBorder("└" + "─".repeat(boxWidth - 2) + "┘"));
+  const opening = token.lang ? "```" + token.lang : "```";
+  parts.push(style.marker(opening));
+  parts.push(token.text);
+  parts.push(style.marker("```"));
 
   return parts.join("\n");
 }
@@ -110,7 +90,7 @@ function renderBlockquote(
   token: Tokens.Blockquote,
   options: RenderOptions,
 ): string {
-  const prefix = style.blockquoteBorder("│") + " ";
+  const prefix = style.marker(">") + " ";
   const innerWidth = options.width - 3;
 
   const inner = renderTokens(token.tokens, { ...options, width: innerWidth });
@@ -133,7 +113,7 @@ function renderList(
     const item = token.items[i];
     const marker = token.ordered
       ? `${Number(token.start ?? 1) + i}. `
-      : style.bullet("•") + " ";
+      : style.marker("-") + " ";
 
     const markerWidth = visibleLength(marker);
     const contentIndent = indent + " ".repeat(markerWidth);
@@ -170,8 +150,8 @@ function renderList(
   return parts.join("\n");
 }
 
-function renderHr(options: RenderOptions): string {
-  return style.hrStyle("─".repeat(options.width));
+function renderHr(_options: RenderOptions): string {
+  return style.hrStyle("---");
 }
 
 /** Render inline tokens (bold, italic, code, links, text) into a string. */
@@ -187,15 +167,15 @@ function renderInlineToken(token: Token): string {
       }
       return token.text as string;
     case "strong":
-      return style.strongStyle(renderInline((token as Tokens.Strong).tokens));
+      return style.marker("**") + style.strongStyle(renderInline((token as Tokens.Strong).tokens)) + style.marker("**");
     case "em":
-      return style.emStyle(renderInline((token as Tokens.Em).tokens));
+      return style.marker("*") + style.emStyle(renderInline((token as Tokens.Em).tokens)) + style.marker("*");
     case "codespan":
       return style.codeSpan((token as Tokens.Codespan).text);
     case "link": {
       const link = token as Tokens.Link;
       const text = renderInline(link.tokens);
-      return style.linkText(text) + " (" + style.linkUrl(link.href) + ")";
+      return style.marker("[") + style.linkText(text) + style.marker("](") + style.linkUrl(link.href) + style.marker(")");
     }
     case "br":
       return "\n";
