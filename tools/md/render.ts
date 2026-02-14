@@ -112,8 +112,8 @@ function renderList(
   for (let i = 0; i < token.items.length; i++) {
     const item = token.items[i];
     const marker = token.ordered
-      ? `${Number(token.start ?? 1) + i}. `
-      : style.marker("-") + " ";
+      ? style.listMarker(`${Number(token.start ?? 1) + i}.`) + " "
+      : style.listMarker("-") + " ";
 
     const markerWidth = visibleLength(marker);
     const contentIndent = indent + " ".repeat(markerWidth);
