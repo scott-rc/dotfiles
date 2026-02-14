@@ -347,6 +347,14 @@ themes {
             emphasis_2 255 218 236
             emphasis_3 0
         }
+        frame_unselected {
+            base 125 133 144
+            background 0
+            emphasis_0 189 86 29
+            emphasis_1 237 222 255
+            emphasis_2 86 211 100
+            emphasis_3 255 218 236
+        }
         frame_highlight {
             base 189 86 29
             background 0
@@ -472,6 +480,7 @@ pane_frames false
 
 ui {
     pane_frames {
+        rounded_corners true
         hide_session_name true
     }
 }
