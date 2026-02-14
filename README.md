@@ -84,7 +84,7 @@ Custom CLI tools built with Deno.
 
 | Tool | Description |
 |------|-------------|
-| `md/` | Terminal markdown renderer with color output, syntax highlighting, word wrapping, and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Install globally via `deno task install`. |
+| `md/` | Terminal markdown renderer with color output, syntax highlighting, YAML frontmatter support, word wrapping, and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Install globally via `deno task install`. |
 
 ## Useful Commands
 

@@ -161,6 +161,30 @@ function renderHr(_options: RenderOptions): string {
   return style.hrStyle("---");
 }
 
+/** Render frontmatter attributes as a styled key-value block. */
+export function renderFrontmatter(
+  attrs: Record<string, unknown>,
+): string {
+  const entries = Object.entries(attrs);
+  if (entries.length === 0) return "";
+
+  const maxKeyLen = Math.max(...entries.map(([k]) => k.length));
+
+  return entries.map(([key, value]) => {
+    const paddedKey = key.padEnd(maxKeyLen);
+    return style.frontmatterKey(paddedKey) + "  " +
+      style.frontmatterValue(formatValue(value));
+  }).join("\n");
+}
+
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString().split("T")[0];
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
 /** Render inline tokens (bold, italic, code, links, text) into a string. */
 export function renderInline(tokens: Token[]): string {
   return tokens.map(renderInlineToken).join("");

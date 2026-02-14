@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { Lexer } from "marked";
-import { renderTokens } from "./render.ts";
+import { renderFrontmatter, renderTokens } from "./render.ts";
+import { renderMarkdown } from "./mod.ts";
 import { stripAnsi } from "./wrap.ts";
 
 const WIDTH = 60;
@@ -13,6 +14,10 @@ async function render(md: string): Promise<string> {
 
 async function renderPlain(md: string): Promise<string> {
   return stripAnsi(await render(md));
+}
+
+async function renderMd(md: string): Promise<string> {
+  return stripAnsi(await renderMarkdown(md, opts));
 }
 
 // Headings
@@ -161,4 +166,76 @@ const x = 1;
   assertEquals(result.includes(">"), true);
   assertEquals(result.includes("---"), true);
   assertEquals(result.includes("[link]"), true);
+});
+
+// Frontmatter: renderFrontmatter
+
+Deno.test("renderFrontmatter formats key-value pairs", () => {
+  const result = stripAnsi(renderFrontmatter({ title: "My Doc", date: "2024-01-01" }));
+  assertEquals(result.includes("title"), true);
+  assertEquals(result.includes("My Doc"), true);
+  assertEquals(result.includes("date"), true);
+  assertEquals(result.includes("2024-01-01"), true);
+});
+
+Deno.test("renderFrontmatter aligns keys", () => {
+  const result = stripAnsi(renderFrontmatter({ ab: "x", abcd: "y" }));
+  const lines = result.split("\n");
+  // "ab" should be padded to match "abcd" length
+  assertEquals(lines[0].startsWith("ab  "), true);
+  assertEquals(lines[1].startsWith("abcd"), true);
+});
+
+Deno.test("renderFrontmatter joins arrays with commas", () => {
+  const result = stripAnsi(renderFrontmatter({ tags: ["one", "two", "three"] }));
+  assertEquals(result.includes("one, two, three"), true);
+});
+
+Deno.test("renderFrontmatter returns empty string for empty attrs", () => {
+  assertEquals(renderFrontmatter({}), "");
+});
+
+// Frontmatter: renderMarkdown integration
+
+Deno.test("frontmatter is extracted and rendered at top", async () => {
+  const md = `---
+title: My Doc
+date: 2024-01-01
+---
+
+# Hello`;
+  const result = await renderMd(md);
+  // Frontmatter appears before heading
+  const titleIdx = result.indexOf("My Doc");
+  const headingIdx = result.indexOf("# HELLO");
+  assertEquals(titleIdx < headingIdx, true);
+});
+
+Deno.test("no frontmatter renders normally", async () => {
+  const result = await renderMd("# Hello\n\nSome text.");
+  assertEquals(result, "# HELLO\n\nSome text.");
+});
+
+Deno.test("bare hr at start is not treated as frontmatter", async () => {
+  const result = await renderMd("---\n\nSome text.");
+  assertEquals(result.includes("---"), true);
+});
+
+Deno.test("malformed YAML frontmatter does not crash", async () => {
+  const md = `---
+: [[[invalid
+---
+
+# Hello`;
+  const result = await renderMd(md);
+  assertEquals(typeof result, "string");
+});
+
+Deno.test("empty frontmatter adds nothing", async () => {
+  const md = `---
+---
+
+# Hello`;
+  const result = await renderMd(md);
+  assertEquals(result.startsWith("# HELLO"), true);
 });

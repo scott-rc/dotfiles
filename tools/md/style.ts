@@ -57,3 +57,7 @@ export const blockquoteText = (s: string) => rgb24(s, QUOTE_GREEN);
 
 // Horizontal rule
 export const hrStyle = (s: string) => rgb24(s, COMMENT_GRAY);
+
+// Frontmatter
+export const frontmatterKey = (s: string) => rgb24(s, COMMENT_GRAY);
+export const frontmatterValue = (s: string) => rgb24(s, FOREGROUND);
