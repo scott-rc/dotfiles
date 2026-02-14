@@ -4,6 +4,7 @@ import { splitAnsi, stripAnsi } from "./wrap.ts";
 export interface PagerOptions {
   filePath?: string;
   rawContent?: string;
+  onResize?: () => Promise<string>;
 }
 
 interface PagerState {
@@ -26,6 +27,7 @@ const ALT_SCREEN_OFF = `${CSI}?1049l`;
 const CURSOR_HIDE = `${CSI}?25l`;
 const CURSOR_SHOW = `${CSI}?25h`;
 const CLEAR_LINE = `${CSI}2K`;
+const CLEAR_SCREEN = `${CSI}2J`;
 const REVERSE = `${CSI}7m`;
 const NO_REVERSE = `${CSI}27m`;
 const RESET = `${CSI}0m`;
@@ -137,6 +139,24 @@ export function highlightSearch(line: string, query: string): string {
   }
 
   return result;
+}
+
+/** Map a scroll position proportionally when line count changes. */
+export function mapScrollPosition(
+  oldTopLine: number,
+  oldLineCount: number,
+  newLineCount: number,
+): number {
+  if (oldLineCount <= 1 || newLineCount <= 1) return 0;
+  const ratio = oldTopLine / (oldLineCount - 1);
+  return Math.round(ratio * (newLineCount - 1));
+}
+
+/** Find the search match index closest to a given line position. */
+export function findNearestMatch(matches: number[], topLine: number): number {
+  if (matches.length === 0) return -1;
+  const idx = matches.findIndex((m) => m >= topLine);
+  return idx === -1 ? matches.length - 1 : idx;
 }
 
 export function findMatches(lines: string[], query: string): number[] {
@@ -335,6 +355,52 @@ export async function runPager(
   write(ALT_SCREEN_ON + CURSOR_HIDE);
   Deno.stdin.setRaw(true);
 
+  let resizing = false;
+  let pendingResize = false;
+  let paused = false;
+
+  const doResize = () => {
+    if (!options?.onResize) {
+      write(CLEAR_SCREEN);
+      render(state);
+      return;
+    }
+    resizing = true;
+    pendingResize = false;
+    const oldLineCount = state.lines.length;
+    const oldTopLine = state.topLine;
+    options.onResize().then((newContent) => {
+      state.lines = newContent.split("\n");
+      state.topLine = mapScrollPosition(oldTopLine, oldLineCount, state.lines.length);
+      if (state.searchQuery) {
+        state.searchMatches = findMatches(state.lines, state.searchQuery);
+        state.currentMatch = findNearestMatch(state.searchMatches, state.topLine);
+      }
+      write(CLEAR_SCREEN);
+      render(state);
+    }).catch(() => {
+      write(CLEAR_SCREEN);
+      render(state);
+    }).finally(() => {
+      resizing = false;
+      if (pendingResize) {
+        pendingResize = false;
+        doResize();
+      }
+    });
+  };
+
+  const handleResize = () => {
+    if (paused) return;
+    if (resizing) {
+      pendingResize = true;
+      return;
+    }
+    doResize();
+  };
+
+  Deno.addSignalListener("SIGWINCH", handleResize);
+
   try {
     render(state);
 
@@ -464,6 +530,7 @@ export async function runPager(
                     const sourceLine = state.rawContent && state.lines.length > 0
                       ? mapToSourceLine(state.topLine, state.lines.length, state.rawContent)
                       : undefined;
+                    paused = true;
                     reader.releaseLock();
                     Deno.stdin.setRaw(false);
                     write(CURSOR_SHOW + ALT_SCREEN_OFF);
@@ -471,6 +538,7 @@ export async function runPager(
                     write(ALT_SCREEN_ON + CURSOR_HIDE);
                     Deno.stdin.setRaw(true);
                     reader = Deno.stdin.readable.getReader();
+                    paused = false;
                   } else {
                     state.searchMessage = "No file path available";
                   }
@@ -513,7 +581,7 @@ export async function runPager(
       reader.releaseLock();
     }
   } finally {
-    // Restore terminal state
+    Deno.removeSignalListener("SIGWINCH", handleResize);
     Deno.stdin.setRaw(false);
     write(CURSOR_SHOW + ALT_SCREEN_OFF);
   }

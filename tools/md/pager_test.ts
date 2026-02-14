@@ -2,8 +2,10 @@ import { assertEquals } from "@std/assert";
 import { stripAnsi } from "./wrap.ts";
 import {
   findMatches,
+  findNearestMatch,
   highlightSearch,
   type Key,
+  mapScrollPosition,
   mapToSourceLine,
   parseKey,
   truncateLine,
@@ -219,4 +221,54 @@ Deno.test("mapToSourceLine: midpoint maps proportionally", () => {
 Deno.test("mapToSourceLine: rendered same length as source", () => {
   const raw = "a\nb\nc";
   assertEquals(mapToSourceLine(1, 3, raw), 2);
+});
+
+// --- mapScrollPosition ---
+
+Deno.test("mapScrollPosition: preserves scroll ratio", () => {
+  // At 50% through 101 lines → 50% through 201 lines
+  assertEquals(mapScrollPosition(50, 101, 201), 100);
+});
+
+Deno.test("mapScrollPosition: top stays at top", () => {
+  assertEquals(mapScrollPosition(0, 100, 200), 0);
+});
+
+Deno.test("mapScrollPosition: bottom maps to bottom", () => {
+  assertEquals(mapScrollPosition(99, 100, 50), 49);
+});
+
+Deno.test("mapScrollPosition: single line stays at 0", () => {
+  assertEquals(mapScrollPosition(0, 1, 50), 0);
+});
+
+Deno.test("mapScrollPosition: same line count preserves position", () => {
+  assertEquals(mapScrollPosition(25, 100, 100), 25);
+});
+
+Deno.test("mapScrollPosition: shrink rounds to nearest", () => {
+  // 3/9 = 0.333, * 4 = 1.333, rounds to 1
+  assertEquals(mapScrollPosition(3, 10, 5), 1);
+});
+
+// --- findNearestMatch ---
+
+Deno.test("findNearestMatch: finds first match at or after position", () => {
+  assertEquals(findNearestMatch([5, 15, 25], 10), 1);
+});
+
+Deno.test("findNearestMatch: returns last if all before position", () => {
+  assertEquals(findNearestMatch([5, 15, 25], 30), 2);
+});
+
+Deno.test("findNearestMatch: returns first if position is 0", () => {
+  assertEquals(findNearestMatch([5, 15, 25], 0), 0);
+});
+
+Deno.test("findNearestMatch: empty matches returns -1", () => {
+  assertEquals(findNearestMatch([], 10), -1);
+});
+
+Deno.test("findNearestMatch: exact position match", () => {
+  assertEquals(findNearestMatch([5, 10, 15], 10), 1);
 });

@@ -41,7 +41,7 @@ deno task test      # Run tests
 | `highlight.ts` | Syntax highlighting for code blocks using shiki (`github-dark` theme) |
 | `style.ts` | Color palette (GitHub Dark Default from github-nvim-theme) and ANSI formatting |
 | `wrap.ts` | ANSI-aware word wrap with widow prevention |
-| `pager.ts` | Built-in pager with alternate screen, search highlighting, and status bar |
+| `pager.ts` | Built-in pager with alternate screen, search highlighting, resize handling, and status bar |
 
 ## Pager Keybindings
 

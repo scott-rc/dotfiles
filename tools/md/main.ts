@@ -29,19 +29,6 @@ if (args["no-color"]) {
   setColorEnabled(false);
 }
 
-let terminalWidth: number | null = null;
-try {
-  terminalWidth = Deno.consoleSize().columns;
-} catch {
-  // Not a TTY
-}
-
-const width = args.width
-  ? parseInt(args.width, 10)
-  : terminalWidth !== null
-    ? Math.min(terminalWidth, MAX_WIDTH)
-    : MAX_WIDTH;
-
 const file = args._[0] as string | undefined;
 
 let input: string;
@@ -57,16 +44,32 @@ if (file === "-" || (!file && !Deno.stdin.isTerminal())) {
   Deno.exit(1);
 }
 
-const output = await renderMarkdown(input, { width });
+const renderCentered = async (): Promise<string> => {
+  let termWidth: number | null = null;
+  try {
+    termWidth = Deno.consoleSize().columns;
+  } catch {
+    // Not a TTY
+  }
 
-// Center content in terminal
-const margin = terminalWidth !== null
-  ? " ".repeat(Math.floor(Math.max(0, terminalWidth - width) / 2))
-  : "";
+  const w = args.width
+    ? parseInt(args.width, 10)
+    : termWidth !== null
+      ? Math.min(termWidth, MAX_WIDTH)
+      : MAX_WIDTH;
 
-const centered = margin
-  ? output.split("\n").map((line) => margin + line).join("\n")
-  : output;
+  const rendered = await renderMarkdown(input, { width: w });
+
+  const margin = termWidth !== null
+    ? " ".repeat(Math.floor(Math.max(0, termWidth - w) / 2))
+    : "";
+
+  return margin
+    ? rendered.split("\n").map((line) => margin + line).join("\n")
+    : rendered;
+};
+
+const centered = await renderCentered();
 
 const shouldPage =
   !args["no-pager"] &&
@@ -78,7 +81,7 @@ if (shouldPage) {
   const height = Deno.consoleSize().rows;
   if (centered.split("\n").length > height) {
     const { runPager } = await import("./pager.ts");
-    await runPager(centered, { filePath, rawContent: input });
+    await runPager(centered, { filePath, rawContent: input, onResize: renderCentered });
     Deno.exit(0);
   }
 }
