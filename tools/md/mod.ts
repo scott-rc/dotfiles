@@ -15,7 +15,7 @@ export async function renderMarkdown(
     try {
       const { attrs, body: extractedBody } = extract<Record<string, unknown>>(markdown);
       body = extractedBody;
-      frontmatterBlock = renderFrontmatter(attrs);
+      frontmatterBlock = renderFrontmatter(attrs, options.width);
     } catch {
       // Malformed YAML — render the full string as-is
     }

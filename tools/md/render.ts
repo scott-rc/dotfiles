@@ -164,16 +164,30 @@ function renderHr(_options: RenderOptions): string {
 /** Render frontmatter attributes as a styled key-value block. */
 export function renderFrontmatter(
   attrs: Record<string, unknown>,
+  width?: number,
 ): string {
   const entries = Object.entries(attrs);
   if (entries.length === 0) return "";
 
   const maxKeyLen = Math.max(...entries.map(([k]) => k.length));
+  const indent = " ".repeat(maxKeyLen + 2);
 
   return entries.map(([key, value]) => {
     const paddedKey = key.padEnd(maxKeyLen);
+    const formatted = formatValue(value);
+    if (width) {
+      const firstLineWidth = width - maxKeyLen - 2;
+      const wrapped = wordWrap(formatted, firstLineWidth);
+      const lines = wrapped.split("\n");
+      const styledLines = lines.map((line, i) =>
+        i === 0
+          ? style.frontmatterKey(paddedKey) + "  " + style.frontmatterValue(line)
+          : indent + style.frontmatterValue(line)
+      );
+      return styledLines.join("\n");
+    }
     return style.frontmatterKey(paddedKey) + "  " +
-      style.frontmatterValue(formatValue(value));
+      style.frontmatterValue(formatted);
   }).join("\n");
 }
 

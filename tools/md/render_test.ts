@@ -195,6 +195,22 @@ Deno.test("renderFrontmatter returns empty string for empty attrs", () => {
   assertEquals(renderFrontmatter({}), "");
 });
 
+Deno.test("renderFrontmatter wraps long values to width", () => {
+  const long = "word ".repeat(20).trim();
+  const result = stripAnsi(renderFrontmatter({ description: long }, 40));
+  const lines = result.split("\n");
+  // Should produce multiple lines
+  assertEquals(lines.length > 1, true);
+  // All lines fit within width
+  for (const line of lines) {
+    assertEquals(line.length <= 40, true);
+  }
+  // Continuation lines align with value start (key "description" = 11 + 2 spaces = 13 indent)
+  for (const line of lines.slice(1)) {
+    assertEquals(line.startsWith("             "), true);
+  }
+});
+
 // Frontmatter: renderMarkdown integration
 
 Deno.test("frontmatter is extracted and rendered at top", async () => {
