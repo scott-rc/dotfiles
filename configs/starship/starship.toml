@@ -1,14 +1,43 @@
 "$schema" = "https://starship.rs/config-schema.json"
 
+format = """
+${env_var.STARSHIP_DIR}\
+$git_branch\
+$git_state\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
+
+add_newline = false
+
+[env_var.STARSHIP_DIR]
+format = "[$env_value](white) "
+
 [character]
-success_symbol = "[λ](green)"
+success_symbol = "[λ](purple)"
 error_symbol = "[λ](red)"
 
-[gcloud]
-disabled = true
+[git_branch]
+format = "[$branch]($style)"
+style = "blue"
 
-[nix_shell]
-disabled = true
+[git_status]
+format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218) ($ahead_behind$stashed)]($style)"
+style = "cyan"
+conflicted = "​"
+untracked = "​"
+modified = "​"
+staged = "​"
+renamed = "​"
+deleted = "​"
+stashed = "≡"
+diverged = "⇡⇣"
 
-[docker_context]
-disabled = true
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-black"
+
+[cmd_duration]
+format = "[$duration]($style) "
+style = "yellow"
