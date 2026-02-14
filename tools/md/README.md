@@ -6,6 +6,7 @@ Terminal markdown renderer built with Deno and [marked](https://github.com/marke
 
 ```bash
 md <file>           # Render a markdown file
+md <directory>      # Browse markdown files with fzf
 md -                # Read from stdin
 cat README.md | md  # Piped input
 ```
@@ -17,6 +18,17 @@ cat README.md | md  # Piped input
 | `-w, --width <n>` | Set output width (default: min(terminal, 80)) |
 | `--no-color` | Disable color output |
 | `--no-pager` | Disable built-in pager |
+
+## Directory Browsing
+
+When given a directory, `md` pipes a find command into a pick command and opens the selected file in the pager. Quitting the pager returns to the picker; quitting fzf exits. The shell used is `$SHELL` (falls back to `sh`).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MD_FIND_CMD` | `find {dir} -type f \( -name '*.md' -o -name '*.mdx' \)` | Command to find files. `{dir}` is replaced with the directory path; if absent, the directory is appended. |
+| `MD_PICK_CMD` | `fzf` | Command to pick a file from stdin. Inherits `FZF_DEFAULT_OPTS` from the environment. |
+
+The defaults use only POSIX `find` and `fzf`. The fish config (`conf.d/md.fish`) layers on `fd`, `fzf_files`, preview, and `--scheme=path` sorting via `MD_FIND_CMD` and `MD_PICK_CMD` environment variables.
 
 ## Frontmatter
 
@@ -39,7 +51,8 @@ deno task test      # Run tests
 
 | Module | Description |
 |--------|-------------|
-| `main.ts` | CLI entry point — arg parsing, stdin/file reading, centering, pager launch |
+| `main.ts` | CLI entry point — arg parsing, stdin/file/directory handling, centering, pager launch |
+| `browse.ts` | Directory browsing — command construction, shell-out via `$SHELL`, selection loop |
 | `mod.ts` | Public API — `renderMarkdown()` with YAML frontmatter extraction via marked's lexer |
 | `render.ts` | Token renderer — headings, paragraphs, code blocks, lists, blockquotes, inline styles |
 | `highlight.ts` | Syntax highlighting for code blocks using shiki (`github-dark` theme) |
