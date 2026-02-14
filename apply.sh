@@ -235,12 +235,8 @@ ensure_symlink "$CONFIGS/zellij/layouts" "$HOME/.config/zellij/layouts"
 # --- Tools ---
 
 if command -v deno &>/dev/null; then
-	if ! command -v md &>/dev/null; then
-		log_info "Installing md tool"
-		(cd "$WORKSPACE_ROOT/tools/md" && deno task install)
-	else
-		log_debug "md tool is already installed"
-	fi
+	log_info "Installing tools"
+	(cd "$WORKSPACE_ROOT/tools/md" && deno task install)
 fi
 
 # --- Zsh ---
