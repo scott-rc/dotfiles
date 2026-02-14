@@ -11,6 +11,8 @@ import {
   parseKey,
   type StatusBarInput,
   truncateLine,
+  wordBoundaryLeft,
+  wordBoundaryRight,
 } from "./pager.ts";
 
 // --- parseKey ---
@@ -83,6 +85,34 @@ Deno.test("parseKey: unknown CSI sequence", () => {
   assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x5a])), {
     type: "unknown",
   });
+});
+
+Deno.test("parseKey: arrow left", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x44])), { type: "left" });
+});
+
+Deno.test("parseKey: arrow right", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x43])), { type: "right" });
+});
+
+Deno.test("parseKey: alt-left (CSI 1;3D)", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x31, 0x3b, 0x33, 0x44])), { type: "alt-left" });
+});
+
+Deno.test("parseKey: alt-right (CSI 1;3C)", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x31, 0x3b, 0x33, 0x43])), { type: "alt-right" });
+});
+
+Deno.test("parseKey: alt-left (ESC b)", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x62])), { type: "alt-left" });
+});
+
+Deno.test("parseKey: alt-right (ESC f)", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x66])), { type: "alt-right" });
+});
+
+Deno.test("parseKey: alt-backspace", () => {
+  assertEquals(parseKey(new Uint8Array([0x1b, 0x7f])), { type: "alt-backspace" });
 });
 
 // --- truncateLine ---
@@ -281,6 +311,7 @@ function baseInput(overrides: Partial<StatusBarInput> = {}): StatusBarInput {
   return {
     mode: "normal",
     searchInput: "",
+    searchCursor: 0,
     searchMessage: "",
     searchQuery: "",
     searchMatches: [],
@@ -334,10 +365,26 @@ Deno.test("formatStatusBar: scrolled mid-document shows percentage", () => {
   assertEquals(plain.includes("11-34/50"), true);
 });
 
-Deno.test("formatStatusBar: search input mode shows cursor block", () => {
-  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query" }), 60);
+Deno.test("formatStatusBar: search input mode shows cursor at end", () => {
+  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 5 }), 60);
   const plain = stripAnsi(result);
   assertEquals(plain.startsWith("/query\u2588"), true);
+});
+
+Deno.test("formatStatusBar: search cursor at beginning", () => {
+  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 0 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("/query"), true);
+  // The cursor character should be 'q' (rendered in non-reverse)
+  assertEquals(result.includes("\x1b[27mq\x1b[7m"), true);
+});
+
+Deno.test("formatStatusBar: search cursor in middle", () => {
+  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 2 }), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.startsWith("/query"), true);
+  // The cursor character should be 'e' (at index 2)
+  assertEquals(result.includes("\x1b[27me\x1b[7m"), true);
 });
 
 Deno.test("formatStatusBar: search message shows message only", () => {
@@ -387,4 +434,44 @@ Deno.test("formatStatusBar: visible width matches cols exactly", () => {
     const result = formatStatusBar(baseInput({ topLine: 10 }), cols);
     assertEquals(visibleLength(result), cols);
   }
+});
+
+// --- wordBoundaryLeft ---
+
+Deno.test("wordBoundaryLeft: end to start of last word", () => {
+  assertEquals(wordBoundaryLeft("hello world", 11), 6);
+});
+
+Deno.test("wordBoundaryLeft: start of word to start of previous word", () => {
+  assertEquals(wordBoundaryLeft("hello world", 6), 0);
+});
+
+Deno.test("wordBoundaryLeft: mid-word to start of that word", () => {
+  assertEquals(wordBoundaryLeft("hello world", 3), 0);
+});
+
+Deno.test("wordBoundaryLeft: consecutive spaces", () => {
+  assertEquals(wordBoundaryLeft("hello  world", 12), 7);
+});
+
+Deno.test("wordBoundaryLeft: already at start", () => {
+  assertEquals(wordBoundaryLeft("hello", 0), 0);
+});
+
+// --- wordBoundaryRight ---
+
+Deno.test("wordBoundaryRight: start to start of next word", () => {
+  assertEquals(wordBoundaryRight("hello world", 0), 6);
+});
+
+Deno.test("wordBoundaryRight: start of last word to end", () => {
+  assertEquals(wordBoundaryRight("hello world", 6), 11);
+});
+
+Deno.test("wordBoundaryRight: consecutive spaces", () => {
+  assertEquals(wordBoundaryRight("hello  world", 0), 7);
+});
+
+Deno.test("wordBoundaryRight: already at end", () => {
+  assertEquals(wordBoundaryRight("hello", 5), 5);
 });

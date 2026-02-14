@@ -18,6 +18,10 @@ cat README.md | md  # Piped input
 | `--no-color` | Disable color output |
 | `--no-pager` | Disable built-in pager |
 
+## Frontmatter
+
+YAML frontmatter (delimited by `---`) is automatically detected and rendered as a styled key-value block at the top of the output. Array values are displayed as comma-separated lists. Files without frontmatter render normally.
+
 ## Install
 
 ```bash
@@ -36,7 +40,7 @@ deno task test      # Run tests
 | Module | Description |
 |--------|-------------|
 | `main.ts` | CLI entry point — arg parsing, stdin/file reading, centering, pager launch |
-| `mod.ts` | Public API — `renderMarkdown()` using marked's lexer |
+| `mod.ts` | Public API — `renderMarkdown()` with YAML frontmatter extraction via marked's lexer |
 | `render.ts` | Token renderer — headings, paragraphs, code blocks, lists, blockquotes, inline styles |
 | `highlight.ts` | Syntax highlighting for code blocks using shiki (`github-dark` theme) |
 | `style.ts` | Color palette (GitHub Dark Default from github-nvim-theme) and ANSI formatting |
@@ -56,6 +60,10 @@ deno task test      # Run tests
 | `/` | Search |
 | `n` | Next match |
 | `N` | Previous match |
+| `Left` / `Right` | Move cursor in search input |
+| `Option+Left` / `Option+Right` | Move cursor by word in search input |
+| `Option+Delete` | Delete word before cursor in search input |
+| `Cmd+Delete` | Delete to beginning of search input |
 | `c` | Copy relative file path to clipboard |
 | `C` | Copy absolute file path to clipboard |
 | `y` | Copy raw markdown source to clipboard |

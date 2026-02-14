@@ -15,6 +15,7 @@ interface PagerState {
   currentMatch: number;
   mode: "normal" | "search";
   searchInput: string;
+  searchCursor: number;
   searchMessage: string;
   filePath?: string;
   rawContent?: string;
@@ -143,6 +144,26 @@ export function highlightSearch(line: string, query: string): string {
   return result;
 }
 
+/** Find the word boundary to the left of the cursor. */
+export function wordBoundaryLeft(text: string, cursor: number): number {
+  let pos = cursor;
+  // Skip spaces
+  while (pos > 0 && text[pos - 1] === " ") pos--;
+  // Skip non-spaces (the word)
+  while (pos > 0 && text[pos - 1] !== " ") pos--;
+  return pos;
+}
+
+/** Find the word boundary to the right of the cursor. */
+export function wordBoundaryRight(text: string, cursor: number): number {
+  let pos = cursor;
+  // Skip non-spaces (current word)
+  while (pos < text.length && text[pos] !== " ") pos++;
+  // Skip spaces
+  while (pos < text.length && text[pos] === " ") pos++;
+  return pos;
+}
+
 /** Map a scroll position proportionally when line count changes. */
 export function mapScrollPosition(
   oldTopLine: number,
@@ -176,6 +197,7 @@ export function findMatches(lines: string[], query: string): number[] {
 export interface StatusBarInput {
   mode: "normal" | "search";
   searchInput: string;
+  searchCursor: number;
   searchMessage: string;
   searchQuery: string;
   searchMatches: number[];
@@ -205,10 +227,15 @@ export function formatStatusBar(input: StatusBarInput, cols: number): string {
     position = `${pct}%`;
   }
 
-  // Search input mode: just the prompt with cursor block, no right side
+  // Search input mode: show prompt with cursor block at searchCursor position
   if (input.mode === "search") {
-    const prompt = `/${input.searchInput}${NO_REVERSE}\u2588${REVERSE}`;
-    return prompt.padEnd(cols + NO_REVERSE.length + REVERSE.length);
+    const before = input.searchInput.slice(0, input.searchCursor);
+    const cursorChar = input.searchInput[input.searchCursor] ?? "\u2588";
+    const after = input.searchInput.slice(input.searchCursor + 1);
+    const prompt = `/${before}${NO_REVERSE}${cursorChar}${REVERSE}${after}`;
+    const visLen = 1 + input.searchInput.length + (input.searchCursor >= input.searchInput.length ? 1 : 0);
+    const pad = Math.max(0, cols - visLen);
+    return prompt + " ".repeat(pad);
   }
 
   // Search message (e.g. "Copied: file.md"): full-width, no right side
@@ -275,6 +302,7 @@ function render(state: PagerState): void {
   const statusText = formatStatusBar({
     mode: state.mode,
     searchInput: state.searchInput,
+    searchCursor: state.searchCursor,
     searchMessage: state.searchMessage,
     searchQuery: state.searchQuery,
     searchMatches: state.searchMatches,
@@ -297,6 +325,11 @@ export type Key =
   | { type: "ctrl-u" }
   | { type: "up" }
   | { type: "down" }
+  | { type: "left" }
+  | { type: "right" }
+  | { type: "alt-left" }
+  | { type: "alt-right" }
+  | { type: "alt-backspace" }
   | { type: "pageup" }
   | { type: "pagedown" }
   | { type: "home" }
@@ -315,6 +348,8 @@ export function parseKey(buf: Uint8Array): Key {
         switch (buf[2]) {
           case 0x41: return { type: "up" };    // A
           case 0x42: return { type: "down" };  // B
+          case 0x43: return { type: "right" }; // C
+          case 0x44: return { type: "left" };  // D
           case 0x48: return { type: "home" };  // H
           case 0x46: return { type: "end" };   // F
           case 0x35: // 5~
@@ -323,9 +358,19 @@ export function parseKey(buf: Uint8Array): Key {
           case 0x36: // 6~
             if (buf.length >= 4 && buf[3] === 0x7e) return { type: "pagedown" };
             break;
+          case 0x31: // CSI 1;3C / CSI 1;3D (alt-right / alt-left)
+            if (buf.length >= 6 && buf[3] === 0x3b && buf[4] === 0x33) {
+              if (buf[5] === 0x43) return { type: "alt-right" };
+              if (buf[5] === 0x44) return { type: "alt-left" };
+            }
+            break;
         }
       }
     }
+    // ESC b (alt-left), ESC f (alt-right), ESC DEL (alt-backspace)
+    if (buf[1] === 0x62) return { type: "alt-left" };
+    if (buf[1] === 0x66) return { type: "alt-right" };
+    if (buf[1] === 0x7f) return { type: "alt-backspace" };
     return { type: "unknown" };
   }
 
@@ -412,6 +457,7 @@ export async function runPager(
     currentMatch: -1,
     mode: "normal",
     searchInput: "",
+    searchCursor: 0,
     searchMessage: "",
     filePath: options?.filePath,
     rawContent: options?.rawContent,
@@ -484,10 +530,37 @@ export async function runPager(
         if (state.mode === "search") {
           switch (key.type) {
             case "char":
-              state.searchInput += key.char;
+              state.searchInput = state.searchInput.slice(0, state.searchCursor) + key.char + state.searchInput.slice(state.searchCursor);
+              state.searchCursor++;
               break;
             case "backspace":
-              state.searchInput = state.searchInput.slice(0, -1);
+              if (state.searchCursor > 0) {
+                state.searchInput = state.searchInput.slice(0, state.searchCursor - 1) + state.searchInput.slice(state.searchCursor);
+                state.searchCursor--;
+              }
+              break;
+            case "alt-backspace": {
+              const boundary = wordBoundaryLeft(state.searchInput, state.searchCursor);
+              state.searchInput = state.searchInput.slice(0, boundary) + state.searchInput.slice(state.searchCursor);
+              state.searchCursor = boundary;
+              break;
+            }
+            case "ctrl-u": {
+              state.searchInput = state.searchInput.slice(state.searchCursor);
+              state.searchCursor = 0;
+              break;
+            }
+            case "left":
+              if (state.searchCursor > 0) state.searchCursor--;
+              break;
+            case "right":
+              if (state.searchCursor < state.searchInput.length) state.searchCursor++;
+              break;
+            case "alt-left":
+              state.searchCursor = wordBoundaryLeft(state.searchInput, state.searchCursor);
+              break;
+            case "alt-right":
+              state.searchCursor = wordBoundaryRight(state.searchInput, state.searchCursor);
               break;
             case "enter": {
               state.mode = "normal";
@@ -507,12 +580,14 @@ export async function runPager(
                 }
               }
               state.searchInput = "";
+              state.searchCursor = 0;
               break;
             }
             case "escape":
             case "ctrl-c":
               state.mode = "normal";
               state.searchInput = "";
+              state.searchCursor = 0;
               break;
           }
         } else {
@@ -546,6 +621,7 @@ export async function runPager(
                 case "/":
                   state.mode = "search";
                   state.searchInput = "";
+                  state.searchCursor = 0;
                   break;
                 case "n":
                   if (state.searchMatches.length > 0) {
