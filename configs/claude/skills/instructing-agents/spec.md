@@ -111,6 +111,7 @@ These rules supplement the shared Content Rules above:
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **Progressive disclosure**: MUST follow progressive disclosure — SKILL.md is concise, operation files are detailed, reference files go deep
 - **Degrees of freedom**: SHOULD match instruction specificity to the task. High freedom (prose, multiple valid approaches) for creative/variable tasks. Medium freedom (pseudocode with parameters) when a preferred pattern exists. Low freedom (exact scripts, few parameters) for fragile/critical operations.
+- **Interview before assumptions**: Operations that act on user intent (creating, configuring, scaffolding) SHOULD begin with an interview step that gathers requirements before proceeding. The interview SHOULD ask only enough to unblock the next decision, use follow-up rounds for complexity revealed by initial answers, and summarize understanding for user confirmation before acting. Operations MUST NOT silently assume requirements the user hasn't stated when multiple valid options exist.
 
 ## Rules Specification
 
