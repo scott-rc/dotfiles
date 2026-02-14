@@ -188,7 +188,13 @@ require('lazy').setup({
         { '<leader>y', group = 'Yank path' },
 
         { '<leader>o', group = 'Options' },
-        { '<leader>ow', '<cmd>set wrap!<cr>',           desc = 'Toggle wrap' },
+        { '<leader>ow', function()
+          local wo = vim.wo
+          wo.wrap = not wo.wrap
+          wo.linebreak = wo.wrap
+          wo.breakindent = wo.wrap
+          wo.colorcolumn = wo.wrap and '100' or ''
+        end, desc = 'Toggle wrap' },
         { '<leader>on', '<cmd>set number!<cr>',          desc = 'Toggle line numbers' },
         { '<leader>or', '<cmd>set relativenumber!<cr>',  desc = 'Toggle relative numbers' },
         { '<leader>oh', '<cmd>nohlsearch<cr>',           desc = 'Clear search highlight' },
