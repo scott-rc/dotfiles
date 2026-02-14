@@ -137,13 +137,13 @@ keybinds clear-defaults=true {
         bind "Super Shift [" { GoToPreviousTab; }
         bind "Super Shift ]" { GoToNextTab; }
         bind "Super h" { MoveFocus "left"; }
-        bind "Super j" { MoveFocus "down"; }
-        bind "Super k" { MoveFocus "up"; }
+        bind "Super j" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
+        bind "Super k" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
         bind "Super l" { MoveFocus "right"; }
         bind "Super f" { ToggleFocusFullscreen; }
         bind "Super z" { TogglePaneFrames; }
-        bind "Super down" { MoveFocus "down"; }
-        bind "Super up" { MoveFocus "up"; }
+        bind "Super down" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
+        bind "Super up" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
         bind "Super +" { Resize "Increase"; }
         bind "Super -" { Resize "Decrease"; }
         bind "Super =" { Resize "Increase"; }
@@ -419,6 +419,7 @@ plugins {
 // eg. "file:/path/to/my-plugin.wasm"
 // eg. "https://example.com/my-plugin.wasm"
 load_plugins {
+    "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm"
 }
 
 // Use a simplified UI without special fonts (arrow glyphs)

@@ -232,11 +232,35 @@ ensure_symlink "$CONFIGS/zed/keymap.json" "$HOME/.config/zed/keymap.json"
 ensure_symlink "$CONFIGS/zellij/config.kdl" "$HOME/.config/zellij/config.kdl"
 ensure_symlink "$CONFIGS/zellij/layouts" "$HOME/.config/zellij/layouts"
 
+# --- Rust ---
+
+RUSTUP_BIN="/opt/homebrew/opt/rustup/bin"
+if [ -x "$RUSTUP_BIN/rustup" ]; then
+	export PATH="$RUSTUP_BIN:$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
+	if ! rustup toolchain list 2>/dev/null | grep -q "stable"; then
+		log_info "Installing Rust stable toolchain"
+		rustup default stable
+	fi
+	if ! rustup target list --installed 2>/dev/null | grep -q "wasm32-wasip1"; then
+		log_info "Adding wasm32-wasip1 target"
+		rustup target add wasm32-wasip1
+	fi
+fi
+
 # --- Tools ---
 
 if command -v deno &>/dev/null; then
 	log_info "Installing tools"
 	(cd "$WORKSPACE_ROOT/tools/md" && deno task install)
+fi
+
+ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
+if command -v cargo &>/dev/null; then
+	log_info "Building zellij-sync-stacks plugin"
+	mkdir -p "$ZELLIJ_PLUGIN_DIR"
+	(cd "$WORKSPACE_ROOT/tools/zellij-sync-stacks" && cargo build --release 2>&1)
+	cp "$WORKSPACE_ROOT/tools/zellij-sync-stacks/target/wasm32-wasip1/release/zellij-sync-stacks.wasm" \
+		"$ZELLIJ_PLUGIN_DIR/zellij-sync-stacks.wasm"
 fi
 
 # --- Zsh ---

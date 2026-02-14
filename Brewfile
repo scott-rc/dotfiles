@@ -25,6 +25,7 @@ brew "lazygit"
 
 # Languages & runtimes
 brew "deno"
+brew "rustup"
 brew "go"
 brew "node"
 brew "typescript-language-server"

@@ -23,8 +23,9 @@ The main setup script that:
 5. Adds Fish shell to `/etc/shells`
 6. Configures iTerm2 preferences via `defaults write`
 7. Installs Nix package manager if missing
-8. Installs CLI tools (md) via Deno
-9. Uses sudo for `/etc/*` paths (e.g., nix.conf)
+8. Sets up Rust toolchain and wasm32-wasip1 target via rustup
+9. Installs CLI tools (md) via Deno, builds Zellij plugins via Cargo
+10. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
 ### Brewfile
 
@@ -80,11 +81,12 @@ configs/fish/
 
 ### tools/
 
-Custom CLI tools built with Deno.
+Custom CLI tools.
 
 | Tool | Description |
 |------|-------------|
-| `md/` | Terminal markdown renderer with color output, syntax highlighting, YAML frontmatter support, word wrapping, directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Install globally via `deno task install`. |
+| `md/` | Terminal markdown renderer (Deno) with color output, syntax highlighting, YAML frontmatter support, word wrapping, directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Install globally via `deno task install`. |
+| `zellij-sync-stacks/` | Zellij WASM plugin (Rust) that synchronizes two side-by-side pane stacks. When navigating up/down in one stack, the other stack expands the same index. Falls back to normal `MoveFocus` in non-stacked layouts. Built automatically by `apply.sh`. |
 
 ## Useful Commands
 
