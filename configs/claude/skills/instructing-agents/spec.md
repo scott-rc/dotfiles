@@ -19,6 +19,7 @@ Write these keywords in ALL CAPS when used with their RFC meaning. Use lowercase
 ### Content Rules
 
 - **Context window is a public good**: MUST only add information Claude does not already have. Challenge each line: does this teach something new, or does it restate common knowledge? Every token MUST justify its cost.
+- **Write tight**: SHOULD use terse, imperative prose. Drop articles, filler words, and hedging where meaning is preserved. Prefer sentence fragments in lists. Lead with the verb. Example: "MUST run linter before committing" not "You should make sure to run the linter tool before you commit your changes".
 - **No time-sensitive information**: MUST NOT reference specific versions, dates, or URLs that will rot
 - **Consistent terminology**: MUST pick one term and use it everywhere (e.g., "operation" not sometimes "command" and sometimes "action")
 - **POSIX paths**: MUST use forward slashes. No backslashes, no Windows paths.

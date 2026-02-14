@@ -35,6 +35,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
 - [ ] **No over-explaining**: Steps don't explain basic concepts the agent already knows (e.g., "markdown is a formatting language")
 - [ ] **Concise steps** *(Skills only)*: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
+- [ ] **Tight prose**: Instructions use terse, imperative style — no filler words, unnecessary articles, or verbose phrasing where fragments suffice
 - [ ] **Only novel information** *(Rules only)*: Every instruction teaches something Claude cannot infer from the codebase or common knowledge
 - [ ] **Actionable instructions** *(Rules only)*: Every instruction is specific enough to act on (FAIL: "write clean code", "follow best practices")
 
