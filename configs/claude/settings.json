@@ -1,8 +1,6 @@
 {
   "respectGitignore": true,
-  "env": {
-    "DIRENV_LOG_FORMAT": ""
-  },
+  "env": {},
   "attribution": {
     "commit": "",
     "pr": ""
