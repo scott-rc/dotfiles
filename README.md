@@ -5,25 +5,26 @@ macOS dotfiles managed via symlinks.
 ## Quick Start
 
 ```bash
-./init.sh
+./apply.sh
 ```
 
 This installs Homebrew, packages from `Brewfile`, Nix, and creates symlinks from config locations to this repo.
 
 ## Architecture
 
-### init.sh
+### apply.sh
 
 The main setup script that:
 
-1. Installs Homebrew if missing
-2. Installs all packages via `brew bundle`
-3. Installs Fish shell if missing, adds to `/etc/shells`, sets as default
-4. Installs Nix package manager if missing
-5. Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)
+1. Sets macOS defaults (disables ApplePressAndHoldEnabled, remaps Minimize shortcut)
+2. Installs Homebrew if missing
+3. Installs all packages via `brew bundle`
+4. Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)
+5. Adds Fish shell to `/etc/shells`
 6. Configures iTerm2 preferences via `defaults write`
-7. Disables ApplePressAndHoldEnabled for key repeat
-8. Uses sudo for `/etc/*` paths (e.g., nix.conf)
+7. Installs Nix package manager if missing
+8. Installs CLI tools (md) via Deno
+9. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
 ### Brewfile
 
@@ -36,21 +37,23 @@ Configuration directories symlinked to their expected locations:
 | Directory | Target |
 |-----------|--------|
 | `atuin/` | `~/.config/atuin/config.toml` |
-| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks}` |
+| `bat/` | `~/.config/bat` |
+| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline}` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
 | `ghostty/` | `~/Library/Application Support/com.mitchellh.ghostty/config` |
 | `git/` | `~/.gitconfig`, `~/.config/git/.gitignore_global` |
+| `gitui/` | `~/.config/gitui/theme.ron` |
+| `glow/` | `~/Library/Preferences/glow/glow.yml` |
 | `iterm2/` | via `defaults write` (custom preferences folder) |
 | `karabiner/` | `~/.config/karabiner/karabiner.json` |
 | `lazygit/` | `~/Library/Application Support/lazygit/config.yml` |
 | `nix/` | `/etc/nix/nix.conf` (sudo) |
 | `orbstack/` | `~/.orbstack/config/docker.json` |
 | `starship/` | `~/.config/starship.toml` |
-| `terminal/` | macOS Terminal color scheme |
-| `vim/` | `~/.vimrc`, `~/.ideavimrc`, `~/.config/nvim/init.vim` |
+| `vim/` | `~/.config/nvim/init.lua` |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
-| `zellij/` | `~/.config/zellij/config.kdl` |
+| `zellij/` | `~/.config/zellij/{config.kdl,layouts}` |
 | `zsh/` | `~/.zshrc` |
 
 ### Fish Shell Structure
@@ -63,7 +66,7 @@ configs/fish/
 │   ├── node.fish    # npm/pnpm/yarn aliases
 │   └── ...
 └── functions/       # One function per file (auto-loaded on first call)
-    ├── gw.fish      # Git worktree switcher
+    ├── gsw.fish     # Git switch helper
     ├── gwip.fish    # WIP commit
     └── ...
 ```
@@ -87,6 +90,6 @@ Custom CLI tools built with Deno.
 
 | Command | Description |
 |---------|-------------|
-| `./init.sh` | Run setup |
-| `LOG_LEVEL=debug ./init.sh` | Verbose setup |
+| `./apply.sh` | Run setup |
+| `LOG_LEVEL=debug ./apply.sh` | Verbose setup |
 | `reload` | Restart fish shell |
