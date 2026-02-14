@@ -75,6 +75,14 @@ configs/fish/
 
 **functions/** contains one function per file, autoloaded by fish on first invocation.
 
+### tools/
+
+Custom CLI tools built with Deno.
+
+| Tool | Description |
+|------|-------------|
+| `md/` | Terminal markdown renderer with color output, word wrapping, and a built-in pager. Install globally via `deno task install`. |
+
 ## Useful Commands
 
 | Command | Description |
