@@ -1,5 +1,6 @@
 import type { Token, Tokens } from "marked";
 import * as style from "./style.ts";
+import { highlightCode } from "./highlight.ts";
 import { visibleLength, wordWrap } from "./wrap.ts";
 
 export interface RenderOptions {
@@ -7,15 +8,15 @@ export interface RenderOptions {
 }
 
 /** Render an array of marked tokens into a styled terminal string. */
-export function renderTokens(
+export async function renderTokens(
   tokens: Token[],
   options: RenderOptions,
-): string {
+): Promise<string> {
   const parts: string[] = [];
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
-    const rendered = renderToken(token, options);
+    const rendered = await renderToken(token, options);
     if (rendered !== null) {
       parts.push(rendered);
     }
@@ -24,16 +25,19 @@ export function renderTokens(
   return parts.join("\n\n");
 }
 
-function renderToken(token: Token, options: RenderOptions): string | null {
+async function renderToken(
+  token: Token,
+  options: RenderOptions,
+): Promise<string | null> {
   switch (token.type) {
     case "heading":
       return renderHeading(token as Tokens.Heading, options);
     case "paragraph":
       return renderParagraph(token as Tokens.Paragraph, options);
     case "code":
-      return renderCodeBlock(token as Tokens.Code, options);
+      return await renderCodeBlock(token as Tokens.Code, options);
     case "blockquote":
-      return renderBlockquote(token as Tokens.Blockquote, options);
+      return await renderBlockquote(token as Tokens.Blockquote, options);
     case "list":
       return renderList(token as Tokens.List, options, 0);
     case "hr":
@@ -72,28 +76,31 @@ function renderParagraph(
   return wordWrap(text, options.width);
 }
 
-function renderCodeBlock(
+async function renderCodeBlock(
   token: Tokens.Code,
   _options: RenderOptions,
-): string {
+): Promise<string> {
   const parts: string[] = [];
 
   const opening = token.lang ? "```" + token.lang : "```";
   parts.push(style.marker(opening));
-  parts.push(token.text);
+  parts.push(await highlightCode(token.text, token.lang));
   parts.push(style.marker("```"));
 
   return parts.join("\n");
 }
 
-function renderBlockquote(
+async function renderBlockquote(
   token: Tokens.Blockquote,
   options: RenderOptions,
-): string {
+): Promise<string> {
   const prefix = style.marker(">") + " ";
   const innerWidth = options.width - 3;
 
-  const inner = renderTokens(token.tokens, { ...options, width: innerWidth });
+  const inner = await renderTokens(token.tokens, {
+    ...options,
+    width: innerWidth,
+  });
   const lines = inner.split("\n");
 
   return lines
