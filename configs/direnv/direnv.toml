@@ -2,5 +2,6 @@
 
 [global]
 hide_env_diff = true
+log_format = "-"
 strict_env = true
 warn_timeout = "1m"
