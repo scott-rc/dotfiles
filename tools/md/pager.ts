@@ -1,6 +1,11 @@
 // deno-lint-ignore-file no-control-regex
 import { splitAnsi, stripAnsi } from "./wrap.ts";
 
+export interface PagerOptions {
+  filePath?: string;
+  rawContent?: string;
+}
+
 interface PagerState {
   lines: string[];
   topLine: number;
@@ -10,6 +15,8 @@ interface PagerState {
   mode: "normal" | "search";
   searchInput: string;
   searchMessage: string;
+  filePath?: string;
+  rawContent?: string;
 }
 
 const ESC = "\x1b";
@@ -262,7 +269,55 @@ function scrollToMatch(state: PagerState): void {
   state.topLine = Math.max(0, Math.min(target, state.lines.length - contentHeight));
 }
 
-export async function runPager(content: string): Promise<void> {
+export function mapToSourceLine(
+  topLine: number,
+  renderedLineCount: number,
+  rawContent: string,
+): number {
+  const sourceLineCount = rawContent.split("\n").length;
+  return Math.round((topLine / renderedLineCount) * sourceLineCount) + 1;
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    const cmd = new Deno.Command("pbcopy", {
+      stdin: "piped",
+      stdout: "null",
+      stderr: "null",
+    });
+    const proc = cmd.spawn();
+    const writer = proc.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(text));
+    await writer.close();
+    const { success } = await proc.status;
+    return success;
+  } catch {
+    return false;
+  }
+}
+
+async function openInEditor(filePath: string, line?: number): Promise<void> {
+  const editor = Deno.env.get("EDITOR") || "nvim";
+  const basename = editor.split("/").pop() ?? editor;
+  const isVim = ["vim", "nvim"].includes(basename);
+  const args: string[] = [];
+  if (isVim) args.push("-R");
+  if (isVim && line) args.push(`+${line}`);
+  args.push(filePath);
+  const cmd = new Deno.Command(editor, {
+    args,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  const proc = cmd.spawn();
+  await proc.status;
+}
+
+export async function runPager(
+  content: string,
+  options?: PagerOptions,
+): Promise<void> {
   const state: PagerState = {
     lines: content.split("\n"),
     topLine: 0,
@@ -272,6 +327,8 @@ export async function runPager(content: string): Promise<void> {
     mode: "normal",
     searchInput: "",
     searchMessage: "",
+    filePath: options?.filePath,
+    rawContent: options?.rawContent,
   };
 
   // Enter alternate screen and hide cursor
@@ -281,7 +338,7 @@ export async function runPager(content: string): Promise<void> {
   try {
     render(state);
 
-    const reader = Deno.stdin.readable.getReader();
+    let reader = Deno.stdin.readable.getReader();
     try {
       while (true) {
         const { value, done } = await reader.read();
@@ -368,6 +425,54 @@ export async function runPager(content: string): Promise<void> {
                   if (state.searchMatches.length > 0) {
                     state.currentMatch = (state.currentMatch - 1 + state.searchMatches.length) % state.searchMatches.length;
                     scrollToMatch(state);
+                  }
+                  break;
+                case "c": {
+                  if (state.filePath) {
+                    const cwd = Deno.cwd();
+                    const rel = state.filePath.startsWith(cwd + "/")
+                      ? state.filePath.slice(cwd.length + 1)
+                      : state.filePath;
+                    if (await copyToClipboard(rel)) {
+                      state.searchMessage = `Copied: ${rel}`;
+                    }
+                  } else {
+                    state.searchMessage = "No file path available";
+                  }
+                  break;
+                }
+                case "C":
+                  if (state.filePath) {
+                    if (await copyToClipboard(state.filePath)) {
+                      state.searchMessage = `Copied: ${state.filePath}`;
+                    }
+                  } else {
+                    state.searchMessage = "No file path available";
+                  }
+                  break;
+                case "y":
+                  if (state.rawContent) {
+                    if (await copyToClipboard(state.rawContent)) {
+                      state.searchMessage = "Copied document to clipboard";
+                    }
+                  } else {
+                    state.searchMessage = "No content available";
+                  }
+                  break;
+                case "v":
+                  if (state.filePath) {
+                    const sourceLine = state.rawContent && state.lines.length > 0
+                      ? mapToSourceLine(state.topLine, state.lines.length, state.rawContent)
+                      : undefined;
+                    reader.releaseLock();
+                    Deno.stdin.setRaw(false);
+                    write(CURSOR_SHOW + ALT_SCREEN_OFF);
+                    await openInEditor(state.filePath, sourceLine);
+                    write(ALT_SCREEN_ON + CURSOR_HIDE);
+                    Deno.stdin.setRaw(true);
+                    reader = Deno.stdin.readable.getReader();
+                  } else {
+                    state.searchMessage = "No file path available";
                   }
                   break;
               }

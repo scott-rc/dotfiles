@@ -45,17 +45,19 @@ const width = args.width
 const file = args._[0] as string | undefined;
 
 let input: string;
+let filePath: string | undefined;
 
 if (file === "-" || (!file && !Deno.stdin.isTerminal())) {
   input = new TextDecoder().decode(await readStdin());
 } else if (file) {
   input = await Deno.readTextFile(file);
+  filePath = await Deno.realPath(file);
 } else {
   console.error("Usage: md <file> or md -");
   Deno.exit(1);
 }
 
-const output = renderMarkdown(input, { width });
+const output = await renderMarkdown(input, { width });
 
 // Center content in terminal
 const margin = terminalWidth !== null
@@ -76,7 +78,7 @@ if (shouldPage) {
   const height = Deno.consoleSize().rows;
   if (centered.split("\n").length > height) {
     const { runPager } = await import("./pager.ts");
-    await runPager(centered);
+    await runPager(centered, { filePath, rawContent: input });
     Deno.exit(0);
   }
 }

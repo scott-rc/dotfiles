@@ -4,6 +4,7 @@ import {
   findMatches,
   highlightSearch,
   type Key,
+  mapToSourceLine,
   parseKey,
   truncateLine,
 } from "./pager.ts";
@@ -195,4 +196,27 @@ Deno.test("findMatches: ignores ANSI codes in lines", () => {
 
 Deno.test("findMatches: single line match", () => {
   assertEquals(findMatches(["match"], "match"), [0]);
+});
+
+// --- mapToSourceLine ---
+
+Deno.test("mapToSourceLine: top of file returns line 1", () => {
+  const raw = "a\nb\nc\nd\ne";
+  assertEquals(mapToSourceLine(0, 20, raw), 1);
+});
+
+Deno.test("mapToSourceLine: bottom of rendered maps to end of source", () => {
+  const raw = "a\nb\nc\nd\ne"; // 5 source lines
+  assertEquals(mapToSourceLine(20, 20, raw), 6);
+});
+
+Deno.test("mapToSourceLine: midpoint maps proportionally", () => {
+  const raw = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"; // 10 source lines
+  const result = mapToSourceLine(50, 100, raw);
+  assertEquals(result, 6); // 50% of 10 = 5, + 1 = 6
+});
+
+Deno.test("mapToSourceLine: rendered same length as source", () => {
+  const raw = "a\nb\nc";
+  assertEquals(mapToSourceLine(1, 3, raw), 2);
 });

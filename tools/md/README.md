@@ -1,6 +1,6 @@
 # md
 
-Terminal markdown renderer built with Deno and [marked](https://github.com/markedjs/marked). Renders markdown with color output using a GitHub Dark Default palette, word wrapping, and a built-in pager.
+Terminal markdown renderer built with Deno and [marked](https://github.com/markedjs/marked). Renders markdown with color output using a GitHub Dark Default palette, syntax highlighting for code blocks via [shiki](https://shiki.style/) (TextMate grammars, `github-dark` theme), word wrapping, and a built-in pager.
 
 ## Usage
 
@@ -38,6 +38,7 @@ deno task test      # Run tests
 | `main.ts` | CLI entry point — arg parsing, stdin/file reading, centering, pager launch |
 | `mod.ts` | Public API — `renderMarkdown()` using marked's lexer |
 | `render.ts` | Token renderer — headings, paragraphs, code blocks, lists, blockquotes, inline styles |
+| `highlight.ts` | Syntax highlighting for code blocks using shiki (`github-dark` theme) |
 | `style.ts` | Color palette (GitHub Dark Default from github-nvim-theme) and ANSI formatting |
 | `wrap.ts` | ANSI-aware word wrap with widow prevention |
 | `pager.ts` | Built-in pager with alternate screen, search highlighting, and status bar |
@@ -55,4 +56,8 @@ deno task test      # Run tests
 | `/` | Search |
 | `n` | Next match |
 | `N` | Previous match |
+| `c` | Copy relative file path to clipboard |
+| `C` | Copy absolute file path to clipboard |
+| `y` | Copy raw markdown source to clipboard |
+| `v` | Open file in `$EDITOR` (default: nvim, readonly) |
 | `q` / `Ctrl-C` | Quit |
