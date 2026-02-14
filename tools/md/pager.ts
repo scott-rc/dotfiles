@@ -271,6 +271,11 @@ export function formatStatusBar(input: StatusBarInput, cols: number): string {
   return right.padStart(cols);
 }
 
+/** Wraps formatStatusBar with ANSI codes: RESET to clear bleed, REVERSE, then RESET at end. */
+export function renderStatusBar(input: StatusBarInput, cols: number): string {
+  return `${RESET}${REVERSE}${formatStatusBar(input, cols)}${RESET}`;
+}
+
 function render(state: PagerState): void {
   const { rows, cols } = getTermSize();
   const contentHeight = rows - 1;
@@ -299,7 +304,7 @@ function render(state: PagerState): void {
 
   // Status bar
   write("\r\n" + CLEAR_LINE);
-  const statusText = formatStatusBar({
+  write(renderStatusBar({
     mode: state.mode,
     searchInput: state.searchInput,
     searchCursor: state.searchCursor,
@@ -311,8 +316,7 @@ function render(state: PagerState): void {
     lineCount: state.lines.length,
     contentHeight,
     filePath: state.filePath,
-  }, cols);
-  write(`${REVERSE}${statusText}${RESET}`);
+  }, cols));
 }
 
 export type Key =

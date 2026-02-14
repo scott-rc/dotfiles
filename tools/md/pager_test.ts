@@ -11,6 +11,7 @@ import {
   mapToSourceLine,
   type PagerState,
   parseKey,
+  renderStatusBar,
   type StatusBarInput,
   truncateLine,
   wordBoundaryLeft,
@@ -436,6 +437,26 @@ Deno.test("formatStatusBar: visible width matches cols exactly", () => {
     const result = formatStatusBar(baseInput({ topLine: 10 }), cols);
     assertEquals(visibleLength(result), cols);
   }
+});
+
+// --- renderStatusBar ---
+
+Deno.test("renderStatusBar: resets attributes before reverse video", () => {
+  const result = renderStatusBar(baseInput(), 60);
+  // Must start with RESET to prevent color bleed from content lines
+  assertEquals(result.startsWith("\x1b[0m\x1b[7m"), true);
+});
+
+Deno.test("renderStatusBar: ends with RESET", () => {
+  const result = renderStatusBar(baseInput(), 60);
+  assertEquals(result.endsWith("\x1b[0m"), true);
+});
+
+Deno.test("renderStatusBar: contains formatted status text", () => {
+  const result = renderStatusBar(baseInput(), 60);
+  const plain = stripAnsi(result);
+  assertEquals(plain.includes("README.md"), true);
+  assertEquals(plain.includes("TOP"), true);
 });
 
 // --- wordBoundaryLeft ---
