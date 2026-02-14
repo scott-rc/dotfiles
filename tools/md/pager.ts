@@ -200,6 +200,8 @@ export type Key =
   | { type: "escape" }
   | { type: "backspace" }
   | { type: "ctrl-c" }
+  | { type: "ctrl-d" }
+  | { type: "ctrl-u" }
   | { type: "up" }
   | { type: "down" }
   | { type: "pageup" }
@@ -237,7 +239,9 @@ export function parseKey(buf: Uint8Array): Key {
   // Single byte
   switch (buf[0]) {
     case 0x03: return { type: "ctrl-c" };
+    case 0x04: return { type: "ctrl-d" };
     case 0x0d: return { type: "enter" };
+    case 0x15: return { type: "ctrl-u" };
     case 0x7f: return { type: "backspace" };
     default:
       if (buf[0] >= 0x20 && buf[0] <= 0x7e) {
@@ -370,6 +374,12 @@ export async function runPager(content: string): Promise<void> {
               break;
             case "ctrl-c":
               return;
+            case "ctrl-d":
+              state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - contentHeight));
+              break;
+            case "ctrl-u":
+              state.topLine = Math.max(state.topLine - halfPage, 0);
+              break;
             case "enter":
             case "down":
               state.topLine = Math.min(state.topLine + 1, Math.max(0, state.lines.length - contentHeight));
