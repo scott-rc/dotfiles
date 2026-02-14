@@ -4,10 +4,12 @@ import {
   findMatches,
   findNearestMatch,
   formatStatusBar,
+  handleSearchKey,
   highlightSearch,
   type Key,
   mapScrollPosition,
   mapToSourceLine,
+  type PagerState,
   parseKey,
   type StatusBarInput,
   truncateLine,
@@ -474,4 +476,60 @@ Deno.test("wordBoundaryRight: consecutive spaces", () => {
 
 Deno.test("wordBoundaryRight: already at end", () => {
   assertEquals(wordBoundaryRight("hello", 5), 5);
+});
+
+// --- handleSearchKey ---
+
+function searchState(overrides: Partial<PagerState> = {}): PagerState {
+  return {
+    lines: ["hello world", "foo bar", "baz"],
+    topLine: 0,
+    searchQuery: "",
+    searchMatches: [],
+    currentMatch: -1,
+    mode: "search",
+    searchInput: "",
+    searchCursor: 0,
+    searchMessage: "",
+    ...overrides,
+  };
+}
+
+Deno.test("handleSearchKey: backspace on empty input exits search", () => {
+  const state = searchState();
+  handleSearchKey(state, { type: "backspace" });
+  assertEquals(state.mode, "normal");
+});
+
+Deno.test("handleSearchKey: backspace to empty exits search", () => {
+  const state = searchState({ searchInput: "a", searchCursor: 1 });
+  handleSearchKey(state, { type: "backspace" });
+  assertEquals(state.searchInput, "");
+  assertEquals(state.mode, "normal");
+});
+
+Deno.test("handleSearchKey: backspace mid-input stays in search", () => {
+  const state = searchState({ searchInput: "ab", searchCursor: 2 });
+  handleSearchKey(state, { type: "backspace" });
+  assertEquals(state.searchInput, "a");
+  assertEquals(state.mode, "search");
+});
+
+Deno.test("handleSearchKey: alt-backspace to empty exits search", () => {
+  const state = searchState({ searchInput: "hello", searchCursor: 5 });
+  handleSearchKey(state, { type: "alt-backspace" });
+  assertEquals(state.mode, "normal");
+});
+
+Deno.test("handleSearchKey: ctrl-u to empty exits search", () => {
+  const state = searchState({ searchInput: "hello", searchCursor: 5 });
+  handleSearchKey(state, { type: "ctrl-u" });
+  assertEquals(state.mode, "normal");
+});
+
+Deno.test("handleSearchKey: ctrl-u with text after cursor stays in search", () => {
+  const state = searchState({ searchInput: "hello", searchCursor: 0 });
+  handleSearchKey(state, { type: "ctrl-u" });
+  assertEquals(state.mode, "search");
+  assertEquals(state.searchInput, "hello");
 });

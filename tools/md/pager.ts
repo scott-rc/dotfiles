@@ -7,7 +7,7 @@ export interface PagerOptions {
   onResize?: () => Promise<string>;
 }
 
-interface PagerState {
+export interface PagerState {
   lines: string[];
   topLine: number;
   searchQuery: string;
@@ -389,6 +389,79 @@ export function parseKey(buf: Uint8Array): Key {
   }
 }
 
+export function handleSearchKey(state: PagerState, key: Key): void {
+  switch (key.type) {
+    case "char":
+      state.searchInput = state.searchInput.slice(0, state.searchCursor) + key.char + state.searchInput.slice(state.searchCursor);
+      state.searchCursor++;
+      break;
+    case "backspace":
+      if (state.searchCursor > 0) {
+        state.searchInput = state.searchInput.slice(0, state.searchCursor - 1) + state.searchInput.slice(state.searchCursor);
+        state.searchCursor--;
+      }
+      if (!state.searchInput) {
+        state.mode = "normal";
+      }
+      break;
+    case "alt-backspace": {
+      const boundary = wordBoundaryLeft(state.searchInput, state.searchCursor);
+      state.searchInput = state.searchInput.slice(0, boundary) + state.searchInput.slice(state.searchCursor);
+      state.searchCursor = boundary;
+      if (!state.searchInput) {
+        state.mode = "normal";
+      }
+      break;
+    }
+    case "ctrl-u": {
+      state.searchInput = state.searchInput.slice(state.searchCursor);
+      state.searchCursor = 0;
+      if (!state.searchInput) {
+        state.mode = "normal";
+      }
+      break;
+    }
+    case "left":
+      if (state.searchCursor > 0) state.searchCursor--;
+      break;
+    case "right":
+      if (state.searchCursor < state.searchInput.length) state.searchCursor++;
+      break;
+    case "alt-left":
+      state.searchCursor = wordBoundaryLeft(state.searchInput, state.searchCursor);
+      break;
+    case "alt-right":
+      state.searchCursor = wordBoundaryRight(state.searchInput, state.searchCursor);
+      break;
+    case "enter": {
+      state.mode = "normal";
+      if (state.searchInput) {
+        state.searchQuery = state.searchInput;
+        state.searchMatches = findMatches(state.lines, state.searchQuery);
+        if (state.searchMatches.length > 0) {
+          let found = state.searchMatches.findIndex((m) => m >= state.topLine);
+          if (found === -1) found = 0;
+          state.currentMatch = found;
+          state.searchMessage = "";
+          scrollToMatch(state);
+        } else {
+          state.currentMatch = -1;
+          state.searchMessage = `Pattern not found: ${state.searchQuery}`;
+        }
+      }
+      state.searchInput = "";
+      state.searchCursor = 0;
+      break;
+    }
+    case "escape":
+    case "ctrl-c":
+      state.mode = "normal";
+      state.searchInput = "";
+      state.searchCursor = 0;
+      break;
+  }
+}
+
 function scrollToMatch(state: PagerState): void {
   if (state.searchMatches.length === 0) return;
   const matchLine = state.searchMatches[state.currentMatch];
@@ -528,68 +601,7 @@ export async function runPager(
         const halfPage = Math.max(1, Math.floor(contentHeight / 2));
 
         if (state.mode === "search") {
-          switch (key.type) {
-            case "char":
-              state.searchInput = state.searchInput.slice(0, state.searchCursor) + key.char + state.searchInput.slice(state.searchCursor);
-              state.searchCursor++;
-              break;
-            case "backspace":
-              if (state.searchCursor > 0) {
-                state.searchInput = state.searchInput.slice(0, state.searchCursor - 1) + state.searchInput.slice(state.searchCursor);
-                state.searchCursor--;
-              }
-              break;
-            case "alt-backspace": {
-              const boundary = wordBoundaryLeft(state.searchInput, state.searchCursor);
-              state.searchInput = state.searchInput.slice(0, boundary) + state.searchInput.slice(state.searchCursor);
-              state.searchCursor = boundary;
-              break;
-            }
-            case "ctrl-u": {
-              state.searchInput = state.searchInput.slice(state.searchCursor);
-              state.searchCursor = 0;
-              break;
-            }
-            case "left":
-              if (state.searchCursor > 0) state.searchCursor--;
-              break;
-            case "right":
-              if (state.searchCursor < state.searchInput.length) state.searchCursor++;
-              break;
-            case "alt-left":
-              state.searchCursor = wordBoundaryLeft(state.searchInput, state.searchCursor);
-              break;
-            case "alt-right":
-              state.searchCursor = wordBoundaryRight(state.searchInput, state.searchCursor);
-              break;
-            case "enter": {
-              state.mode = "normal";
-              if (state.searchInput) {
-                state.searchQuery = state.searchInput;
-                state.searchMatches = findMatches(state.lines, state.searchQuery);
-                if (state.searchMatches.length > 0) {
-                  // Find first match at or after topLine
-                  let found = state.searchMatches.findIndex((m) => m >= state.topLine);
-                  if (found === -1) found = 0;
-                  state.currentMatch = found;
-                  state.searchMessage = "";
-                  scrollToMatch(state);
-                } else {
-                  state.currentMatch = -1;
-                  state.searchMessage = `Pattern not found: ${state.searchQuery}`;
-                }
-              }
-              state.searchInput = "";
-              state.searchCursor = 0;
-              break;
-            }
-            case "escape":
-            case "ctrl-c":
-              state.mode = "normal";
-              state.searchInput = "";
-              state.searchCursor = 0;
-              break;
-          }
+          handleSearchKey(state, key);
         } else {
           // Normal mode
           state.searchMessage = "";
