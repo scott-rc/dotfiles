@@ -232,6 +232,17 @@ ensure_symlink "$CONFIGS/zed/keymap.json" "$HOME/.config/zed/keymap.json"
 ensure_symlink "$CONFIGS/zellij/config.kdl" "$HOME/.config/zellij/config.kdl"
 ensure_symlink "$CONFIGS/zellij/layouts" "$HOME/.config/zellij/layouts"
 
+# --- Tools ---
+
+if command -v deno &>/dev/null; then
+	if ! command -v md &>/dev/null; then
+		log_info "Installing md tool"
+		(cd "$WORKSPACE_ROOT/tools/md" && deno task install)
+	else
+		log_debug "md tool is already installed"
+	fi
+fi
+
 # --- Zsh ---
 
 ensure_symlink "$CONFIGS/zsh/.zshrc" "$HOME/.zshrc"
