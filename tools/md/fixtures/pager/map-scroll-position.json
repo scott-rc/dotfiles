@@ -1,0 +1,56 @@
+[
+  {
+    "name": "preserves scroll ratio",
+    "input": {
+      "oldTopLine": 50,
+      "oldLineCount": 101,
+      "newLineCount": 201
+    },
+    "expected": 100
+  },
+  {
+    "name": "top stays at top",
+    "input": {
+      "oldTopLine": 0,
+      "oldLineCount": 100,
+      "newLineCount": 200
+    },
+    "expected": 0
+  },
+  {
+    "name": "bottom maps to bottom",
+    "input": {
+      "oldTopLine": 99,
+      "oldLineCount": 100,
+      "newLineCount": 50
+    },
+    "expected": 49
+  },
+  {
+    "name": "single line stays at 0",
+    "input": {
+      "oldTopLine": 0,
+      "oldLineCount": 1,
+      "newLineCount": 50
+    },
+    "expected": 0
+  },
+  {
+    "name": "same line count preserves position",
+    "input": {
+      "oldTopLine": 25,
+      "oldLineCount": 100,
+      "newLineCount": 100
+    },
+    "expected": 25
+  },
+  {
+    "name": "shrink rounds to nearest",
+    "input": {
+      "oldTopLine": 3,
+      "oldLineCount": 10,
+      "newLineCount": 5
+    },
+    "expected": 1
+  }
+]

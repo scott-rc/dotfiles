@@ -1,0 +1,355 @@
+[
+  {
+    "name": "backspace on empty input exits search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "",
+      "searchCursor": 0,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "backspace"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": ""
+    }
+  },
+  {
+    "name": "backspace to empty exits search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "a",
+      "searchCursor": 1,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "backspace"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": "",
+      "searchCursor": 0
+    }
+  },
+  {
+    "name": "backspace mid-input stays in search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "ab",
+      "searchCursor": 2,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "backspace"
+    },
+    "expected": {
+      "mode": "search",
+      "searchInput": "a",
+      "searchCursor": 1
+    }
+  },
+  {
+    "name": "alt-backspace to empty exits search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "hello",
+      "searchCursor": 5,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "alt-backspace"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": ""
+    }
+  },
+  {
+    "name": "ctrl-u to empty exits search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "hello",
+      "searchCursor": 5,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "ctrl-u"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": ""
+    }
+  },
+  {
+    "name": "ctrl-u with text after cursor stays in search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "hello",
+      "searchCursor": 0,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "ctrl-u"
+    },
+    "expected": {
+      "mode": "search",
+      "searchInput": "hello",
+      "searchCursor": 0
+    }
+  },
+  {
+    "name": "char appends to input",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 4,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "char",
+      "char": "x"
+    },
+    "expected": {
+      "searchInput": "testx",
+      "searchCursor": 5
+    }
+  },
+  {
+    "name": "char inserts at cursor",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 2,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "char",
+      "char": "x"
+    },
+    "expected": {
+      "searchInput": "texst",
+      "searchCursor": 3
+    }
+  },
+  {
+    "name": "left moves cursor",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 2,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "left"
+    },
+    "expected": {
+      "searchCursor": 1
+    }
+  },
+  {
+    "name": "right moves cursor",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 2,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "right"
+    },
+    "expected": {
+      "searchCursor": 3
+    }
+  },
+  {
+    "name": "alt-left moves to word boundary",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "hello world",
+      "searchCursor": 11,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "alt-left"
+    },
+    "expected": {
+      "searchCursor": 6
+    }
+  },
+  {
+    "name": "alt-right moves to word boundary",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "hello world",
+      "searchCursor": 0,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "alt-right"
+    },
+    "expected": {
+      "searchCursor": 6
+    }
+  },
+  {
+    "name": "escape cancels search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 4,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "escape"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": "",
+      "searchCursor": 0
+    }
+  },
+  {
+    "name": "ctrl-c cancels search",
+    "state": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "baz"
+      ],
+      "topLine": 0,
+      "searchQuery": "",
+      "searchMatches": [],
+      "currentMatch": -1,
+      "mode": "search",
+      "searchInput": "test",
+      "searchCursor": 4,
+      "searchMessage": ""
+    },
+    "key": {
+      "type": "ctrl-c"
+    },
+    "expected": {
+      "mode": "normal",
+      "searchInput": "",
+      "searchCursor": 0
+    }
+  }
+]

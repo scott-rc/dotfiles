@@ -1,0 +1,6 @@
+---
+title: My Doc
+date: 2024-01-01
+---
+
+# Hello

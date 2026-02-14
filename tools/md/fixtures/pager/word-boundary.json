@@ -1,0 +1,78 @@
+{
+  "left": [
+    {
+      "name": "end to start of last word",
+      "input": {
+        "text": "hello world",
+        "cursor": 11
+      },
+      "expected": 6
+    },
+    {
+      "name": "start of word to start of previous",
+      "input": {
+        "text": "hello world",
+        "cursor": 6
+      },
+      "expected": 0
+    },
+    {
+      "name": "mid-word to start of that word",
+      "input": {
+        "text": "hello world",
+        "cursor": 3
+      },
+      "expected": 0
+    },
+    {
+      "name": "consecutive spaces",
+      "input": {
+        "text": "hello  world",
+        "cursor": 12
+      },
+      "expected": 7
+    },
+    {
+      "name": "already at start",
+      "input": {
+        "text": "hello",
+        "cursor": 0
+      },
+      "expected": 0
+    }
+  ],
+  "right": [
+    {
+      "name": "start to start of next word",
+      "input": {
+        "text": "hello world",
+        "cursor": 0
+      },
+      "expected": 6
+    },
+    {
+      "name": "start of last word to end",
+      "input": {
+        "text": "hello world",
+        "cursor": 6
+      },
+      "expected": 11
+    },
+    {
+      "name": "consecutive spaces",
+      "input": {
+        "text": "hello  world",
+        "cursor": 0
+      },
+      "expected": 7
+    },
+    {
+      "name": "already at end",
+      "input": {
+        "text": "hello",
+        "cursor": 5
+      },
+      "expected": 5
+    }
+  ]
+}

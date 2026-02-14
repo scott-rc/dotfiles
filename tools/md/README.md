@@ -43,8 +43,11 @@ deno task install
 ## Development
 
 ```bash
-deno task dev       # Run with permissions
-deno task test      # Run tests
+deno task dev                # Run with permissions
+deno task test               # Run tests
+deno task generate-fixtures  # Regenerate test fixtures from implementation
+deno task verify-fixtures    # Verify fixtures match implementation
+deno task compat             # Run language-agnostic CLI compatibility tests
 ```
 
 ## Architecture
@@ -86,3 +89,7 @@ deno task test      # Run tests
 ## Status Bar
 
 The bottom status bar uses a left/right split layout (like `less`). The filename appears on the left, with a dimmed line range and position indicator on the right. Position shows `TOP` at the beginning, `END` at the bottom, or a percentage when scrolled mid-document. During search, the left side shows the query with match count; in input mode, a block cursor follows the typed text. When the terminal is too narrow, the left side truncates to preserve position info.
+
+## Porting
+
+See [PORTING.md](PORTING.md) for a guide to porting `md` to another language, including module dependency graph, recommended port order, library equivalents, token type mapping, behavioral edge cases, and test fixture documentation.

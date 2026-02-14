@@ -1,0 +1,68 @@
+[
+  {
+    "name": "returns false when --no-pager",
+    "input": {
+      "noPager": true,
+      "isTTY": true,
+      "contentLines": 100,
+      "terminalRows": 24,
+      "browsing": false
+    },
+    "expected": false
+  },
+  {
+    "name": "returns false when not a TTY",
+    "input": {
+      "noPager": false,
+      "isTTY": false,
+      "contentLines": 100,
+      "terminalRows": 24,
+      "browsing": false
+    },
+    "expected": false
+  },
+  {
+    "name": "returns true when content exceeds terminal",
+    "input": {
+      "noPager": false,
+      "isTTY": true,
+      "contentLines": 100,
+      "terminalRows": 24,
+      "browsing": false
+    },
+    "expected": true
+  },
+  {
+    "name": "returns false when content fits",
+    "input": {
+      "noPager": false,
+      "isTTY": true,
+      "contentLines": 10,
+      "terminalRows": 24,
+      "browsing": false
+    },
+    "expected": false
+  },
+  {
+    "name": "returns true when browsing even if content fits",
+    "input": {
+      "noPager": false,
+      "isTTY": true,
+      "contentLines": 5,
+      "terminalRows": 24,
+      "browsing": true
+    },
+    "expected": true
+  },
+  {
+    "name": "respects --no-pager even when browsing",
+    "input": {
+      "noPager": true,
+      "isTTY": true,
+      "contentLines": 5,
+      "terminalRows": 24,
+      "browsing": true
+    },
+    "expected": false
+  }
+]

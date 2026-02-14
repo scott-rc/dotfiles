@@ -1,0 +1,14 @@
+[
+  {
+    "name": "default",
+    "input": {},
+    "expected": "fzf"
+  },
+  {
+    "name": "custom",
+    "input": {
+      "template": "fzf --exact"
+    },
+    "expected": "fzf --exact"
+  }
+]

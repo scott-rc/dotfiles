@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default template",
+    "input": {
+      "dir": "/some/dir"
+    },
+    "expected": "find '/some/dir' -type f \\( -name '*.md' -o -name '*.mdx' \\)"
+  },
+  {
+    "name": "custom template with {dir}",
+    "input": {
+      "dir": "/docs",
+      "template": "find {dir} -name '*.md'"
+    },
+    "expected": "find '/docs' -name '*.md'"
+  },
+  {
+    "name": "dir with spaces",
+    "input": {
+      "dir": "/my docs/notes"
+    },
+    "expected": "find '/my docs/notes' -type f \\( -name '*.md' -o -name '*.mdx' \\)"
+  },
+  {
+    "name": "appends dir when no {dir} placeholder",
+    "input": {
+      "dir": "/docs",
+      "template": "fd -e md"
+    },
+    "expected": "fd -e md '/docs'"
+  }
+]

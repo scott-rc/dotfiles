@@ -1,0 +1,27 @@
+[
+  {
+    "name": "simple string",
+    "input": "hello",
+    "expected": "'hello'"
+  },
+  {
+    "name": "string with spaces",
+    "input": "hello world",
+    "expected": "'hello world'"
+  },
+  {
+    "name": "string with single quotes",
+    "input": "it's",
+    "expected": "'it'\\''s'"
+  },
+  {
+    "name": "empty string",
+    "input": "",
+    "expected": "''"
+  },
+  {
+    "name": "multiple single quotes",
+    "input": "a'b'c",
+    "expected": "'a'\\''b'\\''c'"
+  }
+]

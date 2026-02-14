@@ -1,0 +1,50 @@
+[
+  {
+    "name": "short line unchanged",
+    "input": "hello",
+    "params": {
+      "maxWidth": 10
+    },
+    "expected": "hello"
+  },
+  {
+    "name": "exact width unchanged",
+    "input": "12345",
+    "params": {
+      "maxWidth": 5
+    },
+    "expected": "12345"
+  },
+  {
+    "name": "long line truncated with ellipsis",
+    "input": "hello world",
+    "params": {
+      "maxWidth": 6
+    },
+    "expected": "hello…"
+  },
+  {
+    "name": "width 1 gives ellipsis",
+    "input": "hello",
+    "params": {
+      "maxWidth": 1
+    },
+    "expected": "…"
+  },
+  {
+    "name": "preserves ANSI codes before truncation point",
+    "input": "\u001b[1mhello world\u001b[0m",
+    "params": {
+      "maxWidth": 6
+    },
+    "expected": "\u001b[1mhello…"
+  },
+  {
+    "name": "ANSI codes don't count toward width",
+    "input": "\u001b[31mhi\u001b[0m",
+    "params": {
+      "maxWidth": 10
+    },
+    "expected": "\u001b[31mhi\u001b[0m"
+  }
+]

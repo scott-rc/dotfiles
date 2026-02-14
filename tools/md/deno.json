@@ -5,7 +5,10 @@
   "tasks": {
     "dev": "deno run -A main.ts",
     "test": "deno test -A",
-    "install": "deno install --global -A --config deno.json --name md -f main.ts"
+    "install": "deno install --global -A --config deno.json --name md -f main.ts",
+    "generate-fixtures": "deno run -A generate_fixtures.ts",
+    "verify-fixtures": "deno run -A verify_fixtures.ts",
+    "compat": "sh compat/run_compat_tests.sh 'deno run -A main.ts' && sh compat/cli_tests.sh 'deno run -A main.ts'"
   },
   "imports": {
     "@std/cli": "jsr:@std/cli@^1",

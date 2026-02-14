@@ -1,0 +1,371 @@
+[
+  {
+    "name": "printable 'a'",
+    "input": [
+      97
+    ],
+    "expected": {
+      "type": "char",
+      "char": "a"
+    }
+  },
+  {
+    "name": "printable 'b'",
+    "input": [
+      98
+    ],
+    "expected": {
+      "type": "char",
+      "char": "b"
+    }
+  },
+  {
+    "name": "printable 'c'",
+    "input": [
+      99
+    ],
+    "expected": {
+      "type": "char",
+      "char": "c"
+    }
+  },
+  {
+    "name": "printable 'q'",
+    "input": [
+      113
+    ],
+    "expected": {
+      "type": "char",
+      "char": "q"
+    }
+  },
+  {
+    "name": "printable 'j'",
+    "input": [
+      106
+    ],
+    "expected": {
+      "type": "char",
+      "char": "j"
+    }
+  },
+  {
+    "name": "printable 'k'",
+    "input": [
+      107
+    ],
+    "expected": {
+      "type": "char",
+      "char": "k"
+    }
+  },
+  {
+    "name": "printable 'd'",
+    "input": [
+      100
+    ],
+    "expected": {
+      "type": "char",
+      "char": "d"
+    }
+  },
+  {
+    "name": "printable 'u'",
+    "input": [
+      117
+    ],
+    "expected": {
+      "type": "char",
+      "char": "u"
+    }
+  },
+  {
+    "name": "printable 'n'",
+    "input": [
+      110
+    ],
+    "expected": {
+      "type": "char",
+      "char": "n"
+    }
+  },
+  {
+    "name": "printable 'N'",
+    "input": [
+      78
+    ],
+    "expected": {
+      "type": "char",
+      "char": "N"
+    }
+  },
+  {
+    "name": "printable 'G'",
+    "input": [
+      71
+    ],
+    "expected": {
+      "type": "char",
+      "char": "G"
+    }
+  },
+  {
+    "name": "printable '/'",
+    "input": [
+      47
+    ],
+    "expected": {
+      "type": "char",
+      "char": "/"
+    }
+  },
+  {
+    "name": "printable ' '",
+    "input": [
+      32
+    ],
+    "expected": {
+      "type": "char",
+      "char": " "
+    }
+  },
+  {
+    "name": "ctrl-c",
+    "input": [
+      3
+    ],
+    "expected": {
+      "type": "ctrl-c"
+    }
+  },
+  {
+    "name": "ctrl-d",
+    "input": [
+      4
+    ],
+    "expected": {
+      "type": "ctrl-d"
+    }
+  },
+  {
+    "name": "enter",
+    "input": [
+      13
+    ],
+    "expected": {
+      "type": "enter"
+    }
+  },
+  {
+    "name": "ctrl-u",
+    "input": [
+      21
+    ],
+    "expected": {
+      "type": "ctrl-u"
+    }
+  },
+  {
+    "name": "backspace",
+    "input": [
+      127
+    ],
+    "expected": {
+      "type": "backspace"
+    }
+  },
+  {
+    "name": "escape (bare)",
+    "input": [
+      27
+    ],
+    "expected": {
+      "type": "escape"
+    }
+  },
+  {
+    "name": "arrow up",
+    "input": [
+      27,
+      91,
+      65
+    ],
+    "expected": {
+      "type": "up"
+    }
+  },
+  {
+    "name": "arrow down",
+    "input": [
+      27,
+      91,
+      66
+    ],
+    "expected": {
+      "type": "down"
+    }
+  },
+  {
+    "name": "arrow right",
+    "input": [
+      27,
+      91,
+      67
+    ],
+    "expected": {
+      "type": "right"
+    }
+  },
+  {
+    "name": "arrow left",
+    "input": [
+      27,
+      91,
+      68
+    ],
+    "expected": {
+      "type": "left"
+    }
+  },
+  {
+    "name": "home",
+    "input": [
+      27,
+      91,
+      72
+    ],
+    "expected": {
+      "type": "home"
+    }
+  },
+  {
+    "name": "end",
+    "input": [
+      27,
+      91,
+      70
+    ],
+    "expected": {
+      "type": "end"
+    }
+  },
+  {
+    "name": "page up",
+    "input": [
+      27,
+      91,
+      53,
+      126
+    ],
+    "expected": {
+      "type": "pageup"
+    }
+  },
+  {
+    "name": "page down",
+    "input": [
+      27,
+      91,
+      54,
+      126
+    ],
+    "expected": {
+      "type": "pagedown"
+    }
+  },
+  {
+    "name": "alt-left (CSI 1;3D)",
+    "input": [
+      27,
+      91,
+      49,
+      59,
+      51,
+      68
+    ],
+    "expected": {
+      "type": "alt-left"
+    }
+  },
+  {
+    "name": "alt-right (CSI 1;3C)",
+    "input": [
+      27,
+      91,
+      49,
+      59,
+      51,
+      67
+    ],
+    "expected": {
+      "type": "alt-right"
+    }
+  },
+  {
+    "name": "alt-left (ESC b)",
+    "input": [
+      27,
+      98
+    ],
+    "expected": {
+      "type": "alt-left"
+    }
+  },
+  {
+    "name": "alt-right (ESC f)",
+    "input": [
+      27,
+      102
+    ],
+    "expected": {
+      "type": "alt-right"
+    }
+  },
+  {
+    "name": "alt-backspace",
+    "input": [
+      27,
+      127
+    ],
+    "expected": {
+      "type": "alt-backspace"
+    }
+  },
+  {
+    "name": "empty buffer",
+    "input": [],
+    "expected": {
+      "type": "unknown"
+    }
+  },
+  {
+    "name": "unknown control char",
+    "input": [
+      1
+    ],
+    "expected": {
+      "type": "unknown"
+    }
+  },
+  {
+    "name": "incomplete CSI sequence",
+    "input": [
+      27,
+      91
+    ],
+    "expected": {
+      "type": "unknown"
+    }
+  },
+  {
+    "name": "unknown CSI sequence",
+    "input": [
+      27,
+      91,
+      90
+    ],
+    "expected": {
+      "type": "unknown"
+    }
+  }
+]

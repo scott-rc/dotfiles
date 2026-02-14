@@ -8,71 +8,45 @@ import {
   shouldPage,
 } from "./browse.ts";
 
-// shellQuote
+const FIXTURE_DIR = new URL("./fixtures/browse/", import.meta.url);
 
-Deno.test("shellQuote wraps simple string", () => {
-  assertEquals(shellQuote("hello"), "'hello'");
-});
+async function loadJSON(name: string) {
+  return JSON.parse(await Deno.readTextFile(new URL(name, FIXTURE_DIR)));
+}
 
-Deno.test("shellQuote handles spaces", () => {
-  assertEquals(shellQuote("hello world"), "'hello world'");
-});
+// ── shellQuote (from fixtures) ───────────────────────────
 
-Deno.test("shellQuote escapes single quotes", () => {
-  assertEquals(shellQuote("it's"), "'it'\\''s'");
-});
+const sqCases = await loadJSON("shell-quote.json");
 
-Deno.test("shellQuote handles empty string", () => {
-  assertEquals(shellQuote(""), "''");
-});
+for (const t of sqCases) {
+  Deno.test(`shellQuote: ${t.name}`, () => {
+    assertEquals(shellQuote(t.input), t.expected);
+  });
+}
 
-Deno.test("shellQuote handles multiple single quotes", () => {
-  assertEquals(shellQuote("a'b'c"), "'a'\\''b'\\''c'");
-});
+// ── buildFindCmd (from fixtures) ─────────────────────────
 
-// buildFindCmd
+const bfcCases = await loadJSON("build-find-cmd.json");
 
-Deno.test("buildFindCmd uses default template", () => {
-  const cmd = buildFindCmd("/some/dir");
-  assertEquals(
-    cmd,
-    "find '/some/dir' -type f \\( -name '*.md' -o -name '*.mdx' \\)",
-  );
-});
+for (const t of bfcCases) {
+  Deno.test(`buildFindCmd: ${t.name}`, () => {
+    assertEquals(buildFindCmd(t.input.dir, t.input.template), t.expected);
+  });
+}
 
-Deno.test("buildFindCmd uses custom template", () => {
-  const cmd = buildFindCmd("/docs", "find {dir} -name '*.md'");
-  assertEquals(cmd, "find '/docs' -name '*.md'");
-});
+// ── buildPickCmd (from fixtures) ─────────────────────────
 
-Deno.test("buildFindCmd handles dir with spaces", () => {
-  const cmd = buildFindCmd("/my docs/notes");
-  assertEquals(
-    cmd,
-    "find '/my docs/notes' -type f \\( -name '*.md' -o -name '*.mdx' \\)",
-  );
-});
+const bpcCases = await loadJSON("build-pick-cmd.json");
 
-Deno.test("buildFindCmd appends dir when no {dir} placeholder", () => {
-  const cmd = buildFindCmd("/docs", "fd -e md");
-  assertEquals(cmd, "fd -e md '/docs'");
-});
+for (const t of bpcCases) {
+  Deno.test(`buildPickCmd: ${t.name}`, () => {
+    assertEquals(buildPickCmd(t.input.template), t.expected);
+  });
+}
 
-// buildPickCmd
+// ── buildBrowseCmd ───────────────────────────────────────
 
-Deno.test("buildPickCmd uses default template", () => {
-  const cmd = buildPickCmd();
-  assertEquals(cmd, "fzf");
-});
-
-Deno.test("buildPickCmd uses custom template", () => {
-  const cmd = buildPickCmd("fzf --exact");
-  assertEquals(cmd, "fzf --exact");
-});
-
-// buildBrowseCmd
-
-Deno.test("buildBrowseCmd creates default pipeline", () => {
+Deno.test("buildBrowseCmd: creates default pipeline", () => {
   const cmd = buildBrowseCmd("/docs");
   assertEquals(
     cmd,
@@ -80,7 +54,7 @@ Deno.test("buildBrowseCmd creates default pipeline", () => {
   );
 });
 
-Deno.test("buildBrowseCmd uses custom commands", () => {
+Deno.test("buildBrowseCmd: uses custom commands", () => {
   const cmd = buildBrowseCmd(
     "/docs",
     "find {dir} -name '*.md'",
@@ -89,100 +63,22 @@ Deno.test("buildBrowseCmd uses custom commands", () => {
   assertEquals(cmd, "find '/docs' -name '*.md' | fzf --exact");
 });
 
-// parseSelection
+// ── parseSelection (from fixtures) ───────────────────────
 
-Deno.test("parseSelection trims and returns path", () => {
-  assertEquals(parseSelection("  docs/README.md  \n"), "docs/README.md");
-});
+const psCases = await loadJSON("parse-selection.json");
 
-Deno.test("parseSelection returns null for empty string", () => {
-  assertEquals(parseSelection(""), null);
-});
+for (const t of psCases) {
+  Deno.test(`parseSelection: ${t.name}`, () => {
+    assertEquals(parseSelection(t.input), t.expected);
+  });
+}
 
-Deno.test("parseSelection returns null for whitespace-only", () => {
-  assertEquals(parseSelection("   \n  "), null);
-});
+// ── shouldPage (from fixtures) ────────────────────────────
 
-Deno.test("parseSelection returns normal path as-is", () => {
-  assertEquals(parseSelection("src/main.ts"), "src/main.ts");
-});
+const spCases = await loadJSON("should-page.json");
 
-// shouldPage
-
-Deno.test("shouldPage returns false when --no-pager", () => {
-  assertEquals(
-    shouldPage({
-      noPager: true,
-      isTTY: true,
-      contentLines: 100,
-      terminalRows: 24,
-      browsing: false,
-    }),
-    false,
-  );
-});
-
-Deno.test("shouldPage returns false when not a TTY", () => {
-  assertEquals(
-    shouldPage({
-      noPager: false,
-      isTTY: false,
-      contentLines: 100,
-      terminalRows: 24,
-      browsing: false,
-    }),
-    false,
-  );
-});
-
-Deno.test("shouldPage returns true when content exceeds terminal height", () => {
-  assertEquals(
-    shouldPage({
-      noPager: false,
-      isTTY: true,
-      contentLines: 100,
-      terminalRows: 24,
-      browsing: false,
-    }),
-    true,
-  );
-});
-
-Deno.test("shouldPage returns false when content fits in terminal", () => {
-  assertEquals(
-    shouldPage({
-      noPager: false,
-      isTTY: true,
-      contentLines: 10,
-      terminalRows: 24,
-      browsing: false,
-    }),
-    false,
-  );
-});
-
-Deno.test("shouldPage returns true when browsing even if content fits", () => {
-  assertEquals(
-    shouldPage({
-      noPager: false,
-      isTTY: true,
-      contentLines: 5,
-      terminalRows: 24,
-      browsing: true,
-    }),
-    true,
-  );
-});
-
-Deno.test("shouldPage respects --no-pager even when browsing", () => {
-  assertEquals(
-    shouldPage({
-      noPager: true,
-      isTTY: true,
-      contentLines: 5,
-      terminalRows: 24,
-      browsing: true,
-    }),
-    false,
-  );
-});
+for (const t of spCases) {
+  Deno.test(`shouldPage: ${t.name}`, () => {
+    assertEquals(shouldPage(t.input), t.expected);
+  });
+}

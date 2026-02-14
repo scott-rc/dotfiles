@@ -1,0 +1,307 @@
+[
+  {
+    "name": "normal mode with filename",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "README.md                                        \u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "normal mode without filename (stdin)",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24
+      },
+      "cols": 60
+    },
+    "expected": "                                                 \u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "at top shows TOP",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "README.md                                        \u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "at end shows END",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 26,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "README.md                                       \u001b[2m27-50/50\u001b[22m END"
+  },
+  {
+    "name": "short doc shows TOP",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 10,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "README.md                                        \u001b[2m1-10/10\u001b[22m TOP"
+  },
+  {
+    "name": "scrolled mid-document shows percentage",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 10,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "README.md                                       \u001b[2m11-34/50\u001b[22m 68%"
+  },
+  {
+    "name": "search input mode",
+    "input": {
+      "state": {
+        "mode": "search",
+        "searchInput": "query",
+        "searchCursor": 5,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "/query\u001b[27m█\u001b[7m                                                     "
+  },
+  {
+    "name": "search cursor at beginning",
+    "input": {
+      "state": {
+        "mode": "search",
+        "searchInput": "query",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "/\u001b[27mq\u001b[7muery                                                      "
+  },
+  {
+    "name": "search message",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "Copied: README.md",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "Copied: README.md                                           "
+  },
+  {
+    "name": "active search with results",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "hello",
+        "searchMatches": [
+          5,
+          15,
+          25,
+          35,
+          45
+        ],
+        "currentMatch": 1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "/hello (2/5)                                     \u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "narrow terminal",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 30
+    },
+    "expected": "README.md          \u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "very narrow terminal",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 0,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 10
+    },
+    "expected": "\u001b[2m1-24/50\u001b[22m TOP"
+  },
+  {
+    "name": "width 40",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 10,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 40
+    },
+    "expected": "README.md                   \u001b[2m11-34/50\u001b[22m 68%"
+  },
+  {
+    "name": "width 80",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 10,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 80
+    },
+    "expected": "README.md                                                           \u001b[2m11-34/50\u001b[22m 68%"
+  },
+  {
+    "name": "width 120",
+    "input": {
+      "state": {
+        "mode": "normal",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 10,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 120
+    },
+    "expected": "README.md                                                                                                   \u001b[2m11-34/50\u001b[22m 68%"
+  }
+]

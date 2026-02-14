@@ -1,0 +1,4 @@
+- outer
+    - inner
+    - inner2
+- outer2

@@ -18,297 +18,169 @@ import {
   wordBoundaryRight,
 } from "./pager.ts";
 
-// --- parseKey ---
+const FIXTURE_DIR = new URL("./fixtures/pager/", import.meta.url);
 
-Deno.test("parseKey: printable ASCII characters", () => {
-  const keys = "abcqjkdunNG/ ";
-  for (const ch of keys) {
-    const key = parseKey(new Uint8Array([ch.charCodeAt(0)]));
-    assertEquals(key, { type: "char", char: ch });
-  }
-});
+async function loadJSON(name: string) {
+  return JSON.parse(await Deno.readTextFile(new URL(name, FIXTURE_DIR)));
+}
 
-Deno.test("parseKey: ctrl-c", () => {
-  assertEquals(parseKey(new Uint8Array([0x03])), { type: "ctrl-c" });
-});
+// ── parseKey (from fixtures) ─────────────────────────────
 
-Deno.test("parseKey: enter", () => {
-  assertEquals(parseKey(new Uint8Array([0x0d])), { type: "enter" });
-});
+const parseKeyCases = await loadJSON("parse-key.json");
 
-Deno.test("parseKey: backspace", () => {
-  assertEquals(parseKey(new Uint8Array([0x7f])), { type: "backspace" });
-});
-
-Deno.test("parseKey: escape (bare)", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b])), { type: "escape" });
-});
-
-Deno.test("parseKey: arrow up", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x41])), { type: "up" });
-});
-
-Deno.test("parseKey: arrow down", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x42])), { type: "down" });
-});
-
-Deno.test("parseKey: home", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x48])), { type: "home" });
-});
-
-Deno.test("parseKey: end", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x46])), { type: "end" });
-});
-
-Deno.test("parseKey: page up", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x35, 0x7e])), {
-    type: "pageup",
+for (const t of parseKeyCases) {
+  Deno.test(`parseKey: ${t.name}`, () => {
+    assertEquals(parseKey(new Uint8Array(t.input)), t.expected);
   });
-});
+}
 
-Deno.test("parseKey: page down", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x36, 0x7e])), {
-    type: "pagedown",
+// ── truncateLine (from fixtures) ─────────────────────────
+
+const truncCases = await loadJSON("truncate-line.json");
+
+for (const t of truncCases) {
+  Deno.test(`truncateLine: ${t.name}`, () => {
+    assertEquals(truncateLine(t.input, t.params.maxWidth), t.expected);
   });
-});
+}
 
-Deno.test("parseKey: empty buffer", () => {
-  assertEquals(parseKey(new Uint8Array([])), { type: "unknown" });
-});
-
-Deno.test("parseKey: unknown control char", () => {
-  assertEquals(parseKey(new Uint8Array([0x01])), { type: "unknown" });
-});
-
-Deno.test("parseKey: incomplete CSI sequence", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b])), { type: "unknown" });
-});
-
-Deno.test("parseKey: unknown CSI sequence", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x5a])), {
-    type: "unknown",
-  });
-});
-
-Deno.test("parseKey: arrow left", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x44])), { type: "left" });
-});
-
-Deno.test("parseKey: arrow right", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x43])), { type: "right" });
-});
-
-Deno.test("parseKey: alt-left (CSI 1;3D)", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x31, 0x3b, 0x33, 0x44])), { type: "alt-left" });
-});
-
-Deno.test("parseKey: alt-right (CSI 1;3C)", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x5b, 0x31, 0x3b, 0x33, 0x43])), { type: "alt-right" });
-});
-
-Deno.test("parseKey: alt-left (ESC b)", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x62])), { type: "alt-left" });
-});
-
-Deno.test("parseKey: alt-right (ESC f)", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x66])), { type: "alt-right" });
-});
-
-Deno.test("parseKey: alt-backspace", () => {
-  assertEquals(parseKey(new Uint8Array([0x1b, 0x7f])), { type: "alt-backspace" });
-});
-
-// --- truncateLine ---
-
-Deno.test("truncateLine: short line unchanged", () => {
-  assertEquals(truncateLine("hello", 10), "hello");
-});
-
-Deno.test("truncateLine: exact width unchanged", () => {
-  assertEquals(truncateLine("12345", 5), "12345");
-});
-
-Deno.test("truncateLine: long line truncated with ellipsis", () => {
-  const result = truncateLine("hello world", 6);
-  assertEquals(result, "hello…");
-});
-
-Deno.test("truncateLine: width 1 gives ellipsis", () => {
-  assertEquals(truncateLine("hello", 1), "…");
-});
+// Additional truncateLine assertions not in fixtures
 
 Deno.test("truncateLine: preserves ANSI codes before truncation point", () => {
   const line = "\x1b[1mhello world\x1b[0m";
   const result = truncateLine(line, 6);
-  // Should keep the bold code and truncate visible text
   assertEquals(result.includes("\x1b[1m"), true);
   assertEquals(stripAnsi(result), "hello…");
 });
 
 Deno.test("truncateLine: ANSI codes don't count toward width", () => {
   const line = "\x1b[31mhi\x1b[0m";
-  const result = truncateLine(line, 10);
-  assertEquals(result, line); // fits fine
+  assertEquals(truncateLine(line, 10), line);
 });
 
-// --- highlightSearch ---
+// ── highlightSearch (from fixtures) ──────────────────────
 
-Deno.test("highlightSearch: empty query returns line unchanged", () => {
-  assertEquals(highlightSearch("hello world", ""), "hello world");
-});
+const hlCases = await loadJSON("highlight-search.json");
 
-Deno.test("highlightSearch: no match returns line unchanged", () => {
-  assertEquals(highlightSearch("hello world", "xyz"), "hello world");
-});
+for (const t of hlCases) {
+  Deno.test(`highlightSearch: ${t.name}`, () => {
+    assertEquals(highlightSearch(t.input, t.params.query), t.expected);
+  });
+}
 
-Deno.test("highlightSearch: case-insensitive match", () => {
+// Additional ANSI-aware assertions
+
+Deno.test("highlightSearch: reverse video codes present on match", () => {
   const result = highlightSearch("Hello World", "hello");
-  const plain = stripAnsi(result);
-  assertEquals(plain, "Hello World");
-  // Should contain reverse video codes
   assertEquals(result.includes("\x1b[7m"), true);
   assertEquals(result.includes("\x1b[27m"), true);
+  assertEquals(stripAnsi(result), "Hello World");
 });
 
-Deno.test("highlightSearch: highlights correct substring", () => {
-  const result = highlightSearch("abcdef", "cd");
-  assertEquals(result, "ab\x1b[7mcd\x1b[27mef");
-});
-
-Deno.test("highlightSearch: multiple matches highlighted", () => {
+Deno.test("highlightSearch: multiple matches have multiple reverse pairs", () => {
   const result = highlightSearch("abcabc", "ab");
-  // Both "ab" occurrences should be highlighted
   const matches = result.match(/\x1b\[7m/g);
   assertEquals(matches?.length, 2);
 });
 
-Deno.test("highlightSearch: works with ANSI codes in line", () => {
-  const line = "\x1b[1mhello\x1b[0m world";
-  const result = highlightSearch(line, "hello");
-  const plain = stripAnsi(result);
-  assertEquals(plain, "hello world");
-  // Should still have reverse video highlighting
-  assertEquals(result.includes("\x1b[7m"), true);
+// ── findMatches (from fixtures) ──────────────────────────
+
+const fmCases = await loadJSON("find-matches.json");
+
+for (const t of fmCases) {
+  Deno.test(`findMatches: ${t.name}`, () => {
+    assertEquals(findMatches(t.input.lines, t.input.query), t.expected);
+  });
+}
+
+// ── mapToSourceLine (from fixtures) ──────────────────────
+
+const mtslCases = await loadJSON("map-to-source-line.json");
+
+for (const t of mtslCases) {
+  Deno.test(`mapToSourceLine: ${t.name}`, () => {
+    assertEquals(
+      mapToSourceLine(t.input.topLine, t.input.renderedLineCount, t.input.rawContent),
+      t.expected,
+    );
+  });
+}
+
+// ── mapScrollPosition (from fixtures) ────────────────────
+
+const mspCases = await loadJSON("map-scroll-position.json");
+
+for (const t of mspCases) {
+  Deno.test(`mapScrollPosition: ${t.name}`, () => {
+    assertEquals(
+      mapScrollPosition(t.input.oldTopLine, t.input.oldLineCount, t.input.newLineCount),
+      t.expected,
+    );
+  });
+}
+
+// ── findNearestMatch (from fixtures) ─────────────────────
+
+const fnmCases = await loadJSON("find-nearest-match.json");
+
+for (const t of fnmCases) {
+  Deno.test(`findNearestMatch: ${t.name}`, () => {
+    assertEquals(findNearestMatch(t.input.matches, t.input.topLine), t.expected);
+  });
+}
+
+// ── formatStatusBar (from fixtures) ──────────────────────
+
+const fsbCases = await loadJSON("format-status-bar.json");
+
+for (const t of fsbCases) {
+  Deno.test(`formatStatusBar: ${t.name}`, () => {
+    assertEquals(formatStatusBar(t.input.state, t.input.cols), t.expected);
+  });
+}
+
+// Additional structural assertions
+
+Deno.test("formatStatusBar: line range info is dimmed", () => {
+  const input: StatusBarInput = {
+    mode: "normal",
+    searchInput: "",
+    searchCursor: 0,
+    searchMessage: "",
+    searchQuery: "",
+    searchMatches: [],
+    currentMatch: -1,
+    topLine: 10,
+    lineCount: 50,
+    contentHeight: 24,
+    filePath: "/path/to/README.md",
+  };
+  const result = formatStatusBar(input, 60);
+  assertEquals(result.includes("\x1b[2m"), true);  // DIM
+  assertEquals(result.includes("\x1b[22m"), true); // NO_DIM
 });
 
-Deno.test("highlightSearch: match at end of string", () => {
-  const result = highlightSearch("foobar", "bar");
-  assertEquals(result, "foo\x1b[7mbar\x1b[27m");
+Deno.test("formatStatusBar: visible width matches cols exactly", () => {
+  const input: StatusBarInput = {
+    mode: "normal",
+    searchInput: "",
+    searchCursor: 0,
+    searchMessage: "",
+    searchQuery: "",
+    searchMatches: [],
+    currentMatch: -1,
+    topLine: 10,
+    lineCount: 50,
+    contentHeight: 24,
+    filePath: "/path/to/README.md",
+  };
+  for (const cols of [40, 60, 80, 120]) {
+    const result = formatStatusBar(input, cols);
+    assertEquals(visibleLength(result), cols);
+  }
 });
 
-Deno.test("highlightSearch: match at start of string", () => {
-  const result = highlightSearch("foobar", "foo");
-  assertEquals(result, "\x1b[7mfoo\x1b[27mbar");
-});
-
-Deno.test("highlightSearch: entire string matches", () => {
-  const result = highlightSearch("abc", "abc");
-  assertEquals(result, "\x1b[7mabc\x1b[27m");
-});
-
-// --- findMatches ---
-
-Deno.test("findMatches: empty query returns empty", () => {
-  assertEquals(findMatches(["a", "b", "c"], ""), []);
-});
-
-Deno.test("findMatches: finds matching line indices", () => {
-  const lines = ["hello world", "foo bar", "hello again"];
-  assertEquals(findMatches(lines, "hello"), [0, 2]);
-});
-
-Deno.test("findMatches: case-insensitive", () => {
-  const lines = ["Hello", "HELLO", "hello"];
-  assertEquals(findMatches(lines, "hello"), [0, 1, 2]);
-});
-
-Deno.test("findMatches: no matches returns empty", () => {
-  assertEquals(findMatches(["abc", "def"], "xyz"), []);
-});
-
-Deno.test("findMatches: ignores ANSI codes in lines", () => {
-  const lines = ["\x1b[1mhello\x1b[0m", "world"];
-  assertEquals(findMatches(lines, "hello"), [0]);
-});
-
-Deno.test("findMatches: single line match", () => {
-  assertEquals(findMatches(["match"], "match"), [0]);
-});
-
-// --- mapToSourceLine ---
-
-Deno.test("mapToSourceLine: top of file returns line 1", () => {
-  const raw = "a\nb\nc\nd\ne";
-  assertEquals(mapToSourceLine(0, 20, raw), 1);
-});
-
-Deno.test("mapToSourceLine: bottom of rendered maps to end of source", () => {
-  const raw = "a\nb\nc\nd\ne"; // 5 source lines
-  assertEquals(mapToSourceLine(20, 20, raw), 6);
-});
-
-Deno.test("mapToSourceLine: midpoint maps proportionally", () => {
-  const raw = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"; // 10 source lines
-  const result = mapToSourceLine(50, 100, raw);
-  assertEquals(result, 6); // 50% of 10 = 5, + 1 = 6
-});
-
-Deno.test("mapToSourceLine: rendered same length as source", () => {
-  const raw = "a\nb\nc";
-  assertEquals(mapToSourceLine(1, 3, raw), 2);
-});
-
-// --- mapScrollPosition ---
-
-Deno.test("mapScrollPosition: preserves scroll ratio", () => {
-  // At 50% through 101 lines → 50% through 201 lines
-  assertEquals(mapScrollPosition(50, 101, 201), 100);
-});
-
-Deno.test("mapScrollPosition: top stays at top", () => {
-  assertEquals(mapScrollPosition(0, 100, 200), 0);
-});
-
-Deno.test("mapScrollPosition: bottom maps to bottom", () => {
-  assertEquals(mapScrollPosition(99, 100, 50), 49);
-});
-
-Deno.test("mapScrollPosition: single line stays at 0", () => {
-  assertEquals(mapScrollPosition(0, 1, 50), 0);
-});
-
-Deno.test("mapScrollPosition: same line count preserves position", () => {
-  assertEquals(mapScrollPosition(25, 100, 100), 25);
-});
-
-Deno.test("mapScrollPosition: shrink rounds to nearest", () => {
-  // 3/9 = 0.333, * 4 = 1.333, rounds to 1
-  assertEquals(mapScrollPosition(3, 10, 5), 1);
-});
-
-// --- findNearestMatch ---
-
-Deno.test("findNearestMatch: finds first match at or after position", () => {
-  assertEquals(findNearestMatch([5, 15, 25], 10), 1);
-});
-
-Deno.test("findNearestMatch: returns last if all before position", () => {
-  assertEquals(findNearestMatch([5, 15, 25], 30), 2);
-});
-
-Deno.test("findNearestMatch: returns first if position is 0", () => {
-  assertEquals(findNearestMatch([5, 15, 25], 0), 0);
-});
-
-Deno.test("findNearestMatch: empty matches returns -1", () => {
-  assertEquals(findNearestMatch([], 10), -1);
-});
-
-Deno.test("findNearestMatch: exact position match", () => {
-  assertEquals(findNearestMatch([5, 10, 15], 10), 1);
-});
-
-// --- formatStatusBar ---
+// ── renderStatusBar ──────────────────────────────────────
 
 function baseInput(overrides: Partial<StatusBarInput> = {}): StatusBarInput {
   return {
@@ -327,123 +199,8 @@ function baseInput(overrides: Partial<StatusBarInput> = {}): StatusBarInput {
   };
 }
 
-Deno.test("formatStatusBar: normal mode with filename shows left/right layout", () => {
-  const result = formatStatusBar(baseInput(), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("README.md"), true);
-  assertEquals(plain.includes("1-24/50"), true);
-  assertEquals(plain.endsWith("TOP"), true);
-});
-
-Deno.test("formatStatusBar: normal mode without filename (stdin)", () => {
-  const result = formatStatusBar(baseInput({ filePath: undefined }), 60);
-  const plain = stripAnsi(result);
-  // Left side should be empty, right side has position
-  assertEquals(plain.includes("1-24/50"), true);
-  assertEquals(plain.endsWith("TOP"), true);
-});
-
-Deno.test("formatStatusBar: at top shows TOP", () => {
-  const result = formatStatusBar(baseInput({ topLine: 0 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.endsWith("TOP"), true);
-});
-
-Deno.test("formatStatusBar: at end shows END", () => {
-  const result = formatStatusBar(baseInput({ topLine: 26 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.endsWith("END"), true);
-});
-
-Deno.test("formatStatusBar: short doc (top AND end) shows TOP", () => {
-  const result = formatStatusBar(baseInput({ lineCount: 10 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.endsWith("TOP"), true);
-});
-
-Deno.test("formatStatusBar: scrolled mid-document shows percentage", () => {
-  const result = formatStatusBar(baseInput({ topLine: 10 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.endsWith("68%"), true);
-  assertEquals(plain.includes("11-34/50"), true);
-});
-
-Deno.test("formatStatusBar: search input mode shows cursor at end", () => {
-  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 5 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("/query\u2588"), true);
-});
-
-Deno.test("formatStatusBar: search cursor at beginning", () => {
-  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 0 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("/query"), true);
-  // The cursor character should be 'q' (rendered in non-reverse)
-  assertEquals(result.includes("\x1b[27mq\x1b[7m"), true);
-});
-
-Deno.test("formatStatusBar: search cursor in middle", () => {
-  const result = formatStatusBar(baseInput({ mode: "search", searchInput: "query", searchCursor: 2 }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("/query"), true);
-  // The cursor character should be 'e' (at index 2)
-  assertEquals(result.includes("\x1b[27me\x1b[7m"), true);
-});
-
-Deno.test("formatStatusBar: search message shows message only", () => {
-  const result = formatStatusBar(baseInput({ searchMessage: "Copied: README.md" }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("Copied: README.md"), true);
-  // No position info on right
-  assertEquals(plain.includes("/50"), false);
-});
-
-Deno.test("formatStatusBar: active search with results", () => {
-  const result = formatStatusBar(baseInput({
-    searchQuery: "hello",
-    searchMatches: [5, 15, 25, 35, 45],
-    currentMatch: 1,
-  }), 60);
-  const plain = stripAnsi(result);
-  assertEquals(plain.startsWith("/hello (2/5)"), true);
-  assertEquals(plain.includes("1-24/50"), true);
-});
-
-Deno.test("formatStatusBar: narrow terminal preserves right side", () => {
-  const result = formatStatusBar(baseInput(), 30);
-  const plain = stripAnsi(result);
-  // Right side (position) should still be present
-  assertEquals(plain.includes("TOP"), true);
-  assertEquals(plain.includes("1-24/50"), true);
-});
-
-Deno.test("formatStatusBar: very narrow terminal graceful degradation", () => {
-  const result = formatStatusBar(baseInput(), 10);
-  // Should not throw; output should have some content
-  const plain = stripAnsi(result);
-  assertEquals(plain.length > 0, true);
-});
-
-Deno.test("formatStatusBar: line range info is dimmed", () => {
-  const result = formatStatusBar(baseInput({ topLine: 10 }), 60);
-  // DIM (SGR 2) should appear before line range
-  assertEquals(result.includes("\x1b[2m"), true);
-  // NO_DIM (SGR 22) should appear after line range
-  assertEquals(result.includes("\x1b[22m"), true);
-});
-
-Deno.test("formatStatusBar: visible width matches cols exactly", () => {
-  for (const cols of [40, 60, 80, 120]) {
-    const result = formatStatusBar(baseInput({ topLine: 10 }), cols);
-    assertEquals(visibleLength(result), cols);
-  }
-});
-
-// --- renderStatusBar ---
-
 Deno.test("renderStatusBar: resets attributes before reverse video", () => {
   const result = renderStatusBar(baseInput(), 60);
-  // Must start with RESET to prevent color bleed from content lines
   assertEquals(result.startsWith("\x1b[0m\x1b[7m"), true);
 });
 
@@ -459,98 +216,49 @@ Deno.test("renderStatusBar: contains formatted status text", () => {
   assertEquals(plain.includes("TOP"), true);
 });
 
-// --- wordBoundaryLeft ---
+// ── wordBoundary (from fixtures) ─────────────────────────
 
-Deno.test("wordBoundaryLeft: end to start of last word", () => {
-  assertEquals(wordBoundaryLeft("hello world", 11), 6);
-});
+const wbData = await loadJSON("word-boundary.json");
 
-Deno.test("wordBoundaryLeft: start of word to start of previous word", () => {
-  assertEquals(wordBoundaryLeft("hello world", 6), 0);
-});
-
-Deno.test("wordBoundaryLeft: mid-word to start of that word", () => {
-  assertEquals(wordBoundaryLeft("hello world", 3), 0);
-});
-
-Deno.test("wordBoundaryLeft: consecutive spaces", () => {
-  assertEquals(wordBoundaryLeft("hello  world", 12), 7);
-});
-
-Deno.test("wordBoundaryLeft: already at start", () => {
-  assertEquals(wordBoundaryLeft("hello", 0), 0);
-});
-
-// --- wordBoundaryRight ---
-
-Deno.test("wordBoundaryRight: start to start of next word", () => {
-  assertEquals(wordBoundaryRight("hello world", 0), 6);
-});
-
-Deno.test("wordBoundaryRight: start of last word to end", () => {
-  assertEquals(wordBoundaryRight("hello world", 6), 11);
-});
-
-Deno.test("wordBoundaryRight: consecutive spaces", () => {
-  assertEquals(wordBoundaryRight("hello  world", 0), 7);
-});
-
-Deno.test("wordBoundaryRight: already at end", () => {
-  assertEquals(wordBoundaryRight("hello", 5), 5);
-});
-
-// --- handleSearchKey ---
-
-function searchState(overrides: Partial<PagerState> = {}): PagerState {
-  return {
-    lines: ["hello world", "foo bar", "baz"],
-    topLine: 0,
-    searchQuery: "",
-    searchMatches: [],
-    currentMatch: -1,
-    mode: "search",
-    searchInput: "",
-    searchCursor: 0,
-    searchMessage: "",
-    ...overrides,
-  };
+for (const t of wbData.left) {
+  Deno.test(`wordBoundaryLeft: ${t.name}`, () => {
+    assertEquals(wordBoundaryLeft(t.input.text, t.input.cursor), t.expected);
+  });
 }
 
-Deno.test("handleSearchKey: backspace on empty input exits search", () => {
-  const state = searchState();
-  handleSearchKey(state, { type: "backspace" });
-  assertEquals(state.mode, "normal");
-});
+for (const t of wbData.right) {
+  Deno.test(`wordBoundaryRight: ${t.name}`, () => {
+    assertEquals(wordBoundaryRight(t.input.text, t.input.cursor), t.expected);
+  });
+}
 
-Deno.test("handleSearchKey: backspace to empty exits search", () => {
-  const state = searchState({ searchInput: "a", searchCursor: 1 });
-  handleSearchKey(state, { type: "backspace" });
-  assertEquals(state.searchInput, "");
-  assertEquals(state.mode, "normal");
-});
+// ── handleSearchKey (from fixtures) ──────────────────────
 
-Deno.test("handleSearchKey: backspace mid-input stays in search", () => {
-  const state = searchState({ searchInput: "ab", searchCursor: 2 });
-  handleSearchKey(state, { type: "backspace" });
-  assertEquals(state.searchInput, "a");
-  assertEquals(state.mode, "search");
-});
+const hskCases = await loadJSON("handle-search-key.json");
 
-Deno.test("handleSearchKey: alt-backspace to empty exits search", () => {
-  const state = searchState({ searchInput: "hello", searchCursor: 5 });
-  handleSearchKey(state, { type: "alt-backspace" });
-  assertEquals(state.mode, "normal");
-});
-
-Deno.test("handleSearchKey: ctrl-u to empty exits search", () => {
-  const state = searchState({ searchInput: "hello", searchCursor: 5 });
-  handleSearchKey(state, { type: "ctrl-u" });
-  assertEquals(state.mode, "normal");
-});
-
-Deno.test("handleSearchKey: ctrl-u with text after cursor stays in search", () => {
-  const state = searchState({ searchInput: "hello", searchCursor: 0 });
-  handleSearchKey(state, { type: "ctrl-u" });
-  assertEquals(state.mode, "search");
-  assertEquals(state.searchInput, "hello");
-});
+for (const t of hskCases) {
+  Deno.test(`handleSearchKey: ${t.name}`, () => {
+    const state: PagerState = {
+      lines: ["hello world", "foo bar", "baz"],
+      topLine: 0,
+      searchQuery: "",
+      searchMatches: [],
+      currentMatch: -1,
+      mode: "search",
+      searchInput: "",
+      searchCursor: 0,
+      searchMessage: "",
+      ...t.state,
+    };
+    handleSearchKey(state, t.key as Key);
+    // deno-lint-ignore no-explicit-any
+    const stateAny = state as any;
+    for (const [key, val] of Object.entries(t.expected)) {
+      assertEquals(
+        stateAny[key],
+        val,
+        `${t.name}: expected ${key} = ${JSON.stringify(val)}, got ${JSON.stringify(stateAny[key])}`,
+      );
+    }
+  });
+}

@@ -1,0 +1,81 @@
+[
+  {
+    "name": "empty query returns empty",
+    "input": {
+      "lines": [
+        "a",
+        "b",
+        "c"
+      ],
+      "query": ""
+    },
+    "expected": []
+  },
+  {
+    "name": "finds matching line indices",
+    "input": {
+      "lines": [
+        "hello world",
+        "foo bar",
+        "hello again"
+      ],
+      "query": "hello"
+    },
+    "expected": [
+      0,
+      2
+    ]
+  },
+  {
+    "name": "case-insensitive",
+    "input": {
+      "lines": [
+        "Hello",
+        "HELLO",
+        "hello"
+      ],
+      "query": "hello"
+    },
+    "expected": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "name": "no matches returns empty",
+    "input": {
+      "lines": [
+        "abc",
+        "def"
+      ],
+      "query": "xyz"
+    },
+    "expected": []
+  },
+  {
+    "name": "ignores ANSI codes in lines",
+    "input": {
+      "lines": [
+        "\u001b[1mhello\u001b[0m",
+        "world"
+      ],
+      "query": "hello"
+    },
+    "expected": [
+      0
+    ]
+  },
+  {
+    "name": "single line match",
+    "input": {
+      "lines": [
+        "match"
+      ],
+      "query": "match"
+    },
+    "expected": [
+      0
+    ]
+  }
+]

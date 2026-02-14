@@ -1,0 +1,22 @@
+[
+  {
+    "name": "trims and returns path",
+    "input": "  docs/README.md  \n",
+    "expected": "docs/README.md"
+  },
+  {
+    "name": "empty string returns null",
+    "input": "",
+    "expected": null
+  },
+  {
+    "name": "whitespace-only returns null",
+    "input": "   \n  ",
+    "expected": null
+  },
+  {
+    "name": "normal path as-is",
+    "input": "src/main.ts",
+    "expected": "src/main.ts"
+  }
+]

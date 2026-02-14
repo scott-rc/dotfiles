@@ -1,0 +1,58 @@
+[
+  {
+    "name": "finds first match at or after position",
+    "input": {
+      "matches": [
+        5,
+        15,
+        25
+      ],
+      "topLine": 10
+    },
+    "expected": 1
+  },
+  {
+    "name": "returns last if all before position",
+    "input": {
+      "matches": [
+        5,
+        15,
+        25
+      ],
+      "topLine": 30
+    },
+    "expected": 2
+  },
+  {
+    "name": "returns first if position is 0",
+    "input": {
+      "matches": [
+        5,
+        15,
+        25
+      ],
+      "topLine": 0
+    },
+    "expected": 0
+  },
+  {
+    "name": "empty matches returns -1",
+    "input": {
+      "matches": [],
+      "topLine": 10
+    },
+    "expected": -1
+  },
+  {
+    "name": "exact position match",
+    "input": {
+      "matches": [
+        5,
+        10,
+        15
+      ],
+      "topLine": 10
+    },
+    "expected": 1
+  }
+]

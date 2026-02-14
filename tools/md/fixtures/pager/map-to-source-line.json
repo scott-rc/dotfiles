@@ -1,0 +1,38 @@
+[
+  {
+    "name": "top of file returns line 1",
+    "input": {
+      "topLine": 0,
+      "renderedLineCount": 20,
+      "rawContent": "a\nb\nc\nd\ne"
+    },
+    "expected": 1
+  },
+  {
+    "name": "bottom maps to end of source",
+    "input": {
+      "topLine": 20,
+      "renderedLineCount": 20,
+      "rawContent": "a\nb\nc\nd\ne"
+    },
+    "expected": 6
+  },
+  {
+    "name": "midpoint maps proportionally",
+    "input": {
+      "topLine": 50,
+      "renderedLineCount": 100,
+      "rawContent": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
+    },
+    "expected": 6
+  },
+  {
+    "name": "rendered same length as source",
+    "input": {
+      "topLine": 1,
+      "renderedLineCount": 3,
+      "rawContent": "a\nb\nc"
+    },
+    "expected": 2
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "empty query returns line unchanged",
+    "input": "hello world",
+    "params": {
+      "query": ""
+    },
+    "expected": "hello world"
+  },
+  {
+    "name": "no match returns line unchanged",
+    "input": "hello world",
+    "params": {
+      "query": "xyz"
+    },
+    "expected": "hello world"
+  },
+  {
+    "name": "case-insensitive match",
+    "input": "Hello World",
+    "params": {
+      "query": "hello"
+    },
+    "expected": "\u001b[7mHello\u001b[27m World"
+  },
+  {
+    "name": "highlights correct substring",
+    "input": "abcdef",
+    "params": {
+      "query": "cd"
+    },
+    "expected": "ab\u001b[7mcd\u001b[27mef"
+  },
+  {
+    "name": "multiple matches highlighted",
+    "input": "abcabc",
+    "params": {
+      "query": "ab"
+    },
+    "expected": "\u001b[7mab\u001b[27mc\u001b[7mab\u001b[27mc"
+  },
+  {
+    "name": "works with ANSI codes in line",
+    "input": "\u001b[1mhello\u001b[0m world",
+    "params": {
+      "query": "hello"
+    },
+    "expected": "\u001b[1m\u001b[7mhello\u001b[0m\u001b[27m world"
+  },
+  {
+    "name": "match at end of string",
+    "input": "foobar",
+    "params": {
+      "query": "bar"
+    },
+    "expected": "foo\u001b[7mbar\u001b[27m"
+  },
+  {
+    "name": "match at start of string",
+    "input": "foobar",
+    "params": {
+      "query": "foo"
+    },
+    "expected": "\u001b[7mfoo\u001b[27mbar"
+  },
+  {
+    "name": "entire string matches",
+    "input": "abc",
+    "params": {
+      "query": "abc"
+    },
+    "expected": "\u001b[7mabc\u001b[27m"
+  }
+]
