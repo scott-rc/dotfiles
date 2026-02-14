@@ -156,7 +156,7 @@ function render(state: PagerState): void {
   const contentHeight = rows - 1;
 
   // Clamp topLine
-  const maxTop = Math.max(0, state.lines.length - contentHeight);
+  const maxTop = Math.max(0, state.lines.length - Math.ceil(contentHeight / 2));
   if (state.topLine > maxTop) state.topLine = maxTop;
   if (state.topLine < 0) state.topLine = 0;
 
@@ -266,7 +266,7 @@ function scrollToMatch(state: PagerState): void {
 
   // Center the match on screen if possible
   const target = matchLine - Math.floor(contentHeight / 3);
-  state.topLine = Math.max(0, Math.min(target, state.lines.length - contentHeight));
+  state.topLine = Math.max(0, Math.min(target, state.lines.length - Math.ceil(contentHeight / 2)));
 }
 
 export function mapToSourceLine(
@@ -393,14 +393,14 @@ export async function runPager(
                 case "q":
                   return;
                 case "j":
-                  state.topLine = Math.min(state.topLine + 1, Math.max(0, state.lines.length - contentHeight));
+                  state.topLine = Math.min(state.topLine + 1, Math.max(0, state.lines.length - Math.ceil(contentHeight / 2)));
                   break;
                 case "k":
                   state.topLine = Math.max(state.topLine - 1, 0);
                   break;
                 case "d":
                 case " ":
-                  state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - contentHeight));
+                  state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - Math.ceil(contentHeight / 2)));
                   break;
                 case "u":
                   state.topLine = Math.max(state.topLine - halfPage, 0);
@@ -409,7 +409,7 @@ export async function runPager(
                   state.topLine = 0;
                   break;
                 case "G":
-                  state.topLine = Math.max(0, state.lines.length - contentHeight);
+                  state.topLine = Math.max(0, state.lines.length - Math.ceil(contentHeight / 2));
                   break;
                 case "/":
                   state.mode = "search";
@@ -480,20 +480,20 @@ export async function runPager(
             case "ctrl-c":
               return;
             case "ctrl-d":
-              state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - contentHeight));
+              state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - Math.ceil(contentHeight / 2)));
               break;
             case "ctrl-u":
               state.topLine = Math.max(state.topLine - halfPage, 0);
               break;
             case "enter":
             case "down":
-              state.topLine = Math.min(state.topLine + 1, Math.max(0, state.lines.length - contentHeight));
+              state.topLine = Math.min(state.topLine + 1, Math.max(0, state.lines.length - Math.ceil(contentHeight / 2)));
               break;
             case "up":
               state.topLine = Math.max(state.topLine - 1, 0);
               break;
             case "pagedown":
-              state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - contentHeight));
+              state.topLine = Math.min(state.topLine + halfPage, Math.max(0, state.lines.length - Math.ceil(contentHeight / 2)));
               break;
             case "pageup":
               state.topLine = Math.max(state.topLine - halfPage, 0);
@@ -502,7 +502,7 @@ export async function runPager(
               state.topLine = 0;
               break;
             case "end":
-              state.topLine = Math.max(0, state.lines.length - contentHeight);
+              state.topLine = Math.max(0, state.lines.length - Math.ceil(contentHeight / 2));
               break;
           }
         }
