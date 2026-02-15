@@ -1,5 +1,7 @@
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::process::{Command, Stdio};
+
+use crossterm::event::{self, Event, KeyEventKind};
 
 use crate::wrap::{split_ansi, strip_ansi};
 
@@ -70,6 +72,40 @@ pub struct StatusBarInput {
     pub line_count: usize,
     pub content_height: usize,
     pub file_path: Option<String>,
+}
+
+pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
+    use crossterm::event::{KeyCode, KeyModifiers};
+
+    let mods = key_event.modifiers;
+    match key_event.code {
+        // Ctrl combos
+        KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlC,
+        KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
+        KeyCode::Char('u') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlU,
+        // Alt combos
+        KeyCode::Char('b') if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
+        KeyCode::Char('f') if mods.contains(KeyModifiers::ALT) => Key::AltRight,
+        KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
+        KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
+        KeyCode::Backspace if mods.contains(KeyModifiers::ALT) => Key::AltBackspace,
+        // Plain chars
+        KeyCode::Char(c) => Key::Char(c),
+        // Nav keys
+        KeyCode::Up => Key::Up,
+        KeyCode::Down => Key::Down,
+        KeyCode::Left => Key::Left,
+        KeyCode::Right => Key::Right,
+        KeyCode::PageUp => Key::PageUp,
+        KeyCode::PageDown => Key::PageDown,
+        KeyCode::Home => Key::Home,
+        KeyCode::End => Key::End,
+        // Special keys
+        KeyCode::Enter => Key::Enter,
+        KeyCode::Esc => Key::Escape,
+        KeyCode::Backspace => Key::Backspace,
+        _ => Key::Unknown,
+    }
 }
 
 pub fn parse_key(buf: &[u8]) -> Key {
@@ -552,13 +588,9 @@ pub fn run_pager(
 
     render_screen(&mut stdout, &state);
 
-    let mut stdin = io::stdin();
-    let mut buf = [0u8; 32];
-
-    loop {
-        // Check for resize by polling crossterm events first
-        while crossterm::event::poll(std::time::Duration::from_millis(0)).unwrap_or(false) {
-            if let Ok(crossterm::event::Event::Resize(_, _)) = crossterm::event::read() {
+    while let Ok(event) = event::read() {
+        let key = match event {
+            Event::Resize(_, _) => {
                 if let Some(ref mut resize_fn) = on_resize {
                     let new_content = resize_fn();
                     let old_count = state.lines.len();
@@ -570,16 +602,13 @@ pub fn run_pager(
                     }
                 }
                 render_screen(&mut stdout, &state);
+                continue;
             }
-        }
-
-        let n = match stdin.read(&mut buf) {
-            Ok(0) => break,
-            Ok(n) => n,
-            Err(_) => break,
+            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                crossterm_key_to_key(key_event)
+            }
+            _ => continue,
         };
-
-        let key = parse_key(&buf[..n]);
 
         if state.mode == Mode::Search {
             handle_search_key(&mut state, &key);
@@ -1226,5 +1255,133 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ---- crossterm_key_to_key ----
+    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+
+    fn make_key(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
+        KeyEvent {
+            code,
+            modifiers,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        }
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_ctrl_combos() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('c'), KeyModifiers::CONTROL)),
+            Key::CtrlC
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('d'), KeyModifiers::CONTROL)),
+            Key::CtrlD
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('u'), KeyModifiers::CONTROL)),
+            Key::CtrlU
+        );
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_alt_combos() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('b'), KeyModifiers::ALT)),
+            Key::AltLeft
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('f'), KeyModifiers::ALT)),
+            Key::AltRight
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Left, KeyModifiers::ALT)),
+            Key::AltLeft
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Right, KeyModifiers::ALT)),
+            Key::AltRight
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Backspace, KeyModifiers::ALT)),
+            Key::AltBackspace
+        );
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_plain_chars() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('q'), KeyModifiers::NONE)),
+            Key::Char('q')
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char('G'), KeyModifiers::SHIFT)),
+            Key::Char('G')
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Char(' '), KeyModifiers::NONE)),
+            Key::Char(' ')
+        );
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_nav_keys() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Up, KeyModifiers::NONE)),
+            Key::Up
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Down, KeyModifiers::NONE)),
+            Key::Down
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Left, KeyModifiers::NONE)),
+            Key::Left
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Right, KeyModifiers::NONE)),
+            Key::Right
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::PageUp, KeyModifiers::NONE)),
+            Key::PageUp
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::PageDown, KeyModifiers::NONE)),
+            Key::PageDown
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Home, KeyModifiers::NONE)),
+            Key::Home
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::End, KeyModifiers::NONE)),
+            Key::End
+        );
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_special_keys() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Enter, KeyModifiers::NONE)),
+            Key::Enter
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Esc, KeyModifiers::NONE)),
+            Key::Escape
+        );
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Backspace, KeyModifiers::NONE)),
+            Key::Backspace
+        );
+    }
+
+    #[test]
+    fn test_crossterm_key_to_key_unknown() {
+        assert_eq!(
+            crossterm_key_to_key(make_key(KeyCode::Tab, KeyModifiers::NONE)),
+            Key::Unknown
+        );
     }
 }
