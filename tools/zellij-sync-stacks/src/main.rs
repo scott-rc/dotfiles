@@ -508,4 +508,127 @@ mod tests {
         assert_eq!(nav.focus_current, 6);
         assert_eq!(nav.focus_other, 2);
     }
+
+    // --- detect_stacks edge cases ---
+
+    #[test]
+    fn detect_stacks_three_columns_returns_none() {
+        let panes = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 1, false),
+            make_pane(3, 50, 0, 30, false),
+            make_pane(4, 50, 31, 1, false),
+            make_pane(5, 100, 0, 30, false),
+            make_pane(6, 100, 31, 1, false),
+        ];
+
+        assert!(detect_stacks(&panes).is_none());
+    }
+
+    #[test]
+    fn detect_stacks_one_pane_in_column_returns_none() {
+        let panes = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 1, false),
+            make_pane(3, 50, 0, 30, false), // only one pane in right column
+        ];
+
+        assert!(detect_stacks(&panes).is_none());
+    }
+
+    #[test]
+    fn detect_stacks_collapsed_boundary() {
+        // pane_rows=2 is exactly COLLAPSED_PANE_MAX_ROWS — should count as collapsed
+        let panes_at_boundary = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 2, false),
+            make_pane(3, 50, 0, 30, false),
+            make_pane(4, 50, 31, 2, false),
+        ];
+        assert!(detect_stacks(&panes_at_boundary).is_some());
+
+        // pane_rows=3 is above the threshold — not collapsed, so no stacks detected
+        let panes_above = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 3, false),
+            make_pane(3, 50, 0, 30, false),
+            make_pane(4, 50, 31, 3, false),
+        ];
+        assert!(detect_stacks(&panes_above).is_none());
+    }
+
+    #[test]
+    fn detect_stacks_filters_non_selectable() {
+        let panes = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 1, false),
+            make_pane(3, 50, 0, 30, false),
+            make_pane(4, 50, 31, 1, false),
+            PaneEntry {
+                id: 99,
+                pane_x: 100,
+                pane_y: 0,
+                pane_rows: 30,
+                is_plugin: false,
+                is_floating: false,
+                is_selectable: false,
+                is_focused: false,
+            },
+        ];
+
+        let result = detect_stacks(&panes).unwrap();
+        assert_eq!(result.left, vec![1, 2]);
+        assert_eq!(result.right, vec![3, 4]);
+    }
+
+    #[test]
+    fn detect_stacks_empty_returns_none() {
+        assert!(detect_stacks(&[]).is_none());
+    }
+
+    // --- compute_navigation edge cases ---
+
+    #[test]
+    fn navigate_down_from_right_stack() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5, 6],
+        };
+
+        let nav = compute_navigation(&stacks, 4, "down").unwrap();
+        assert_eq!(nav.focus_current, 5);
+        assert_eq!(nav.focus_other, 2);
+    }
+
+    #[test]
+    fn navigate_invalid_direction_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+
+        assert!(compute_navigation(&stacks, 1, "left").is_none());
+    }
+
+    #[test]
+    fn navigate_focused_not_in_stacks_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+
+        assert!(compute_navigation(&stacks, 99, "down").is_none());
+    }
+
+    #[test]
+    fn navigate_down_from_middle() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5, 6],
+        };
+
+        let nav = compute_navigation(&stacks, 2, "down").unwrap();
+        assert_eq!(nav.focus_current, 3);
+        assert_eq!(nav.focus_other, 6);
+    }
 }
