@@ -1,3 +1,5 @@
+fish_add_path ~/.cargo/bin
+
 if not status is-interactive
     return
 end
