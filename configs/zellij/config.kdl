@@ -4,7 +4,7 @@
 
 keybinds clear-defaults=true {
     locked {
-        bind "Super g" { SwitchToMode "normal"; }
+        bind "Super Shift g" { SwitchToMode "normal"; }
     }
     pane {
         bind "left" { MoveFocus "left"; }
@@ -22,7 +22,7 @@ keybinds clear-defaults=true {
         bind "l" { MoveFocus "right"; }
         bind "n" { NewPane; SwitchToMode "normal"; }
         bind "p" { SwitchFocus; }
-        bind "Super p" { SwitchToMode "normal"; }
+        bind "Super Shift p" { SwitchToMode "normal"; }
         bind "r" { NewPane "right"; SwitchToMode "normal"; }
         bind "w" { ToggleFloatingPanes; SwitchToMode "normal"; }
         bind "z" { TogglePaneFrames; SwitchToMode "normal"; }
@@ -71,7 +71,7 @@ keybinds clear-defaults=true {
         bind "j" { Resize "Increase down"; }
         bind "k" { Resize "Increase up"; }
         bind "l" { Resize "Increase right"; }
-        bind "Super r" { SwitchToMode "normal"; }
+        bind "Super Shift r" { SwitchToMode "normal"; }
     }
     move {
         bind "left" { MovePane "left"; }
@@ -79,7 +79,7 @@ keybinds clear-defaults=true {
         bind "up" { MovePane "up"; }
         bind "right" { MovePane "right"; }
         bind "h" { MovePane "left"; }
-        bind "Super m" { SwitchToMode "normal"; }
+        bind "Super Shift m" { SwitchToMode "normal"; }
         bind "j" { MovePane "down"; }
         bind "k" { MovePane "up"; }
         bind "l" { MovePane "right"; }
@@ -131,29 +131,26 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" {
         // CMD keybindings (forwarded from Ghostty via unbind)
-        bind "Super n" { NewPane; }
-        bind "Super t" { NewTab { cwd "~"; }; }
-        bind "Super w" { CloseFocus; }
+        bind "Super Shift n" { NewPane; }
+        bind "Super Shift w" { CloseFocus; }
         bind "Super Shift [" { GoToPreviousTab; }
         bind "Super Shift ]" { GoToNextTab; }
-        bind "Super h" { MoveFocus "left"; }
-        bind "Super j" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
-        bind "Super k" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
-        bind "Super l" { MoveFocus "right"; }
-        bind "Super f" { ToggleFocusFullscreen; }
-        bind "Super z" { TogglePaneFrames; }
-        bind "Super down" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
-        bind "Super up" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
-        bind "Super +" { Resize "Increase"; }
-        bind "Super -" { Resize "Decrease"; }
-        bind "Super =" { Resize "Increase"; }
-        bind "Super [" { PreviousSwapLayout; }
-        bind "Super \\" { ToggleFloatingPanes; }
-        bind "Super ]" { NextSwapLayout; }
-        bind "Super i" { MoveTab "left"; }
-        bind "Super o" { MoveTab "right"; }
-        bind "Super x" { CloseFocus; }
-        bind "Super s" { SwitchToMode "scroll"; }
+        bind "Super Shift h" { MoveFocus "left"; }
+        bind "Super Shift j" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
+        bind "Super Shift l" { MoveFocus "right"; }
+        bind "Super Shift f" { ToggleFocusFullscreen; }
+        bind "Super Shift z" { TogglePaneFrames; }
+        bind "Super Shift down" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
+        bind "Super Shift up" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
+        bind "Super Shift +" { Resize "Increase"; }
+        bind "Super Shift -" { Resize "Decrease"; }
+        bind "Super Shift =" { Resize "Increase"; }
+        bind "Super Shift ," { PreviousSwapLayout; }
+        bind "Super Shift \\" { ToggleFloatingPanes; }
+        bind "Super Shift ." { NextSwapLayout; }
+        bind "Super Shift i" { MoveTab "left"; }
+        bind "Super Shift o" { MoveTab "right"; }
+        bind "Super Shift x" { CloseFocus; }
         // Alt keybindings commented out - using Super instead
         // bind "Alt down" { MoveFocus "down"; }
         // bind "Alt up" { MoveFocus "up"; }
@@ -173,10 +170,10 @@ keybinds clear-defaults=true {
         // bind "Alt o" { MoveTab "right"; }
         // bind "Alt t" { NewTab { cwd "~"; }; }
         // bind "Alt x" { CloseFocus; }
-        bind "Super g" { SwitchToMode "locked"; }
+        bind "Super Shift g" { SwitchToMode "locked"; }
     }
     shared_except "locked" "move" {
-        bind "Super m" { SwitchToMode "move"; }
+        bind "Super Shift m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
         bind "Super Shift s" { SwitchToMode "session"; }
@@ -186,16 +183,16 @@ keybinds clear-defaults=true {
     //     bind "Alt b" { SwitchToMode "tmux"; }
     // }
     shared_except "locked" "scroll" "search" {
-        bind "Super s" { SwitchToMode "scroll"; }
+        bind "Super Shift e" { SwitchToMode "scroll"; }
     }
     shared_except "locked" "tab" {
         bind "Super Shift t" { SwitchToMode "tab"; }
     }
     shared_except "locked" "pane" {
-        bind "Super p" { SwitchToMode "pane"; }
+        bind "Super Shift p" { SwitchToMode "pane"; }
     }
     shared_except "locked" "resize" {
-        bind "Super r" { SwitchToMode "resize"; }
+        bind "Super Shift r" { SwitchToMode "resize"; }
     }
     shared_except "normal" "locked" "entersearch" {
         bind "enter" { SwitchToMode "normal"; }
@@ -221,7 +218,7 @@ keybinds clear-defaults=true {
         bind "j" { ScrollDown; }
         bind "k" { ScrollUp; }
         bind "l" { PageScrollDown; }
-        bind "Super s" { SwitchToMode "normal"; }
+        bind "Super Shift e" { SwitchToMode "normal"; }
         bind "u" { HalfPageScrollUp; }
         bind "g" { ScrollToTop; }
         bind "G" { ScrollToBottom; }

@@ -79,6 +79,34 @@ configs/fish/
 
 **functions/** contains one function per file, autoloaded by fish on first invocation.
 
+### Zellij Keybinding Scheme
+
+All Zellij shortcuts use `Cmd+Shift` to avoid conflicts with CLI applications (editors, Claude Code, etc.) that need bare `Cmd` shortcuts. Ghostty unbinds all `Cmd+Shift` combos so they pass through to Zellij.
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Shift+N` | New pane |
+| `Cmd+Shift+W` | Close pane |
+| `Cmd+Shift+H/J/K/L` | Focus left/down/up/right |
+| `Cmd+Shift+F` | Toggle fullscreen |
+| `Cmd+Shift+Z` | Toggle pane frames |
+| `Cmd+Shift+\\` | Toggle floating panes |
+| `Cmd+Shift+,/.` | Previous/next swap layout |
+| `Cmd+Shift+[/]` | Previous/next tab |
+| `Cmd+Shift+I/O` | Move tab left/right |
+| `Cmd+Shift+X` | Close pane (alt) |
+| `Cmd+Shift++/-/=` | Resize increase/decrease |
+| `Cmd+Shift+Up/Down` | Navigate stacked panes |
+| `Cmd+Shift+G` | Lock mode |
+| `Cmd+Shift+P` | Pane mode |
+| `Cmd+Shift+T` | Tab mode (then `n` for new tab) |
+| `Cmd+Shift+S` | Session mode |
+| `Cmd+Shift+E` | Scroll mode |
+| `Cmd+Shift+R` | Resize mode |
+| `Cmd+Shift+M` | Move mode |
+
+Ghostty window management uses `Cmd+Ctrl`: `Cmd+Ctrl+W` (close surface), `Cmd+Ctrl+N` (new window).
+
 ### tools/
 
 Custom CLI tools.
