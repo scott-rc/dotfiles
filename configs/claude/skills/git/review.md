@@ -19,11 +19,13 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
 4. **Fix each unresolved thread**:
-   - Read all comments in the thread — later replies often contain clarifications or refined requests
+   - Read all comments in the thread -- later replies often contain clarifications or refined requests
    - Open the file at the indicated line
    - Understand the reviewer's concern and apply the fix
    - Group threads by file path to minimize context switching
 
-5. **After all fixes, offer follow-up actions**:
+5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
+
+6. **After all fixes, offer follow-up actions**:
    - Commit the changes (commit operation)
    - Push to update the PR (push operation)

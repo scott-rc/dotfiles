@@ -35,7 +35,8 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
 - [ ] **No over-explaining**: Steps don't explain basic concepts the agent already knows (e.g., "markdown is a formatting language")
 - [ ] **Concise steps** *(Skills only)*: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
-- [ ] **Tight prose**: Instructions use terse, imperative style — no filler words, unnecessary articles, or verbose phrasing where fragments suffice
+- [ ] **Tight prose**: Terse, imperative style per [spec.md](spec.md) Content Rules
+- [ ] **No tables**: Lists instead of markdown tables per [spec.md](spec.md) Content Rules
 - [ ] **Only novel information** *(Rules only)*: Every instruction teaches something Claude cannot infer from the codebase or common knowledge
 - [ ] **Actionable instructions** *(Rules only)*: Every instruction is specific enough to act on (FAIL: "write clean code", "follow best practices")
 
@@ -62,7 +63,6 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Appropriate granularity**: CLAUDE.md files under ~200 lines; split into scoped rules or `@file` references if longer
 - [ ] **No common knowledge**: Does not teach Claude things it already knows (language syntax, standard library, well-known patterns)
 - [ ] **No README duplication**: Uses `@README.md` instead of copying project setup information
-- [ ] **Stable content**: No version numbers, specific dates, or URLs that will rot
 - [ ] **Correct scope placement**: Instructions that apply to a subset of the codebase use scoped rules, not the main CLAUDE.md
 
 ## Testing (Skills only)
@@ -75,8 +75,8 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 
 ### Shared Anti-patterns
 
-- [ ] **No time-sensitive content**: No specific version numbers, dates, or URLs that will rot
-- [ ] **No inconsistent terms**: The same concept is not called by different names in different files
+- [ ] **No time-sensitive content**: No version numbers, dates, or URLs that will rot per [spec.md](spec.md) Content Rules
+- [ ] **No inconsistent terms**: Same concept uses the same word everywhere per [spec.md](spec.md) Content Rules
 - [ ] **No Windows paths**: No backslashes in file paths
 
 ### Skill Anti-patterns
@@ -88,9 +88,3 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
 
-### Rules Anti-patterns
-
-- [ ] **No duplicated README content**: Uses `@file` references instead of copying content from other files
-- [ ] **No vague instructions**: Every instruction is specific and actionable, not generic advice
-- [ ] **No common knowledge**: Does not explain things Claude already knows
-- [ ] **No excessive length**: CLAUDE.md stays under ~200 lines; uses scoped rules and `@file` for overflow

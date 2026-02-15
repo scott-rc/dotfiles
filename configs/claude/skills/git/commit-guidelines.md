@@ -18,7 +18,7 @@ Separate title and body with a blank line. The body is optional for trivial chan
 
 ## Body
 
-- SHOULD explain the motivation and reasoning—why these changes were made, not just what changed
+- SHOULD explain the motivation and reasoning -- why these changes were made, not just what changed
 - MUST write prose, not bullets (unless listing genuinely unrelated items)
 - Use backticks for code: function names, variables, file paths, flags, etc.
 

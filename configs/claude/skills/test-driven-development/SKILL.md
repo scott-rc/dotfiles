@@ -32,6 +32,8 @@ Users often request multiple operations together. Handle these as follows:
 
 **Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
 
+All operations SHOULD apply coding style preferences from the `writing-code` skill when writing test code.
+
 ## References
 
 - [test-environment.md](test-environment.md) — Test runner detection, file placement conventions, and framework setup

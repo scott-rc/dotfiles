@@ -23,5 +23,3 @@ Write characterization tests for existing untested code — documenting its curr
    - Number of tests added
    - Behaviors documented
    - Any potential bugs discovered (with specifics)
-
-SHOULD apply coding style preferences from the `writing-code` skill when writing test code.

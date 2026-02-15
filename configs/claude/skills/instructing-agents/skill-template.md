@@ -31,7 +31,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"<user phrase>"** → <Which operations to run, in what order>
 - **"<user phrase>"** → <Which operations to run>
 
-**Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
+**Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
 
 ## References
 

@@ -27,14 +27,14 @@ Squash all commits on the current branch into a single commit.
    ```
    Note the overall purpose for crafting the squash message.
 
-7. **Verify scope before squashing** following the scope verification pattern in [git-patterns.md](git-patterns.md).
+7. **Verify scope before squashing**: MUST follow the scope verification pattern in [git-patterns.md](git-patterns.md).
 
 8. **Confirm before squashing**:
    - Show the commits that will be squashed (from step 3)
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
-   - Ask the user to confirm before proceeding
+   - MUST ask the user to confirm before proceeding
 
-9. **Squash into a single commit**, using a message that follows [commit-guidelines.md](commit-guidelines.md):
+9. **Squash into a single commit**: MUST follow [commit-guidelines.md](commit-guidelines.md) for the message:
    ```bash
    git reset --soft origin/<base>
    git commit

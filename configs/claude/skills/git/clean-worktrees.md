@@ -23,7 +23,7 @@ Remove worktrees whose branches have been merged to main.
    - Show the worktree path and branch name for each
    - If no merged worktrees found, report that and exit
 
-5. **Confirm deletion** with the user (show the full list)
+5. **Confirm deletion**: MUST confirm with the user before removing (show the full list)
 
 6. **Remove confirmed worktrees**:
    - Run `git worktree remove <path>` to remove the worktree

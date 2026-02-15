@@ -1,6 +1,6 @@
 # Create Rules
 
-Write a CLAUDE.md project instructions file or a `.claude/rules/` scoped rules file, producing clear and concise instructions that configure Claude's behavior.
+Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise project instructions that configure Claude's behavior.
 
 ## Instructions
 

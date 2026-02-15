@@ -1,6 +1,6 @@
 # Authoring Specification
 
-Rules for authoring Claude Code agent skills and project rules (CLAUDE.md files). All operations in this skill validate against these rules.
+Rules for authoring Claude Code agent skills and rules files (CLAUDE.md, `.claude/rules/`). All operations in this skill validate against these rules.
 
 ## Shared Rules
 
@@ -8,7 +8,7 @@ These rules apply to both skills and rules files.
 
 ### Keyword Conventions
 
-The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in instruction files are used as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119):
+The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in skill and rules files are used as described in RFC 2119:
 
 - **MUST** / **MUST NOT** — absolute requirement or prohibition. The instruction is broken if violated.
 - **SHOULD** / **SHOULD NOT** — strong recommendation. Can be ignored only with good reason.
@@ -23,7 +23,8 @@ Write these keywords in ALL CAPS when used with their RFC meaning. Use lowercase
 - **No time-sensitive information**: MUST NOT reference specific versions, dates, or URLs that will rot
 - **Consistent terminology**: MUST pick one term and use it everywhere (e.g., "operation" not sometimes "command" and sometimes "action")
 - **POSIX paths**: MUST use forward slashes. No backslashes, no Windows paths.
-- **Markdown only**: All instruction files MUST be markdown. Use code blocks for shell commands.
+- **Markdown only**: All skill and rules files MUST be markdown. Use code blocks for shell commands.
+- **No tables**: MUST use lists instead of markdown tables. Tables add significant token overhead (pipes, header separators, padding) with no benefit for LLM comprehension. Use bulleted lists with `—` separators for key-value pairs, or split into labeled sub-lists for multi-column data.
 - **RFC 2119 keywords**: SHOULD use MUST, SHOULD, and MAY (capitalized) per the Keyword Conventions section above. Reserve MUST for rules where violation breaks the outcome.
 
 ## Skill Specification
@@ -116,7 +117,7 @@ These rules supplement the shared Content Rules above:
 
 ## Rules Specification
 
-Rules for authoring CLAUDE.md project instructions and `.claude/rules/` scoped rules.
+Rules for authoring CLAUDE.md and `.claude/rules/` rules files.
 
 ### Overview
 
@@ -124,12 +125,10 @@ CLAUDE.md files provide persistent instructions that Claude loads into every con
 
 ### File Locations
 
-| File | Scope | When Loaded |
-|------|-------|-------------|
-| `CLAUDE.md` (project root) | Project-wide | Every conversation in that project |
-| `CLAUDE.md` (subdirectory) | Subtree | When working on files in that subtree |
-| `~/.claude/CLAUDE.md` | Global (user) | Every conversation across all projects |
-| `.claude/rules/*.md` | Scoped | When `paths:` frontmatter matches active files |
+- `CLAUDE.md` (project root) — Project-wide, loads every conversation in that project
+- `CLAUDE.md` (subdirectory) — Subtree, loads when working on files in that subtree
+- `~/.claude/CLAUDE.md` — Global (user), loads every conversation across all projects
+- `.claude/rules/*.md` — Scoped, loads when `paths:` frontmatter matches active files
 
 CLAUDE.md files cascade: global, then project root, then subdirectories. More specific files supplement, not override, broader ones.
 

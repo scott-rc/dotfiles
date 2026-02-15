@@ -18,11 +18,11 @@ Squash all commits on the current branch into a single commit.
 See [squash.md](squash.md) for detailed instructions.
 
 ### Rebase
-Pull trunk and rebase the current branch.
+Fetch latest and rebase onto base branch.
 See [rebase.md](rebase.md) for detailed instructions.
 
 ### Push
-Push commits and create/update PR, syncing title/description with first commit.
+Push commits and create/update PR with title/description per guidelines.
 See [push.md](push.md) for detailed instructions.
 
 ### CI
@@ -49,7 +49,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"squash and push"** → Run squash operation, then push operation
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
-- **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (sync PR title/description with first commit)
+- **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (rewrite PR title/description per guidelines)
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run review operation
 - **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
 

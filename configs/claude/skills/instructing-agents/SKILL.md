@@ -1,11 +1,11 @@
 ---
 name: instructing-agents
-description: Creates and reviews Claude Code agent skills and CLAUDE.md project instructions when users ask to scaffold, build, review, improve, or fix skills or write, update, or review CLAUDE.md rules files.
+description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files when users ask to scaffold, build, review, improve, or fix skills or write, update, or review CLAUDE.md rules files.
 ---
 
 # Instructing Agents
 
-Help create and review Claude Code agent skills and CLAUDE.md project instructions based on best practices.
+Help create and review Claude Code agent skills and CLAUDE.md rules files based on best practices.
 
 ## Operations
 
@@ -35,7 +35,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
 - **"review"** (ambiguous) → Ask the user whether they mean a skill or a rules file
 
-**Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
+**Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
 
 ## References
 

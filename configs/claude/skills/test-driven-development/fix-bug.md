@@ -27,5 +27,3 @@ Write a regression test that reproduces the bug, then fix it — ensuring the bu
    - What the regression test covers
    - What changed in the fix
    - Whether any other tests were affected
-
-SHOULD apply coding style preferences from the `writing-code` skill when writing test code.

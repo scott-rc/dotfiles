@@ -14,7 +14,7 @@ This returns the branch that `origin/HEAD` points to (typically `main` or `maste
 
 ## Dotfiles Exception
 
-The `dotfiles` repo is special—direct commits to main are acceptable there.
+The `dotfiles` repo is special -- direct commits to main are acceptable there.
 
 Detection: Check if the repo path ends with `/dotfiles`:
 ```bash
@@ -42,7 +42,7 @@ Always use:
 git fetch origin
 ```
 
-**Never** use:
+MUST NOT use:
 ```bash
 git fetch origin <branch>:<branch>  # WRONG - fails if branch is checked out in another worktree
 ```

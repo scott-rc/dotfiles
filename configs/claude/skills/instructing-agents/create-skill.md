@@ -46,14 +46,14 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - MUST provide information, not step-by-step instructions
    - SHOULD keep each reference file focused on one topic
 
-7. **Validate the skill**:
+7. **Validate and evaluate**:
    - MUST run through [quality-checklist.md](quality-checklist.md)
    - MUST check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
+   - SHOULD build evaluations: create at least one test scenario per operation as a JSON object with `input` (user phrase), `expected` (correct behavior), and `criteria` (how to judge pass/fail)
+   - SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails
    - MUST fix any issues found before reporting to the user
 
-8. **Report and evaluate**:
+8. **Report results**:
    - MUST list all files created with a one-line description of each
    - MUST show the full `description` field so the user can verify trigger keywords
-   - SHOULD build evaluations before finalizing: create at least one test scenario per operation as a JSON object with `input` (user phrase), `expected` (correct behavior), and `criteria` (how to judge pass/fail)
-   - SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails
    - SHOULD run the review operation on the new skill to catch structural issues

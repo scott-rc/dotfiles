@@ -87,10 +87,16 @@ paths:
 
 ### What to include vs exclude
 
-| Include | Exclude |
-|---------|---------|
-| "Use bun, not npm" | "JavaScript uses `const` for constants" |
-| "Run `make lint` before committing" | "Git commits should have messages" |
-| "Tests go in `__tests__/` next to source" | "Write unit tests for your code" |
-| "This monorepo has packages in `packages/`" | "A monorepo contains multiple packages" |
-| "Use snake_case for database columns" | "SQL tables have columns" |
+**Include** (Claude cannot infer these):
+- "Use bun, not npm"
+- "Run `make lint` before committing"
+- "Tests go in `__tests__/` next to source"
+- "This monorepo has packages in `packages/`"
+- "Use snake_case for database columns"
+
+**Exclude** (common knowledge, adds no value):
+- "JavaScript uses `const` for constants"
+- "Git commits should have messages"
+- "Write unit tests for your code"
+- "A monorepo contains multiple packages"
+- "SQL tables have columns"

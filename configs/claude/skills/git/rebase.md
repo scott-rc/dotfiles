@@ -21,6 +21,6 @@ Fetch the latest from the base branch and rebase the current branch onto it.
    - Report conflicts to the user
    - Offer to help resolve them or abort with `git rebase --abort`
 
-5. **If rebase succeeds**, verify branch scope following the scope verification pattern in [git-patterns.md](git-patterns.md). Also show commit count: `git rev-list --count origin/<base>..HEAD`
+5. **If rebase succeeds**: MUST verify branch scope following the scope verification pattern in [git-patterns.md](git-patterns.md). SHOULD also show commit count: `git rev-list --count origin/<base>..HEAD`
 
 See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

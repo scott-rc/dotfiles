@@ -40,7 +40,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 6. **Copy `.envrc.local`** to the new worktree if it exists in the original repo
 
-7. **Copy local config files** — MUST copy the following to the new worktree (if they exist in the original repo):
+7. **Copy local config files**: MUST copy the following to the new worktree (if they exist in the original repo):
    - `.env.local` - local environment variables
    - `CLAUDE.local.md` - local Claude instructions
    - `.mcp.json` - local MCP configuration

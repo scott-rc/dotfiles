@@ -20,11 +20,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    MUST validate the rules file against every rule in the Rules Specification section of [spec.md](spec.md), covering file location, structure, content guidelines, `@file` references, scoped rules frontmatter, and anti-patterns.
 
 4. **Evaluate content quality against checklist**:
-   MUST run through the Rules-specific items in [quality-checklist.md](quality-checklist.md):
-   - Structure — Rules (@file references, content duplication, scoped rules paths, heading hierarchy)
-   - Content efficiency (token justification, redundancy, novel information, actionable instructions)
-   - Rules quality (granularity, common knowledge, README duplication, stable content, scope placement)
-   - Rules anti-patterns (duplicated content, vague instructions, common knowledge, excessive length)
+   MUST evaluate against every Rules-relevant item in [quality-checklist.md](quality-checklist.md).
 
 5. **Check for additional issues**:
    - Instructions that belong in scoped rules rather than the main CLAUDE.md (they apply to a small subset of files)
