@@ -26,7 +26,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Appropriate file location**: The rules file is in the correct location for its scope (project root, subdirectory, global, or `.claude/rules/`)
 - [ ] **@file references resolve**: Every `@filename` reference points to a file that exists
 - [ ] **No content duplication**: Information in referenced files (`@README.md`, etc.) is not repeated in the rules file
-- [ ] **Scoped rules have paths**: Files in `.claude/rules/` have `paths:` frontmatter with valid glob patterns
+- [ ] **Scoped rules have paths**: Files in `.claude/rules/` intended to be path-specific have `paths:` frontmatter with valid glob patterns. Files without `paths:` load unconditionally (this is valid for topic-specific rules that apply project-wide).
 - [ ] **Flat heading hierarchy**: Headings do not go deeper than H3
 
 ## Content Efficiency

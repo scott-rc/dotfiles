@@ -6,7 +6,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 
 1. **Gather requirements**:
    Ask the user about:
-   - What type of rules file they need (project CLAUDE.md, global CLAUDE.md, or scoped rule)
+   - What type of rules file they need (project CLAUDE.md, global CLAUDE.md, unconditional rule, scoped rule, or user-level rule)
    - What project or directory the rules are for
    - What instructions or conventions they want to encode
    - Whether existing documentation (README, CONTRIBUTING, etc.) should be referenced via `@file`
@@ -16,7 +16,10 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - **Project CLAUDE.md**: `<project-root>/CLAUDE.md` — for project-wide instructions
    - **Subdirectory CLAUDE.md**: `<project-root>/<subdir>/CLAUDE.md` — for subtree-specific instructions
    - **Global CLAUDE.md**: `~/.claude/CLAUDE.md` — for user-wide preferences across all projects
-   - **Scoped rule**: `<project-root>/.claude/rules/<name>.md` — for path-specific instructions
+   - **Unconditional rule**: `<project-root>/.claude/rules/<name>.md` (no `paths:` frontmatter) — for topic-specific project instructions that always load
+   - **Scoped rule**: `<project-root>/.claude/rules/<name>.md` (with `paths:` frontmatter) — for path-specific instructions
+   - **User-level rule**: `~/.claude/rules/<name>.md` — for personal rules across all projects (loaded before project rules)
+   - Rules files MAY be organized into subdirectories (e.g., `.claude/rules/frontend/react.md`)
    - MUST confirm the location with the user before proceeding
    - If a file already exists at the target location, read it and ask the user whether to replace, extend, or pick a different location
 
@@ -30,7 +33,8 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - MUST use the appropriate template from [rules-template.md](rules-template.md)
    - MUST use `@file` references for existing documentation instead of duplicating content
    - MUST write only instructions that teach Claude something it cannot infer on its own
-   - For scoped rules: MUST include `paths:` YAML frontmatter with glob patterns
+   - For scoped rules: MUST include `paths:` YAML frontmatter with glob patterns (brace expansion supported, e.g., `*.{ts,tsx}`)
+   - For unconditional rules: MUST NOT include `paths:` frontmatter
    - SHOULD keep CLAUDE.md files under ~200 lines
    - SHOULD use `---` separators between distinct instruction groups
 

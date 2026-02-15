@@ -121,16 +121,18 @@ Rules for authoring CLAUDE.md and `.claude/rules/` rules files.
 
 ### Overview
 
-CLAUDE.md files provide persistent instructions that Claude loads into every conversation. They configure Claude's behavior for a project or globally. Scoped rules (`.claude/rules/*.md`) provide path-specific instructions that only load when relevant files are being edited.
+CLAUDE.md files provide persistent instructions that Claude loads into every conversation. They configure Claude's behavior for a project or globally. Rules files (`.claude/rules/*.md`) provide modular, topic-specific project instructions — either unconditional or scoped to specific file paths.
 
 ### File Locations
 
 - `CLAUDE.md` (project root) — Project-wide, loads every conversation in that project
 - `CLAUDE.md` (subdirectory) — Subtree, loads when working on files in that subtree
 - `~/.claude/CLAUDE.md` — Global (user), loads every conversation across all projects
-- `.claude/rules/*.md` — Scoped, loads when `paths:` frontmatter matches active files
+- `.claude/rules/*.md` (no `paths:` frontmatter) — Unconditional project rules, always loaded with the same priority as `.claude/CLAUDE.md`
+- `.claude/rules/*.md` (with `paths:` frontmatter) — Scoped rules, loads only when matching files are active
+- `~/.claude/rules/*.md` — User-level rules, loaded before project rules across all projects
 
-CLAUDE.md files cascade: global, then project root, then subdirectories. More specific files supplement, not override, broader ones.
+CLAUDE.md files cascade: global, then project root, then subdirectories. More specific files supplement, not override, broader ones. User-level rules load before project rules, giving project rules higher priority.
 
 ### Structure
 
@@ -165,9 +167,13 @@ Syntax: `@path/to/file` on its own line or inline. Paths are relative to the CLA
 
 SHOULD prefer `@file` over copying content. If the source file changes, the reference stays current.
 
-### Scoped Rules
+### Modular Rules (`.claude/rules/`)
 
-Files in `.claude/rules/` with YAML `paths:` frontmatter only load when matching files are active:
+All `.md` files in `.claude/rules/` are automatically discovered, including in subdirectories (recursive). Symlinks are supported and resolved normally.
+
+**Unconditional rules** — files without `paths:` frontmatter load every conversation, same priority as `.claude/CLAUDE.md`. Use these to split a large CLAUDE.md into focused, topic-specific files.
+
+**Scoped rules** — files with `paths:` frontmatter only load when matching files are active:
 
 ```yaml
 ---
@@ -179,6 +185,25 @@ paths:
 Instructions that only apply when working on API files or tests.
 ```
 
+Glob patterns support brace expansion: `"src/**/*.{ts,tsx}"` matches both `.ts` and `.tsx` files. Multiple patterns can be listed.
+
+**Subdirectory organization** — rules can be grouped into subdirectories for structure:
+
+```
+.claude/rules/
+├── frontend/
+│   ├── react.md
+│   └── styles.md
+├── backend/
+│   ├── api.md
+│   └── database.md
+└── general.md
+```
+
+Use unconditional rules when:
+- CLAUDE.md exceeds ~200 lines and needs to be split into focused topics
+- Instructions are project-wide but logically separate from the main CLAUDE.md
+
 Use scoped rules when instructions:
 - Apply to a subset of the codebase, not the whole project
 - Would add noise to the main CLAUDE.md for most conversations
@@ -189,5 +214,5 @@ Use scoped rules when instructions:
 - **Duplicating README content**: Use `@README.md` instead of copying setup instructions
 - **Common knowledge**: Don't teach Claude things it already knows (e.g., "use `git add` before `git commit`")
 - **Vague instructions**: "Follow best practices" is not actionable. State the specific practice.
-- **Excessive length**: If CLAUDE.md exceeds ~200 lines, split into scoped rules or use `@file` references
+- **Excessive length**: If CLAUDE.md exceeds ~200 lines, split into `.claude/rules/` files or use `@file` references
 - **Unstable references**: Don't hardcode version numbers, specific dates, or URLs that may change

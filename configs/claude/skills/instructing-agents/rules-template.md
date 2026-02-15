@@ -1,6 +1,6 @@
 # Rules Templates
 
-Annotated templates for creating CLAUDE.md and scoped rules files. Replace placeholders (`<...>`) with actual content.
+Annotated templates for creating CLAUDE.md and `.claude/rules/` files. Replace placeholders (`<...>`) with actual content.
 
 ## Project CLAUDE.md Template
 
@@ -47,6 +47,20 @@ Annotated templates for creating CLAUDE.md and scoped rules files. Replace place
 - Focus on personal workflow preferences, not project-specific details
 - Repository maps help Claude navigate between projects by name
 
+## Unconditional Rules Template
+
+```markdown
+# <Topic>
+
+<Focused instructions for this topic. No frontmatter needed — loads every conversation.>
+```
+
+**Guidance:**
+- Use to split a large CLAUDE.md into focused, topic-specific files
+- Place in `.claude/rules/<topic>.md`
+- Organize into subdirectories when there are many rules (e.g., `frontend/`, `backend/`)
+- One concern per file (e.g., `code-style.md`, `testing.md`, `security.md`)
+
 ## Scoped Rules Template
 
 ```yaml
@@ -63,6 +77,7 @@ paths:
 
 **Guidance:**
 - Use glob patterns: `src/api/**`, `*.test.ts`, `packages/core/**/*.ts`
+- Brace expansion supported: `src/**/*.{ts,tsx}`, `{src,lib}/**/*.ts`
 - Keep scoped rules short — they load alongside the main CLAUDE.md
 - One concern per file (e.g., API conventions, test patterns, component guidelines)
 
@@ -79,11 +94,11 @@ paths:
 - The instruction is a one-liner (just write it directly)
 - The referenced file contains mostly irrelevant content (extract the relevant parts instead)
 
-### When to split into scoped rules
+### When to split into `.claude/rules/` files
 
-- Instructions apply to less than ~30% of the codebase
-- The main CLAUDE.md exceeds ~200 lines
-- Different directories have conflicting conventions (e.g., frontend vs backend)
+- The main CLAUDE.md exceeds ~200 lines — split topic-specific sections into unconditional rules files
+- Instructions apply to less than ~30% of the codebase — use scoped rules with `paths:` frontmatter
+- Different directories have conflicting conventions (e.g., frontend vs backend) — use scoped rules or subdirectories
 
 ### What to include vs exclude
 
