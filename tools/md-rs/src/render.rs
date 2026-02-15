@@ -326,12 +326,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
             }
             Event::Text(text) => {
-                let styled = if in_strong {
+                let styled = if !link_dest.is_empty() {
+                    style.link_text(&text)
+                } else if in_strong && in_emphasis {
+                    style.strong_style(&style.em_style(&text))
+                } else if in_strong {
                     style.strong_style(&text)
                 } else if in_emphasis {
                     style.em_style(&text)
-                } else if !link_dest.is_empty() {
-                    style.link_text(&text)
                 } else {
                     text.to_string()
                 };
@@ -342,6 +344,15 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::HardBreak => {
                 inline_buffer.push('\n');
+            }
+            Event::Html(text) => {
+                // Block-level HTML: treat as a paragraph (word-wrap the raw text)
+                let wrapped = word_wrap(&text, width, "");
+                push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, wrapped);
+            }
+            Event::InlineHtml(text) => {
+                // Inline HTML: pass through as-is (e.g., <br>, <!-- comment -->)
+                inline_buffer.push_str(&text);
             }
             _ => {}
         }

@@ -2,6 +2,8 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m").unwrap());
+static BACKTICK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$").unwrap());
 
 /// Remove ANSI escape codes from a string.
 pub fn strip_ansi(text: &str) -> String {
@@ -142,9 +144,7 @@ fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                 let bt_count = vis.matches('`').count();
                 if bt_count % 2 == 1 && vis.trim_end().ends_with('`') {
                     // Try to find and remove trailing backtick (possibly wrapped in ANSI codes)
-                    let backtick_re =
-                        Regex::new(r"((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$").unwrap();
-                    if let Some(m) = backtick_re.find(&line_to_save) {
+                    if let Some(m) = BACKTICK_RE.find(&line_to_save) {
                         let captured = m.as_str().to_string();
                         line_to_save = line_to_save[..m.start()].trim_end().to_string();
                         if !strip_ansi(&line_to_save).trim().is_empty() {

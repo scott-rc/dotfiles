@@ -249,13 +249,12 @@ fi
 
 # --- Tools ---
 
-if command -v deno &>/dev/null; then
-	log_info "Installing tools"
-	(cd "$WORKSPACE_ROOT/tools/md" && deno task install)
-fi
-
 ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
 if command -v cargo &>/dev/null; then
+	log_info "Building md"
+	(cd "$WORKSPACE_ROOT/tools/md-rs" && cargo build --release 2>&1)
+	cp "$WORKSPACE_ROOT/tools/md-rs/target/release/md" "$HOME/.cargo/bin/md"
+
 	log_info "Building zellij-sync-stacks plugin"
 	mkdir -p "$ZELLIJ_PLUGIN_DIR"
 	(cd "$WORKSPACE_ROOT/tools/zellij-sync-stacks" && cargo build --release 2>&1)
