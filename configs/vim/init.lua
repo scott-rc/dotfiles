@@ -77,6 +77,21 @@ vim.keymap.set('v', '<D-c>', '"+y', { desc = 'Copy to clipboard' })
 vim.keymap.set('n', '<D-q>', '<cmd>qa<CR>', { desc = 'Quit' })
 vim.keymap.set({ 'n', 'i' }, '<D-s>', '<cmd>w<CR>', { desc = 'Save' })
 vim.keymap.set('n', '<D-w>', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
+vim.keymap.set('n', '<D-1>', function()
+  local win = vim.g._last_file_win
+  if win and vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_set_current_win(win)
+    return
+  end
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(w)
+    if vim.bo[buf].buftype == '' then
+      vim.api.nvim_set_current_win(w)
+      return
+    end
+  end
+end, { desc = 'Focus primary buffer' })
+
 vim.keymap.set('n', '<leader>yp', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.')) end, { desc = 'Copy relative path' })
 vim.keymap.set('n', '<leader>yP', function() vim.fn.setreg('+', vim.fn.expand('%:p')) end, { desc = 'Copy absolute path' })
 vim.keymap.set('n', '<leader>yl', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy relative path:line' })
@@ -116,6 +131,16 @@ vim.api.nvim_create_autocmd('VimEnter', {
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter' }, {
   group = augroup,
   command = 'checktime',
+})
+
+-- Track the last window showing a regular file buffer
+vim.api.nvim_create_autocmd('BufEnter', {
+  group = augroup,
+  callback = function()
+    if vim.bo.buftype == '' then
+      vim.g._last_file_win = vim.api.nvim_get_current_win()
+    end
+  end,
 })
 
 

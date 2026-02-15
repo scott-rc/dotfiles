@@ -33,6 +33,8 @@ keybind = cmd+s=unbind
 keybind = cmd+c=unbind
 keybind = cmd+x=unbind
 keybind = cmd+d=unbind
+keybind = cmd+1=unbind
+keybind = cmd+digit_1=unbind
 keybind = cmd+ctrl+w=close_surface
 keybind = cmd+ctrl+n=new_window
 keybind = cmd+shift+d=unbind
