@@ -74,6 +74,9 @@ vim.keymap.set('n', '<leader>[', '<cmd>tabp<CR>', { desc = 'Previous tab' })
 vim.keymap.set('n', '<leader>]', '<cmd>tabn<CR>', { desc = 'Next tab' })
 vim.keymap.set('n', '<leader>%', '<cmd>source %<CR>', { desc = 'Source file' })
 vim.keymap.set('v', '<D-c>', '"+y', { desc = 'Copy to clipboard' })
+vim.keymap.set('n', '<D-q>', '<cmd>qa<CR>', { desc = 'Quit' })
+vim.keymap.set({ 'n', 'i' }, '<D-s>', '<cmd>w<CR>', { desc = 'Save' })
+vim.keymap.set('n', '<D-w>', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
 vim.keymap.set('n', '<leader>yp', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.')) end, { desc = 'Copy relative path' })
 vim.keymap.set('n', '<leader>yP', function() vim.fn.setreg('+', vim.fn.expand('%:p')) end, { desc = 'Copy absolute path' })
 vim.keymap.set('n', '<leader>yl', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy relative path:line' })
@@ -268,6 +271,21 @@ require('lazy').setup({
         end,
         desc = 'Changed files vs base branch',
       },
+      { '<D-g>', function()
+          if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
+            vim.cmd('Neotree close')
+          else
+            local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
+            local base = 'main'
+            if handle then
+              local result = handle:read('*a'):gsub('%s+', '')
+              handle:close()
+              local branch = result:match('origin/(.*)')
+              if branch and branch ~= '' then base = branch end
+            end
+            vim.cmd('Neotree focus source=git_status git_base=' .. base)
+          end
+        end, desc = 'Focus/toggle git changes' },
       { '<C-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             vim.cmd('Neotree close')
@@ -318,18 +336,36 @@ require('lazy').setup({
   },
 
   -- Fuzzy finder
-  { 'junegunn/fzf', build = ':call fzf#install()' },
   {
-    'junegunn/fzf.vim',
+    'nvim-telescope/telescope.nvim',
+    branch = '0.1.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
+    },
     config = function()
-      vim.g.fzf_vim = { preview_window = { 'up,60%', 'ctrl-/' } }
+      local telescope = require('telescope')
+      local actions = require('telescope.actions')
+      telescope.setup({
+        defaults = {
+          layout_strategy = 'vertical',
+          layout_config = { preview_cutoff = 20, preview_height = 0.6 },
+          mappings = { i = { ['<Esc>'] = actions.close } },
+        },
+        pickers = {
+          find_files = { hidden = true, file_ignore_patterns = { '%.git/' } },
+        },
+      })
+      telescope.load_extension('fzf')
     end,
     keys = {
-      { '<leader>f', '<cmd>Files<CR>', desc = 'Find files' },
-      { '<leader>b', '<cmd>Buffers<CR>', desc = 'Find buffers' },
-      { '<leader>r', '<cmd>Rg<CR>', desc = 'Ripgrep search' },
-      { '<leader>p', '<cmd>Commands<CR>', desc = 'Command palette' },
-      { '<leader>m', '<cmd>Maps<CR>', desc = 'Keybindings' },
+      { '<D-k>',     function() require('telescope.builtin').find_files() end, desc = 'Find files' },
+      { '<D-p>',     function() require('telescope.builtin').commands() end,   desc = 'Command palette' },
+      { '<leader>f', function() require('telescope.builtin').find_files() end, desc = 'Find files' },
+      { '<leader>b', function() require('telescope.builtin').buffers() end,    desc = 'Find buffers' },
+      { '<leader>r', function() require('telescope.builtin').live_grep() end,  desc = 'Ripgrep search' },
+      { '<leader>p', function() require('telescope.builtin').commands() end,   desc = 'Command palette' },
+      { '<leader>m', function() require('telescope.builtin').keymaps() end,    desc = 'Keybindings' },
     },
   },
 
