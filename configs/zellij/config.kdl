@@ -137,6 +137,7 @@ keybinds clear-defaults=true {
         bind "Super Shift ]" { GoToNextTab; }
         bind "Super Shift h" { MoveFocus "left"; }
         bind "Super Shift j" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
+        bind "Super Shift k" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
         bind "Super Shift l" { MoveFocus "right"; }
         bind "Super Shift f" { ToggleFocusFullscreen; }
         bind "Super Shift z" { TogglePaneFrames; }
