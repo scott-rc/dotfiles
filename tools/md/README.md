@@ -16,7 +16,7 @@ md [OPTIONS] [FILE]
 
 | Flag | Description |
 |------|-------------|
-| `-w`, `--width <N>` | Set render width (default: terminal width, max 80) |
+| `-w`, `--width <N>` | Set render width (default: terminal width) |
 | `--no-color` | Disable ANSI color output |
 | `--no-pager` | Disable the built-in pager |
 

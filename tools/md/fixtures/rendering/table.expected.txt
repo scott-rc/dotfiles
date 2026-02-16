@@ -1,7 +1,5 @@
-┌─────────┬─────┬───────────────┐
-│ Name    │ Age │ City          │
-├─────────┼─────┼───────────────┤
-│ Alice   │ 30  │ New York      │
-│ Bob     │ 25  │ LA            │
-│ Charlie │ 35  │ San Francisco │
-└─────────┴─────┴───────────────┘
+| Name    | Age | City          |
+|---------|-----|---------------|
+| Alice   | 30  | New York      |
+| Bob     | 25  | LA            |
+| Charlie | 35  | San Francisco |

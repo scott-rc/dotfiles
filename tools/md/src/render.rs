@@ -515,10 +515,24 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
         shrink_columns(&mut col_widths, width);
     }
 
-    // Build a horizontal border line: ┌─────┬─────┐ / ├─────┼─────┤ / └─────┴─────┘
-    let border_line = |left: &str, mid: &str, right: &str| -> String {
-        let segments: Vec<String> = col_widths.iter().map(|&w| "─".repeat(w + 2)).collect();
-        style.table_border(&format!("{}{}{}", left, segments.join(mid), right))
+    // Build separator line with alignment markers
+    let separator_line = || -> String {
+        let segments: Vec<String> = col_widths
+            .iter()
+            .enumerate()
+            .map(|(i, &w)| {
+                let dashes = w + 2; // padding on each side
+                match table.alignments.get(i) {
+                    Some(Alignment::Left) => format!(":{}|", "-".repeat(dashes - 1)),
+                    Some(Alignment::Center) => {
+                        format!(":{}:|", "-".repeat(dashes.saturating_sub(2)))
+                    }
+                    Some(Alignment::Right) => format!("{}:|", "-".repeat(dashes - 1)),
+                    _ => format!("{}|", "-".repeat(dashes)),
+                }
+            })
+            .collect();
+        style.table_border(&format!("|{}", segments.join("")))
     };
 
     // Render a row of cells, wrapping content into multiple visual lines if needed.
@@ -532,7 +546,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             .collect();
 
         let row_height = wrapped.iter().map(std::vec::Vec::len).max().unwrap_or(1);
-        let sep = format!(" {} ", style.table_border("│"));
+        let sep = format!(" {} ", style.table_border("|"));
 
         let mut row_lines = Vec::new();
         for line_idx in 0..row_height {
@@ -565,22 +579,20 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             }
             row_lines.push(format!(
                 "{} {} {}",
-                style.table_border("│"),
+                style.table_border("|"),
                 parts.join(&sep),
-                style.table_border("│")
+                style.table_border("|")
             ));
         }
         row_lines
     };
 
     let mut lines = Vec::new();
-    lines.push(border_line("┌", "┬", "┐"));
     lines.extend(format_row(&table.head_cells, true));
-    lines.push(border_line("├", "┼", "┤"));
+    lines.push(separator_line());
     for row in &table.rows {
         lines.extend(format_row(row, false));
     }
-    lines.push(border_line("└", "┴", "┘"));
 
     lines.join("\n")
 }

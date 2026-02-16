@@ -8,8 +8,6 @@ use md::pager::run_pager;
 use md::render::render_markdown;
 use md::style::Style;
 
-const MAX_WIDTH: usize = 80;
-
 #[derive(Parser)]
 #[command(name = "md", about = "Terminal markdown renderer")]
 struct Args {
@@ -41,9 +39,9 @@ fn render_width(args: &Args) -> (usize, Option<usize>) {
     let width = if let Some(w) = args.width {
         w
     } else if let Some(tw) = term_width {
-        tw.min(MAX_WIDTH)
+        tw
     } else {
-        MAX_WIDTH
+        80
     };
 
     (width, term_width)

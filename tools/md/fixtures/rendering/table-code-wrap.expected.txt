@@ -1,8 +1,6 @@
-┌──────────────────────┬───────────────────────────────────┐
-│ Command              │ Description                       │
-├──────────────────────┼───────────────────────────────────┤
-│ `git commit --amend` │ Amend the previous commit with    │
-│                      │ staged changes                    │
-│ `docker compose up   │ Build images before starting      │
-│ --build`             │ containers                        │
-└──────────────────────┴───────────────────────────────────┘
+| Command              | Description                       |
+|----------------------|-----------------------------------|
+| `git commit --amend` | Amend the previous commit with    |
+|                      | staged changes                    |
+| `docker compose up   | Build images before starting      |
+| --build`             | containers                        |

@@ -574,11 +574,7 @@ pub fn run_pager(
         let (_cols, rows) = get_term_size();
         let content_height = rows.saturating_sub(1) as usize;
         let half_page = content_height / 2;
-        let max_top = if state.lines.len() > content_height / 2 {
-            state.lines.len() - content_height.div_ceil(2)
-        } else {
-            0
-        };
+        let max_top = state.lines.len().saturating_sub(content_height);
 
         let mut quit = false;
 
@@ -691,11 +687,7 @@ fn scroll_to_match(state: &mut PagerState) {
     let (_, rows) = get_term_size();
     let content_height = rows.saturating_sub(1) as usize;
     let target = match_line.saturating_sub(content_height / 3);
-    let max_top = if state.lines.len() > content_height / 2 {
-        state.lines.len() - content_height.div_ceil(2)
-    } else {
-        0
-    };
+    let max_top = state.lines.len().saturating_sub(content_height);
     state.top_line = target.min(max_top);
 }
 
@@ -704,11 +696,7 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
     let content_height = rows.saturating_sub(1) as usize;
 
     // Clamp top_line
-    let max_top = if state.lines.len() > content_height / 2 {
-        state.lines.len() - content_height.div_ceil(2)
-    } else {
-        0
-    };
+    let max_top = state.lines.len().saturating_sub(content_height);
     let top = state.top_line.min(max_top);
 
     move_to(out, 0, 0);
