@@ -121,4 +121,27 @@ mod tests {
         let keys: Vec<&String> = fm.keys().collect();
         assert_eq!(keys, vec!["alpha", "beta", "gamma"]);
     }
+
+    #[test]
+    fn no_closing_delimiter() {
+        let input = "---\ntitle: hello\nno end";
+        let result = parse_frontmatter(input);
+        assert!(
+            result.frontmatter.is_none(),
+            "missing closing --- should not parse as frontmatter"
+        );
+        assert_eq!(result.body, input);
+    }
+
+    #[test]
+    fn frontmatter_only_no_body() {
+        let input = "---\ntitle: hello\n---";
+        let result = parse_frontmatter(input);
+        let fm = result.frontmatter.expect("should have frontmatter");
+        assert_eq!(
+            fm.get("title").unwrap(),
+            &serde_yaml::Value::String("hello".into())
+        );
+        assert_eq!(result.body, "");
+    }
 }

@@ -109,4 +109,24 @@ mod tests {
         let output_lines = result.split('\n').count();
         assert_eq!(input_lines, output_lines, "line count mismatch");
     }
+
+    #[test]
+    fn rust_syntax_highlighted() {
+        let result = highlight_code("fn main() {}", Some("rust"), true);
+        assert!(
+            result.contains("\x1b["),
+            "Rust code should produce ANSI output, got: {result}"
+        );
+        assert_eq!(strip_ansi(&result), "fn main() {}");
+    }
+
+    #[test]
+    fn python_syntax_highlighted() {
+        let result = highlight_code("def foo():", Some("python"), true);
+        assert!(
+            result.contains("\x1b["),
+            "Python code should produce ANSI output, got: {result}"
+        );
+        assert_eq!(strip_ansi(&result), "def foo():");
+    }
 }

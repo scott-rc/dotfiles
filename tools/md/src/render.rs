@@ -731,6 +731,17 @@ mod tests {
     rendering_fixture!(test_table_empty, "table-empty");
     rendering_fixture!(test_table_code_wrap, "table-code-wrap");
     rendering_fixture!(test_mixed_document, "mixed-document");
+    rendering_fixture!(test_heading_h3, "heading-h3");
+    rendering_fixture!(test_heading_h4, "heading-h4");
+    rendering_fixture!(test_heading_h5, "heading-h5");
+    rendering_fixture!(test_heading_h6, "heading-h6");
+    rendering_fixture!(test_nested_blockquote, "nested-blockquote");
+    rendering_fixture!(test_bold_italic, "bold-italic");
+    rendering_fixture!(test_image, "image");
+    rendering_fixture!(test_hard_break, "hard-break");
+    rendering_fixture!(test_html_inline, "html-inline");
+    rendering_fixture!(test_code_block_in_list, "code-block-in-list");
+    rendering_fixture!(test_multiple_paragraphs, "multiple-paragraphs");
 
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {
@@ -853,5 +864,94 @@ mod tests {
                 "line exceeds max_width {max}: visible_length={vl}, line={line:?}"
             );
         }
+    }
+
+    // ── format_value tests ─────────────────────────────────
+
+    #[test]
+    fn test_format_value_null() {
+        let result = format_value(&serde_yaml::Value::Null);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_format_value_bool() {
+        assert_eq!(format_value(&serde_yaml::Value::Bool(true)), "true");
+        assert_eq!(format_value(&serde_yaml::Value::Bool(false)), "false");
+    }
+
+    #[test]
+    fn test_format_value_number() {
+        let int: serde_yaml::Value = serde_yaml::from_str("42").unwrap();
+        assert_eq!(format_value(&int), "42");
+
+        let float: serde_yaml::Value = serde_yaml::from_str("3.14").unwrap();
+        assert_eq!(format_value(&float), "3.14");
+    }
+
+    #[test]
+    fn test_format_value_string() {
+        let val = serde_yaml::Value::String("hello world".into());
+        assert_eq!(format_value(&val), "hello world");
+    }
+
+    #[test]
+    fn test_format_value_sequence() {
+        let val = serde_yaml::Value::Sequence(vec![
+            serde_yaml::Value::String("a".into()),
+            serde_yaml::Value::String("b".into()),
+            serde_yaml::Value::String("c".into()),
+        ]);
+        assert_eq!(format_value(&val), "a, b, c");
+    }
+
+    #[test]
+    fn test_format_value_sequence_non_string() {
+        let val = serde_yaml::Value::Sequence(vec![
+            serde_yaml::Value::Bool(true),
+            serde_yaml::Value::Number(serde_yaml::Number::from(1)),
+        ]);
+        let result = format_value(&val);
+        // Non-string items use Debug formatting
+        assert!(result.contains("Bool(true)"), "got: {result}");
+    }
+
+    #[test]
+    fn test_format_value_mapping() {
+        let val: serde_yaml::Value = serde_yaml::from_str("key: value").unwrap();
+        let result = format_value(&val);
+        // Mapping gets serialized as JSON
+        assert!(result.contains("key"), "got: {result}");
+        assert!(result.contains("value"), "got: {result}");
+    }
+
+    // ── shrink_columns tests ───────────────────────────────
+
+    #[test]
+    fn test_shrink_columns_no_op() {
+        // 2 cols of width 5 each: total = 5+5 + 3*2 + 1 = 17
+        // target = 20 → no shrink needed
+        let mut widths = vec![5, 5];
+        shrink_columns(&mut widths, 20);
+        assert_eq!(widths, vec![5, 5]);
+    }
+
+    #[test]
+    fn test_shrink_columns_proportional() {
+        // 2 cols of width 20 each: total = 20+20 + 3*2 + 1 = 47
+        // target = 40 → need to shrink by 7
+        let mut widths = vec![20, 20];
+        shrink_columns(&mut widths, 40);
+        let total: usize = widths.iter().sum::<usize>() + 3 * 2 + 1;
+        assert!(total <= 40, "total {total} should be <= 40");
+    }
+
+    #[test]
+    fn test_shrink_columns_min_width() {
+        // Columns at MIN_COL_WIDTH (3) can't shrink further
+        let mut widths = vec![3, 3];
+        let before = widths.clone();
+        shrink_columns(&mut widths, 1);
+        assert_eq!(widths, before, "columns at MIN_COL_WIDTH should not shrink");
     }
 }

@@ -121,7 +121,18 @@ fn test_rendering_fixtures() {
     }
 
     assert!(
-        tested >= 15,
-        "expected at least 15 rendering fixtures, found {tested}"
+        tested >= 25,
+        "expected at least 25 rendering fixtures, found {tested}"
+    );
+}
+
+#[test]
+fn test_no_color_produces_no_ansi() {
+    let input = "# Heading\n\n**bold text** and *italic*\n";
+    let (stdout, _, code) = run_md(&["--no-color", "--no-pager", "-"], Some(input));
+    assert_eq!(code, 0);
+    assert!(
+        !stdout.contains("\x1b["),
+        "--no-color should produce no ANSI codes, got: {stdout:?}"
     );
 }

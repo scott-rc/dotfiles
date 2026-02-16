@@ -16,7 +16,7 @@ md [OPTIONS] [FILE]
 
 | Flag | Description |
 |------|-------------|
-| `-w`, `--width <N>` | Set render width (default: terminal width) |
+| `-w`, `--width <N>` | Set render width (default: terminal width, max 100) |
 | `--no-color` | Disable ANSI color output |
 | `--no-pager` | Disable the built-in pager |
 
@@ -24,7 +24,7 @@ When output fits in the terminal or stdout is not a TTY, the pager is skipped au
 
 ## Features
 
-- **Markdown rendering** — headings, bold, italic, strikethrough, code spans, code blocks, blockquotes, lists (ordered/unordered/nested), tables with alignment, horizontal rules, links, images, footnotes, task lists
+- **Markdown rendering** — headings, bold, italic, code spans, code blocks, blockquotes, lists (ordered/unordered/nested), tables with alignment, horizontal rules, links, images
 - **YAML frontmatter** — parsed and rendered as a key-value table above the body
 - **Syntax highlighting** — fenced code blocks highlighted using the GitHub Dark theme (via syntect)
 - **Word wrapping** — ANSI-aware with widow prevention (avoids leaving a single word on the last line)
