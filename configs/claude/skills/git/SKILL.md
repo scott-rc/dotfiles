@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, and PR reviews with opinionated workflows. Use when the user asks to commit, commit this, push, create or update a PR, rebase, squash commits, address review comments, or manage git worktrees.
+description: Handles git commits, pushes, rebases, squashes, and worktrees with opinionated workflows. Use when the user asks to commit, commit this, push, create or update a PR, rebase, squash commits, or manage git worktrees.
 ---
 
 # Git Operations
@@ -25,10 +25,6 @@ See [rebase.md](rebase.md) for detailed instructions.
 Push commits and create/update PR with title/description per guidelines.
 See [push.md](push.md) for detailed instructions.
 
-### Review
-Fetch unresolved PR review threads and fix the issues reviewers described.
-See [review.md](review.md) for detailed instructions.
-
 ### Worktree
 Create a new git worktree for a task or convert an existing branch.
 See [worktree.md](worktree.md) for detailed instructions.
@@ -45,15 +41,12 @@ Users often request multiple operations together. Handle these as follows:
 - **"squash and push"** → Run squash operation, then push operation
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
-- **"fix PR description"** / **"update PR"** / **"sync PR"** → Run push.md step 7 only (rewrite PR title/description per guidelines)
-- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run review operation
-- **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
 
 **Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
 
 ## Dependencies
 
-Requires `git`, `gh` (GitHub CLI), and `jq`.
+Requires `git` and `gh` (GitHub CLI).
 
 ## References
 
@@ -61,4 +54,3 @@ These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [commit-guidelines.md](commit-guidelines.md) - Commit message format, structure, and examples
-- [pr-guidelines.md](pr-guidelines.md) - PR title and description format

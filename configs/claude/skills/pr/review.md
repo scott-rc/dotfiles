@@ -6,7 +6,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 1. **Fetch unresolved review threads**:
    ```bash
-   ~/.claude/skills/git/scripts/get-pr-comments.sh
+   ~/.claude/skills/pr/scripts/get-pr-comments.sh
    ```
    - If the script exits with an error (no PR exists), inform the user and stop.
 
@@ -27,5 +27,5 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
 
 6. **After all fixes, offer follow-up actions**:
-   - Commit the changes (commit operation)
-   - Push to update the PR (push operation)
+   - Commit the changes (git skill's commit operation)
+   - Push to update the PR (git skill's push operation)
