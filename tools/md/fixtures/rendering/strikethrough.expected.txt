@@ -1,0 +1,1 @@
+This has ~~struck text~~ in a sentence.

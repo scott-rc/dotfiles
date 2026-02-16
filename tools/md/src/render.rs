@@ -122,6 +122,9 @@ fn format_value(value: &serde_yaml::Value) -> String {
 pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    options.insert(Options::ENABLE_TASKLISTS);
     let parser = Parser::new_ext(markdown_body, options);
     let events: Vec<Event> = parser.collect();
 
@@ -133,9 +136,13 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
     let mut code_block: Option<CodeBlockCtx> = None;
     let mut in_strong = false;
     let mut in_emphasis = false;
+    let mut in_strikethrough = false;
     let mut link_dest: Vec<String> = Vec::new();
     let mut heading_level: Option<HeadingLevel> = None;
     let mut table: Option<TableCtx> = None;
+    let mut footnotes: Vec<(String, Vec<String>)> = Vec::new();
+    let mut footnote_labels: Vec<String> = Vec::new();
+    let mut current_footnote: Option<(String, Vec<String>)> = None;
 
     for event in events {
         // Code block accumulation
@@ -166,6 +173,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         &mut output_parts,
                         &mut list_stack,
                         &mut blockquote_buffer,
+                        &mut current_footnote,
                         block,
                     );
                     continue;
@@ -190,6 +198,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     &mut output_parts,
                     &mut list_stack,
                     &mut blockquote_buffer,
+                    &mut current_footnote,
                     block,
                 );
             }
@@ -210,6 +219,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         &mut output_parts,
                         &mut list_stack,
                         &mut blockquote_buffer,
+                        &mut current_footnote,
                         wrapped,
                     );
                 } else {
@@ -218,6 +228,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         &mut output_parts,
                         &mut list_stack,
                         &mut blockquote_buffer,
+                        &mut current_footnote,
                         wrapped,
                     );
                 }
@@ -237,6 +248,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             Event::End(TagEnd::Emphasis) => {
                 inline_buffer.push_str(&style.marker("*"));
                 in_emphasis = false;
+            }
+            Event::Start(Tag::Strikethrough) => {
+                inline_buffer.push_str(&style.marker("~~"));
+                in_strikethrough = true;
+            }
+            Event::End(TagEnd::Strikethrough) => {
+                inline_buffer.push_str(&style.marker("~~"));
+                in_strikethrough = false;
             }
             Event::Code(text) => {
                 inline_buffer.push_str(&style.code_span(&text));
@@ -303,6 +322,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                             &mut output_parts,
                             &mut list_stack,
                             &mut blockquote_buffer,
+                            &mut current_footnote,
                             block,
                         );
                     } else {
@@ -337,6 +357,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         &mut output_parts,
                         &mut list_stack,
                         &mut blockquote_buffer,
+                        &mut current_footnote,
                         prefixed,
                     );
                 }
@@ -347,12 +368,15 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     &mut output_parts,
                     &mut list_stack,
                     &mut blockquote_buffer,
+                    &mut current_footnote,
                     block,
                 );
             }
             Event::Text(text) => {
                 let styled = if !link_dest.is_empty() {
                     style.link_text(&text)
+                } else if in_strikethrough {
+                    style.strikethrough_style(&text)
                 } else if in_strong && in_emphasis {
                     style.strong_style(&style.em_style(&text))
                 } else if in_strong {
@@ -377,6 +401,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     &mut output_parts,
                     &mut list_stack,
                     &mut blockquote_buffer,
+                    &mut current_footnote,
                     wrapped,
                 );
             }
@@ -431,11 +456,60 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         &mut output_parts,
                         &mut list_stack,
                         &mut blockquote_buffer,
+                        &mut current_footnote,
                         block,
                     );
                 }
             }
+            Event::TaskListMarker(checked) => {
+                let marker = if checked {
+                    style.task_marker("[x]")
+                } else {
+                    style.task_marker("[ ]")
+                };
+                inline_buffer.insert_str(0, &format!("{marker} "));
+            }
+            Event::FootnoteReference(label) => {
+                let label_str = label.to_string();
+                let num = if let Some(pos) =
+                    footnote_labels.iter().position(|l| l == &label_str)
+                {
+                    pos + 1
+                } else {
+                    footnote_labels.push(label_str);
+                    footnote_labels.len()
+                };
+                inline_buffer
+                    .push_str(&style.footnote_ref(&format!("[{num}]")));
+            }
+            Event::Start(Tag::FootnoteDefinition(label)) => {
+                current_footnote = Some((label.to_string(), Vec::new()));
+            }
+            Event::End(TagEnd::FootnoteDefinition) => {
+                if let Some(footnote) = current_footnote.take() {
+                    footnotes.push(footnote);
+                }
+            }
             _ => {}
+        }
+    }
+
+    // Render footnote definitions at the bottom
+    if !footnotes.is_empty() {
+        output_parts.push(style.hr_style("---"));
+        for (label, body_parts) in &footnotes {
+            let num = footnote_labels
+                .iter()
+                .position(|l| l == label)
+                .map_or(0, |i| i + 1);
+            let prefix = style.footnote_ref(&format!("[{num}]"));
+            let body = body_parts.join(" ");
+            let wrapped = word_wrap(
+                &format!("{prefix} {body}"),
+                width,
+                "",
+            );
+            output_parts.push(wrapped);
         }
     }
 
@@ -601,12 +675,15 @@ fn push_block(
     output_parts: &mut Vec<String>,
     list_stack: &mut [ListContext],
     blockquote_buffer: &mut [Vec<String>],
+    current_footnote: &mut Option<(String, Vec<String>)>,
     block: String,
 ) {
     if block.is_empty() {
         return;
     }
-    if let Some(bq_parts) = blockquote_buffer.last_mut() {
+    if let Some(ref mut footnote) = *current_footnote {
+        footnote.1.push(block);
+    } else if let Some(bq_parts) = blockquote_buffer.last_mut() {
         bq_parts.push(block);
     } else if !list_stack.is_empty() {
         // Inside a list item — append to inline buffer via the item
@@ -742,6 +819,9 @@ mod tests {
     rendering_fixture!(test_html_inline, "html-inline");
     rendering_fixture!(test_code_block_in_list, "code-block-in-list");
     rendering_fixture!(test_multiple_paragraphs, "multiple-paragraphs");
+    rendering_fixture!(test_strikethrough, "strikethrough");
+    rendering_fixture!(test_task_list, "task-list");
+    rendering_fixture!(test_footnote, "footnote");
 
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {

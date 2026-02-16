@@ -32,6 +32,10 @@ fn underline(s: &str) -> String {
     format!("\x1b[4m{s}\x1b[24m")
 }
 
+fn strikethrough(s: &str) -> String {
+    format!("\x1b[9m{s}\x1b[29m")
+}
+
 /// Uppercase visible text while preserving ANSI codes.
 fn ansi_upper_case(s: &str) -> String {
     let mut result = String::new();
@@ -219,6 +223,30 @@ impl Style {
     pub fn frontmatter_value(&self, s: &str) -> String {
         if self.color {
             rgb24(s, FOREGROUND)
+        } else {
+            s.to_string()
+        }
+    }
+
+    pub fn strikethrough_style(&self, s: &str) -> String {
+        if self.color {
+            strikethrough(&rgb24(s, FOREGROUND))
+        } else {
+            s.to_string()
+        }
+    }
+
+    pub fn footnote_ref(&self, s: &str) -> String {
+        if self.color {
+            rgb24(s, COMMENT_GRAY)
+        } else {
+            s.to_string()
+        }
+    }
+
+    pub fn task_marker(&self, s: &str) -> String {
+        if self.color {
+            rgb24(s, LIST_BLUE)
         } else {
             s.to_string()
         }

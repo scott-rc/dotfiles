@@ -121,8 +121,8 @@ fn test_rendering_fixtures() {
     }
 
     assert!(
-        tested >= 25,
-        "expected at least 25 rendering fixtures, found {tested}"
+        tested >= 28,
+        "expected at least 28 rendering fixtures, found {tested}"
     );
 }
 
