@@ -76,7 +76,7 @@ These files are referenced by the operation instructions above:
 ## Naming Guidance
 
 When choosing a skill name, prefer:
-- **Gerund form** when natural: `instructing-agents`, `managing-deploys`, `reviewing-code`
+- **Gerund form** when natural: `managing-deploys`, `reviewing-code`, `syncing-data`
 - **Domain noun** when gerund is awkward: `git`, `docker`, `kubernetes`
 - **Hyphenated compound** for specificity: `pr-review`, `test-runner`, `db-migrations`
 

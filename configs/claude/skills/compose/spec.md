@@ -33,7 +33,7 @@ Rules specific to authoring Claude Code skills.
 
 ### Naming
 
-- **Skill name**: MUST be lowercase, hyphens only, max 64 characters. SHOULD use gerund form when it reads naturally (e.g., `instructing-agents`, `managing-deploys`). MUST describe the skill's domain, not a single action.
+- **Skill name**: MUST be lowercase, hyphens only, max 64 characters. SHOULD use gerund form when it reads naturally (e.g., `managing-deploys`, `reviewing-code`). MUST describe the skill's domain, not a single action.
   - MUST NOT contain XML tags
   - MUST NOT include reserved words: `anthropic`, `claude`
 - **File names**: MUST be lowercase, hyphens only. MUST be descriptive of content (e.g., `commit-guidelines.md`, not `guidelines.md`). Operation files MUST be named after the operation (e.g., `create-skill.md`, `review-skill.md`).

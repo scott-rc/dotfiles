@@ -1,5 +1,5 @@
 ---
-name: instructing-agents
+name: compose
 description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files, and crafts session task prompts, when users ask to scaffold, build, review, improve, or fix skills, write, update, or review CLAUDE.md rules files, or craft prompts for new sessions.
 ---
 
