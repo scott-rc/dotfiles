@@ -177,10 +177,9 @@ require('lazy').setup({
       end
 
       local function apply_theme()
-        if is_dark_mode() then
-          vim.cmd.colorscheme('github_dark_default')
-        else
-          vim.cmd.colorscheme('github_dark_dimmed')
+        local target = is_dark_mode() and 'github_dark_default' or 'github_dark_dimmed'
+        if vim.g.colors_name ~= target then
+          vim.cmd.colorscheme(target)
         end
       end
 
