@@ -1,11 +1,8 @@
-| Nam | Language  | Framework | Description                |
-| e   |           |           |                            |
-|-----|-----------|-----------|----------------------------|
-| api | TypeScrip | Express   | Backend REST API server    |
-|     | t         |           |                            |
-| web | TypeScrip | Next.js   | Frontend web application   |
-|     | t         |           |                            |
-| cli | Rust      | Clap      | Command-line interface     |
-|     |           |           | tool                       |
-| doc | Markdown  | Docusauru | Documentation website      |
-| s   |           | s         |                            |
+| Name | Language   | Framework  | Description             |
+|------|------------|------------|-------------------------|
+| api  | TypeScript | Express    | Backend REST API server |
+| web  | TypeScript | Next.js    | Frontend web            |
+|      |            |            | application             |
+| cli  | Rust       | Clap       | Command-line interface  |
+|      |            |            | tool                    |
+| docs | Markdown   | Docusaurus | Documentation website   |

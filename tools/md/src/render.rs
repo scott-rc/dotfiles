@@ -518,36 +518,72 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
 
 const MIN_COL_WIDTH: usize = 3;
 
-/// Shrink column widths proportionally to fit within target_width.
+/// Shrink column widths to fit within target_width, protecting narrow columns.
+///
+/// Narrow columns (those at or below the fair share of available space) keep
+/// their natural width. Only wide columns absorb overflow, proportionally.
 fn shrink_columns(col_widths: &mut [usize], target_width: usize) {
     let num_cols = col_widths.len();
     let total_width: usize = col_widths.iter().sum::<usize>() + 3 * num_cols + 1;
     if total_width <= target_width {
         return;
     }
-    let overflow = total_width - target_width;
 
-    let total_shrinkable: usize = col_widths
-        .iter()
-        .map(|&w| w.saturating_sub(MIN_COL_WIDTH))
-        .sum();
-    if total_shrinkable == 0 {
+    let available = target_width.saturating_sub(3 * num_cols + 1);
+
+    // Iteratively freeze narrow columns at their natural width so only
+    // wide columns absorb overflow.
+    let mut frozen = vec![false; num_cols];
+    let mut frozen_total = 0usize;
+    let mut unfrozen_count = num_cols;
+
+    loop {
+        if unfrozen_count == 0 {
+            break;
+        }
+        let fair_share = available.saturating_sub(frozen_total) / unfrozen_count;
+
+        let mut changed = false;
+        for i in 0..num_cols {
+            if !frozen[i] && col_widths[i] <= fair_share {
+                frozen[i] = true;
+                frozen_total += col_widths[i];
+                unfrozen_count -= 1;
+                changed = true;
+            }
+        }
+
+        if !changed {
+            break;
+        }
+    }
+
+    if unfrozen_count == 0 {
         return;
     }
 
-    let mut remaining = overflow.min(total_shrinkable);
-    for w in col_widths.iter_mut() {
-        if remaining == 0 {
-            break;
-        }
-        let shrinkable = w.saturating_sub(MIN_COL_WIDTH);
-        if shrinkable == 0 {
-            continue;
-        }
-        let reduction = (overflow * shrinkable).div_ceil(total_shrinkable);
-        let reduction = reduction.min(shrinkable).min(remaining);
-        *w -= reduction;
-        remaining -= reduction;
+    // Distribute remaining space proportionally among unfrozen columns.
+    let remaining = available.saturating_sub(frozen_total);
+    let unfrozen_total: usize = (0..num_cols)
+        .filter(|i| !frozen[*i])
+        .map(|i| col_widths[i])
+        .sum();
+
+    if unfrozen_total == 0 {
+        return;
+    }
+
+    let unfrozen_indices: Vec<usize> = (0..num_cols).filter(|i| !frozen[*i]).collect();
+    let mut allocated = 0usize;
+
+    for (idx, &i) in unfrozen_indices.iter().enumerate() {
+        let new_width = if idx == unfrozen_indices.len() - 1 {
+            remaining.saturating_sub(allocated)
+        } else {
+            (col_widths[i] * remaining + unfrozen_total / 2) / unfrozen_total
+        };
+        col_widths[i] = new_width.max(MIN_COL_WIDTH);
+        allocated += col_widths[i];
     }
 }
 
@@ -1033,5 +1069,16 @@ mod tests {
         let before = widths.clone();
         shrink_columns(&mut widths, 1);
         assert_eq!(widths, before, "columns at MIN_COL_WIDTH should not shrink");
+    }
+
+    #[test]
+    fn test_shrink_columns_narrow_preserved() {
+        // narrow (4) + wide (27): total = 4+27 + 3*2+1 = 38
+        // target = 34 → narrow column should keep its natural width
+        let mut widths = vec![4, 27];
+        shrink_columns(&mut widths, 34);
+        assert_eq!(widths[0], 4, "narrow column should not shrink");
+        let total: usize = widths.iter().sum::<usize>() + 3 * 2 + 1;
+        assert!(total <= 34, "total {total} should be <= 34");
     }
 }
