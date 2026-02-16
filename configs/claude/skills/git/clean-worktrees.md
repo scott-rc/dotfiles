@@ -17,7 +17,7 @@ Remove worktrees whose branches have been merged to main.
    - Fetch and prune: `git fetch origin --prune --quiet`
    - Check if the branch should be cleaned up (either condition):
      - **Merged**: `git branch --merged origin/<default-branch>` includes the branch
-     - **Squash-merged**: Remote branch was deleted (check with `git ls-remote --heads origin <branch>` returning empty)
+     - **Squash-merged**: Remote branch was deleted AND the PR was merged. Check with `git ls-remote --heads origin <branch>` returning empty, then verify with `gh pr list --head <branch> --state merged --json number --jq 'length'` returning > 0. If the remote branch is deleted but no merged PR exists, do NOT mark for cleanup — flag it to the user as "remote branch deleted but no merged PR found" so they can investigate.
 
 4. **Present merged worktrees** to the user:
    - Show the worktree path and branch name for each
