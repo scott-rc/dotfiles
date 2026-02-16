@@ -722,6 +722,71 @@ mod tests {
     // Group 3: wrap_cell unit tests
     use crate::wrap::visible_length;
 
+    // Group 4: render_frontmatter unit tests
+    #[test]
+    fn test_render_frontmatter_formats_key_value() {
+        let style = Style::new(false);
+        let mut attrs = IndexMap::new();
+        attrs.insert("title".into(), serde_yaml::Value::String("Hello".into()));
+        let result = render_frontmatter(&attrs, WIDTH, &style);
+        assert!(result.contains("title"), "should contain key");
+        assert!(result.contains("Hello"), "should contain value");
+    }
+
+    #[test]
+    fn test_render_frontmatter_aligns_keys() {
+        let style = Style::new(false);
+        let mut attrs = IndexMap::new();
+        attrs.insert("a".into(), serde_yaml::Value::String("short".into()));
+        attrs.insert("longer".into(), serde_yaml::Value::String("val".into()));
+        let result = render_frontmatter(&attrs, WIDTH, &style);
+        let lines: Vec<&str> = result.lines().collect();
+        // Both lines should have the value at the same column
+        assert_eq!(lines.len(), 2);
+        let pos0 = lines[0].find("short").unwrap();
+        let pos1 = lines[1].find("val").unwrap();
+        assert_eq!(pos0, pos1, "values should be aligned");
+    }
+
+    #[test]
+    fn test_render_frontmatter_joins_arrays() {
+        let style = Style::new(false);
+        let mut attrs = IndexMap::new();
+        attrs.insert(
+            "tags".into(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("a".into()),
+                serde_yaml::Value::String("b".into()),
+                serde_yaml::Value::String("c".into()),
+            ]),
+        );
+        let result = render_frontmatter(&attrs, WIDTH, &style);
+        assert!(result.contains("a, b, c"), "should join with commas, got: {result}");
+    }
+
+    #[test]
+    fn test_render_frontmatter_empty_map() {
+        let style = Style::new(false);
+        let attrs = IndexMap::new();
+        let result = render_frontmatter(&attrs, WIDTH, &style);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_render_frontmatter_long_values_wrap() {
+        let style = Style::new(false);
+        let mut attrs = IndexMap::new();
+        let long_value = "word ".repeat(30);
+        attrs.insert("desc".into(), serde_yaml::Value::String(long_value.trim().into()));
+        let result = render_frontmatter(&attrs, WIDTH, &style);
+        let lines: Vec<&str> = result.lines().collect();
+        assert!(lines.len() > 1, "long value should wrap to multiple lines");
+        // Continuation lines should be indented
+        for line in &lines[1..] {
+            assert!(line.starts_with(' '), "continuation should be indented: {line:?}");
+        }
+    }
+
     #[test]
     fn test_wrap_cell_preserves_ansi() {
         let styled = Style::new(true).code_span("done");

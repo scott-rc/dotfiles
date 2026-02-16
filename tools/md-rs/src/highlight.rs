@@ -56,3 +56,55 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wrap::strip_ansi;
+
+    #[test]
+    fn known_language_produces_ansi() {
+        let result = highlight_code("const x = 1;", Some("js"), true);
+        assert!(result.contains("\x1b["), "expected ANSI codes, got: {result}");
+    }
+
+    #[test]
+    fn unknown_language_returns_plain() {
+        let result = highlight_code("hello", Some("not-a-language"), true);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn no_language_returns_plain() {
+        let result = highlight_code("hello", None, true);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn no_color_returns_plain() {
+        let result = highlight_code("const x = 1;", Some("js"), false);
+        assert_eq!(result, "const x = 1;");
+    }
+
+    #[test]
+    fn strip_ansi_preserves_original() {
+        let code = "const x = 1;";
+        let highlighted = highlight_code(code, Some("js"), true);
+        assert_eq!(strip_ansi(&highlighted), code);
+    }
+
+    #[test]
+    fn empty_input() {
+        let result = highlight_code("", Some("js"), true);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn multiline_preserved() {
+        let code = "const x = 1;\nconst y = 2;\nconst z = 3;";
+        let result = highlight_code(code, Some("js"), true);
+        let input_lines = code.split('\n').count();
+        let output_lines = result.split('\n').count();
+        assert_eq!(input_lines, output_lines, "line count mismatch");
+    }
+}

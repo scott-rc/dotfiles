@@ -67,3 +67,59 @@ pub fn parse_frontmatter(markdown: &str) -> ParsedDocument {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_extraction() {
+        let input = "---\ntitle: Hello\n---\nbody text";
+        let result = parse_frontmatter(input);
+        let fm = result.frontmatter.expect("should have frontmatter");
+        assert_eq!(fm.get("title").unwrap(), &serde_yaml::Value::String("Hello".into()));
+        assert_eq!(result.body, "body text");
+    }
+
+    #[test]
+    fn no_frontmatter() {
+        let input = "# Hello";
+        let result = parse_frontmatter(input);
+        assert!(result.frontmatter.is_none());
+        assert_eq!(result.body, "# Hello");
+    }
+
+    #[test]
+    fn empty_frontmatter() {
+        let input = "---\n---\nbody";
+        let result = parse_frontmatter(input);
+        let fm = result.frontmatter.expect("should have frontmatter");
+        assert!(fm.is_empty());
+        assert_eq!(result.body, "body");
+    }
+
+    #[test]
+    fn malformed_yaml() {
+        let input = "---\n: [[[\n---\nbody";
+        let result = parse_frontmatter(input);
+        assert!(result.frontmatter.is_none());
+        assert_eq!(result.body, input);
+    }
+
+    #[test]
+    fn bare_hr_not_frontmatter() {
+        let input = "# Title\n\n---\n\ntext";
+        let result = parse_frontmatter(input);
+        assert!(result.frontmatter.is_none());
+        assert_eq!(result.body, input);
+    }
+
+    #[test]
+    fn multiple_values_preserve_order() {
+        let input = "---\nalpha: 1\nbeta: 2\ngamma: 3\n---\nbody";
+        let result = parse_frontmatter(input);
+        let fm = result.frontmatter.expect("should have frontmatter");
+        let keys: Vec<&String> = fm.keys().collect();
+        assert_eq!(keys, vec!["alpha", "beta", "gamma"]);
+    }
+}
