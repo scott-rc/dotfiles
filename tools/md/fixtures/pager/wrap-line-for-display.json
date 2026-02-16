@@ -1,0 +1,68 @@
+[
+  {
+    "name": "short line fits — single element",
+    "input": "hello",
+    "params": { "maxWidth": 10 },
+    "expected": ["hello"]
+  },
+  {
+    "name": "exact width — single element",
+    "input": "12345",
+    "params": { "maxWidth": 5 },
+    "expected": ["12345"]
+  },
+  {
+    "name": "overflow wraps at character boundary",
+    "input": "hello world",
+    "params": { "maxWidth": 6 },
+    "expected": ["hello ", "world"]
+  },
+  {
+    "name": "multi-wrap (width=3 on 10 chars)",
+    "input": "abcdefghij",
+    "params": { "maxWidth": 3 },
+    "expected": ["abc", "def", "ghi", "j"]
+  },
+  {
+    "name": "empty line — single empty string",
+    "input": "",
+    "params": { "maxWidth": 10 },
+    "expected": [""]
+  },
+  {
+    "name": "width 0 — original line as-is",
+    "input": "hello",
+    "params": { "maxWidth": 0 },
+    "expected": ["hello"]
+  },
+  {
+    "name": "ANSI codes don't count toward width",
+    "input": "\u001b[31mhi\u001b[0m",
+    "params": { "maxWidth": 10 },
+    "expected": ["\u001b[31mhi\u001b[0m"]
+  },
+  {
+    "name": "ANSI codes stay on the line they were emitted",
+    "input": "\u001b[1mhello world\u001b[0m",
+    "params": { "maxWidth": 6 },
+    "expected": ["\u001b[1mhello ", "world\u001b[0m"]
+  },
+  {
+    "name": "box-drawing chars measured by display width",
+    "input": "┌─────┬─────┐",
+    "params": { "maxWidth": 8 },
+    "expected": ["┌─────┬─", "────┐"]
+  },
+  {
+    "name": "box-drawing with ANSI wraps correctly",
+    "input": "\u001b[38;2;139;148;158m┌──┬──┐\u001b[39m",
+    "params": { "maxWidth": 5 },
+    "expected": ["\u001b[38;2;139;148;158m┌──┬─", "─┐\u001b[39m"]
+  },
+  {
+    "name": "mixed ASCII and box-drawing",
+    "input": "abc│def│ghi",
+    "params": { "maxWidth": 7 },
+    "expected": ["abc│def", "│ghi"]
+  }
+]

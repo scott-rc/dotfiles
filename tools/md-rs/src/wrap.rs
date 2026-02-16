@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::sync::LazyLock;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m").unwrap());
 static BACKTICK_RE: LazyLock<Regex> =
@@ -12,7 +13,7 @@ pub fn strip_ansi(text: &str) -> String {
 
 /// Get the visible length of a string, ignoring ANSI escape codes.
 pub fn visible_length(text: &str) -> usize {
-    strip_ansi(text).len()
+    strip_ansi(text).width()
 }
 
 /// Split a string into alternating plain-text and ANSI-code segments.
@@ -91,7 +92,7 @@ fn is_single_word(s: &str) -> bool {
 }
 
 /// Greedy line wrapping: fit as many words as possible on each line.
-fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
+pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
     if visible_length(line) <= width {
         return vec![line.to_string()];
     }
@@ -204,6 +205,42 @@ fn split_with_spaces(s: &str) -> Vec<&str> {
     }
 
     parts
+}
+
+/// Break a single line at character boundaries to fit within max_width visible columns.
+/// Preserves ANSI codes without counting them toward width.
+pub fn wrap_line_for_display(line: &str, max_width: usize) -> Vec<String> {
+    if max_width == 0 {
+        return vec![line.to_string()];
+    }
+
+    let segments = split_ansi(line);
+    let mut rows: Vec<String> = Vec::new();
+    let mut current = String::new();
+    let mut width: usize = 0;
+
+    for seg in segments {
+        if seg.starts_with('\x1b') {
+            current.push_str(seg);
+            continue;
+        }
+
+        for c in seg.chars() {
+            let cw = c.width().unwrap_or(0);
+            if width + cw > max_width && width > 0 {
+                rows.push(std::mem::take(&mut current));
+                width = 0;
+            }
+            current.push(c);
+            width += cw;
+        }
+    }
+
+    if !current.is_empty() || rows.is_empty() {
+        rows.push(current);
+    }
+
+    rows
 }
 
 #[cfg(test)]
@@ -336,5 +373,30 @@ mod tests {
     fn test_split_with_spaces() {
         let parts = split_with_spaces("hello  world");
         assert_eq!(parts, vec!["hello", "  ", "world"]);
+    }
+
+    // ---- wrap_line_for_display ----
+    #[derive(Deserialize)]
+    struct WrapLineCase {
+        name: String,
+        input: String,
+        params: WrapLineParams,
+        expected: Vec<String>,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct WrapLineParams {
+        max_width: usize,
+    }
+
+    #[test]
+    fn test_wrap_line_for_display() {
+        let json = include_str!("../fixtures/pager/wrap-line-for-display.json");
+        let cases: Vec<WrapLineCase> = serde_json::from_str(json).unwrap();
+        for case in &cases {
+            let result = wrap_line_for_display(&case.input, case.params.max_width);
+            assert_eq!(result, case.expected, "wrap_line_for_display: {}", case.name);
+        }
     }
 }

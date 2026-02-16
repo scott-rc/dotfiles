@@ -1,0 +1,13 @@
+┌─────┬───────────┬───────────┬────────────────────────────┐
+│ Nam │ Language  │ Framework │ Description                │
+│ e   │           │           │                            │
+├─────┼───────────┼───────────┼────────────────────────────┤
+│ api │ TypeScrip │ Express   │ Backend REST API server    │
+│     │ t         │           │                            │
+│ web │ TypeScrip │ Next.js   │ Frontend web application   │
+│     │ t         │           │                            │
+│ cli │ Rust      │ Clap      │ Command-line interface     │
+│     │           │           │ tool                       │
+│ doc │ Markdown  │ Docusauru │ Documentation website      │
+│ s   │           │ s         │                            │
+└─────┴───────────┴───────────┴────────────────────────────┘

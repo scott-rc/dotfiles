@@ -1,0 +1,4 @@
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Auth** | `done` | Shipped *last* week |
+| Search | `wip` | [docs](https://example.com) |

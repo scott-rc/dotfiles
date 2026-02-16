@@ -1,10 +1,10 @@
 use indexmap::IndexMap;
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Parser, Tag, TagEnd};
+use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 use crate::frontmatter::parse_frontmatter;
 use crate::highlight::highlight_code;
 use crate::style::Style;
-use crate::wrap::word_wrap;
+use crate::wrap::{visible_length, word_wrap, wrap_line_for_display, wrap_line_greedy};
 
 struct ListContext {
     ordered: bool,
@@ -16,6 +16,14 @@ struct ListContext {
 struct CodeBlockCtx {
     lang: Option<String>,
     content: String,
+}
+
+struct TableCtx {
+    alignments: Vec<Alignment>,
+    head_cells: Vec<String>,
+    rows: Vec<Vec<String>>,
+    current_row: Vec<String>,
+    in_head: bool,
 }
 
 pub fn render_markdown(markdown: &str, width: usize, style: &Style) -> String {
@@ -106,7 +114,9 @@ fn format_value(value: &serde_yaml::Value) -> String {
 }
 
 pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String {
-    let parser = Parser::new(markdown_body);
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    let parser = Parser::new_ext(markdown_body, options);
     let events: Vec<Event> = parser.collect();
 
     let mut output_parts: Vec<String> = Vec::new();
@@ -119,6 +129,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
     let mut in_emphasis = false;
     let mut link_dest: Vec<String> = Vec::new();
     let mut heading_level: Option<HeadingLevel> = None;
+    let mut table: Option<TableCtx> = None;
 
     for event in events {
         // Code block accumulation
@@ -245,7 +256,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     let text = std::mem::take(&mut inline_buffer);
                     if let Some(ctx) = list_stack.last_mut() {
                         let marker = make_list_marker(ctx, style);
-                        ctx.items.push(format!("{} {}", marker, text));
+                        ctx.items.push(format_list_item(&text, &marker, ctx.depth, width));
                     }
                 }
                 let depth = list_stack.len();
@@ -264,20 +275,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 if !text.is_empty() {
                     if let Some(ctx) = list_stack.last_mut() {
                         let marker = make_list_marker(ctx, style);
-                        ctx.items.push(format!("{} {}", marker, text));
+                        ctx.items.push(format_list_item(&text, &marker, ctx.depth, width));
                     }
                 }
                 // If text is empty, the item was already committed by Start(List)
             }
             Event::End(TagEnd::List(_)) => {
                 if let Some(ctx) = list_stack.pop() {
-                    let indent = "    ".repeat(ctx.depth);
-                    let formatted: Vec<String> = ctx
-                        .items
-                        .iter()
-                        .map(|item| format!("{}{}", indent, item))
-                        .collect();
-                    let block = formatted.join("\n");
+                    let block = ctx.items.join("\n");
                     if list_stack.is_empty() {
                         push_block(
                             &mut output_parts,
@@ -354,11 +359,207 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 // Inline HTML: pass through as-is (e.g., <br>, <!-- comment -->)
                 inline_buffer.push_str(&text);
             }
+            Event::Start(Tag::Table(alignments)) => {
+                table = Some(TableCtx {
+                    alignments: alignments.to_vec(),
+                    head_cells: Vec::new(),
+                    rows: Vec::new(),
+                    current_row: Vec::new(),
+                    in_head: false,
+                });
+            }
+            Event::Start(Tag::TableHead) => {
+                if let Some(ref mut t) = table {
+                    t.in_head = true;
+                    t.current_row.clear();
+                }
+            }
+            Event::End(TagEnd::TableHead) => {
+                if let Some(ref mut t) = table {
+                    t.head_cells = std::mem::take(&mut t.current_row);
+                    t.in_head = false;
+                }
+            }
+            Event::Start(Tag::TableRow) => {
+                if let Some(ref mut t) = table {
+                    t.current_row.clear();
+                }
+            }
+            Event::End(TagEnd::TableRow) => {
+                if let Some(ref mut t) = table {
+                    if !t.in_head {
+                        let row = std::mem::take(&mut t.current_row);
+                        t.rows.push(row);
+                    }
+                }
+            }
+            Event::Start(Tag::TableCell) => {
+                inline_buffer.clear();
+            }
+            Event::End(TagEnd::TableCell) => {
+                let cell = std::mem::take(&mut inline_buffer);
+                if let Some(ref mut t) = table {
+                    t.current_row.push(cell);
+                }
+            }
+            Event::End(TagEnd::Table) => {
+                if let Some(t) = table.take() {
+                    let block = render_table(&t, width, style);
+                    push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
+                }
+            }
             _ => {}
         }
     }
 
     output_parts.join("\n\n")
+}
+
+const MIN_COL_WIDTH: usize = 3;
+
+/// Shrink column widths proportionally to fit within target_width.
+fn shrink_columns(col_widths: &mut [usize], target_width: usize) {
+    let num_cols = col_widths.len();
+    let total_width: usize = col_widths.iter().sum::<usize>() + 3 * num_cols + 1;
+    if total_width <= target_width {
+        return;
+    }
+    let overflow = total_width - target_width;
+
+    let total_shrinkable: usize = col_widths
+        .iter()
+        .map(|&w| w.saturating_sub(MIN_COL_WIDTH))
+        .sum();
+    if total_shrinkable == 0 {
+        return;
+    }
+
+    let mut remaining = overflow.min(total_shrinkable);
+    for w in col_widths.iter_mut() {
+        if remaining == 0 {
+            break;
+        }
+        let shrinkable = w.saturating_sub(MIN_COL_WIDTH);
+        if shrinkable == 0 {
+            continue;
+        }
+        let reduction = (overflow * shrinkable + total_shrinkable - 1) / total_shrinkable;
+        let reduction = reduction.min(shrinkable).min(remaining);
+        *w -= reduction;
+        remaining -= reduction;
+    }
+}
+
+/// Wrap a cell's text to fit within max_width, returning one string per visual line.
+fn wrap_cell(cell: &str, max_width: usize) -> Vec<String> {
+    if max_width == 0 {
+        return vec![cell.to_string()];
+    }
+    let vis_width = visible_length(cell);
+    if vis_width <= max_width {
+        return vec![cell.to_string()];
+    }
+    wrap_line_greedy(cell, max_width)
+        .iter()
+        .flat_map(|line| wrap_line_for_display(line, max_width))
+        .collect()
+}
+
+fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
+    let num_cols = table.alignments.len();
+
+    // Compute natural column widths from visible text
+    let mut col_widths = vec![0usize; num_cols];
+    for (i, cell) in table.head_cells.iter().enumerate() {
+        if i < num_cols {
+            col_widths[i] = col_widths[i].max(visible_length(cell));
+        }
+    }
+    for row in &table.rows {
+        for (i, cell) in row.iter().enumerate() {
+            if i < num_cols {
+                col_widths[i] = col_widths[i].max(visible_length(cell));
+            }
+        }
+    }
+
+    // Constrain to available width
+    if width > 0 {
+        shrink_columns(&mut col_widths, width);
+    }
+
+    // Build a horizontal border line: ┌─────┬─────┐ / ├─────┼─────┤ / └─────┴─────┘
+    let border_line = |left: &str, mid: &str, right: &str| -> String {
+        let segments: Vec<String> = col_widths
+            .iter()
+            .map(|&w| "─".repeat(w + 2))
+            .collect();
+        style.table_border(&format!("{}{}{}", left, segments.join(mid), right))
+    };
+
+    // Render a row of cells, wrapping content into multiple visual lines if needed.
+    let format_row = |cells: &[String], bold_cells: bool| -> Vec<String> {
+        // Wrap each cell
+        let wrapped: Vec<Vec<String>> = cells
+            .iter()
+            .enumerate()
+            .take(num_cols)
+            .map(|(i, cell)| wrap_cell(cell, col_widths[i]))
+            .collect();
+
+        let row_height = wrapped.iter().map(|w| w.len()).max().unwrap_or(1);
+        let sep = format!(" {} ", style.table_border("│"));
+
+        let mut row_lines = Vec::new();
+        for line_idx in 0..row_height {
+            let mut parts = Vec::new();
+            for (i, cell_lines) in wrapped.iter().enumerate() {
+                let text = cell_lines
+                    .get(line_idx)
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                let vis_len = visible_length(text);
+                let pad = col_widths[i].saturating_sub(vis_len);
+                let content = if bold_cells {
+                    style.table_header(text)
+                } else {
+                    text.to_string()
+                };
+                let padded = match table.alignments.get(i) {
+                    Some(Alignment::Center) => {
+                        let left = pad / 2;
+                        let right = pad - left;
+                        format!("{}{}{}", " ".repeat(left), content, " ".repeat(right))
+                    }
+                    Some(Alignment::Right) => {
+                        format!("{}{}", " ".repeat(pad), content)
+                    }
+                    _ => {
+                        format!("{}{}", content, " ".repeat(pad))
+                    }
+                };
+                parts.push(padded);
+            }
+            row_lines.push(format!(
+                "{} {} {}",
+                style.table_border("│"),
+                parts.join(&sep),
+                style.table_border("│")
+            ));
+        }
+        row_lines
+    };
+
+    let mut lines = Vec::new();
+    lines.push(border_line("┌", "┬", "┐"));
+    lines.extend(format_row(&table.head_cells, true));
+    lines.push(border_line("├", "┼", "┤"));
+    for row in &table.rows {
+        lines.extend(format_row(row, false));
+    }
+    lines.push(border_line("└", "┴", "┘"));
+
+    lines.join("\n")
 }
 
 fn push_block(
@@ -396,6 +597,29 @@ fn make_list_marker(ctx: &mut ListContext, style: &Style) -> String {
     } else {
         style.list_marker("-")
     }
+}
+
+fn format_list_item(text: &str, marker: &str, depth: usize, width: usize) -> String {
+    let indent = "    ".repeat(depth);
+    let marker_vis = visible_length(marker);
+    let full_prefix_width = indent.len() + marker_vis + 1;
+    let content_width = width.saturating_sub(full_prefix_width);
+
+    if content_width == 0 {
+        return format!("{indent}{marker} {text}");
+    }
+
+    let wrapped = word_wrap(text, content_width, "");
+    let lines: Vec<&str> = wrapped.split('\n').collect();
+    let content_indent = format!("{indent}{}", " ".repeat(marker_vis + 1));
+
+    let mut result = format!("{indent}{marker} {}", lines[0]);
+    for line in &lines[1..] {
+        result.push('\n');
+        result.push_str(&content_indent);
+        result.push_str(line);
+    }
+    result
 }
 
 fn heading_level_num(level: HeadingLevel) -> usize {
@@ -461,10 +685,17 @@ mod tests {
     rendering_fixture!(test_unordered_list, "unordered-list");
     rendering_fixture!(test_ordered_list, "ordered-list");
     rendering_fixture!(test_nested_list, "nested-list");
+    rendering_fixture!(test_list_wrap, "list-wrap");
     rendering_fixture!(test_blockquote, "blockquote");
     rendering_fixture!(test_link, "link");
     rendering_fixture!(test_hr, "hr");
     rendering_fixture!(test_paragraph_wrap, "paragraph-wrap");
+    rendering_fixture!(test_table, "table");
+    rendering_fixture!(test_table_aligned, "table-aligned");
+    rendering_fixture!(test_table_inline, "table-inline");
+    rendering_fixture!(test_table_wide, "table-wide");
+    rendering_fixture!(test_table_empty, "table-empty");
+    rendering_fixture!(test_table_code_wrap, "table-code-wrap");
     rendering_fixture!(test_mixed_document, "mixed-document");
 
     // Group 2: frontmatter fixtures (use render_markdown)
@@ -487,4 +718,33 @@ mod tests {
     frontmatter_fixture!(test_frontmatter_empty, "frontmatter-empty");
     frontmatter_fixture!(test_frontmatter_malformed, "frontmatter-malformed");
     frontmatter_fixture!(test_bare_hr_not_frontmatter, "bare-hr-not-frontmatter");
+
+    // Group 3: wrap_cell unit tests
+    use crate::wrap::visible_length;
+
+    #[test]
+    fn test_wrap_cell_preserves_ansi() {
+        let styled = Style::new(true).code_span("done");
+        // Force wrapping by using a narrow width
+        let result = wrap_cell(&styled, 4);
+        let joined = result.join("");
+        assert!(
+            joined.contains("\x1b["),
+            "wrap_cell should preserve ANSI codes, got: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_wrap_cell_enforces_max_width() {
+        let cell = "a `blah` end";
+        let max = 5;
+        let result = wrap_cell(cell, max);
+        for line in &result {
+            let vl = visible_length(line);
+            assert!(
+                vl <= max,
+                "line exceeds max_width {max}: visible_length={vl}, line={line:?}"
+            );
+        }
+    }
 }

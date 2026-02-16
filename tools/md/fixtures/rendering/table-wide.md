@@ -1,0 +1,6 @@
+| Name | Language | Framework | Description |
+|------|----------|-----------|-------------|
+| api | TypeScript | Express | Backend REST API server |
+| web | TypeScript | Next.js | Frontend web application |
+| cli | Rust | Clap | Command-line interface tool |
+| docs | Markdown | Docusaurus | Documentation website |

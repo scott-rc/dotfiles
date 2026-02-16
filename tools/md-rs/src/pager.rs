@@ -3,7 +3,7 @@ use std::process::{Command, Stdio};
 
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::wrap::{split_ansi, strip_ansi};
+use crate::wrap::{split_ansi, strip_ansi, wrap_line_for_display};
 
 // ANSI constants
 const ALT_SCREEN_ON: &str = "\x1b[?1049h";
@@ -157,36 +157,6 @@ pub fn parse_key(buf: &[u8]) -> Key {
         b @ 0x20..=0x7e => Key::Char(b as char),
         _ => Key::Unknown,
     }
-}
-
-pub fn truncate_line(line: &str, max_width: usize) -> String {
-    let segments = split_ansi(line);
-    let mut result = String::new();
-    let mut width = 0;
-
-    for seg in segments {
-        if seg.starts_with('\x1b') {
-            result.push_str(seg);
-            continue;
-        }
-
-        let remaining = max_width - width;
-        if seg.len() <= remaining {
-            result.push_str(seg);
-            width += seg.len();
-        } else {
-            if remaining <= 1 {
-                result.push('…');
-            } else {
-                let take = remaining - 1;
-                result.push_str(&seg[..take]);
-                result.push('…');
-            }
-            break;
-        }
-    }
-
-    result
 }
 
 pub fn highlight_search(line: &str, query: &str) -> String {
@@ -762,20 +732,35 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
 
     move_to(out, 0, 0);
 
-    for i in 0..content_height {
-        let line_idx = top + i;
-        let _ = write!(out, "{CLEAR_LINE}");
-        if line_idx < state.lines.len() {
-            let mut line = state.lines[line_idx].clone();
-            if !state.search_query.is_empty() {
-                line = highlight_search(&line, &state.search_query);
-            }
-            line = truncate_line(&line, cols as usize);
-            let _ = write!(out, "{line}");
+    let mut visual_row: usize = 0;
+    let mut logical_idx = top;
+
+    while visual_row < content_height && logical_idx < state.lines.len() {
+        let mut line = state.lines[logical_idx].clone();
+        if !state.search_query.is_empty() {
+            line = highlight_search(&line, &state.search_query);
         }
-        if i < content_height - 1 {
+        let wrapped = wrap_line_for_display(&line, cols as usize);
+        for vline in wrapped {
+            if visual_row >= content_height {
+                break;
+            }
+            let _ = write!(out, "{CLEAR_LINE}{vline}");
+            if visual_row < content_height - 1 {
+                let _ = write!(out, "\r\n");
+            }
+            visual_row += 1;
+        }
+        logical_idx += 1;
+    }
+
+    // Clear remaining rows
+    while visual_row < content_height {
+        let _ = write!(out, "{CLEAR_LINE}");
+        if visual_row < content_height - 1 {
             let _ = write!(out, "\r\n");
         }
+        visual_row += 1;
     }
 
     let _ = write!(out, "\r\n{CLEAR_LINE}");
@@ -856,31 +841,6 @@ mod tests {
                 case.expected.r#type,
                 case.expected.char
             );
-        }
-    }
-
-    // ---- truncate_line ----
-    #[derive(Deserialize)]
-    struct TruncateLineCase {
-        name: String,
-        input: String,
-        params: TruncateLineParams,
-        expected: String,
-    }
-
-    #[derive(Deserialize)]
-    struct TruncateLineParams {
-        #[serde(rename = "maxWidth")]
-        max_width: usize,
-    }
-
-    #[test]
-    fn test_truncate_line() {
-        let json = include_str!("../fixtures/pager/truncate-line.json");
-        let cases: Vec<TruncateLineCase> = serde_json::from_str(json).unwrap();
-        for case in &cases {
-            let result = truncate_line(&case.input, case.params.max_width);
-            assert_eq!(result, case.expected, "truncate_line: {}", case.name);
         }
     }
 

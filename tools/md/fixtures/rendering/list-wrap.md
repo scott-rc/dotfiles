@@ -1,0 +1,10 @@
+- Short item
+- This is a much longer list item that should wrap because it exceeds the available rendering width for content display
+- Another short one
+
+1. This is a long ordered list item that should also wrap properly with the correct hanging indent alignment
+2. Short
+
+- Parent item with nested list
+  - This nested item has text long enough that it should wrap with the deeper hanging indent applied correctly
+  - Short nested

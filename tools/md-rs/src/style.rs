@@ -184,6 +184,22 @@ impl Style {
         }
     }
 
+    pub fn table_header(&self, s: &str) -> String {
+        if self.color {
+            bold(&rgb24(s, FOREGROUND))
+        } else {
+            s.to_string()
+        }
+    }
+
+    pub fn table_border(&self, s: &str) -> String {
+        if self.color {
+            rgb24(s, COMMENT_GRAY)
+        } else {
+            s.to_string()
+        }
+    }
+
     pub fn hr_style(&self, s: &str) -> String {
         if self.color {
             rgb24(s, COMMENT_GRAY)
