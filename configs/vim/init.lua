@@ -232,17 +232,35 @@ require('lazy').setup({
       'nvim-tree/nvim-web-devicons',
     },
     opts = {
+      log_level = 'warn',
+      commands = {
+        open_and_reveal = function(state)
+          local node = state.tree:get_node()
+          require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+          if node.type ~= 'directory' then
+            vim.cmd('Neotree reveal source=' .. state.name)
+          end
+        end,
+        open_and_reveal_diff = function(state)
+          local node = state.tree:get_node()
+          require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+          if node.type ~= 'directory' then
+            local base = state.git_base or 'HEAD'
+            vim.b.diff_base = base
+            vim.schedule(function()
+              local gs = require('gitsigns')
+              gs.change_base(base)
+              gs.toggle_deleted(true)
+            end)
+            vim.cmd('Neotree reveal source=' .. state.name)
+          end
+        end,
+      },
       window = {
         position = 'right',
         mappings = {
-          ['<space>'] = 'none',
-          ['<cr>'] = function(state)
-            local node = state.tree:get_node()
-            require('neo-tree.sources.' .. state.name .. '.commands').open(state)
-            if node.type ~= 'directory' then
-              vim.cmd('Neotree reveal source=' .. state.name)
-            end
-          end,
+          ['<cr>'] = 'open_and_reveal',
+          ['<space>'] = 'open_and_reveal',
         },
       },
       filesystem = {
@@ -252,14 +270,8 @@ require('lazy').setup({
       git_status = {
         window = {
           mappings = {
-            ['<cr>'] = function(state)
-              local node = state.tree:get_node()
-              require('neo-tree.sources.' .. state.name .. '.commands').open(state)
-              if node.type ~= 'directory' then
-                vim.b.diff_base = state.git_base or 'HEAD'
-                vim.cmd('Neotree reveal source=' .. state.name)
-              end
-            end,
+            ['<cr>'] = 'open_and_reveal_diff',
+            ['<space>'] = 'open_and_reveal_diff',
           },
         },
       },
@@ -334,11 +346,12 @@ require('lazy').setup({
   {
     'lewis6991/gitsigns.nvim',
     opts = {
-      -- show_deleted = true,
       on_attach = function(bufnr)
         local base = vim.b[bufnr].diff_base
         if base then
-          require('gitsigns').change_base(base)
+          local gs = require('gitsigns')
+          gs.change_base(base)
+          gs.toggle_deleted(true)
         end
       end,
     },
