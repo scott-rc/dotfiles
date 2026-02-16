@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::sync::LazyLock;
 
 use syntect::highlighting::{FontStyle, Theme, ThemeSet};
@@ -20,18 +21,16 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
 
     let theme = &*THEME;
 
-    let syntax = match SYNTAX_SET.find_syntax_by_token(lang) {
-        Some(s) => s,
-        None => return code.to_string(),
+    let Some(syntax) = SYNTAX_SET.find_syntax_by_token(lang) else {
+        return code.to_string();
     };
 
     let mut highlighter = syntect::easy::HighlightLines::new(syntax, theme);
     let mut result = String::new();
 
     for line in syntect::util::LinesWithEndings::from(code) {
-        let regions = match highlighter.highlight_line(line, &SYNTAX_SET) {
-            Ok(r) => r,
-            Err(_) => return code.to_string(),
+        let Ok(regions) = highlighter.highlight_line(line, &SYNTAX_SET) else {
+            return code.to_string();
         };
         for (style, text) in regions {
             let mut codes = Vec::new();
@@ -50,7 +49,7 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
                 codes.push("4".to_string());
             }
 
-            result.push_str(&format!("\x1b[{}m{}\x1b[0m", codes.join(";"), text));
+            let _ = write!(result, "\x1b[{}m{text}\x1b[0m", codes.join(";"));
         }
     }
 
@@ -65,7 +64,10 @@ mod tests {
     #[test]
     fn known_language_produces_ansi() {
         let result = highlight_code("const x = 1;", Some("js"), true);
-        assert!(result.contains("\x1b["), "expected ANSI codes, got: {result}");
+        assert!(
+            result.contains("\x1b["),
+            "expected ANSI codes, got: {result}"
+        );
     }
 
     #[test]

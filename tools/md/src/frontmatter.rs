@@ -31,11 +31,7 @@ pub fn parse_frontmatter(markdown: &str) -> ParsedDocument {
     };
 
     // Strip leading newline from body
-    let body = if after_closing.starts_with('\n') {
-        &after_closing[1..]
-    } else {
-        after_closing
-    };
+    let body = after_closing.strip_prefix('\n').unwrap_or(after_closing);
 
     // Try parsing YAML
     match serde_yaml::from_str::<serde_yaml::Value>(yaml_content) {
@@ -77,7 +73,10 @@ mod tests {
         let input = "---\ntitle: Hello\n---\nbody text";
         let result = parse_frontmatter(input);
         let fm = result.frontmatter.expect("should have frontmatter");
-        assert_eq!(fm.get("title").unwrap(), &serde_yaml::Value::String("Hello".into()));
+        assert_eq!(
+            fm.get("title").unwrap(),
+            &serde_yaml::Value::String("Hello".into())
+        );
         assert_eq!(result.body, "body text");
     }
 

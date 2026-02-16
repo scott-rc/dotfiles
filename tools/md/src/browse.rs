@@ -71,20 +71,14 @@ pub fn browse_directory(
             .stderr(Stdio::inherit())
             .spawn();
 
-        let mut child = match child {
-            Ok(c) => c,
-            Err(_) => break,
-        };
+        let Ok(mut child) = child else { break };
 
         let mut stdout_buf = String::new();
         if let Some(ref mut stdout) = child.stdout {
             let _ = stdout.read_to_string(&mut stdout_buf);
         }
 
-        let status = match child.wait() {
-            Ok(s) => s,
-            Err(_) => break,
-        };
+        let Ok(status) = child.wait() else { break };
 
         if !status.success() {
             break;
@@ -115,7 +109,12 @@ mod tests {
         let json = include_str!("../fixtures/browse/shell-quote.json");
         let cases: Vec<ShellQuoteCase> = serde_json::from_str(json).unwrap();
         for case in &cases {
-            assert_eq!(shell_quote(&case.input), case.expected, "shell_quote: {}", case.name);
+            assert_eq!(
+                shell_quote(&case.input),
+                case.expected,
+                "shell_quote: {}",
+                case.name
+            );
         }
     }
 

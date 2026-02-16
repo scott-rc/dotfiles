@@ -48,7 +48,8 @@ fn test_help_exits_0() {
 
 #[test]
 fn test_width_constrains_output() {
-    let input = "The quick brown fox jumps over the lazy dog and continues running through the forest.";
+    let input =
+        "The quick brown fox jumps over the lazy dog and continues running through the forest.";
     let (stdout, _, code) = run_md(
         &["--no-color", "--no-pager", "--width", "40", "-"],
         Some(input),
@@ -78,19 +79,14 @@ fn test_empty_file_exits_0() {
 fn test_stdin_pipe() {
     let (stdout, _, code) = run_md(&["--no-color", "--no-pager", "-"], Some("# Hello\n"));
     assert_eq!(code, 0);
-    assert!(
-        stdout.contains("HELLO"),
-        "H1 should uppercase: {}",
-        stdout
-    );
+    assert!(stdout.contains("HELLO"), "H1 should uppercase: {}", stdout);
 }
 
 // ── Rendering fixture tests (mirror run_compat_tests.sh) ──
 
 #[test]
 fn test_rendering_fixtures() {
-    let fixture_dir =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/rendering");
+    let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/rendering");
     let mut tested = 0;
 
     for entry in std::fs::read_dir(&fixture_dir).unwrap() {
@@ -115,7 +111,11 @@ fn test_rendering_fixtures() {
         );
 
         assert_eq!(code, 0, "fixture {stem} exited with {code}: {stderr}");
-        assert_eq!(stdout.trim_end(), expected, "fixture {stem} output mismatch");
+        assert_eq!(
+            stdout.trim_end(),
+            expected,
+            "fixture {stem} output mismatch"
+        );
 
         tested += 1;
     }

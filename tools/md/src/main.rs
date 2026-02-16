@@ -31,7 +31,9 @@ struct Args {
 
 fn render_width(args: &Args) -> (usize, Option<usize>) {
     let term_width = if io::stdout().is_terminal() {
-        crossterm::terminal::size().ok().map(|(cols, _)| cols as usize)
+        crossterm::terminal::size()
+            .ok()
+            .map(|(cols, _)| cols as usize)
     } else {
         None
     };
@@ -84,49 +86,51 @@ fn main() {
     }
 
     // Check if file is a directory
-    if let Some(ref file) = args.file {
-        if file != "-" {
-            let path = Path::new(file);
-            if path.is_dir() {
-                let no_pager = args.no_pager;
-                let dir = file.clone();
-                browse_directory(
-                    &dir,
-                    |selection| {
-                        let input = match std::fs::read_to_string(selection) {
-                            Ok(s) => s,
-                            Err(e) => {
-                                eprintln!("Error reading {selection}: {e}");
-                                return;
-                            }
-                        };
-                        let real_path = std::fs::canonicalize(selection)
-                            .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_else(|_| selection.to_string());
-
-                        let centered = render_centered(&input, &style, &args);
-                        let content_lines = centered.lines().count();
-                        let terminal_rows =
-                            crossterm::terminal::size().map(|(_, r)| r as usize).unwrap_or(24);
-
-                        if should_page(no_pager, is_tty, content_lines, terminal_rows, true) {
-                            let raw = input.clone();
-                            let mut on_resize = || render_centered(&input, &style, &args);
-                            run_pager(
-                                &centered,
-                                Some(&real_path),
-                                Some(&raw),
-                                Some(&mut on_resize),
-                            );
-                        } else {
-                            println!("{centered}");
+    if let Some(ref file) = args.file
+        && file != "-"
+    {
+        let path = Path::new(file);
+        if path.is_dir() {
+            let no_pager = args.no_pager;
+            let dir = file.clone();
+            browse_directory(
+                &dir,
+                |selection| {
+                    let input = match std::fs::read_to_string(selection) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            eprintln!("Error reading {selection}: {e}");
+                            return;
                         }
-                    },
-                    None,
-                    None,
-                );
-                return;
-            }
+                    };
+                    let real_path = std::fs::canonicalize(selection).map_or_else(
+                        |_| selection.to_string(),
+                        |p| p.to_string_lossy().to_string(),
+                    );
+
+                    let centered = render_centered(&input, &style, &args);
+                    let content_lines = centered.lines().count();
+                    let terminal_rows = crossterm::terminal::size()
+                        .map(|(_, r)| r as usize)
+                        .unwrap_or(24);
+
+                    if should_page(no_pager, is_tty, content_lines, terminal_rows, true) {
+                        let raw = input.clone();
+                        let mut on_resize = || render_centered(&input, &style, &args);
+                        run_pager(
+                            &centered,
+                            Some(&real_path),
+                            Some(&raw),
+                            Some(&mut on_resize),
+                        );
+                    } else {
+                        println!("{centered}");
+                    }
+                },
+                None,
+                None,
+            );
+            return;
         }
     }
 
@@ -148,8 +152,7 @@ fn main() {
             std::process::exit(1);
         });
         let real_path = std::fs::canonicalize(file)
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| file.clone());
+            .map_or_else(|_| file.clone(), |p| p.to_string_lossy().to_string());
         (content, Some(real_path))
     };
 

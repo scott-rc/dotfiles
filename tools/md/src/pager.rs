@@ -84,10 +84,8 @@ pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
         KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
         KeyCode::Char('u') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlU,
         // Alt combos
-        KeyCode::Char('b') if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
-        KeyCode::Char('f') if mods.contains(KeyModifiers::ALT) => Key::AltRight,
-        KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
-        KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
+        KeyCode::Char('b') | KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
+        KeyCode::Char('f') | KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
         KeyCode::Backspace if mods.contains(KeyModifiers::ALT) => Key::AltBackspace,
         // Plain chars
         KeyCode::Char(c) => Key::Char(c),
@@ -278,11 +276,7 @@ pub fn find_matches(lines: &[String], query: &str) -> Vec<usize> {
         .collect()
 }
 
-pub fn map_to_source_line(
-    top_line: usize,
-    rendered_line_count: usize,
-    raw_content: &str,
-) -> usize {
+pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_content: &str) -> usize {
     let source_count = raw_content.lines().count();
     if rendered_line_count == 0 {
         return 1;
@@ -348,29 +342,21 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
     let right_visible_len = range.len() + 1 + position.len();
 
     // Build left side
-    let left = if !input.search_query.is_empty() {
-        let match_info = if input.current_match >= 0 {
-            format!(
-                "/{} ({}/{})",
-                input.search_query,
-                input.current_match + 1,
-                input.search_matches.len()
-            )
-        } else {
-            format!("/{}", input.search_query)
-        };
-        match_info
-    } else {
+    let left = if input.search_query.is_empty() {
         input
             .file_path
             .as_ref()
-            .map(|p| {
-                p.rsplit('/')
-                    .next()
-                    .unwrap_or(p)
-                    .to_string()
-            })
+            .map(|p| p.rsplit('/').next().unwrap_or(p).to_string())
             .unwrap_or_default()
+    } else if input.current_match >= 0 {
+        format!(
+            "/{} ({}/{})",
+            input.search_query,
+            input.current_match + 1,
+            input.search_matches.len()
+        )
+    } else {
+        format!("/{}", input.search_query)
     };
 
     let left_visible_len = left.len();
@@ -391,10 +377,7 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
 }
 
 pub fn render_status_bar(input: &StatusBarInput, cols: usize) -> String {
-    format!(
-        "{RESET}{REVERSE}{}{RESET}",
-        format_status_bar(input, cols)
-    )
+    format!("{RESET}{REVERSE}{}{RESET}", format_status_bar(input, cols))
 }
 
 pub fn handle_search_key(state: &mut PagerState, key: &Key) {
@@ -512,10 +495,8 @@ fn open_in_editor(file_path: &str, line: Option<usize>) {
     if is_vim {
         args.push("-R".to_string());
     }
-    if is_vim {
-        if let Some(l) = line {
-            args.push(format!("+{l}"));
-        }
+    if is_vim && let Some(l) = line {
+        args.push(format!("+{l}"));
     }
     args.push(file_path.to_string());
 
@@ -594,7 +575,7 @@ pub fn run_pager(
         let content_height = rows.saturating_sub(1) as usize;
         let half_page = content_height / 2;
         let max_top = if state.lines.len() > content_height / 2 {
-            state.lines.len() - (content_height + 1) / 2
+            state.lines.len() - content_height.div_ceil(2)
         } else {
             0
         };
@@ -609,7 +590,7 @@ pub fn run_pager(
             Key::Char('k') | Key::Up => {
                 state.top_line = state.top_line.saturating_sub(1);
             }
-            Key::Char('d') | Key::Char(' ') | Key::CtrlD | Key::PageDown => {
+            Key::Char('d' | ' ') | Key::CtrlD | Key::PageDown => {
                 state.top_line = (state.top_line + half_page).min(max_top);
             }
             Key::Char('u') | Key::CtrlU | Key::PageUp => {
@@ -641,28 +622,28 @@ pub fn run_pager(
                 }
             }
             Key::Char('c') => {
-                if let Some(ref fp) = state.file_path {
-                    if copy_to_clipboard(fp) {
-                        let name = fp.rsplit('/').next().unwrap_or(fp);
-                        state.search_message = format!("Copied: {name}");
-                    }
+                if let Some(ref fp) = state.file_path
+                    && copy_to_clipboard(fp)
+                {
+                    let name = fp.rsplit('/').next().unwrap_or(fp);
+                    state.search_message = format!("Copied: {name}");
                 }
             }
             Key::Char('C') => {
-                if let Some(ref fp) = state.file_path {
-                    if let Ok(abs) = std::fs::canonicalize(fp) {
-                        let abs_str = abs.to_string_lossy().to_string();
-                        if copy_to_clipboard(&abs_str) {
-                            state.search_message = format!("Copied: {abs_str}");
-                        }
+                if let Some(ref fp) = state.file_path
+                    && let Ok(abs) = std::fs::canonicalize(fp)
+                {
+                    let abs_str = abs.to_string_lossy().to_string();
+                    if copy_to_clipboard(&abs_str) {
+                        state.search_message = format!("Copied: {abs_str}");
                     }
                 }
             }
             Key::Char('y') => {
-                if let Some(ref raw) = state.raw_content {
-                    if copy_to_clipboard(raw) {
-                        state.search_message = "Copied raw markdown".to_string();
-                    }
+                if let Some(ref raw) = state.raw_content
+                    && copy_to_clipboard(raw)
+                {
+                    state.search_message = "Copied raw markdown".to_string();
                 }
             }
             Key::Char('v') => {
@@ -711,7 +692,7 @@ fn scroll_to_match(state: &mut PagerState) {
     let content_height = rows.saturating_sub(1) as usize;
     let target = match_line.saturating_sub(content_height / 3);
     let max_top = if state.lines.len() > content_height / 2 {
-        state.lines.len() - (content_height + 1) / 2
+        state.lines.len() - content_height.div_ceil(2)
     } else {
         0
     };
@@ -724,7 +705,7 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
 
     // Clamp top_line
     let max_top = if state.lines.len() > content_height / 2 {
-        state.lines.len() - (content_height + 1) / 2
+        state.lines.len() - content_height.div_ceil(2)
     } else {
         0
     };
@@ -1031,7 +1012,8 @@ mod tests {
             };
             let result = format_status_bar(&input, case.input.cols);
             assert_eq!(
-                result, case.expected,
+                result,
+                case.expected,
                 "format_status_bar: {} — result bytes: {:?}, expected bytes: {:?}",
                 case.name,
                 result.as_bytes(),
@@ -1170,7 +1152,11 @@ mod tests {
                     Mode::Normal => "normal",
                     Mode::Search => "search",
                 };
-                assert_eq!(actual_mode, expected_mode, "handle_search_key mode: {}", case.name);
+                assert_eq!(
+                    actual_mode, expected_mode,
+                    "handle_search_key mode: {}",
+                    case.name
+                );
             }
             if let Some(ref expected_input) = case.expected.search_input {
                 assert_eq!(

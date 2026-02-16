@@ -180,7 +180,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
 }
 
 /// Split a string by spaces, preserving spaces as separate elements.
-/// e.g. "hello  world" -> ["hello", "  ", "world"]
+/// e.g. `"hello  world"` -> `["hello", "  ", "world"]`
 fn split_with_spaces(s: &str) -> Vec<&str> {
     let mut parts = Vec::new();
     let mut last = 0;
@@ -396,7 +396,11 @@ mod tests {
         let cases: Vec<WrapLineCase> = serde_json::from_str(json).unwrap();
         for case in &cases {
             let result = wrap_line_for_display(&case.input, case.params.max_width);
-            assert_eq!(result, case.expected, "wrap_line_for_display: {}", case.name);
+            assert_eq!(
+                result, case.expected,
+                "wrap_line_for_display: {}",
+                case.name
+            );
         }
     }
 }

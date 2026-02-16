@@ -17,3 +17,21 @@ indexmap = { version = "2.13.0", features = ["serde"] }
 
 [dev-dependencies]
 serde_json = "1"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+# Suppress pedantic lints that don't fit this codebase
+cast_possible_truncation = "allow" # Terminal dimensions are always small
+cast_possible_wrap       = "allow" # usize→isize after bounds checks
+cast_precision_loss      = "allow" # usize→f64 for scroll ratios, intentional
+cast_sign_loss           = "allow" # isize→usize after bounds checks
+doc_markdown             = "allow" # Not a published library
+missing_panics_doc       = "allow" # CLI binary, not a library
+must_use_candidate       = "allow" # CLI binary, not a library API
+similar_names            = "allow" # e.g. col_widths vs col_width — fine in context
+too_many_lines           = "allow" # render_tokens is a big match state machine
+unreadable_literal       = "allow" # Hex color constants like 0x79c0ff
+
+[lints.rust]
+unsafe_code = "deny"

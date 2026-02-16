@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use indexmap::IndexMap;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
@@ -30,10 +32,10 @@ pub fn render_markdown(markdown: &str, width: usize, style: &Style) -> String {
     let parsed = parse_frontmatter(markdown);
     let mut parts = Vec::new();
 
-    if let Some(ref fm) = parsed.frontmatter {
-        if !fm.is_empty() {
-            parts.push(render_frontmatter(fm, width, style));
-        }
+    if let Some(ref fm) = parsed.frontmatter
+        && !fm.is_empty()
+    {
+        parts.push(render_frontmatter(fm, width, style));
     }
 
     let body = render_tokens(&parsed.body, width, style);
@@ -53,13 +55,17 @@ pub fn render_frontmatter(
         return String::new();
     }
 
-    let max_key_len = attrs.keys().map(|k| k.len()).max().unwrap_or(0);
+    let max_key_len = attrs
+        .keys()
+        .map(std::string::String::len)
+        .max()
+        .unwrap_or(0);
     let indent = " ".repeat(max_key_len + 2);
 
     attrs
         .iter()
         .map(|(key, value)| {
-            let padded_key = format!("{:width$}", key, width = max_key_len);
+            let padded_key = format!("{key:max_key_len$}");
             let formatted = format_value(value);
 
             if width > 0 {
@@ -104,7 +110,7 @@ fn format_value(value: &serde_yaml::Value) -> String {
             .iter()
             .map(|v| match v {
                 serde_yaml::Value::String(s) => s.clone(),
-                other => format!("{:?}", other),
+                other => format!("{other:?}"),
             })
             .collect::<Vec<_>>()
             .join(", "),
@@ -150,22 +156,18 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     let highlighted = highlight_code(&content, lang.as_deref(), style.color);
 
                     let opening = match &lang {
-                        Some(l) => format!(
-                            "{}{}",
-                            style.marker("```"),
-                            style.code_language(l)
-                        ),
+                        Some(l) => format!("{}{}", style.marker("```"), style.code_language(l)),
                         None => style.marker("```"),
                     };
-                    let block = format!(
-                        "{}\n{}\n{}",
-                        opening,
-                        highlighted,
-                        style.marker("```")
-                    );
+                    let block = format!("{}\n{}\n{}", opening, highlighted, style.marker("```"));
 
                     code_block = None;
-                    push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
+                    push_block(
+                        &mut output_parts,
+                        &mut list_stack,
+                        &mut blockquote_buffer,
+                        block,
+                    );
                     continue;
                 }
                 _ => continue,
@@ -182,11 +184,16 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 let level_num = heading_level_num(level);
                 let prefix = style.marker(&"#".repeat(level_num));
                 let styled_text = apply_heading_style(style, level, &inline_buffer);
-                let block = format!("{} {}", prefix, styled_text);
+                let block = format!("{prefix} {styled_text}");
                 inline_buffer.clear();
-                push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
+                push_block(
+                    &mut output_parts,
+                    &mut list_stack,
+                    &mut blockquote_buffer,
+                    block,
+                );
             }
-            Event::Start(Tag::Paragraph) => {
+            Event::Start(Tag::Paragraph | Tag::Item | Tag::TableCell) => {
                 inline_buffer.clear();
             }
             Event::End(TagEnd::Paragraph) => {
@@ -199,10 +206,20 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         // Inside list — wrapping will be applied when the item ends
                         text
                     };
-                    push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, wrapped);
+                    push_block(
+                        &mut output_parts,
+                        &mut list_stack,
+                        &mut blockquote_buffer,
+                        wrapped,
+                    );
                 } else {
                     let wrapped = word_wrap(&text, width, "");
-                    push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, wrapped);
+                    push_block(
+                        &mut output_parts,
+                        &mut list_stack,
+                        &mut blockquote_buffer,
+                        wrapped,
+                    );
                 }
             }
             Event::Start(Tag::Strong) => {
@@ -230,18 +247,17 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::End(TagEnd::Link) => {
                 let dest = link_dest.pop().unwrap_or_default();
-                inline_buffer.push_str(&format!(
+                let _ = write!(
+                    inline_buffer,
                     "{}{}{}",
                     style.marker("]("),
                     style.link_url(&dest),
                     style.marker(")")
-                ));
+                );
             }
             Event::Start(Tag::CodeBlock(kind)) => {
                 let lang = match kind {
-                    CodeBlockKind::Fenced(ref lang) if !lang.is_empty() => {
-                        Some(lang.to_string())
-                    }
+                    CodeBlockKind::Fenced(ref lang) if !lang.is_empty() => Some(lang.to_string()),
                     _ => None,
                 };
                 code_block = Some(CodeBlockCtx {
@@ -256,7 +272,8 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     let text = std::mem::take(&mut inline_buffer);
                     if let Some(ctx) = list_stack.last_mut() {
                         let marker = make_list_marker(ctx, style);
-                        ctx.items.push(format_list_item(&text, &marker, ctx.depth, width));
+                        ctx.items
+                            .push(format_list_item(&text, &marker, ctx.depth, width));
                     }
                 }
                 let depth = list_stack.len();
@@ -267,16 +284,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     depth,
                 });
             }
-            Event::Start(Tag::Item) => {
-                inline_buffer.clear();
-            }
             Event::End(TagEnd::Item) => {
                 let text = std::mem::take(&mut inline_buffer);
-                if !text.is_empty() {
-                    if let Some(ctx) = list_stack.last_mut() {
-                        let marker = make_list_marker(ctx, style);
-                        ctx.items.push(format_list_item(&text, &marker, ctx.depth, width));
-                    }
+                if !text.is_empty()
+                    && let Some(ctx) = list_stack.last_mut()
+                {
+                    let marker = make_list_marker(ctx, style);
+                    ctx.items
+                        .push(format_list_item(&text, &marker, ctx.depth, width));
                 }
                 // If text is empty, the item was already committed by Start(List)
             }
@@ -328,7 +343,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::Rule => {
                 let block = style.hr_style("---");
-                push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
+                push_block(
+                    &mut output_parts,
+                    &mut list_stack,
+                    &mut blockquote_buffer,
+                    block,
+                );
             }
             Event::Text(text) => {
                 let styled = if !link_dest.is_empty() {
@@ -353,7 +373,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             Event::Html(text) => {
                 // Block-level HTML: treat as a paragraph (word-wrap the raw text)
                 let wrapped = word_wrap(&text, width, "");
-                push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, wrapped);
+                push_block(
+                    &mut output_parts,
+                    &mut list_stack,
+                    &mut blockquote_buffer,
+                    wrapped,
+                );
             }
             Event::InlineHtml(text) => {
                 // Inline HTML: pass through as-is (e.g., <br>, <!-- comment -->)
@@ -361,7 +386,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::Start(Tag::Table(alignments)) => {
                 table = Some(TableCtx {
-                    alignments: alignments.to_vec(),
+                    alignments: alignments.clone(),
                     head_cells: Vec::new(),
                     rows: Vec::new(),
                     current_row: Vec::new(),
@@ -386,15 +411,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 }
             }
             Event::End(TagEnd::TableRow) => {
-                if let Some(ref mut t) = table {
-                    if !t.in_head {
-                        let row = std::mem::take(&mut t.current_row);
-                        t.rows.push(row);
-                    }
+                if let Some(ref mut t) = table
+                    && !t.in_head
+                {
+                    let row = std::mem::take(&mut t.current_row);
+                    t.rows.push(row);
                 }
-            }
-            Event::Start(Tag::TableCell) => {
-                inline_buffer.clear();
             }
             Event::End(TagEnd::TableCell) => {
                 let cell = std::mem::take(&mut inline_buffer);
@@ -405,7 +427,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             Event::End(TagEnd::Table) => {
                 if let Some(t) = table.take() {
                     let block = render_table(&t, width, style);
-                    push_block(&mut output_parts, &mut list_stack, &mut blockquote_buffer, block);
+                    push_block(
+                        &mut output_parts,
+                        &mut list_stack,
+                        &mut blockquote_buffer,
+                        block,
+                    );
                 }
             }
             _ => {}
@@ -443,7 +470,7 @@ fn shrink_columns(col_widths: &mut [usize], target_width: usize) {
         if shrinkable == 0 {
             continue;
         }
-        let reduction = (overflow * shrinkable + total_shrinkable - 1) / total_shrinkable;
+        let reduction = (overflow * shrinkable).div_ceil(total_shrinkable);
         let reduction = reduction.min(shrinkable).min(remaining);
         *w -= reduction;
         remaining -= reduction;
@@ -490,10 +517,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
 
     // Build a horizontal border line: ┌─────┬─────┐ / ├─────┼─────┤ / └─────┴─────┘
     let border_line = |left: &str, mid: &str, right: &str| -> String {
-        let segments: Vec<String> = col_widths
-            .iter()
-            .map(|&w| "─".repeat(w + 2))
-            .collect();
+        let segments: Vec<String> = col_widths.iter().map(|&w| "─".repeat(w + 2)).collect();
         style.table_border(&format!("{}{}{}", left, segments.join(mid), right))
     };
 
@@ -507,7 +531,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             .map(|(i, cell)| wrap_cell(cell, col_widths[i]))
             .collect();
 
-        let row_height = wrapped.iter().map(|w| w.len()).max().unwrap_or(1);
+        let row_height = wrapped.iter().map(std::vec::Vec::len).max().unwrap_or(1);
         let sep = format!(" {} ", style.table_border("│"));
 
         let mut row_lines = Vec::new();
@@ -516,8 +540,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             for (i, cell_lines) in wrapped.iter().enumerate() {
                 let text = cell_lines
                     .get(line_idx)
-                    .map(|s| s.as_str())
-                    .unwrap_or("");
+                    .map_or("", std::string::String::as_str);
                 let vis_len = visible_length(text);
                 let pad = col_widths[i].saturating_sub(vis_len);
                 let content = if bold_cells {
@@ -565,7 +588,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
 fn push_block(
     output_parts: &mut Vec<String>,
     list_stack: &mut [ListContext],
-    blockquote_buffer: &mut Vec<Vec<String>>,
+    blockquote_buffer: &mut [Vec<String>],
     block: String,
 ) {
     if block.is_empty() {
@@ -665,8 +688,7 @@ mod tests {
         ($name:ident, $file:expr) => {
             #[test]
             fn $name() {
-                let input =
-                    include_str!(concat!("../fixtures/rendering/", $file, ".md"));
+                let input = include_str!(concat!("../fixtures/rendering/", $file, ".md"));
                 let expected =
                     include_str!(concat!("../fixtures/rendering/", $file, ".expected.txt"));
                 let result = render_plain(input);
@@ -703,8 +725,7 @@ mod tests {
         ($name:ident, $file:expr) => {
             #[test]
             fn $name() {
-                let input =
-                    include_str!(concat!("../fixtures/rendering/", $file, ".md"));
+                let input = include_str!(concat!("../fixtures/rendering/", $file, ".md"));
                 let expected =
                     include_str!(concat!("../fixtures/rendering/", $file, ".expected.txt"));
                 let result = render_md_plain(input);
@@ -761,7 +782,10 @@ mod tests {
             ]),
         );
         let result = render_frontmatter(&attrs, WIDTH, &style);
-        assert!(result.contains("a, b, c"), "should join with commas, got: {result}");
+        assert!(
+            result.contains("a, b, c"),
+            "should join with commas, got: {result}"
+        );
     }
 
     #[test]
@@ -777,13 +801,19 @@ mod tests {
         let style = Style::new(false);
         let mut attrs = IndexMap::new();
         let long_value = "word ".repeat(30);
-        attrs.insert("desc".into(), serde_yaml::Value::String(long_value.trim().into()));
+        attrs.insert(
+            "desc".into(),
+            serde_yaml::Value::String(long_value.trim().into()),
+        );
         let result = render_frontmatter(&attrs, WIDTH, &style);
         let lines: Vec<&str> = result.lines().collect();
         assert!(lines.len() > 1, "long value should wrap to multiple lines");
         // Continuation lines should be indented
         for line in &lines[1..] {
-            assert!(line.starts_with(' '), "continuation should be indented: {line:?}");
+            assert!(
+                line.starts_with(' '),
+                "continuation should be indented: {line:?}"
+            );
         }
     }
 
