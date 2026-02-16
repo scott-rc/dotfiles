@@ -169,6 +169,8 @@ require('lazy').setup({
     lazy = false,
     priority = 1000,
     config = function()
+      require('github-theme').setup()
+
       local function is_dark_mode()
         local result = vim.fn.system('defaults read -g AppleInterfaceStyle 2>/dev/null')
         return result:match('Dark') ~= nil
