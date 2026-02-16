@@ -66,6 +66,14 @@
       "expected": "the quick brown\nfox jumps over the\nlazy dog"
     },
     {
+      "name": "ANSI state resets at wrap boundary and re-applies on next line",
+      "input": "\u001b[1mbold text that wraps\u001b[22m",
+      "params": {
+        "width": 12
+      },
+      "expected": "\u001b[1mbold text\u001b[0m\n\u001b[1mthat wraps\u001b[22m"
+    },
+    {
       "name": "backtick-aware line breaking",
       "input": "some text \u001b[38;2;139;148;158m`\u001b[39m\u001b[38;2;255;166;87mcode\u001b[39m\u001b[38;2;139;148;158m`\u001b[39m end",
       "params": {

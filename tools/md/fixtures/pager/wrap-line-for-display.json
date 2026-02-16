@@ -45,7 +45,7 @@
     "name": "ANSI codes stay on the line they were emitted",
     "input": "\u001b[1mhello world\u001b[0m",
     "params": { "maxWidth": 6 },
-    "expected": ["\u001b[1mhello ", "world\u001b[0m"]
+    "expected": ["\u001b[1mhello \u001b[0m", "\u001b[1mworld\u001b[0m"]
   },
   {
     "name": "box-drawing chars measured by display width",
@@ -57,12 +57,18 @@
     "name": "box-drawing with ANSI wraps correctly",
     "input": "\u001b[38;2;139;148;158m┌──┬──┐\u001b[39m",
     "params": { "maxWidth": 5 },
-    "expected": ["\u001b[38;2;139;148;158m┌──┬─", "─┐\u001b[39m"]
+    "expected": ["\u001b[38;2;139;148;158m┌──┬─\u001b[0m", "\u001b[38;2;139;148;158m─┐\u001b[39m"]
   },
   {
     "name": "mixed ASCII and box-drawing",
     "input": "abc│def│ghi",
     "params": { "maxWidth": 7 },
     "expected": ["abc│def", "│ghi"]
+  },
+  {
+    "name": "underline resets at wrap and re-applies on next line",
+    "input": "\u001b[4mhello world\u001b[24m",
+    "params": { "maxWidth": 6 },
+    "expected": ["\u001b[4mhello \u001b[0m", "\u001b[4mworld\u001b[24m"]
   }
 ]

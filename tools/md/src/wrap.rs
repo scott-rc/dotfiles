@@ -6,6 +6,77 @@ static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m")
 static BACKTICK_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$").unwrap());
 
+#[derive(Clone, Default)]
+struct AnsiState {
+    bold: bool,
+    italic: bool,
+    underline: bool,
+    fg: Option<String>,
+}
+
+impl AnsiState {
+    fn update(&mut self, code: &str) {
+        let inner = &code[2..code.len() - 1];
+        if inner.is_empty() {
+            return;
+        }
+        let params: Vec<&str> = inner.split(';').collect();
+        let mut i = 0;
+        while i < params.len() {
+            match params[i] {
+                "0" => *self = Self::default(),
+                "1" => self.bold = true,
+                "22" => self.bold = false,
+                "3" => self.italic = true,
+                "23" => self.italic = false,
+                "4" => self.underline = true,
+                "24" => self.underline = false,
+                "38" if i + 4 < params.len() && params[i + 1] == "2" => {
+                    self.fg = Some(format!(
+                        "\x1b[38;2;{};{};{}m",
+                        params[i + 2],
+                        params[i + 3],
+                        params[i + 4]
+                    ));
+                    i += 4;
+                }
+                "39" => self.fg = None,
+                _ => {}
+            }
+            i += 1;
+        }
+    }
+
+    fn is_active(&self) -> bool {
+        self.bold || self.italic || self.underline || self.fg.is_some()
+    }
+
+    fn to_codes(&self) -> String {
+        let mut s = String::new();
+        if self.bold {
+            s.push_str("\x1b[1m");
+        }
+        if self.italic {
+            s.push_str("\x1b[3m");
+        }
+        if self.underline {
+            s.push_str("\x1b[4m");
+        }
+        if let Some(ref fg) = self.fg {
+            s.push_str(fg);
+        }
+        s
+    }
+
+    fn from_line(line: &str) -> Self {
+        let mut state = Self::default();
+        for m in ANSI_RE.find_iter(line) {
+            state.update(m.as_str());
+        }
+        state
+    }
+}
+
 /// Remove ANSI escape codes from a string.
 pub fn strip_ansi(text: &str) -> String {
     ANSI_RE.replace_all(text, "").into_owned()
@@ -101,10 +172,12 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
     let mut results: Vec<String> = Vec::new();
     let mut current_line = String::new();
     let mut current_width: usize = 0;
+    let mut state = AnsiState::default();
 
     for seg in &segments {
         if ANSI_RE.is_match(seg) {
             // ANSI code: append without counting width
+            state.update(seg);
             current_line.push_str(seg);
             continue;
         }
@@ -123,8 +196,11 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                 let mut i = 0;
                 while i < word.len() {
                     if i > 0 {
+                        if state.is_active() {
+                            current_line.push_str("\x1b[0m");
+                        }
                         results.push(current_line.clone());
-                        current_line.clear();
+                        current_line = state.to_codes();
                         current_width = 0;
                     }
                     let end = (i + width).min(word.len());
@@ -148,17 +224,24 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                     if let Some(m) = BACKTICK_RE.find(&line_to_save) {
                         let captured = m.as_str().to_string();
                         line_to_save = line_to_save[..m.start()].trim_end().to_string();
+                        let save_state = AnsiState::from_line(&line_to_save);
                         if !strip_ansi(&line_to_save).trim().is_empty() {
+                            if save_state.is_active() {
+                                line_to_save.push_str("\x1b[0m");
+                            }
                             results.push(line_to_save);
                         }
-                        current_line = format!("{captured}{word}");
+                        current_line = format!("{}{captured}{word}", save_state.to_codes());
                         current_width = 1 + word_len;
                         continue;
                     }
                 }
 
+                if state.is_active() {
+                    line_to_save.push_str("\x1b[0m");
+                }
                 results.push(line_to_save);
-                current_line.clear();
+                current_line = state.to_codes();
                 current_width = 0;
 
                 // Skip leading spaces at the start of a new line
@@ -218,9 +301,11 @@ pub fn wrap_line_for_display(line: &str, max_width: usize) -> Vec<String> {
     let mut rows: Vec<String> = Vec::new();
     let mut current = String::new();
     let mut width: usize = 0;
+    let mut state = AnsiState::default();
 
     for seg in segments {
         if seg.starts_with('\x1b') {
+            state.update(seg);
             current.push_str(seg);
             continue;
         }
@@ -228,7 +313,11 @@ pub fn wrap_line_for_display(line: &str, max_width: usize) -> Vec<String> {
         for c in seg.chars() {
             let cw = c.width().unwrap_or(0);
             if width + cw > max_width && width > 0 {
+                if state.is_active() {
+                    current.push_str("\x1b[0m");
+                }
                 rows.push(std::mem::take(&mut current));
+                current = state.to_codes();
                 width = 0;
             }
             current.push(c);
