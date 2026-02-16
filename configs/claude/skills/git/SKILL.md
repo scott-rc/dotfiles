@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, CI checks, and PR reviews with opinionated workflows. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, check CI status, address review comments, or manage git worktrees.
+description: Handles git commits, pushes, rebases, squashes, worktrees, PRs, and PR reviews with opinionated workflows. Use when the user asks to commit, commit this, push, create or update a PR, rebase, squash commits, address review comments, or manage git worktrees.
 ---
 
 # Git Operations
@@ -24,10 +24,6 @@ See [rebase.md](rebase.md) for detailed instructions.
 ### Push
 Push commits and create/update PR with title/description per guidelines.
 See [push.md](push.md) for detailed instructions.
-
-### CI
-Check GitHub Actions status and fetch failure logs to debug CI issues.
-See [ci.md](ci.md) for detailed instructions.
 
 ### Review
 Fetch unresolved PR review threads and fix the issues reviewers described.
