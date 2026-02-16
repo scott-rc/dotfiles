@@ -26,6 +26,9 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - Operation files that duplicate content from other operation files
    - Reference files that contain operation logic (numbered steps telling the agent what to do)
    - Missing combined operations when multiple operations could logically be chained
+   - Skills with side effects that don't use `disable-model-invocation: true`
+   - Skills with `context: fork` that contain only reference content (no task instructions)
+   - Skills with long descriptions that may exceed the description budget (2% of context window)
 
 6. **Estimate token usage**:
    - Count approximate tokens for each file (rough: 1 token per 4 characters)

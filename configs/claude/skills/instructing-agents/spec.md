@@ -50,7 +50,18 @@ description: <text>             # Required. See Description Rules below.
 ---
 ```
 
-Only `name` and `description` are recognized frontmatter keys. MUST NOT add custom keys.
+Required fields: `name` and `description`. Optional fields (include only when needed):
+
+- `argument-hint` — autocomplete hint shown after skill name (e.g., `[issue-number]`)
+- `disable-model-invocation: true` — prevents Claude from auto-loading the skill; only the user can invoke it via `/`. Use for side-effect workflows where unintended invocation would be harmful.
+- `user-invocable: false` — hides the skill from the `/` menu; only Claude can load it. Use for background knowledge that should augment Claude's behavior without user invocation.
+- `allowed-tools` — comma-separated list of tools available when this skill is active (e.g., `Read, Grep, Glob`). Restricts the agent's capabilities during the skill.
+- `model` — model override for this skill (`sonnet`, `opus`, `haiku`)
+- `context: fork` — runs the skill in a subagent (see Subagent Execution below)
+- `agent` — subagent type when `context: fork` is set (`Explore`, `Plan`, `general-purpose`, or a custom agent type)
+- `hooks` — lifecycle hooks scoped to this skill
+
+MUST NOT add keys not listed above.
 
 ### Description Rules
 
@@ -62,6 +73,28 @@ The `description` field is how Claude discovers and matches the skill to user in
 4. **MUST be a single sentence**: One sentence, no line breaks, no bullet points
 5. **MUST stay under 1024 characters**: Long descriptions get truncated in skill listings
 6. **MUST NOT contain XML tags**
+
+### Description Budget
+
+Skill descriptions consume context budget (2% of context window, fallback 16,000 chars). Many skills with long descriptions can exceed the budget, causing some to be excluded from the agent's awareness. Keep descriptions concise. The env var `SLASH_COMMAND_TOOL_CHAR_BUDGET` overrides the default budget.
+
+### String Substitutions
+
+Skill content supports string substitutions that are resolved before the content reaches Claude:
+
+- `$ARGUMENTS` — the full argument string passed after the skill name
+- `$ARGUMENTS[N]` or `$N` — positional argument access (0-indexed)
+- `${CLAUDE_SESSION_ID}` — unique ID for the current session
+
+### Dynamic Context Injection
+
+Use `` !`command` `` syntax to inject the output of a shell command into skill content. The command runs before the skill content reaches Claude, and the output replaces the placeholder inline. Use this to inject runtime data (git state, file listings, environment info) that would otherwise require an extra tool call.
+
+### Subagent Execution
+
+When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent.
+
+This only makes sense for task-oriented skills that produce a result — reference content should not use `context: fork` because it needs to augment the main conversation context, not run in isolation.
 
 ### SKILL.md Body
 
@@ -113,6 +146,7 @@ These rules supplement the shared Content Rules above:
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **Progressive disclosure**: MUST follow progressive disclosure — SKILL.md is concise, operation files are detailed, reference files go deep
 - **Degrees of freedom**: SHOULD match instruction specificity to the task. High freedom (prose, multiple valid approaches) for creative/variable tasks. Medium freedom (pseudocode with parameters) when a preferred pattern exists. Low freedom (exact scripts, few parameters) for fragile/critical operations.
+- **Task vs reference content**: Task skills give step-by-step instructions for a specific workflow (often paired with `disable-model-invocation: true`). Reference skills add knowledge Claude applies to current work (often paired with `user-invocable: false`). Shape content to match the invocation pattern.
 - **Interview before assumptions**: Operations that act on user intent (creating, configuring, scaffolding) SHOULD begin with an interview step that gathers requirements before proceeding. The interview SHOULD ask only enough to unblock the next decision, use follow-up rounds for complexity revealed by initial answers, and summarize understanding for user confirmation before acting. Operations MUST NOT silently assume requirements the user hasn't stated when multiple valid options exist.
 
 ## Rules Specification
@@ -125,12 +159,14 @@ CLAUDE.md files provide persistent instructions that Claude loads into every con
 
 ### File Locations
 
-- `CLAUDE.md` (project root) — Project-wide, loads every conversation in that project
+- `CLAUDE.md` or `.claude/CLAUDE.md` (project root) — Project-wide, loads every conversation in that project
 - `CLAUDE.md` (subdirectory) — Subtree, loads when working on files in that subtree
+- `CLAUDE.local.md` (project root) — Private per-project instructions, auto-added to .gitignore. Use for personal preferences that shouldn't be checked in (local dev URLs, personal test data, sandbox credentials).
 - `~/.claude/CLAUDE.md` — Global (user), loads every conversation across all projects
 - `.claude/rules/*.md` (no `paths:` frontmatter) — Unconditional project rules, always loaded with the same priority as `.claude/CLAUDE.md`
 - `.claude/rules/*.md` (with `paths:` frontmatter) — Scoped rules, loads only when matching files are active
 - `~/.claude/rules/*.md` — User-level rules, loaded before project rules across all projects
+- Managed policy (macOS: `/Library/Application Support/ClaudeCode/CLAUDE.md`) — Organization-wide policy, requires IT/DevOps deployment
 
 CLAUDE.md files cascade: global, then project root, then subdirectories. More specific files supplement, not override, broader ones. User-level rules load before project rules, giving project rules higher priority.
 
@@ -156,6 +192,14 @@ CLAUDE.md files cascade: global, then project root, then subdirectories. More sp
 - Time-sensitive content (version numbers, dates, URLs that may rot)
 - Vague guidance ("write clean code", "follow best practices") — be specific or omit
 
+#### Conciseness Test
+
+For each line, ask: "Would removing this cause Claude to make mistakes?" If not, cut it. If Claude keeps ignoring a rule, the file is probably too long — prune aggressively rather than adding more rules. Treat CLAUDE.md like code: review when things go wrong, prune regularly.
+
+#### Emphasis
+
+You can tune instruction adherence by adding emphasis ("IMPORTANT", "YOU MUST"). Use sparingly — if everything is important, nothing is.
+
 ### @file References
 
 `@filename` tells Claude to read another file as additional context. Use it to:
@@ -163,7 +207,7 @@ CLAUDE.md files cascade: global, then project root, then subdirectories. More sp
 - Pull in README, CONTRIBUTING, or architecture docs without duplicating them
 - Reference style guides, API schemas, or other living documents
 
-Syntax: `@path/to/file` on its own line or inline. Paths are relative to the CLAUDE.md file's location.
+Syntax: `@path/to/file` on its own line or inline. Both relative and absolute paths are allowed; relative paths resolve from the file's location. Imported files can recursively import other files (max depth 5 hops). Imports are not evaluated inside markdown code spans or code blocks.
 
 SHOULD prefer `@file` over copying content. If the source file changes, the reference stays current.
 
@@ -216,3 +260,5 @@ Use scoped rules when instructions:
 - **Vague instructions**: "Follow best practices" is not actionable. State the specific practice.
 - **Excessive length**: If CLAUDE.md exceeds ~200 lines, split into `.claude/rules/` files or use `@file` references
 - **Unstable references**: Don't hardcode version numbers, specific dates, or URLs that may change
+- **Over-specified files**: If CLAUDE.md is so long that Claude ignores rules, it needs aggressive pruning, not more rules. Adding emphasis to every instruction is a symptom of this problem.
+- **Kitchen-sink context**: Adding unrelated instructions to a single file reduces effectiveness. Split by topic or scope instead.

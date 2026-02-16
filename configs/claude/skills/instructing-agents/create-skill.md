@@ -12,6 +12,9 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - What shared knowledge operations need (patterns, guidelines, templates)
    - Any runtime dependencies (CLIs, APIs, services)
    - Where to create it (default: `~/.claude/skills/` or the project's skill directory)
+   - Who invokes the skill — user only (`disable-model-invocation: true` for side-effect workflows), Claude only (`user-invocable: false` for background knowledge), or both (default)?
+   - Should it run in a subagent (`context: fork`) or inline?
+   - Any tool restrictions needed (`allowed-tools`)?
 
 2. **Determine skill name**:
    - MUST apply naming rules from the Skill Specification section of [spec.md](spec.md): lowercase, hyphens, max 64 chars
@@ -25,6 +28,8 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 4. **Write SKILL.md**:
    - MUST use the SKILL.md template from [skill-template.md](skill-template.md)
    - MUST write the frontmatter: `name` matching directory name, `description` following the Skill Specification section of [spec.md](spec.md)
+   - SHOULD include optional frontmatter fields when applicable: `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `argument-hint`
+   - MUST distinguish task vs reference content and set invocation control accordingly (see Skill Content Rules in [spec.md](spec.md))
    - MUST write the Operations section with one H3 per operation, each with a one-line summary and file link
    - SHOULD write Combined Operations if multiple operations can be chained (map user phrases to operation sequences)
    - SHOULD write References section linking any shared reference files

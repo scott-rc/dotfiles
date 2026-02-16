@@ -47,6 +47,33 @@ Annotated templates for creating CLAUDE.md and `.claude/rules/` files. Replace p
 - Focus on personal workflow preferences, not project-specific details
 - Repository maps help Claude navigate between projects by name
 
+## CLAUDE.local.md Template
+
+```markdown
+# <Project-specific personal preferences>
+
+<Instructions that apply to this project but shouldn't be checked in.>
+<e.g., local dev URLs, personal test data, sandbox credentials>
+```
+
+**Guidance:**
+- Auto-added to .gitignore — use for personal per-project preferences
+- Same syntax as CLAUDE.md (supports `@file`, `---` separators, etc.)
+- Loaded alongside project CLAUDE.md with the same priority
+
+## User-level Rules Template
+
+```markdown
+# <Topic>
+
+<Personal rules that apply across all projects. Place in ~/.claude/rules/<topic>.md>
+```
+
+**Guidance:**
+- Loaded before project rules across all projects (project rules have higher priority)
+- Use for personal workflow conventions (e.g., "always use bun", "never auto-commit")
+- One concern per file, same as project-level unconditional rules
+
 ## Unconditional Rules Template
 
 ```markdown
@@ -115,3 +142,15 @@ paths:
 - "Write unit tests for your code"
 - "A monorepo contains multiple packages"
 - "SQL tables have columns"
+
+### The conciseness test
+
+For each line, ask: "Would removing this cause Claude to make mistakes?" If not, cut it.
+
+### When Claude ignores rules
+
+The file is probably too long and the rule is getting lost. Prune aggressively rather than adding more emphasis or more rules. Shorter files with fewer, stronger rules outperform long files with comprehensive coverage.
+
+### Emphasis for critical rules
+
+Use "IMPORTANT" or "YOU MUST" to improve adherence on critical instructions. Use sparingly — if everything is emphasized, nothing is.

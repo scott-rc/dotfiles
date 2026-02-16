@@ -29,6 +29,9 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - `@file` references to files that contain mostly irrelevant content (should extract relevant parts instead)
    - Conflicts or redundancy with other CLAUDE.md files in the project hierarchy or with `.claude/rules/` files
    - Rules files in `.claude/rules/` without `paths:` that should be scoped, or scoped rules with overly broad patterns
+   - Private per-project preferences in CLAUDE.md that should be in CLAUDE.local.md instead
+   - Rules files that are too long, causing Claude to ignore instructions (the over-specification anti-pattern — if Claude ignores a rule despite it being present, the file needs pruning)
+   - Missing emphasis on critical rules that Claude frequently violates (but check for over-emphasis too)
 
 6. **Estimate token impact**:
    - Count approximate tokens (rough: 1 token per 4 characters) for the rules file itself

@@ -1,6 +1,6 @@
 ---
 name: instructing-agents
-description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files when users ask to scaffold, build, review, improve, or fix skills or write, update, or review CLAUDE.md rules files.
+description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files, and crafts session task prompts, when users ask to scaffold, build, review, improve, or fix skills, write, update, or review CLAUDE.md rules files, or craft prompts for new sessions.
 ---
 
 # Instructing Agents
@@ -25,6 +25,10 @@ See [create-rules.md](create-rules.md) for detailed instructions.
 Evaluate a CLAUDE.md or scoped rules file against best practices and report findings grouped by severity.
 See [review-rules.md](review-rules.md) for detailed instructions.
 
+### Create Prompt
+Craft a session task prompt interactively, producing a polished prompt ready to paste into a new Claude Code session.
+See [create-prompt.md](create-prompt.md) for detailed instructions.
+
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:
@@ -33,6 +37,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"improve skill"** / **"fix skill"** → Run Review Skill, then apply the suggested fixes
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
+- **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review"** (ambiguous) → Ask the user whether they mean a skill or a rules file
 
 **Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.

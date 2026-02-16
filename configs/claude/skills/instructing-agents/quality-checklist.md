@@ -9,10 +9,12 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Terminology consistency**: The same concept uses the same word everywhere (e.g., always "operation" or always "command", never both)
 - [ ] **Progressive disclosure** *(Skills only)*: SKILL.md summarizes, operation files detail, reference files go deep -- no level repeats information from another
 - [ ] **Examples where needed** *(Skills only)*: Operations that produce formatted output (commit messages, PR descriptions, file scaffolds) include at least one example
+- [ ] **Verification method** *(Skills only)*: Task-oriented operations include a step for verifying results (run tests, check output, compare screenshots)
+- [ ] **Invocation control** *(Skills only)*: Skills with side effects use `disable-model-invocation: true`; background-knowledge skills use `user-invocable: false`; default is appropriate for dual-invocation skills
 
 ## Structure — Skills
 
-- [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields
+- [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields; optional fields (`disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`, `argument-hint`) are valid if present
 - [ ] **Name matches directory**: The `name` in frontmatter matches the directory name exactly
 - [ ] **Naming rules**: Skill name and all file names are lowercase with hyphens only, max 64 characters
 - [ ] **Operations section exists**: SKILL.md has an H2 "Operations" section with at least one operation
@@ -39,6 +41,8 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No tables**: Lists instead of markdown tables per [spec.md](spec.md) Content Rules
 - [ ] **Only novel information** *(Rules only)*: Every instruction teaches something Claude cannot infer from the codebase or common knowledge
 - [ ] **Actionable instructions** *(Rules only)*: Every instruction is specific enough to act on (FAIL: "write clean code", "follow best practices")
+- [ ] **Conciseness test** *(Rules only)*: For each line, "would removing this cause Claude to make mistakes?" If no, it should be cut
+- [ ] **Not over-specified** *(Rules only)*: File is not so long that important rules get lost — if Claude ignores rules despite them being present, the file needs pruning
 
 ## Scripts (if applicable, Skills only)
 
@@ -87,4 +91,5 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
+- [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content (reference content needs no fork)
 
