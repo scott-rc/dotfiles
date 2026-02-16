@@ -254,7 +254,7 @@ if command -v cargo &>/dev/null; then
 	log_info "Building md"
 	(cd "$WORKSPACE_ROOT/tools/md" && cargo build --release 2>&1)
 	mkdir -p "$HOME/.cargo/bin"
-	cp "$WORKSPACE_ROOT/tools/md/target/release/md" "$HOME/.cargo/bin/md"
+	ensure_symlink "$WORKSPACE_ROOT/tools/md/target/release/md" "$HOME/.cargo/bin/md"
 
 	log_info "Building zellij-sync-stacks plugin"
 	mkdir -p "$ZELLIJ_PLUGIN_DIR"
