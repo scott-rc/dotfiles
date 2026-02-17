@@ -48,3 +48,38 @@ Follow the project's existing naming convention. Common patterns:
 ## Framework Setup
 
 When no framework is detected: prefer the language's standard or most common framework, get user approval before installing, and configure minimally -- only what's needed to run tests.
+
+## Benchmark Runner Detection
+
+Resolve the benchmark runner in priority order. Stop at the first match.
+
+1. **Project instructions**: Check CLAUDE.md or README for an explicit benchmark command.
+2. **Config/framework detection**: Look for benchmark support in the project:
+   - **Vitest bench**: `vitest.config.*` with bench config or `.bench.ts` files -- `npx vitest bench`
+   - **Deno bench**: `deno.json*` -- `deno bench`
+   - **Criterion**: `Cargo.toml` with `criterion` dependency or `benches/` directory -- `cargo bench`
+   - **Go bench**: `go.mod` with `_test.go` files containing `Benchmark*` functions -- `go test -bench=. ./...`
+   - **pytest-benchmark**: `pytest.ini` or `pyproject.toml` with `pytest-benchmark` dependency -- `pytest --benchmark-only`
+   - **JMH**: `build.gradle*` or `pom.xml` with JMH dependency -- framework-specific run command
+   - **hyperfine**: Available as a CLI tool for benchmarking arbitrary commands -- `hyperfine`
+3. **Existing benchmark files**: Infer the framework from imports or benchmark syntax in existing benchmark files.
+4. **Ask the user**: If nothing is detected, ask what benchmark framework and command to use.
+
+## Benchmark File Placement
+
+Detect the project's convention from existing benchmark files:
+
+- **Colocated**: Benchmark files next to source files (e.g., `src/foo.bench.ts`)
+- **Separate directory**: Benchmarks in a dedicated directory (e.g., `benches/`, `benchmark/`, `__benchmarks__/`)
+- **Language convention**: Some languages have strong defaults (`_test.go` with `Benchmark*` functions colocated, `benches/` directory in Rust)
+
+If no existing benchmarks exist, follow the test file placement convention or ask the user.
+
+## Benchmark File Naming
+
+Follow the project's existing naming convention. Common patterns:
+   - **TypeScript/JavaScript**: `*.bench.{ts,js}` (e.g., `parser.bench.ts`)
+   - **Python**: `bench_*.py` or `test_*_benchmark.py` (e.g., `bench_parser.py`)
+   - **Go**: `*_test.go` with `Benchmark*` functions (e.g., `parser_test.go`)
+   - **Rust**: `benches/*.rs` (e.g., `benches/parser.rs`)
+   - **Java/Kotlin**: `*Benchmark.java` / `*Benchmark.kt` (e.g., `ParserBenchmark.java`)
