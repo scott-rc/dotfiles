@@ -49,6 +49,7 @@ vim.keymap.set({ 'n', 'v', 'i' }, 'fd', '<Esc>', { desc = 'Escape' })
 
 -- Option+Delete word deletion (Ghostty sends Alt/ESC prefix for Option key)
 vim.keymap.set('i', '<M-BS>', '<C-w>', { desc = 'Delete word backward' })
+vim.keymap.set('i', '<D-BS>', '<C-u>', { desc = 'Delete to beginning of line' })
 
 -- Navigate by display lines when no count is given (for wrapped lines)
 vim.keymap.set({ 'n', 'v' }, 'j', function() return vim.v.count == 0 and 'gj' or 'j' end, { expr = true, desc = 'Down (wrap-aware)' })
@@ -403,7 +404,13 @@ require('lazy').setup({
         defaults = {
           layout_strategy = 'vertical',
           layout_config = { preview_cutoff = 20, preview_height = 0.6 },
-          mappings = { i = { ['<Esc>'] = actions.close } },
+          mappings = {
+            i = {
+              ['<Esc>'] = actions.close,
+              ['<M-BS>'] = { '<C-w>', type = 'command' },
+              ['<D-BS>'] = { '<C-u>', type = 'command' },
+            },
+          },
         },
         pickers = {
           find_files = { hidden = true, file_ignore_patterns = { '%.git/' } },
