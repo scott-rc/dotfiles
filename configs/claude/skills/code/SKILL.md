@@ -1,6 +1,6 @@
 ---
 name: code
-description: Loads coding style preferences and guides test-driven and benchmark-driven development workflows when writing, modifying, reviewing, planning, or optimizing code. Use when the user asks to write code, implement a feature, plan or design code, refactor, fix a bug, write tests, review code, TDD a feature, write tests first, add a regression test, fix a bug with tests, backfill tests, add coverage, write characterization tests, benchmark code, optimize performance, BDD a feature, or write benchmarks first.
+description: Loads coding style preferences and guides test-driven and benchmark-driven development workflows when writing, modifying, reviewing, planning, or optimizing code. Use when the user asks to write code, implement a feature, plan or design code, refactor, fix a bug, write tests, review code, review this code, code review, check for issues, audit code, TDD a feature, write tests first, add a regression test, fix a bug with tests, backfill tests, add coverage, write characterization tests, benchmark code, optimize performance, BDD a feature, or write benchmarks first.
 ---
 
 # Code
@@ -25,6 +25,10 @@ See [fix-bug.md](fix-bug.md) for detailed instructions.
 Write characterization tests for existing untested code.
 See [add-coverage.md](add-coverage.md) for detailed instructions.
 
+### Review
+Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues.
+See [review.md](review.md) for detailed instructions.
+
 ### Benchmark (BDD)
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
 See [benchmark.md](benchmark.md) for detailed instructions.
@@ -33,7 +37,8 @@ See [benchmark.md](benchmark.md) for detailed instructions.
 
 Users often request multiple operations together. Handle these as follows:
 
-- **"write code"** / **"implement this"** / **"refactor"** / **"review code"** → Apply
+- **"write code"** / **"implement this"** / **"refactor"** → Apply
+- **"review code"** / **"review this"** / **"code review"** / **"check for issues"** / **"audit this code"** → Review
 - **"TDD this feature"** / **"write tests first"** → New Feature
 - **"fix this bug"** (no mention of tests) → Apply
 - **"test and fix this bug"** / **"regression test"** / **"fix a bug with tests"** → Fix Bug
@@ -41,6 +46,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"benchmark this"** / **"BDD this"** / **"write a benchmark first"** → Benchmark
 - **"optimize this"** (with a specific performance target) → Benchmark
 - **"optimize this"** (general cleanup, no performance target) → Apply
+- **"review and fix"** / **"review then fix the issues"** → Review, then Apply
 - **"TDD the fix and add coverage for the rest"** → Fix Bug, then Add Coverage
 - **"implement and benchmark"** / **"TDD then benchmark"** → New Feature, then Benchmark
 - **"implement this feature with tests"** → New Feature
