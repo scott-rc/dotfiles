@@ -13,6 +13,9 @@ struct ListContext {
     next_number: u64,
     items: Vec<String>,
     depth: usize,
+    /// Number of items at the start of the current item — used to detect
+    /// whether the first paragraph of a loose-list item still needs a marker.
+    item_start_count: usize,
 }
 
 struct CodeBlockCtx {
@@ -203,27 +206,52 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 );
             }
             Event::Start(Tag::Paragraph | Tag::Item | Tag::TableCell) => {
+                if matches!(event, Event::Start(Tag::Item)) {
+                    if let Some(ctx) = list_stack.last_mut() {
+                        ctx.item_start_count = ctx.items.len();
+                    }
+                }
                 inline_buffer.clear();
             }
             Event::End(TagEnd::Paragraph) => {
                 let text = std::mem::take(&mut inline_buffer);
-                if blockquote_depth > 0 || !list_stack.is_empty() {
-                    // Inside blockquote or list: wrap at reduced width
+                if !list_stack.is_empty() && blockquote_depth == 0 {
+                    // Inside list: format as list item immediately so block
+                    // elements (code blocks, etc.) that follow stay in order.
+                    if let Some(ctx) = list_stack.last_mut() {
+                        if ctx.items.len() == ctx.item_start_count {
+                            // First paragraph of item: add marker
+                            let marker = make_list_marker(ctx, style);
+                            ctx.items.push(format_list_item(
+                                &text, &marker, ctx.depth, width,
+                            ));
+                        } else {
+                            // Subsequent paragraph: continuation indent
+                            let indent = "    ".repeat(ctx.depth);
+                            let marker_width =
+                                if ctx.ordered { 3 } else { 2 }; // "- " or "1. "
+                            let content_indent =
+                                format!("{indent}{}", " ".repeat(marker_width));
+                            let content_width =
+                                width.saturating_sub(indent.len() + marker_width);
+                            let wrapped = word_wrap(&text, content_width, "");
+                            let indented: String = wrapped
+                                .lines()
+                                .map(|l| format!("{content_indent}{l}"))
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            if let Some(last) = ctx.items.last_mut() {
+                                last.push('\n');
+                                last.push_str(&indented);
+                            }
+                        }
+                    }
+                } else {
                     let wrapped = if blockquote_depth > 0 {
                         word_wrap(&text, width.saturating_sub(blockquote_depth * 3), "")
                     } else {
-                        // Inside list — wrapping will be applied when the item ends
-                        text
+                        word_wrap(&text, width, "")
                     };
-                    push_block(
-                        &mut output_parts,
-                        &mut list_stack,
-                        &mut blockquote_buffer,
-                        &mut current_footnote,
-                        wrapped,
-                    );
-                } else {
-                    let wrapped = word_wrap(&text, width, "");
                     push_block(
                         &mut output_parts,
                         &mut list_stack,
@@ -301,6 +329,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     next_number: start.unwrap_or(1),
                     items: Vec::new(),
                     depth,
+                    item_start_count: 0,
                 });
             }
             Event::End(TagEnd::Item) => {
@@ -1070,6 +1099,79 @@ mod tests {
         let before = widths.clone();
         shrink_columns(&mut widths, 1);
         assert_eq!(widths, before, "columns at MIN_COL_WIDTH should not shrink");
+    }
+
+    #[test]
+    fn test_list_item_no_dangling_bracket() {
+        use crate::wrap::strip_ansi;
+
+        let cases = [
+            "- Directory browsing via `find` piped to `fzf` (via `$SHELL`) to pick a file",
+            "- **Directory browsing** — when given a directory, uses `find` + `fzf` (via `$SHELL`) to pick a `.md`/`.mdx` file, then renders it",
+            "- Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, directory browsing (via `$SHELL` + `fzf`), and a built-in pager.",
+            "- Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)",
+        ];
+        for md in cases {
+            for w in 20..120 {
+                for color in [false, true] {
+                    let style = Style::new(color);
+                    let result = render_tokens(md, w, &style);
+                    for (i, line) in result.lines().enumerate() {
+                        let vis = strip_ansi(line).trim().to_string();
+                        assert!(
+                            !is_only_brackets(&vis),
+                            "md={md:?}\nwidth={w} color={color} line {i} has dangling bracket: {vis:?}\nFull (stripped):\n{}",
+                            result.lines().enumerate().map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l))).collect::<Vec<_>>().join("\n"),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    fn is_only_brackets(s: &str) -> bool {
+        !s.is_empty() && s.chars().all(|c| matches!(c, ')' | ']' | '.' | ',' | ';' | ':'))
+    }
+
+    #[test]
+    fn test_loose_list_has_markers() {
+        let md = "- First item\n\n- Second item\n";
+        let result = render_plain(md);
+        assert!(result.contains("- First item"), "should have marker: {result:?}");
+        assert!(result.contains("- Second item"), "should have marker: {result:?}");
+    }
+
+    #[test]
+    fn test_loose_list_wraps() {
+        let md = "- When given a directory, it uses `find` piped to `fzf` (via `$SHELL`) to pick a `.md` file and render it.\n\n- Second\n";
+        let style = Style::new(false);
+        let result = render_tokens(md, 50, &style);
+        // Should have list marker
+        assert!(result.starts_with("- "), "should start with list marker: {result:?}");
+        // Should be wrapped (multiple lines for first item)
+        let lines: Vec<&str> = result.lines().collect();
+        assert!(lines.len() > 2, "should wrap to multiple lines: {result:?}");
+    }
+
+    #[test]
+    fn test_loose_list_no_dangling_bracket() {
+        use crate::wrap::strip_ansi;
+
+        let md = "- Uses `find` + `fzf` (via `$SHELL`) to pick a file\n\n- Second\n";
+        for w in 20..80 {
+            for color in [false, true] {
+                let style = Style::new(color);
+                let result = render_tokens(md, w, &style);
+                for (i, line) in result.lines().enumerate() {
+                    let vis = strip_ansi(line).trim().to_string();
+                    assert!(
+                        !is_only_brackets(&vis),
+                        "width={w} color={color} line {i} has dangling bracket: {vis:?}\nFull:\n{}",
+                        result.lines().enumerate().map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l))).collect::<Vec<_>>().join("\n"),
+                    );
+                }
+            }
+        }
     }
 
     #[test]
