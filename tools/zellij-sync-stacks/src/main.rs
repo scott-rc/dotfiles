@@ -246,8 +246,8 @@ impl ZellijPlugin for SyncStacksPlugin {
 
         eprintln!("[sync-stacks] navigating: focus_other={}, focus_current={}", nav.focus_other, nav.focus_current);
         self.skip_updates += 2;
-        focus_terminal_pane(nav.focus_other, true);
-        focus_terminal_pane(nav.focus_current, true);
+        focus_terminal_pane(nav.focus_other, false);
+        focus_terminal_pane(nav.focus_current, false);
 
         false
     }
