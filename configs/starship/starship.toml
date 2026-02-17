@@ -5,8 +5,7 @@ ${env_var.STARSHIP_DIR}\
 $git_branch\
 $git_state\
 $git_status \
-$cmd_duration\
-$line_break\
+$cmd_duration
 $character"""
 
 add_newline = false
