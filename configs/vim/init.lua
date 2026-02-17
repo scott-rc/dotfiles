@@ -219,17 +219,14 @@ require('lazy').setup({
   {
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    config = function()
-      require('nvim-treesitter.configs').setup({
-        ensure_installed = {
-          'bash', 'css', 'diff', 'fish', 'go', 'gomod', 'graphql',
-          'html', 'javascript', 'json', 'lua', 'markdown',
-          'markdown_inline', 'ruby', 'rust', 'toml', 'tsx',
-          'typescript', 'vim', 'vimdoc', 'yaml',
-        },
-        highlight = { enable = true },
-      })
-    end,
+    opts = {
+      ensure_installed = {
+        'bash', 'css', 'diff', 'fish', 'go', 'gomod', 'graphql',
+        'html', 'javascript', 'json', 'lua', 'markdown',
+        'markdown_inline', 'ruby', 'rust', 'toml', 'tsx',
+        'typescript', 'vim', 'vimdoc', 'yaml',
+      },
+    },
   },
 
   -- Keybinding popup
