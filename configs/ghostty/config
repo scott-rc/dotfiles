@@ -23,6 +23,7 @@ keybind = cmd+up=unbind
 keybind = cmd+equal=unbind
 keybind = cmd+minus=unbind
 keybind = cmd+left_bracket=unbind
+keybind = cmd+backspace=text:\x15
 keybind = cmd+backslash=unbind
 keybind = cmd+right_bracket=unbind
 keybind = cmd+i=unbind

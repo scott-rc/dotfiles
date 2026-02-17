@@ -428,11 +428,20 @@ require('lazy').setup({
           mappings = {
             i = {
               ['<Esc>'] = actions.close,
-              ['<M-BS>'] = function()
-                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-w>', true, true, true), 'i', false)
+              ['<M-BS>'] = function(prompt_bufnr)
+                local action_state = require('telescope.actions.state')
+                local picker = action_state.get_current_picker(prompt_bufnr)
+                local prompt = picker:_get_prompt()
+                local cursor_col = vim.api.nvim_win_get_cursor(picker.prompt_win)[2] - #picker.prompt_prefix
+                local before = prompt:sub(1, cursor_col)
+                local trimmed = before:match('^(.-)%s*%S*$') or ''
+                local after = prompt:sub(cursor_col + 1)
+                picker:reset_prompt(trimmed .. after)
               end,
-              ['<C-u>'] = function()
-                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-u>', true, true, true), 'i', false)
+              ['<C-u>'] = function(prompt_bufnr)
+                local action_state = require('telescope.actions.state')
+                local picker = action_state.get_current_picker(prompt_bufnr)
+                picker:reset_prompt('')
               end,
             },
           },
