@@ -1,9 +1,9 @@
 ---
-name: writing-code
+name: code
 description: Loads coding style preferences and guides test-driven and benchmark-driven development workflows when writing, modifying, reviewing, planning, or optimizing code. Use when the user asks to write code, implement a feature, plan or design code, refactor, fix a bug, write tests, review code, TDD a feature, write tests first, add a regression test, fix a bug with tests, backfill tests, add coverage, write characterization tests, benchmark code, optimize performance, BDD a feature, or write benchmarks first.
 ---
 
-# Writing Code
+# Code
 
 Load and apply the user's coding style preferences when producing or reviewing code. When the workflow is test-driven or benchmark-driven, follow the appropriate operation.
 

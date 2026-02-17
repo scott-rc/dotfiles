@@ -23,7 +23,7 @@ Fetch CI failure logs, identify root cause, and fix the issues.
    - Focus on the first failure in the output — subsequent failures are often cascading
    - Truncate logs to the most relevant sections; do not dump raw output
 
-4. **Load coding preferences**: MUST read [general-guidelines.md](../writing-code/general-guidelines.md). If fixing TypeScript/JavaScript files, also read [typescript-guidelines.md](../writing-code/typescript-guidelines.md). Apply these preferences when writing fixes.
+4. **Load coding preferences**: MUST read [general-guidelines.md](../code/general-guidelines.md). If fixing TypeScript/JavaScript files, also read [typescript-guidelines.md](../code/typescript-guidelines.md). Apply these preferences when writing fixes.
 
 5. **Fix the issues**:
    - Read the relevant source files identified in the failure logs
