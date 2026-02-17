@@ -4,10 +4,14 @@ use std::collections::HashMap;
 use std::collections::BTreeMap;
 
 #[cfg(target_arch = "wasm32")]
+use std::fmt::Write as _;
+
+#[cfg(target_arch = "wasm32")]
 use zellij_tile::prelude::*;
 
 // --- Core types for pure logic ---
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq)]
 struct PaneEntry {
     id: u32,
@@ -75,7 +79,10 @@ fn detect_stacks(panes: &[PaneEntry]) -> Option<DetectedStacks> {
         if col_panes.len() < 2 {
             return None;
         }
-        if !col_panes.iter().any(|p| p.pane_rows <= COLLAPSED_PANE_MAX_ROWS) {
+        if !col_panes
+            .iter()
+            .any(|p| p.pane_rows <= COLLAPSED_PANE_MAX_ROWS)
+        {
             return None;
         }
     }
@@ -158,16 +165,24 @@ impl ZellijPlugin for SyncStacksPlugin {
             PermissionType::ChangeApplicationState,
             PermissionType::WriteToStdin,
         ]);
-        subscribe(&[EventType::PaneUpdate, EventType::TabUpdate, EventType::PermissionRequestResult]);
+        subscribe(&[
+            EventType::PaneUpdate,
+            EventType::TabUpdate,
+            EventType::PermissionRequestResult,
+        ]);
         set_selectable(false);
     }
 
     fn update(&mut self, event: Event) -> bool {
         match event {
             Event::PaneUpdate(manifest) => {
-                let total_panes: usize = manifest.panes.values().map(|v| v.len()).sum();
-                eprintln!("[sync-stacks] PaneUpdate: {} tabs, {} total panes, skip_updates={}",
-                    manifest.panes.len(), total_panes, self.skip_updates);
+                let total_panes: usize = manifest.panes.values().map(Vec::len).sum();
+                eprintln!(
+                    "[sync-stacks] PaneUpdate: {} tabs, {} total panes, skip_updates={}",
+                    manifest.panes.len(),
+                    total_panes,
+                    self.skip_updates
+                );
                 if self.skip_updates > 0 {
                     self.skip_updates -= 1;
                 }
@@ -181,7 +196,7 @@ impl ZellijPlugin for SyncStacksPlugin {
                 }
             }
             Event::PermissionRequestResult(result) => {
-                eprintln!("[sync-stacks] PermissionRequestResult: {:?}", result);
+                eprintln!("[sync-stacks] PermissionRequestResult: {result:?}");
             }
             _ => {}
         }
@@ -189,7 +204,10 @@ impl ZellijPlugin for SyncStacksPlugin {
     }
 
     fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
-        eprintln!("[sync-stacks] pipe: name={:?}, payload={:?}", pipe_message.name, pipe_message.payload);
+        eprintln!(
+            "[sync-stacks] pipe: name={:?}, payload={:?}",
+            pipe_message.name, pipe_message.payload
+        );
 
         if pipe_message.name == "dump" {
             self.dump_state();
@@ -207,35 +225,50 @@ impl ZellijPlugin for SyncStacksPlugin {
 
         let Some(ref manifest) = self.manifest else {
             eprintln!("[sync-stacks] FALLBACK: no manifest");
-            self.fallback_move(&direction);
+            Self::fallback_move(&direction);
             return false;
         };
 
         let tab_panes = self.find_current_tab_panes(manifest);
         let Some(panes) = tab_panes else {
-            eprintln!("[sync-stacks] FALLBACK: no tab found (active_tab={:?})", self.active_tab);
-            self.fallback_move(&direction);
+            eprintln!(
+                "[sync-stacks] FALLBACK: no tab found (active_tab={:?})",
+                self.active_tab
+            );
+            Self::fallback_move(&direction);
             return false;
         };
 
         let entries: Vec<PaneEntry> = panes.iter().map(pane_entry_from_info).collect();
         eprintln!("[sync-stacks] entries ({}):", entries.len());
         for e in &entries {
-            eprintln!("  id={} x={} y={} rows={} focused={} plugin={} floating={} selectable={}",
-                e.id, e.pane_x, e.pane_y, e.pane_rows, e.is_focused, e.is_plugin, e.is_floating, e.is_selectable);
+            eprintln!(
+                "  id={} x={} y={} rows={} focused={} plugin={} floating={} selectable={}",
+                e.id,
+                e.pane_x,
+                e.pane_y,
+                e.pane_rows,
+                e.is_focused,
+                e.is_plugin,
+                e.is_floating,
+                e.is_selectable
+            );
         }
 
         let Some(stacks) = detect_stacks(&entries) else {
             eprintln!("[sync-stacks] FALLBACK: detect_stacks returned None");
-            self.fallback_move(&direction);
+            Self::fallback_move(&direction);
             return false;
         };
 
-        eprintln!("[sync-stacks] stacks: left={:?}, right={:?}", stacks.left, stacks.right);
+        eprintln!(
+            "[sync-stacks] stacks: left={:?}, right={:?}",
+            stacks.left, stacks.right
+        );
 
         let Some(focused_id) = entries.iter().find(|p| p.is_focused).map(|p| p.id) else {
             eprintln!("[sync-stacks] FALLBACK: no focused pane in entries");
-            self.fallback_move(&direction);
+            Self::fallback_move(&direction);
             return false;
         };
 
@@ -244,7 +277,10 @@ impl ZellijPlugin for SyncStacksPlugin {
             return false; // at boundary, no movement
         };
 
-        eprintln!("[sync-stacks] navigating: focus_other={}, focus_current={}", nav.focus_other, nav.focus_current);
+        eprintln!(
+            "[sync-stacks] navigating: focus_other={}, focus_current={}",
+            nav.focus_other, nav.focus_current
+        );
         self.skip_updates += 2;
         focus_terminal_pane(nav.focus_other, false);
         focus_terminal_pane(nav.focus_current, false);
@@ -266,10 +302,14 @@ impl SyncStacksPlugin {
             return;
         };
 
-        let total_panes: usize = manifest.panes.values().map(|v| v.len()).sum();
-        out.push_str(&format!("manifest: Some ({} tabs, {} total panes)\n", manifest.panes.len(), total_panes));
-        out.push_str(&format!("active_tab: {:?}\n", self.active_tab));
-        out.push_str(&format!("skip_updates: {}\n", self.skip_updates));
+        let total_panes: usize = manifest.panes.values().map(Vec::len).sum();
+        let _ = writeln!(
+            out,
+            "manifest: Some ({} tabs, {total_panes} total panes)",
+            manifest.panes.len(),
+        );
+        let _ = writeln!(out, "active_tab: {:?}", self.active_tab);
+        let _ = writeln!(out, "skip_updates: {}", self.skip_updates);
 
         // Show ALL tabs summary
         out.push_str("\nall tabs:\n");
@@ -281,46 +321,50 @@ impl SyncStacksPlugin {
             let terminal_count = panes.iter().filter(|p| !p.is_plugin).count();
             let plugin_count = panes.iter().filter(|p| p.is_plugin).count();
             let suppressed_count = panes.iter().filter(|p| p.is_suppressed).count();
-            out.push_str(&format!(
-                "  tab {}: {} panes ({} terminal, {} plugin, {} suppressed) {}\n",
-                tab_idx, panes.len(), terminal_count, plugin_count, suppressed_count,
+            let _ = writeln!(
+                out,
+                "  tab {tab_idx}: {} panes ({terminal_count} terminal, {plugin_count} plugin, {suppressed_count} suppressed) {}",
+                panes.len(),
                 if has_focused { "<- FOCUSED" } else { "" }
-            ));
+            );
         }
 
         // Show detailed panes for EVERY tab
         for tab_idx in &tab_indices {
             let panes = &manifest.panes[tab_idx];
             let entries: Vec<PaneEntry> = panes.iter().map(pane_entry_from_info).collect();
-            out.push_str(&format!("\ntab {} panes ({}):\n", tab_idx, entries.len()));
+            let _ = writeln!(out, "\ntab {tab_idx} panes ({}):", entries.len());
             for e in &entries {
-                out.push_str(&format!(
-                    "  id={:<4} x={:<4} y={:<4} rows={:<4} focused={:<5} plugin={:<5} floating={:<5} selectable={:<5}\n",
+                let _ = writeln!(
+                    out,
+                    "  id={:<4} x={:<4} y={:<4} rows={:<4} focused={:<5} plugin={:<5} floating={:<5} selectable={:<5}",
                     e.id, e.pane_x, e.pane_y, e.pane_rows, e.is_focused, e.is_plugin, e.is_floating, e.is_selectable
-                ));
+                );
             }
 
             let candidates: Vec<&PaneEntry> = entries
                 .iter()
                 .filter(|p| p.is_selectable && !p.is_plugin && !p.is_floating)
                 .collect();
-            match detect_stacks(&entries) {
-                Some(stacks) => {
-                    out.push_str(&format!("  detect_stacks: Some(left={:?}, right={:?})\n", stacks.left, stacks.right));
+            if let Some(stacks) = detect_stacks(&entries) {
+                let _ = writeln!(
+                    out,
+                    "  detect_stacks: Some(left={:?}, right={:?})",
+                    stacks.left, stacks.right
+                );
+            } else {
+                let mut columns: HashMap<usize, Vec<&PaneEntry>> = HashMap::new();
+                for pane in &candidates {
+                    columns.entry(pane.pane_x).or_default().push(pane);
                 }
-                None => {
-                    let mut columns: HashMap<usize, Vec<&PaneEntry>> = HashMap::new();
-                    for pane in &candidates {
-                        columns.entry(pane.pane_x).or_default().push(pane);
-                    }
-                    out.push_str(&format!("  detect_stacks: None (candidates={}, columns={}, x_values={:?})\n",
-                        candidates.len(), columns.len(), {
-                            let mut xs: Vec<usize> = columns.keys().copied().collect();
-                            xs.sort();
-                            xs
-                        }
-                    ));
-                }
+                let mut xs: Vec<usize> = columns.keys().copied().collect();
+                xs.sort_unstable();
+                let _ = writeln!(
+                    out,
+                    "  detect_stacks: None (candidates={}, columns={}, x_values={xs:?})",
+                    candidates.len(),
+                    columns.len(),
+                );
             }
         }
 
@@ -332,7 +376,7 @@ impl SyncStacksPlugin {
         self.active_tab.and_then(|tab| manifest.panes.get(&tab))
     }
 
-    fn fallback_move(&self, direction: &str) {
+    fn fallback_move(direction: &str) {
         match direction {
             "up" => move_focus(Direction::Up),
             "down" => move_focus(Direction::Down),
@@ -352,7 +396,13 @@ mod tests {
 
     /// Create a pane entry for testing.
     /// `pane_rows=1` means collapsed (title bar only), `pane_rows=30` means expanded.
-    fn make_pane(id: u32, pane_x: usize, pane_y: usize, pane_rows: usize, is_focused: bool) -> PaneEntry {
+    fn make_pane(
+        id: u32,
+        pane_x: usize,
+        pane_y: usize,
+        pane_rows: usize,
+        is_focused: bool,
+    ) -> PaneEntry {
         PaneEntry {
             id,
             pane_x,
@@ -370,9 +420,9 @@ mod tests {
         // Two columns, each with one expanded pane and one collapsed
         let panes = vec![
             make_pane(1, 0, 0, 30, true),   // left expanded
-            make_pane(2, 0, 31, 1, false),   // left collapsed
-            make_pane(3, 50, 0, 30, false),  // right expanded
-            make_pane(4, 50, 31, 1, false),  // right collapsed
+            make_pane(2, 0, 31, 1, false),  // left collapsed
+            make_pane(3, 50, 0, 30, false), // right expanded
+            make_pane(4, 50, 31, 1, false), // right collapsed
         ];
 
         let result = detect_stacks(&panes).unwrap();
