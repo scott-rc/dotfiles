@@ -98,8 +98,16 @@ vim.keymap.set('n', '<leader>yl', function() vim.fn.setreg('+', vim.fn.fnamemodi
 vim.keymap.set('n', '<leader>yL', function() vim.fn.setreg('+', vim.fn.expand('%:p') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy absolute path:line' })
 vim.keymap.set('v', '<leader>yp', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.')) end, { desc = 'Copy relative path' })
 vim.keymap.set('v', '<leader>yP', function() vim.fn.setreg('+', vim.fn.expand('%:p')) end, { desc = 'Copy absolute path' })
-vim.keymap.set('v', '<leader>yl', function() vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.') .. ':' .. vim.fn.line("'<") .. '-' .. vim.fn.line("'>")) end, { desc = 'Copy relative path:lines' })
-vim.keymap.set('v', '<leader>yL', function() vim.fn.setreg('+', vim.fn.expand('%:p') .. ':' .. vim.fn.line("'<") .. '-' .. vim.fn.line("'>")) end, { desc = 'Copy absolute path:lines' })
+vim.keymap.set('v', '<leader>yl', function()
+  local s, e = vim.fn.line('v'), vim.fn.line('.')
+  if s > e then s, e = e, s end
+  vim.fn.setreg('+', vim.fn.fnamemodify(vim.fn.expand('%'), ':.') .. ':' .. s .. '-' .. e)
+end, { desc = 'Copy relative path:lines' })
+vim.keymap.set('v', '<leader>yL', function()
+  local s, e = vim.fn.line('v'), vim.fn.line('.')
+  if s > e then s, e = e, s end
+  vim.fn.setreg('+', vim.fn.expand('%:p') .. ':' .. s .. '-' .. e)
+end, { desc = 'Copy absolute path:lines' })
 
 -- Wildmenu navigation
 vim.o.wildcharm = vim.fn.char2nr(vim.api.nvim_replace_termcodes('<C-z>', true, true, true))
