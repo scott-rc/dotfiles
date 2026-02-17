@@ -28,6 +28,8 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 6. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
 
-7. **After all fixes, offer follow-up actions**:
+7. **If writing any text to GitHub** (PR comments, review replies, etc.): MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes.
+
+8. **After all fixes, offer follow-up actions**:
    - Commit the changes (git skill's commit operation)
    - Push to update the PR (git skill's push operation)

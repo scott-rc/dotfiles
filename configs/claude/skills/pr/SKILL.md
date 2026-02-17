@@ -52,4 +52,4 @@ Requires `gh` (GitHub CLI), `git`, and `jq`.
 
 These files are referenced by the operation instructions above:
 
-- [pr-guidelines.md](pr-guidelines.md) - PR title and description format
+- [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)

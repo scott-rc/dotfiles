@@ -1,17 +1,22 @@
-# PR Description Guidelines
+# PR Guidelines
 
-## Title
+## All GitHub Text
+
+These rules apply to ALL text written to GitHub -- PR titles, PR descriptions, PR comments, review comments, and any other text passed through `gh` CLI commands.
+
+- **ASCII only**: MUST use only ASCII characters. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of `…`. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
+- **Use backticks for code**: Wrap function names, variable names, file paths, etc.
+- **Use code blocks for multi-line code**: Use triple backticks with language identifier for code examples.
+
+## PR Description Title
 
 - Match the first commit's title (the one that will be the squash commit)
 
-## Format
+## PR Description Format
 
 - **Write prose, not bullets**: The default format is readable prose paragraphs. Only use bullet points when listing genuinely unrelated items where prose would be awkward.
 - **No rigid templates**: Don't use fill-in-the-blank sections like `## Summary` followed by bullets and `## Test plan` followed by bullets. Write naturally.
 - **MUST NOT wrap lines**: Do NOT wrap text to 72 characters or any other width. Write each thought as a single continuous line. GitHub renders markdown and handles line wrapping automatically.
-- **Use backticks for code**: Wrap function names, variable names, file paths, etc.
-- **Use code blocks for multi-line code**: Use triple backticks with language identifier for code examples.
-- **ASCII only**: MUST use only ASCII characters in PR descriptions. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of `…`. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
 
 ## Content
 
