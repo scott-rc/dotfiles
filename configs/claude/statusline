@@ -3,7 +3,7 @@
 # statusline - Claude Code status line with context bar + git branch
 #
 # Reads JSON from stdin (Claude Code status line protocol) and outputs:
-#   󰧑 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ 25%  main
+#   󰧑 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱  main
 #
 # Context bar is color-coded:
 #   Green:  0-39%
