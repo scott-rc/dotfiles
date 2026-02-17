@@ -2,6 +2,8 @@
 -- Settings
 -- ============================================================================
 
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
 vim.g.mapleader = ' '
 vim.g.vim_json_conceal = 0
 vim.o.timeoutlen = 300
@@ -49,7 +51,7 @@ vim.keymap.set({ 'n', 'v', 'i' }, 'fd', '<Esc>', { desc = 'Escape' })
 
 -- Option+Delete word deletion (Ghostty sends Alt/ESC prefix for Option key)
 vim.keymap.set('i', '<M-BS>', '<C-w>', { desc = 'Delete word backward' })
-vim.keymap.set('i', '<D-BS>', '<C-u>', { desc = 'Delete to beginning of line' })
+-- Cmd+Backspace: Ghostty sends \x15 (Ctrl-U) which already does delete-to-beginning in insert mode
 
 -- Navigate by display lines when no count is given (for wrapped lines)
 vim.keymap.set({ 'n', 'v' }, 'j', function() return vim.v.count == 0 and 'gj' or 'j' end, { expr = true, desc = 'Down (wrap-aware)' })
@@ -298,6 +300,7 @@ require('lazy').setup({
         },
       },
       filesystem = {
+        hijack_netrw_behavior = 'open_current',
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
       },
@@ -425,8 +428,12 @@ require('lazy').setup({
           mappings = {
             i = {
               ['<Esc>'] = actions.close,
-              ['<M-BS>'] = { '<C-w>', type = 'command' },
-              ['<D-BS>'] = { '<C-u>', type = 'command' },
+              ['<M-BS>'] = function()
+                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-w>', true, true, true), 'i', false)
+              end,
+              ['<C-u>'] = function()
+                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-u>', true, true, true), 'i', false)
+              end,
             },
           },
         },
