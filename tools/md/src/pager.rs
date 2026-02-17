@@ -180,6 +180,14 @@ pub fn word_boundary_right(text: &str, cursor: usize) -> usize {
     pos
 }
 
+pub fn max_scroll(line_count: usize, content_height: usize) -> usize {
+    if line_count > content_height {
+        line_count - content_height + content_height / 2
+    } else {
+        0
+    }
+}
+
 pub fn map_scroll_position(old_top: usize, old_count: usize, new_count: usize) -> usize {
     if old_count <= 1 || new_count <= 1 {
         return 0;
@@ -264,7 +272,7 @@ pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize)
 
     // Normal mode: build right side first
     let line_count = state.lines.len();
-    let max_top = line_count.saturating_sub(content_height);
+    let max_top = max_scroll(line_count, content_height);
     let top_line = state.top_line.min(max_top);
     let end_line = (top_line + content_height).min(line_count);
     let range = format!("{}-{}/{}", top_line + 1, end_line, line_count);
@@ -544,7 +552,7 @@ pub fn run_pager(
         let (_cols, rows) = get_term_size();
         let content_height = rows.saturating_sub(1) as usize;
         let half_page = content_height / 2;
-        let max_top = state.lines.len().saturating_sub(content_height);
+        let max_top = max_scroll(state.lines.len(), content_height);
 
         match key {
             Key::Char('q') | Key::CtrlC => break,
@@ -652,7 +660,7 @@ fn scroll_to_match(state: &mut PagerState) {
     let (_, rows) = get_term_size();
     let content_height = rows.saturating_sub(1) as usize;
     let target = match_line.saturating_sub(content_height / 3);
-    let max_top = state.lines.len().saturating_sub(content_height);
+    let max_top = max_scroll(state.lines.len(), content_height);
     state.top_line = target.min(max_top);
 }
 
@@ -661,7 +669,7 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
     let content_height = rows.saturating_sub(1) as usize;
 
     // Clamp top_line
-    let max_top = state.lines.len().saturating_sub(content_height);
+    let max_top = max_scroll(state.lines.len(), content_height);
     let top = state.top_line.min(max_top);
 
     move_to(out, 0, 0);
@@ -1092,6 +1100,41 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ---- max_scroll ----
+
+    #[test]
+    fn test_max_scroll_content_fits() {
+        assert_eq!(max_scroll(10, 24), 0);
+    }
+
+    #[test]
+    fn test_max_scroll_exact_fit() {
+        assert_eq!(max_scroll(24, 24), 0);
+    }
+
+    #[test]
+    fn test_max_scroll_barely_exceeds() {
+        // 25 - 24 + 12 = 13
+        assert_eq!(max_scroll(25, 24), 13);
+    }
+
+    #[test]
+    fn test_max_scroll_exceeds() {
+        // 50 - 24 + 12 = 38
+        assert_eq!(max_scroll(50, 24), 38);
+    }
+
+    #[test]
+    fn test_max_scroll_no_lines() {
+        assert_eq!(max_scroll(0, 24), 0);
+    }
+
+    #[test]
+    fn test_max_scroll_odd_content_height() {
+        // 50 - 25 + 12 = 37
+        assert_eq!(max_scroll(50, 25), 37);
     }
 
     // ---- crossterm_key_to_key ----
