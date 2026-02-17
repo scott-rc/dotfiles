@@ -55,7 +55,7 @@ vim.keymap.set({ 'n', 'v' }, 'j', function() return vim.v.count == 0 and 'gj' or
 vim.keymap.set({ 'n', 'v' }, 'k', function() return vim.v.count == 0 and 'gk' or 'k' end, { expr = true, desc = 'Up (wrap-aware)' })
 
 -- Navigation
-vim.keymap.set('n', ';', ':', { desc = 'Command mode' })
+vim.keymap.set({ 'n', 'v' }, ';', ':', { desc = 'Command mode' })
 vim.keymap.set({ 'n', 'v' }, '<S-h>', '^', { desc = 'Start of line' })
 vim.keymap.set({ 'n', 'v' }, '<S-l>', '$', { desc = 'End of line' })
 
@@ -66,20 +66,22 @@ vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Focus above window' })
 vim.keymap.set('n', '<C-l>', '<C-w>l', { desc = 'Focus right window' })
 
 -- Leader
-vim.keymap.set('n', '<leader>w', '<cmd>q<CR>', { desc = 'Close' })
-vim.keymap.set('n', '<leader>q', '<cmd>qa<CR>', { desc = 'Quit all' })
-vim.keymap.set('n', '<leader>s', '<cmd>w<CR>', { desc = 'Save' })
+vim.keymap.set({ 'n', 'v' }, '<leader>w', '<cmd>q<CR>', { desc = 'Close' })
+vim.keymap.set({ 'n', 'v' }, '<leader>q', '<cmd>qa<CR>', { desc = 'Quit all' })
+vim.keymap.set({ 'n', 'v' }, '<leader>s', '<cmd>w<CR>', { desc = 'Save' })
 vim.keymap.set('n', '<leader>t', '<cmd>tabnew<CR>', { desc = 'New tab' })
 vim.keymap.set('n', '<leader>[', '<cmd>tabp<CR>', { desc = 'Previous tab' })
 vim.keymap.set('n', '<leader>]', '<cmd>tabn<CR>', { desc = 'Next tab' })
 vim.keymap.set('n', '<leader>%', '<cmd>source %<CR>', { desc = 'Source file' })
 vim.keymap.set('v', '<D-c>', '"+y', { desc = 'Copy to clipboard' })
-vim.keymap.set('n', '<D-q>', '<cmd>qa<CR>', { desc = 'Quit' })
-vim.keymap.set({ 'n', 'i' }, '<D-s>', '<cmd>w<CR>', { desc = 'Save' })
-vim.keymap.set('n', '<D-w>', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
-vim.keymap.set('n', '<D-[>', '<C-o>', { desc = 'Go back' })
-vim.keymap.set('n', '<D-]>', '<C-i>', { desc = 'Go forward' })
-vim.keymap.set('n', '<D-1>', function()
+vim.keymap.set({ 'n', 'v', 'i' }, '<D-q>', '<cmd>qa<CR>', { desc = 'Quit' })
+vim.keymap.set({ 'n', 'v', 'i' }, '<D-s>', '<cmd>w<CR>', { desc = 'Save' })
+vim.keymap.set({ 'n', 'v', 'i' }, '<D-w>', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
+vim.keymap.set({ 'n', 'v' }, '<D-[>', '<C-o>', { desc = 'Go back' })
+vim.keymap.set({ 'n', 'v' }, '<D-]>', '<C-i>', { desc = 'Go forward' })
+vim.keymap.set('i', '<D-[>', '<Esc><C-o>', { desc = 'Go back' })
+vim.keymap.set('i', '<D-]>', '<Esc><C-i>', { desc = 'Go forward' })
+vim.keymap.set({ 'n', 'v', 'i' }, '<D-1>', function()
   local win = vim.g._last_file_win
   if win and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_set_current_win(win)
@@ -301,7 +303,7 @@ require('lazy').setup({
           else
             vim.cmd('Neotree focus source=filesystem')
           end
-        end, desc = 'Focus/toggle file explorer' },
+        end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle file explorer' },
       {
         '<leader>g',
         function()
@@ -333,7 +335,7 @@ require('lazy').setup({
             end
             vim.cmd('Neotree focus source=git_status git_base=' .. base)
           end
-        end, desc = 'Focus/toggle git changes' },
+        end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle git changes' },
       { '<C-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             vim.cmd('Neotree close')
@@ -408,8 +410,8 @@ require('lazy').setup({
       telescope.load_extension('fzf')
     end,
     keys = {
-      { '<D-k>',     function() require('telescope.builtin').find_files() end, desc = 'Find files' },
-      { '<D-p>',     function() require('telescope.builtin').commands() end,   desc = 'Command palette' },
+      { '<D-k>',     function() require('telescope.builtin').find_files() end, mode = { 'n', 'v', 'i' }, desc = 'Find files' },
+      { '<D-p>',     function() require('telescope.builtin').commands() end,   mode = { 'n', 'v', 'i' }, desc = 'Command palette' },
       { '<leader>f', function() require('telescope.builtin').find_files() end, desc = 'Find files' },
       { '<leader>b', function() require('telescope.builtin').buffers() end,    desc = 'Find buffers' },
       { '<leader>r', function() require('telescope.builtin').live_grep() end,  desc = 'Ripgrep search' },
