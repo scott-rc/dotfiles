@@ -858,6 +858,7 @@ mod tests {
     rendering_fixture!(test_strikethrough, "strikethrough");
     rendering_fixture!(test_task_list, "task-list");
     rendering_fixture!(test_footnote, "footnote");
+    rendering_fixture!(test_dangling_bracket, "dangling-bracket");
 
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {

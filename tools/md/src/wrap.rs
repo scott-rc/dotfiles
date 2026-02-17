@@ -237,6 +237,26 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                     }
                 }
 
+                // Don't orphan a closing bracket at the start of a new line.
+                if is_closing_bracket_word(word) {
+                    if let Some(split_pos) = last_visible_space_pos(&line_to_save) {
+                        let pulled = line_to_save[split_pos..].to_string();
+                        line_to_save = line_to_save[..split_pos].trim_end().to_string();
+                        if !strip_ansi(&line_to_save).trim().is_empty() {
+                            let save_state = AnsiState::from_line(&line_to_save);
+                            if save_state.is_active() {
+                                line_to_save.push_str("\x1b[0m");
+                            }
+                            results.push(line_to_save);
+                        }
+                        let pulled_trimmed = pulled.trim_start();
+                        current_line =
+                            format!("{}{pulled_trimmed}{word}", state.to_codes());
+                        current_width = visible_length(pulled_trimmed) + word_len;
+                        continue;
+                    }
+                }
+
                 if state.is_active() {
                     line_to_save.push_str("\x1b[0m");
                 }
@@ -260,6 +280,38 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
     }
 
     results
+}
+
+/// Check if a word consists entirely of closing brackets optionally followed by punctuation.
+fn is_closing_bracket_word(s: &str) -> bool {
+    !s.is_empty()
+        && s.starts_with(|c: char| c == ')' || c == ']')
+        && s.chars()
+            .all(|c| matches!(c, ')' | ']' | '.' | ',' | ';' | ':'))
+}
+
+/// Find the byte position of the last visible space in a string that may contain ANSI codes.
+fn last_visible_space_pos(s: &str) -> Option<usize> {
+    let mut last_space = None;
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == 0x1b {
+            i += 1;
+            while i < bytes.len() && bytes[i] != b'm' {
+                i += 1;
+            }
+            if i < bytes.len() {
+                i += 1;
+            }
+            continue;
+        }
+        if bytes[i] == b' ' {
+            last_space = Some(i);
+        }
+        i += 1;
+    }
+    last_space
 }
 
 /// Split a string by spaces, preserving spaces as separate elements.
@@ -443,6 +495,45 @@ mod tests {
             "First line should not end with backtick, got: {first_visible:?}"
         );
         assert_eq!(first_visible, "some text");
+    }
+
+    #[test]
+    fn test_dangling_closing_bracket() {
+        let gray = "\x1b[38;2;139;148;158m";
+        let orange = "\x1b[38;2;255;166;87m";
+        let reset = "\x1b[39m";
+        let shell_span = format!("{gray}`{reset}{orange}$SHELL{reset}{gray}`{reset}");
+
+        // Short text where `)` ends up alone on the last line at width 18:
+        // visible = "text (via `$SHELL`)" = 19 chars, so `)` overflows
+        let short = format!("text (via {shell_span})");
+        let result = word_wrap(&short, 18, "");
+        let lines: Vec<&str> = result.split('\n').collect();
+        for (i, line) in lines.iter().enumerate() {
+            let visible = strip_ansi(line).trim().to_string();
+            assert!(
+                visible != ")" && visible != ")," && visible != "]",
+                "Short text, Line {i} has only a closing bracket: {visible:?}\nFull output:\n{}",
+                lines.iter().enumerate().map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l))).collect::<Vec<_>>().join("\n")
+            );
+        }
+
+        // Longer text with multiple code spans across a range of widths
+        let find_span = format!("{gray}`{reset}{orange}find{reset}{gray}`{reset}");
+        let fzf_span = format!("{gray}`{reset}{orange}fzf{reset}{gray}`{reset}");
+        let text = format!("uses {find_span} + {fzf_span} (via {shell_span}) to pick a file");
+        for w in 30..50 {
+            let result = word_wrap(&text, w, "");
+            let lines: Vec<&str> = result.split('\n').collect();
+            for (i, line) in lines.iter().enumerate() {
+                let visible = strip_ansi(line).trim().to_string();
+                assert!(
+                    visible != ")" && visible != ")," && visible != "]",
+                    "Width {w}, Line {i} has only a closing bracket: {visible:?}\nFull output:\n{}",
+                    lines.iter().enumerate().map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l))).collect::<Vec<_>>().join("\n")
+                );
+            }
+        }
     }
 
     #[test]
