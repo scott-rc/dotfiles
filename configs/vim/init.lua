@@ -541,6 +541,34 @@ vim.api.nvim_create_autocmd('LspAttach', {
       buffer = args.buf,
       desc = 'Go to definition',
     })
+    vim.keymap.set({ 'n', 'v', 'i' }, '<D-b>', function()
+      local params = vim.lsp.util.make_position_params()
+      vim.lsp.buf_request(0, 'textDocument/definition', params, function(err, result)
+        if err then return end
+        local defs = result or {}
+        if not vim.islist(defs) then defs = { defs } end
+        local cur_uri = vim.uri_from_bufnr(0)
+        local cur_line = params.position.line
+        local cur_col = params.position.character
+        local at_def = false
+        for _, def in ipairs(defs) do
+          local loc = def.targetRange or def.targetSelectionRange or def.range
+          local uri = def.targetUri or def.uri or ''
+          if uri == cur_uri and loc and loc.start.line == cur_line and loc.start.character <= cur_col and (loc['end'].character >= cur_col or loc['end'].line > cur_line) then
+            at_def = true
+            break
+          end
+        end
+        if at_def or #defs == 0 then
+          vim.lsp.buf.references()
+        else
+          vim.lsp.util.show_document(defs[1], 'utf-8', { focus = true })
+        end
+      end)
+    end, {
+      buffer = args.buf,
+      desc = 'Go to definition / references',
+    })
     vim.keymap.set('n', '<C-Space>', vim.lsp.buf.hover, {
       buffer = args.buf,
       desc = 'Hover documentation',
