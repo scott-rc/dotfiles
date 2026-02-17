@@ -184,7 +184,15 @@ require('lazy').setup({
     lazy = false,
     priority = 1000,
     config = function()
-      require('github-theme').setup()
+      require('github-theme').setup({
+        groups = {
+          all = {
+            ['@function.call'] = { style = 'underline' },
+            ['@method.call'] = { style = 'underline' },
+            ['@comment'] = { style = 'italic' },
+          },
+        },
+      })
 
       local function is_dark_mode()
         local result = vim.fn.system('defaults read -g AppleInterfaceStyle 2>/dev/null')
@@ -207,8 +215,22 @@ require('lazy').setup({
     end,
   },
 
-  -- Syntax
-  'dag/vim-fish',
+  -- Treesitter (syntax highlighting)
+  {
+    'nvim-treesitter/nvim-treesitter',
+    build = ':TSUpdate',
+    config = function()
+      require('nvim-treesitter.configs').setup({
+        ensure_installed = {
+          'bash', 'css', 'diff', 'fish', 'go', 'gomod', 'graphql',
+          'html', 'javascript', 'json', 'lua', 'markdown',
+          'markdown_inline', 'ruby', 'rust', 'toml', 'tsx',
+          'typescript', 'vim', 'vimdoc', 'yaml',
+        },
+        highlight = { enable = true },
+      })
+    end,
+  },
 
   -- Keybinding popup
   {
