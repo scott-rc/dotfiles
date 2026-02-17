@@ -77,6 +77,8 @@ vim.keymap.set('v', '<D-c>', '"+y', { desc = 'Copy to clipboard' })
 vim.keymap.set('n', '<D-q>', '<cmd>qa<CR>', { desc = 'Quit' })
 vim.keymap.set({ 'n', 'i' }, '<D-s>', '<cmd>w<CR>', { desc = 'Save' })
 vim.keymap.set('n', '<D-w>', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
+vim.keymap.set('n', '<D-[>', '<C-o>', { desc = 'Go back' })
+vim.keymap.set('n', '<D-]>', '<C-i>', { desc = 'Go forward' })
 vim.keymap.set('n', '<D-1>', function()
   local win = vim.g._last_file_win
   if win and vim.api.nvim_win_is_valid(win) then
