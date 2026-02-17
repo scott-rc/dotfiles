@@ -64,7 +64,8 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 | `c` | Copy filename to clipboard |
 | `C` | Copy absolute path to clipboard |
 | `y` | Copy raw markdown to clipboard |
-| `v` | Open in `$EDITOR` (read-only for vim/nvim, jumps to approximate line) |
+| `e` | Open in `$EDITOR` (jumps to approximate line) |
+| `v` | Open in `$EDITOR` read-only (jumps to approximate line) |
 
 ### Quit
 

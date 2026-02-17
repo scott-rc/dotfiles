@@ -488,13 +488,13 @@ fn copy_to_clipboard(text: &str) -> bool {
     }
 }
 
-fn open_in_editor(file_path: &str, line: Option<usize>) {
+fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nvim".to_string());
     let basename = editor.rsplit('/').next().unwrap_or(&editor);
     let is_vim = basename == "vim" || basename == "nvim";
 
     let mut args: Vec<String> = Vec::new();
-    if is_vim {
+    if is_vim && read_only {
         args.push("-R".to_string());
     }
     if is_vim && let Some(l) = line {
@@ -671,9 +671,10 @@ pub fn run_pager(
                     state.search_message = "Copied raw markdown".to_string();
                 }
             }
-            Key::Char('v') => {
+            Key::Char('v') | Key::Char('e') => {
                 if let Some(ref fp) = state.file_path {
                     let fp = fp.clone();
+                    let read_only = key == Key::Char('v');
                     // Exit raw mode & restore screen for editor
                     let _ = crossterm::terminal::disable_raw_mode();
                     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
@@ -683,7 +684,7 @@ pub fn run_pager(
                         .raw_content
                         .as_ref()
                         .map(|raw| map_to_source_line(state.top_line, state.lines.len(), raw));
-                    open_in_editor(&fp, line);
+                    open_in_editor(&fp, line, read_only);
 
                     // Re-enter pager
                     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
