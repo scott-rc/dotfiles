@@ -39,7 +39,7 @@ Configuration directories symlinked to their expected locations:
 |-----------|--------|
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
-| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline}` |
+| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
 | `ghostty/` | `~/Library/Application Support/com.mitchellh.ghostty/config` |

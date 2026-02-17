@@ -18,14 +18,16 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - Include any review summaries (these provide high-level context from the reviewer)
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
-4. **Fix each unresolved thread**:
+4. **Load coding preferences**: MUST read [general-guidelines.md](../writing-code/general-guidelines.md). If fixing TypeScript/JavaScript files, also read [typescript-guidelines.md](../writing-code/typescript-guidelines.md). Apply these preferences when writing fixes.
+
+5. **Fix each unresolved thread**:
    - Read all comments in the thread -- later replies often contain clarifications or refined requests
    - Open the file at the indicated line
    - Understand the reviewer's concern and apply the fix
    - Group threads by file path to minimize context switching
 
-5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
+6. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
 
-6. **After all fixes, offer follow-up actions**:
+7. **After all fixes, offer follow-up actions**:
    - Commit the changes (git skill's commit operation)
    - Push to update the PR (git skill's push operation)
