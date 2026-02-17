@@ -1,6 +1,4 @@
-use crate::wrap::strip_ansi;
-use regex::Regex;
-use std::sync::LazyLock;
+use crate::wrap::{split_ansi, strip_ansi};
 
 // GitHub Dark Default palette
 const HEADING_BLUE: u32 = 0x79c0ff;
@@ -10,8 +8,6 @@ const QUOTE_GREEN: u32 = 0x7ee787;
 const LINK_BLUE: u32 = 0x79c0ff;
 const LIST_BLUE: u32 = 0x79c0ff;
 const COMMENT_GRAY: u32 = 0x8b949e;
-
-static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m").unwrap());
 
 fn rgb24(s: &str, color: u32) -> String {
     let r = (color >> 16) & 0xff;
@@ -38,19 +34,16 @@ fn strikethrough(s: &str) -> String {
 
 /// Uppercase visible text while preserving ANSI codes.
 fn ansi_upper_case(s: &str) -> String {
-    let mut result = String::new();
-    let mut last = 0;
-    for m in ANSI_RE.find_iter(s) {
-        if m.start() > last {
-            result.push_str(&s[last..m.start()].to_uppercase());
-        }
-        result.push_str(m.as_str());
-        last = m.end();
-    }
-    if last < s.len() {
-        result.push_str(&s[last..].to_uppercase());
-    }
-    result
+    split_ansi(s)
+        .into_iter()
+        .map(|seg| {
+            if seg.starts_with('\x1b') {
+                seg.to_string()
+            } else {
+                seg.to_uppercase()
+            }
+        })
+        .collect()
 }
 
 /// Style configuration. When `color` is false, all methods return unstyled text.

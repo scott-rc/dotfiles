@@ -62,20 +62,6 @@ pub struct PagerState {
     pub raw_content: Option<String>,
 }
 
-pub struct StatusBarInput {
-    pub mode: Mode,
-    pub search_input: String,
-    pub search_cursor: usize,
-    pub search_message: String,
-    pub search_query: String,
-    pub search_matches: Vec<usize>,
-    pub current_match: isize,
-    pub top_line: usize,
-    pub line_count: usize,
-    pub content_height: usize,
-    pub file_path: Option<String>,
-}
-
 pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
     use crossterm::event::{KeyCode, KeyModifiers};
 
@@ -104,57 +90,6 @@ pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
         KeyCode::Enter => Key::Enter,
         KeyCode::Esc => Key::Escape,
         KeyCode::Backspace => Key::Backspace,
-        _ => Key::Unknown,
-    }
-}
-
-pub fn parse_key(buf: &[u8]) -> Key {
-    if buf.is_empty() {
-        return Key::Unknown;
-    }
-
-    match buf[0] {
-        0x1b => {
-            if buf.len() == 1 {
-                return Key::Escape;
-            }
-            match buf[1] {
-                0x5b => {
-                    // CSI sequence
-                    if buf.len() < 3 {
-                        return Key::Unknown;
-                    }
-                    match buf[2] {
-                        0x41 => Key::Up,    // A
-                        0x42 => Key::Down,  // B
-                        0x43 => Key::Right, // C
-                        0x44 => Key::Left,  // D
-                        0x48 => Key::Home,  // H
-                        0x46 => Key::End,   // F
-                        0x35 if buf.len() >= 4 && buf[3] == 0x7e => Key::PageUp,
-                        0x36 if buf.len() >= 4 && buf[3] == 0x7e => Key::PageDown,
-                        0x31 if buf.len() >= 6 && buf[3] == 0x3b && buf[4] == 0x33 => {
-                            match buf[5] {
-                                0x43 => Key::AltRight,
-                                0x44 => Key::AltLeft,
-                                _ => Key::Unknown,
-                            }
-                        }
-                        _ => Key::Unknown,
-                    }
-                }
-                0x62 => Key::AltLeft,      // ESC b
-                0x66 => Key::AltRight,     // ESC f
-                0x7f => Key::AltBackspace, // ESC DEL
-                _ => Key::Unknown,
-            }
-        }
-        0x03 => Key::CtrlC,
-        0x04 => Key::CtrlD,
-        0x0d => Key::Enter,
-        0x15 => Key::CtrlU,
-        0x7f => Key::Backspace,
-        b @ 0x20..=0x7e => Key::Char(b as char),
         _ => Key::Unknown,
     }
 }
@@ -287,13 +222,13 @@ pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_conte
     (ratio * source_count as f64).round() as usize + 1
 }
 
-pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
+pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
     // Search mode
-    if input.mode == Mode::Search {
-        let before = &input.search_input[..input.search_cursor];
-        let after = &input.search_input[input.search_cursor..];
+    if state.mode == Mode::Search {
+        let before = &state.search_input[..state.search_cursor];
+        let after = &state.search_input[state.search_cursor..];
 
-        let cursor_char = if input.search_cursor < input.search_input.len() {
+        let cursor_char = if state.search_cursor < state.search_input.len() {
             let c = after.chars().next().unwrap();
             let rest = &after[c.len_utf8()..];
             format!("{NO_REVERSE}{c}{REVERSE}{rest}")
@@ -303,10 +238,10 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
 
         let content = format!("/{before}{cursor_char}");
         // "/" + input chars + block cursor (only if cursor is at end, adding a new char)
-        let visible_len = if input.search_cursor < input.search_input.len() {
-            1 + input.search_input.len()
+        let visible_len = if state.search_cursor < state.search_input.len() {
+            1 + state.search_input.len()
         } else {
-            1 + input.search_input.len() + 1
+            1 + state.search_input.len() + 1
         };
         let padding = if cols > visible_len {
             " ".repeat(cols - visible_len)
@@ -317,8 +252,8 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
     }
 
     // Search message mode
-    if !input.search_message.is_empty() {
-        let msg = &input.search_message;
+    if !state.search_message.is_empty() {
+        let msg = &state.search_message;
         let padding = if cols > msg.len() {
             " ".repeat(cols - msg.len())
         } else {
@@ -328,15 +263,18 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
     }
 
     // Normal mode: build right side first
-    let end_line = (input.top_line + input.content_height).min(input.line_count);
-    let range = format!("{}-{}/{}", input.top_line + 1, end_line, input.line_count);
+    let line_count = state.lines.len();
+    let max_top = line_count.saturating_sub(content_height);
+    let top_line = state.top_line.min(max_top);
+    let end_line = (top_line + content_height).min(line_count);
+    let range = format!("{}-{}/{}", top_line + 1, end_line, line_count);
 
-    let position = if input.top_line == 0 {
+    let position = if top_line == 0 {
         "TOP".to_string()
-    } else if end_line >= input.line_count {
+    } else if end_line >= line_count {
         "END".to_string()
     } else {
-        let pct = (end_line as f64 / input.line_count as f64 * 100.0).round() as usize;
+        let pct = (end_line as f64 / line_count as f64 * 100.0).round() as usize;
         format!("{pct}%")
     };
 
@@ -344,21 +282,21 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
     let right_visible_len = range.len() + 1 + position.len();
 
     // Build left side
-    let left = if input.search_query.is_empty() {
-        input
+    let left = if state.search_query.is_empty() {
+        state
             .file_path
             .as_ref()
             .map(|p| p.rsplit('/').next().unwrap_or(p).to_string())
             .unwrap_or_default()
-    } else if input.current_match >= 0 {
+    } else if state.current_match >= 0 {
         format!(
             "/{} ({}/{})",
-            input.search_query,
-            input.current_match + 1,
-            input.search_matches.len()
+            state.search_query,
+            state.current_match + 1,
+            state.search_matches.len()
         )
     } else {
-        format!("/{}", input.search_query)
+        format!("/{}", state.search_query)
     };
 
     let left_visible_len = left.len();
@@ -378,8 +316,11 @@ pub fn format_status_bar(input: &StatusBarInput, cols: usize) -> String {
     }
 }
 
-pub fn render_status_bar(input: &StatusBarInput, cols: usize) -> String {
-    format!("{RESET}{REVERSE}{}{RESET}", format_status_bar(input, cols))
+pub fn render_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
+    format!(
+        "{RESET}{REVERSE}{}{RESET}",
+        format_status_bar(state, content_height, cols)
+    )
 }
 
 pub fn handle_search_key(state: &mut PagerState, key: &Key) {
@@ -605,10 +546,8 @@ pub fn run_pager(
         let half_page = content_height / 2;
         let max_top = state.lines.len().saturating_sub(content_height);
 
-        let mut quit = false;
-
         match key {
-            Key::Char('q') | Key::CtrlC => quit = true,
+            Key::Char('q') | Key::CtrlC => break,
             Key::Char('j') | Key::Down | Key::Enter => {
                 state.top_line = (state.top_line + 1).min(max_top);
             }
@@ -695,10 +634,6 @@ pub fn run_pager(
             _ => {}
         }
 
-        if quit {
-            break;
-        }
-
         state.search_message.clear();
         render_screen(&mut stdout, &state);
     }
@@ -764,21 +699,7 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
 
     let _ = write!(out, "\r\n{CLEAR_LINE}");
 
-    let status_input = StatusBarInput {
-        mode: state.mode.clone(),
-        search_input: state.search_input.clone(),
-        search_cursor: state.search_cursor,
-        search_message: state.search_message.clone(),
-        search_query: state.search_query.clone(),
-        search_matches: state.search_matches.clone(),
-        current_match: state.current_match,
-        top_line: top,
-        line_count: state.lines.len(),
-        content_height,
-        file_path: state.file_path.clone(),
-    };
-
-    let status = render_status_bar(&status_input, cols as usize);
+    let status = render_status_bar(state, content_height, cols as usize);
     let _ = write!(out, "{status}");
     let _ = out.flush();
 }
@@ -788,59 +709,10 @@ mod tests {
     use super::*;
     use serde::Deserialize;
 
-    // ---- parse_key ----
-    #[derive(Deserialize)]
-    struct ParseKeyCase {
-        name: String,
-        input: Vec<u8>,
-        expected: KeyJson,
-    }
-
     #[derive(Deserialize)]
     struct KeyJson {
         r#type: String,
         char: Option<String>,
-    }
-
-    fn key_matches(key: &Key, json: &KeyJson) -> bool {
-        match key {
-            Key::Char(c) => json.r#type == "char" && json.char.as_deref() == Some(&c.to_string()),
-            Key::Enter => json.r#type == "enter",
-            Key::Escape => json.r#type == "escape",
-            Key::Backspace => json.r#type == "backspace",
-            Key::CtrlC => json.r#type == "ctrl-c",
-            Key::CtrlD => json.r#type == "ctrl-d",
-            Key::CtrlU => json.r#type == "ctrl-u",
-            Key::Up => json.r#type == "up",
-            Key::Down => json.r#type == "down",
-            Key::Left => json.r#type == "left",
-            Key::Right => json.r#type == "right",
-            Key::AltLeft => json.r#type == "alt-left",
-            Key::AltRight => json.r#type == "alt-right",
-            Key::AltBackspace => json.r#type == "alt-backspace",
-            Key::PageUp => json.r#type == "pageup",
-            Key::PageDown => json.r#type == "pagedown",
-            Key::Home => json.r#type == "home",
-            Key::End => json.r#type == "end",
-            Key::Unknown => json.r#type == "unknown",
-        }
-    }
-
-    #[test]
-    fn test_parse_key() {
-        let json = include_str!("../fixtures/pager/parse-key.json");
-        let cases: Vec<ParseKeyCase> = serde_json::from_str(json).unwrap();
-        for case in &cases {
-            let key = parse_key(&case.input);
-            assert!(
-                key_matches(&key, &case.expected),
-                "parse_key: {} — got {:?}, expected type={} char={:?}",
-                case.name,
-                key,
-                case.expected.r#type,
-                case.expected.char
-            );
-        }
     }
 
     // ---- highlight_search ----
@@ -1011,7 +883,12 @@ mod tests {
         let json = include_str!("../fixtures/pager/format-status-bar.json");
         let cases: Vec<FormatStatusBarCase> = serde_json::from_str(json).unwrap();
         for case in &cases {
-            let input = StatusBarInput {
+            let state = PagerState {
+                lines: vec![String::new(); case.input.state.line_count],
+                top_line: case.input.state.top_line,
+                search_query: case.input.state.search_query.clone(),
+                search_matches: case.input.state.search_matches.clone(),
+                current_match: case.input.state.current_match,
                 mode: if case.input.state.mode == "search" {
                     Mode::Search
                 } else {
@@ -1020,15 +897,11 @@ mod tests {
                 search_input: case.input.state.search_input.clone(),
                 search_cursor: case.input.state.search_cursor,
                 search_message: case.input.state.search_message.clone(),
-                search_query: case.input.state.search_query.clone(),
-                search_matches: case.input.state.search_matches.clone(),
-                current_match: case.input.state.current_match,
-                top_line: case.input.state.top_line,
-                line_count: case.input.state.line_count,
-                content_height: case.input.state.content_height,
                 file_path: case.input.state.file_path.clone(),
+                raw_content: None,
             };
-            let result = format_status_bar(&input, case.input.cols);
+            let result =
+                format_status_bar(&state, case.input.state.content_height, case.input.cols);
             assert_eq!(
                 result,
                 case.expected,
