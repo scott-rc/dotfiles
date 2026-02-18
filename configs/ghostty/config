@@ -1,4 +1,4 @@
-command = /opt/homebrew/bin/fish -lc 'zellij attach terminal; or zellij -n terminal -s terminal'
+command = /opt/homebrew/bin/fish -lc zrepo
 confirm-close-surface = false
 cursor-style = bar
 cursor-style-blink = false
@@ -36,8 +36,20 @@ keybind = cmd+x=unbind
 keybind = cmd+d=unbind
 keybind = cmd+1=unbind
 keybind = cmd+digit_1=unbind
+keybind = cmd+ctrl+t=new_tab
 keybind = cmd+ctrl+w=close_surface
-keybind = cmd+ctrl+n=new_window
+keybind = cmd+ctrl+n=new_tab
+keybind = cmd+ctrl+left_bracket=previous_tab
+keybind = cmd+ctrl+right_bracket=next_tab
+keybind = cmd+ctrl+one=goto_tab:1
+keybind = cmd+ctrl+two=goto_tab:2
+keybind = cmd+ctrl+three=goto_tab:3
+keybind = cmd+ctrl+four=goto_tab:4
+keybind = cmd+ctrl+five=goto_tab:5
+keybind = cmd+ctrl+six=goto_tab:6
+keybind = cmd+ctrl+seven=goto_tab:7
+keybind = cmd+ctrl+eight=goto_tab:8
+keybind = cmd+ctrl+nine=goto_tab:9
 keybind = cmd+shift+d=unbind
 keybind = cmd+shift+e=unbind
 keybind = cmd+shift+f=unbind
@@ -64,8 +76,8 @@ keybind = cmd+shift+comma=unbind
 keybind = cmd+shift+period=unbind
 keybind = cmd+shift+down=unbind
 keybind = cmd+shift+up=unbind
-keybind = cmd+shift+left_bracket=unbind
-keybind = cmd+shift+right_bracket=unbind
+keybind = cmd+shift+left_bracket=text:\x1b[91;10u
+keybind = cmd+shift+right_bracket=text:\x1b[93;10u
 keybind = cmd+slash=unbind
 keybind = cmd+shift+slash=unbind
 keybind = cmd+?=unbind
@@ -75,4 +87,3 @@ maximize = true
 mouse-hide-while-typing = true
 shell-integration-features = no-cursor
 theme = light:Github Dark Default,dark:Github Dark Default
-title = " "

@@ -74,14 +74,14 @@ keybinds clear-defaults=true {
         bind "Super Shift r" { SwitchToMode "normal"; }
     }
     move {
-        bind "h"     { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "left"; }; }
-        bind "j"     { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "down"; }; }
-        bind "k"     { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "up"; }; }
-        bind "l"     { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "right"; }; }
-        bind "left"  { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "left"; }; }
-        bind "down"  { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "down"; }; }
-        bind "up"    { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "up"; }; }
-        bind "right" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "move_pane"; payload "right"; }; }
+        bind "h"     { MovePane "left"; }
+        bind "j"     { MovePane "down"; }
+        bind "k"     { MovePane "up"; }
+        bind "l"     { MovePane "right"; }
+        bind "left"  { MovePane "left"; }
+        bind "down"  { MovePane "down"; }
+        bind "up"    { MovePane "up"; }
+        bind "right" { MovePane "right"; }
         bind "n"     { MovePane; }
         bind "p"     { MovePaneBackwards; }
         bind "tab"   { MovePane; }
@@ -131,18 +131,18 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" {
         // CMD keybindings (forwarded from Ghostty via unbind)
-        bind "Super Shift n" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "new_pane"; }; }
+        bind "Super Shift n" { NewPane; }
         bind "Super Shift w" { CloseFocus; }
         bind "Super Shift [" { GoToPreviousTab; }
         bind "Super Shift ]" { GoToNextTab; }
         bind "Super Shift h" { MoveFocus "left"; }
-        bind "Super Shift j" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
-        bind "Super Shift k" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
+        bind "Super Shift j" { MoveFocus "down"; }
+        bind "Super Shift k" { MoveFocus "up"; }
         bind "Super Shift l" { MoveFocus "right"; }
         bind "Super Shift f" { ToggleFocusFullscreen; }
         bind "Super Shift z" { TogglePaneFrames; }
-        bind "Super Shift down" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "down"; }; }
-        bind "Super Shift up" { MessagePlugin "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm" { name "navigate"; payload "up"; }; }
+        bind "Super Shift down" { MoveFocus "down"; }
+        bind "Super Shift up" { MoveFocus "up"; }
         bind "Super Shift +" { Resize "Increase"; }
         bind "Super Shift -" { Resize "Decrease"; }
         bind "Super Shift =" { Resize "Increase"; }
@@ -411,13 +411,6 @@ plugins {
     welcome-screen location="zellij:session-manager" {
         welcome_screen true
     }
-}
-
-// Plugins to load in the background when a new session starts
-// eg. "file:/path/to/my-plugin.wasm"
-// eg. "https://example.com/my-plugin.wasm"
-load_plugins {
-    "file:~/.config/zellij/plugins/zellij-sync-stacks.wasm"
 }
 
 // Use a simplified UI without special fonts (arrow glyphs)
