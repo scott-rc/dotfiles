@@ -5,39 +5,6 @@ tab_template name="ui" {
     }
 }
 
-swap_tiled_layout name="two-column-stacked" {
-    ui max_panes=3 {
-        pane split_direction="vertical" {
-            pane
-            pane
-        }
-    }
-    ui max_panes=5 {
-        pane split_direction="vertical" {
-            pane stacked=true { pane; pane; }
-            pane stacked=true { children; }
-        }
-    }
-    ui max_panes=7 {
-        pane split_direction="vertical" {
-            pane stacked=true { pane; pane; pane; }
-            pane stacked=true { children; }
-        }
-    }
-    ui max_panes=9 {
-        pane split_direction="vertical" {
-            pane stacked=true { pane; pane; pane; pane; }
-            pane stacked=true { children; }
-        }
-    }
-    ui max_panes=11 {
-        pane split_direction="vertical" {
-            pane stacked=true { pane; pane; pane; pane; pane; }
-            pane stacked=true { children; }
-        }
-    }
-}
-
 swap_floating_layout name="staggered" {
     floating_panes
 }

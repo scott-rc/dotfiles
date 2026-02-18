@@ -140,7 +140,7 @@ Ghostty window (tab bar: [gadget] [dotfiles] [ggt])
     └── Zellij tab: main
 ```
 
-The `zrepo` fish function handles session selection — presents an fzf picker when called with no args, or attaches directly with `zrepo <name>`. Ghostty's `command` is set to `zrepo` so each new tab gets the picker. Zellij tabs auto-rename to the current git branch via a `fish_prompt` hook.
+The `zrepo` fish function handles session selection — dynamically discovers repos under `~/Code/*/*` (any directory containing `.git`), presents an fzf picker with git preview (branch, recent commits, status) when called with no args, or attaches directly with `zrepo <name>` (matches `category/name` or just `name`). Ghostty's `command` is set to `zrepo` so each new tab gets the picker. Zellij tabs auto-rename to the current git branch via a `fish_prompt` hook.
 
 ### tools/
 

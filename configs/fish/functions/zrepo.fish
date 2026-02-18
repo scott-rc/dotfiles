@@ -1,30 +1,42 @@
 function zrepo
-    set -l repos \
-        ~/Code/personal/dotfiles \
-        ~/Code/gadget/gadget \
-        ~/Code/gadget/ggt \
-        ~/Code/gadget/skipper \
-        ~/Code/gadget/global-infrastructure
-
     set -l name
     set -l dir
 
     if test (count $argv) -gt 0
-        # Direct attach: zrepo gadget
-        set name $argv[1]
-        for r in $repos
-            if test (basename $r) = $name
-                set dir $r
-                break
+        set -l target $argv[1]
+        set -l matches
+        for repo in ~/Code/*/*
+            test -d "$repo/.git"; or continue
+            set -l rel (string replace -r '^.*/Code/' '' -- $repo)
+            if test "$rel" = "$target"; or test (basename $repo) = "$target"
+                set -a matches $repo
             end
         end
-        if test -z "$dir"
-            echo "Unknown repo: $name"
+        if test (count $matches) -eq 0
+            echo "Unknown repo: $target"
+            return 1
+        else if test (count $matches) -gt 1
+            echo "Ambiguous repo '$target', matches:"
+            for m in $matches
+                echo "  "(string replace -r '^.*/Code/' '' -- $m)
+            end
             return 1
         end
+        set dir $matches[1]
+        set name (basename $dir)
     else
-        # Fuzzy chooser
-        set -l choice (for r in $repos; echo (basename $r)\t$r; end | fzf --with-nth=1 --delimiter='\t' | cut -f2)
+        set -l choice (
+            for repo in ~/Code/*/*
+                test -d "$repo/.git"; or continue
+                set -l rel (string replace -r '^.*/Code/' '' -- $repo)
+                echo $rel\t$repo
+            end | sort | fzf \
+                --with-nth=1 \
+                --delimiter='\t' \
+                --preview 'echo "  "{2}; echo; echo "  branch: "$(git -C {2} branch --show-current 2>/dev/null); echo; echo "  recent commits:"; git -C {2} log --oneline -5 --color=always 2>/dev/null | sed "s/^/    /"; echo; echo "  status:"; git -C {2} status --short 2>/dev/null | head -10 | sed "s/^/    /"' \
+                --preview-window=right:50% \
+            | cut -f2
+        )
         if test -z "$choice"
             return
         end
@@ -32,8 +44,6 @@ function zrepo
         set dir $choice
     end
 
-    # Set Ghostty tab title to repo name
     printf '\e]0;%s\a' $name
-
     zellij attach -c $name options --default-cwd $dir
 end
