@@ -8,23 +8,19 @@ When making changes to the codebase, keep README.md in sync. Any new features, c
 
 ---
 
-No custom error types. Use `eprintln!()` + `process::exit(1)` for fatal errors, `unwrap_or()` for safe defaults. Do not introduce `Result` types or error enums.
+MUST NOT introduce custom error types, `Result` types, or error enums. Use `eprintln!()` + `process::exit(1)` for fatal errors, `unwrap_or()` for safe defaults.
 
 ---
 
-All ANSI escape handling lives in `wrap.rs`: `strip_ansi()`, `visible_length()`, `split_ansi()`. Reuse these — do not duplicate ANSI regex patterns.
+MUST NOT duplicate ANSI regex patterns. Reuse the helpers in `wrap.rs`.
 
 ---
 
-Single `Style` struct constructed via `Style::new(color: bool)`. All formatting methods return plain text when `color = false`. Palette constants are at the top of `style.rs`.
+Construct styles via `Style::new(color: bool)`. Palette constants live at the top of `style.rs`.
 
 ---
 
-Three fixture systems:
-
-- Rendering: `.md` + `.expected.txt` pairs in `fixtures/rendering/`, registered via `rendering_fixture!` / `frontmatter_fixture!` macros in `render.rs` tests. Width 60, no color.
-- JSON: Per-module fixtures in `fixtures/{module}/`, loaded via `include_str!()` + custom `Deserialize` structs.
-- Integration: `tests/integration.rs` spawns binary via `CARGO_BIN_EXE_md`, uses `run_md()` helper.
+Follow the three fixture systems described in README.md when adding tests.
 
 ---
 
