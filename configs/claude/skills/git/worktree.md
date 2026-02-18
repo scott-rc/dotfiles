@@ -11,7 +11,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 2. **Determine repository**:
    - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat this as "not in a git repo" and scan for other repositories instead
    - **If in a git repo** (not dotfiles): Use `git rev-parse --show-toplevel` to get the repo path
-   - **If not in a git repo**: Scan `~/Code/*/` for git repositories (e.g., `~/Code/gadget/`, `~/Code/personal/`, `~/Code/scratch/`), excluding the dotfiles repo. If multiple repos found, try to infer the correct repo from the task description (e.g., if the task mentions "gadget" or a feature specific to a project, select that repo). If the repo cannot be inferred, ask the user to choose.
+   - **If not in a git repo**: Scan `~/Code/*/*` for git repositories (e.g., `~/Code/gadget/gadget/`, `~/Code/personal/recipe-book/`), excluding the dotfiles repo. If multiple repos found, try to infer the correct repo from the task description (e.g., if the task mentions "gadget" or a feature specific to a project, select that repo). If the repo cannot be inferred, ask the user to choose.
 
 3. **Get repo name**: `basename <repo-path>`
 

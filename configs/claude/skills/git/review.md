@@ -6,7 +6,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 1. **Fetch unresolved review threads**:
    ```bash
-   ~/.claude/skills/pr/scripts/get-pr-comments.sh
+   ~/.claude/skills/git/scripts/get-pr-comments.sh
    ```
    - If the script exits with an error (no PR exists), inform the user and stop.
 
@@ -31,5 +31,5 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 7. **If writing any text to GitHub** (PR comments, review replies, etc.): MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes.
 
 8. **After all fixes, offer follow-up actions**:
-   - Commit the changes (git skill's commit operation)
-   - Push to update the PR (git skill's push operation)
+   - Commit the changes (commit operation)
+   - Push to update the PR (push operation)
