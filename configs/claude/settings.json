@@ -50,7 +50,6 @@
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "linear@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true
   },
   "spinnerTipsEnabled": false,
