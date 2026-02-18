@@ -92,18 +92,15 @@ fn detect_stacks(panes: &[PaneEntry]) -> Option<DetectedStacks> {
     sorted_cols.sort_by_key(|(x, _)| *x);
 
     // Sort panes within each column by pane_y (top to bottom)
-    let mut left: Vec<u32> = Vec::new();
-    let mut right: Vec<u32> = Vec::new();
-
-    for (i, (_, mut col_panes)) in sorted_cols.into_iter().enumerate() {
+    for (_, col_panes) in &mut sorted_cols {
         col_panes.sort_by_key(|p| p.pane_y);
-        let ids: Vec<u32> = col_panes.iter().map(|p| p.id).collect();
-        if i == 0 {
-            left = ids;
-        } else {
-            right = ids;
-        }
     }
+
+    let mut cols = sorted_cols
+        .into_iter()
+        .map(|(_, col)| col.iter().map(|p| p.id).collect());
+    let left = cols.next().unwrap();
+    let right = cols.next().unwrap();
 
     Some(DetectedStacks { left, right })
 }
@@ -153,7 +150,6 @@ fn compute_navigation(
 struct SyncStacksPlugin {
     manifest: Option<PaneManifest>,
     active_tab: Option<usize>,
-    skip_updates: usize,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -178,14 +174,10 @@ impl ZellijPlugin for SyncStacksPlugin {
             Event::PaneUpdate(manifest) => {
                 let total_panes: usize = manifest.panes.values().map(Vec::len).sum();
                 eprintln!(
-                    "[sync-stacks] PaneUpdate: {} tabs, {} total panes, skip_updates={}",
+                    "[sync-stacks] PaneUpdate: {} tabs, {} total panes",
                     manifest.panes.len(),
                     total_panes,
-                    self.skip_updates
                 );
-                if self.skip_updates > 0 {
-                    self.skip_updates -= 1;
-                }
                 self.manifest = Some(manifest);
             }
             Event::TabUpdate(tabs) => {
@@ -281,7 +273,6 @@ impl ZellijPlugin for SyncStacksPlugin {
             "[sync-stacks] navigating: focus_other={}, focus_current={}",
             nav.focus_other, nav.focus_current
         );
-        self.skip_updates += 2;
         focus_terminal_pane(nav.focus_other, false);
         focus_terminal_pane(nav.focus_current, false);
 
@@ -309,7 +300,6 @@ impl SyncStacksPlugin {
             manifest.panes.len(),
         );
         let _ = writeln!(out, "active_tab: {:?}", self.active_tab);
-        let _ = writeln!(out, "skip_updates: {}", self.skip_updates);
 
         // Show ALL tabs summary
         out.push_str("\nall tabs:\n");
