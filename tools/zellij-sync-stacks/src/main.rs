@@ -39,6 +39,12 @@ struct NavigationResult {
     focus_current: u32, // pane ID to focus in the current stack (second, restores focus)
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct SyncedMoveResult {
+    focused_pane_id: u32,
+    other_pane_id: u32,
+}
+
 // --- Pure functions ---
 
 #[cfg(target_arch = "wasm32")]
@@ -103,6 +109,72 @@ fn detect_stacks(panes: &[PaneEntry]) -> Option<DetectedStacks> {
     let right = cols.next().unwrap();
 
     Some(DetectedStacks { left, right })
+}
+
+fn pane_count_for_new(panes: &[PaneEntry]) -> usize {
+    if detect_stacks(panes).is_some() {
+        2
+    } else {
+        1
+    }
+}
+
+fn compute_synced_move(
+    stacks: &DetectedStacks,
+    focused_id: u32,
+    direction: &str,
+) -> Option<SyncedMoveResult> {
+    // Only handle up/down — left/right fall back to normal move
+    if direction != "up" && direction != "down" {
+        return None;
+    }
+
+    let (current_stack, other_stack, current_idx) =
+        if let Some(idx) = stacks.left.iter().position(|&id| id == focused_id) {
+            (&stacks.left, &stacks.right, idx)
+        } else if let Some(idx) = stacks.right.iter().position(|&id| id == focused_id) {
+            (&stacks.right, &stacks.left, idx)
+        } else {
+            return None;
+        };
+
+    // Check focused pane can move in this direction
+    match direction {
+        "down" => {
+            if current_idx + 1 >= current_stack.len() {
+                return None;
+            }
+        }
+        "up" => {
+            if current_idx == 0 {
+                return None;
+            }
+        }
+        _ => return None,
+    }
+
+    // Counterpart is at the same index as the focused pane (before move)
+    let other_idx = current_idx.min(other_stack.len() - 1);
+
+    // Check that counterpart can also move in this direction
+    match direction {
+        "down" => {
+            if other_idx + 1 >= other_stack.len() {
+                return None;
+            }
+        }
+        "up" => {
+            if other_idx == 0 {
+                return None;
+            }
+        }
+        _ => return None,
+    }
+
+    Some(SyncedMoveResult {
+        focused_pane_id: current_stack[current_idx],
+        other_pane_id: other_stack[other_idx],
+    })
 }
 
 fn compute_navigation(
@@ -201,39 +273,152 @@ impl ZellijPlugin for SyncStacksPlugin {
             pipe_message.name, pipe_message.payload
         );
 
-        if pipe_message.name == "dump" {
-            self.dump_state();
-            return false;
+        match pipe_message.name.as_str() {
+            "dump" => self.dump_state(),
+            "navigate" => self.handle_navigate(pipe_message.payload.as_deref()),
+            "new_pane" => self.handle_new_pane(),
+            "move_pane" => self.handle_move_pane(pipe_message.payload.as_deref()),
+            _ => {}
         }
 
-        if pipe_message.name != "navigate" {
-            return false;
-        }
+        false
+    }
+}
 
-        let direction = match pipe_message.payload.as_deref() {
+#[cfg(target_arch = "wasm32")]
+impl SyncStacksPlugin {
+    fn handle_navigate(&self, payload: Option<&str>) {
+        let direction = match payload {
             Some(d @ ("up" | "down")) => d.to_string(),
-            _ => return false,
+            _ => return,
         };
 
         let Some(ref manifest) = self.manifest else {
             eprintln!("[sync-stacks] FALLBACK: no manifest");
-            Self::fallback_move(&direction);
-            return false;
+            Self::fallback_focus(&direction);
+            return;
         };
 
-        let tab_panes = self.find_current_tab_panes(manifest);
-        let Some(panes) = tab_panes else {
+        let Some(panes) = self.find_current_tab_panes(manifest) else {
             eprintln!(
                 "[sync-stacks] FALLBACK: no tab found (active_tab={:?})",
                 self.active_tab
             );
-            Self::fallback_move(&direction);
-            return false;
+            Self::fallback_focus(&direction);
+            return;
         };
 
         let entries: Vec<PaneEntry> = panes.iter().map(pane_entry_from_info).collect();
+        Self::log_entries(&entries);
+
+        let Some(stacks) = detect_stacks(&entries) else {
+            eprintln!("[sync-stacks] FALLBACK: detect_stacks returned None");
+            Self::fallback_focus(&direction);
+            return;
+        };
+
+        eprintln!(
+            "[sync-stacks] stacks: left={:?}, right={:?}",
+            stacks.left, stacks.right
+        );
+
+        let Some(focused_id) = entries.iter().find(|p| p.is_focused).map(|p| p.id) else {
+            eprintln!("[sync-stacks] FALLBACK: no focused pane in entries");
+            Self::fallback_focus(&direction);
+            return;
+        };
+
+        let Some(nav) = compute_navigation(&stacks, focused_id, &direction) else {
+            eprintln!("[sync-stacks] at boundary, no movement");
+            return;
+        };
+
+        eprintln!(
+            "[sync-stacks] navigating: focus_other={}, focus_current={}",
+            nav.focus_other, nav.focus_current
+        );
+        focus_terminal_pane(nav.focus_other, false);
+        focus_terminal_pane(nav.focus_current, false);
+    }
+
+    fn handle_new_pane(&self) {
+        let count = self
+            .manifest
+            .as_ref()
+            .and_then(|m| self.find_current_tab_panes(m))
+            .map(|panes| {
+                let entries: Vec<PaneEntry> = panes.iter().map(pane_entry_from_info).collect();
+                pane_count_for_new(&entries)
+            })
+            .unwrap_or(1);
+
+        eprintln!("[sync-stacks] new_pane: opening {count} terminal(s)");
+        for _ in 0..count {
+            open_terminal(std::path::Path::new("."));
+        }
+    }
+
+    fn handle_move_pane(&self, payload: Option<&str>) {
+        let Some(direction) = payload else {
+            return;
+        };
+
+        // Left/right: fall back to normal directional move immediately
+        if direction == "left" || direction == "right" {
+            eprintln!("[sync-stacks] move_pane: {direction} → fallback");
+            Self::fallback_move_pane(direction);
+            return;
+        }
+
+        if direction != "up" && direction != "down" {
+            return;
+        }
+
+        let Some(ref manifest) = self.manifest else {
+            eprintln!("[sync-stacks] move_pane FALLBACK: no manifest");
+            Self::fallback_move_pane(direction);
+            return;
+        };
+
+        let Some(panes) = self.find_current_tab_panes(manifest) else {
+            eprintln!("[sync-stacks] move_pane FALLBACK: no tab");
+            Self::fallback_move_pane(direction);
+            return;
+        };
+
+        let entries: Vec<PaneEntry> = panes.iter().map(pane_entry_from_info).collect();
+
+        let Some(stacks) = detect_stacks(&entries) else {
+            eprintln!("[sync-stacks] move_pane FALLBACK: no stacks");
+            Self::fallback_move_pane(direction);
+            return;
+        };
+
+        let Some(focused_id) = entries.iter().find(|p| p.is_focused).map(|p| p.id) else {
+            eprintln!("[sync-stacks] move_pane FALLBACK: no focused pane");
+            Self::fallback_move_pane(direction);
+            return;
+        };
+
+        let Some(result) = compute_synced_move(&stacks, focused_id, direction) else {
+            eprintln!("[sync-stacks] move_pane FALLBACK: compute returned None");
+            Self::fallback_move_pane(direction);
+            return;
+        };
+
+        let dir = Self::parse_direction(direction).unwrap();
+        eprintln!(
+            "[sync-stacks] move_pane: moving {} and {} {:?}",
+            result.focused_pane_id, result.other_pane_id, dir
+        );
+        move_pane_with_pane_id_in_direction(PaneId::Terminal(result.focused_pane_id), dir);
+        move_pane_with_pane_id_in_direction(PaneId::Terminal(result.other_pane_id), dir);
+        focus_terminal_pane(result.focused_pane_id, false);
+    }
+
+    fn log_entries(entries: &[PaneEntry]) {
         eprintln!("[sync-stacks] entries ({}):", entries.len());
-        for e in &entries {
+        for e in entries {
             eprintln!(
                 "  id={} x={} y={} rows={} focused={} plugin={} floating={} selectable={}",
                 e.id,
@@ -246,42 +431,8 @@ impl ZellijPlugin for SyncStacksPlugin {
                 e.is_selectable
             );
         }
-
-        let Some(stacks) = detect_stacks(&entries) else {
-            eprintln!("[sync-stacks] FALLBACK: detect_stacks returned None");
-            Self::fallback_move(&direction);
-            return false;
-        };
-
-        eprintln!(
-            "[sync-stacks] stacks: left={:?}, right={:?}",
-            stacks.left, stacks.right
-        );
-
-        let Some(focused_id) = entries.iter().find(|p| p.is_focused).map(|p| p.id) else {
-            eprintln!("[sync-stacks] FALLBACK: no focused pane in entries");
-            Self::fallback_move(&direction);
-            return false;
-        };
-
-        let Some(nav) = compute_navigation(&stacks, focused_id, &direction) else {
-            eprintln!("[sync-stacks] at boundary, no movement");
-            return false; // at boundary, no movement
-        };
-
-        eprintln!(
-            "[sync-stacks] navigating: focus_other={}, focus_current={}",
-            nav.focus_other, nav.focus_current
-        );
-        focus_terminal_pane(nav.focus_other, false);
-        focus_terminal_pane(nav.focus_current, false);
-
-        false
     }
-}
 
-#[cfg(target_arch = "wasm32")]
-impl SyncStacksPlugin {
     fn dump_state(&self) {
         let mut out = String::new();
         out.push_str("\n=== sync-stacks dump ===\n");
@@ -366,11 +517,25 @@ impl SyncStacksPlugin {
         self.active_tab.and_then(|tab| manifest.panes.get(&tab))
     }
 
-    fn fallback_move(direction: &str) {
+    fn parse_direction(direction: &str) -> Option<Direction> {
         match direction {
-            "up" => move_focus(Direction::Up),
-            "down" => move_focus(Direction::Down),
-            _ => {}
+            "up" => Some(Direction::Up),
+            "down" => Some(Direction::Down),
+            "left" => Some(Direction::Left),
+            "right" => Some(Direction::Right),
+            _ => None,
+        }
+    }
+
+    fn fallback_focus(direction: &str) {
+        if let Some(dir) = Self::parse_direction(direction) {
+            move_focus(dir);
+        }
+    }
+
+    fn fallback_move_pane(direction: &str) {
+        if let Some(dir) = Self::parse_direction(direction) {
+            move_pane_with_direction(dir);
         }
     }
 }
@@ -670,5 +835,135 @@ mod tests {
         let nav = compute_navigation(&stacks, 2, "down").unwrap();
         assert_eq!(nav.focus_current, 3);
         assert_eq!(nav.focus_other, 6);
+    }
+
+    // --- pane_count_for_new tests ---
+
+    #[test]
+    fn new_pane_count_two_column_stacked() {
+        let panes = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 1, false),
+            make_pane(3, 50, 0, 30, false),
+            make_pane(4, 50, 31, 1, false),
+        ];
+        assert_eq!(pane_count_for_new(&panes), 2);
+    }
+
+    #[test]
+    fn new_pane_count_single_column() {
+        let panes = vec![
+            make_pane(1, 0, 0, 30, true),
+            make_pane(2, 0, 31, 1, false),
+        ];
+        assert_eq!(pane_count_for_new(&panes), 1);
+    }
+
+    #[test]
+    fn new_pane_count_grid() {
+        let panes = vec![
+            make_pane(1, 0, 0, 15, true),
+            make_pane(2, 0, 16, 15, false),
+            make_pane(3, 50, 0, 15, false),
+            make_pane(4, 50, 16, 15, false),
+        ];
+        assert_eq!(pane_count_for_new(&panes), 1);
+    }
+
+    #[test]
+    fn new_pane_count_empty() {
+        assert_eq!(pane_count_for_new(&[]), 1);
+    }
+
+    // --- compute_synced_move tests ---
+
+    #[test]
+    fn synced_move_down_from_top_left() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5, 6],
+        };
+        let result = compute_synced_move(&stacks, 1, "down").unwrap();
+        assert_eq!(result.focused_pane_id, 1);
+        assert_eq!(result.other_pane_id, 4);
+    }
+
+    #[test]
+    fn synced_move_up_from_bottom_right() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5, 6],
+        };
+        let result = compute_synced_move(&stacks, 6, "up").unwrap();
+        assert_eq!(result.focused_pane_id, 6);
+        assert_eq!(result.other_pane_id, 3);
+    }
+
+    #[test]
+    fn synced_move_down_at_bottom_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+        assert!(compute_synced_move(&stacks, 2, "down").is_none());
+    }
+
+    #[test]
+    fn synced_move_up_at_top_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+        assert!(compute_synced_move(&stacks, 1, "up").is_none());
+    }
+
+    #[test]
+    fn synced_move_left_right_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+        assert!(compute_synced_move(&stacks, 1, "left").is_none());
+        assert!(compute_synced_move(&stacks, 1, "right").is_none());
+    }
+
+    #[test]
+    fn synced_move_focused_not_in_stacks_returns_none() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2],
+            right: vec![3, 4],
+        };
+        assert!(compute_synced_move(&stacks, 99, "down").is_none());
+    }
+
+    #[test]
+    fn synced_move_unequal_stacks_counterpart_at_boundary() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5],
+        };
+        // Focused on pane 3 (left, idx 2), counterpart clamped to idx 2 → but right only has idx 0,1
+        // So counterpart is at idx 2 clamped to 1 (pane 5). Moving up: counterpart at idx 1, can move up. OK.
+        // But moving down from idx 2: focused can't move (at bottom). Returns None.
+        assert!(compute_synced_move(&stacks, 3, "down").is_none());
+
+        // Focused on pane 2 (left, idx 1), counterpart at idx 1 (pane 5).
+        // Moving down: focused can go to idx 2, counterpart at idx 1 can't go to idx 2 (only 2 items).
+        assert!(compute_synced_move(&stacks, 2, "down").is_none());
+    }
+
+    #[test]
+    fn synced_move_from_middle() {
+        let stacks = DetectedStacks {
+            left: vec![1, 2, 3],
+            right: vec![4, 5, 6],
+        };
+        let result = compute_synced_move(&stacks, 2, "down").unwrap();
+        assert_eq!(result.focused_pane_id, 2);
+        assert_eq!(result.other_pane_id, 5);
+
+        let result = compute_synced_move(&stacks, 5, "up").unwrap();
+        assert_eq!(result.focused_pane_id, 5);
+        assert_eq!(result.other_pane_id, 2);
     }
 }
