@@ -131,16 +131,38 @@ vim.keymap.set('c', '<right>', function() return vim.fn.wildmenumode() == 1 and 
 
 local augroup = vim.api.nvim_create_augroup('user_config', { clear = true })
 
+local function toggle_neotree_files()
+  local neo_win = nil
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'neo-tree' then
+      neo_win = win
+      break
+    end
+  end
+  if neo_win then
+    if vim.api.nvim_get_current_win() == neo_win then
+      vim.api.nvim_win_close(neo_win, true)
+    else
+      vim.api.nvim_set_current_win(neo_win)
+    end
+  else
+    vim.cmd('Neotree focus source=filesystem')
+  end
+end
+
 vim.api.nvim_create_autocmd('VimEnter', {
   group = augroup,
   callback = function()
     if vim.fn.argc() == 0 and vim.bo.buftype == '' then
-      local root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-      if vim.v.shell_error == 0 and root and root ~= '' then
-        require('neo-tree.command').execute({ action = 'show', dir = root })
-      else
-        require('neo-tree.command').execute({ action = 'show' })
-      end
+      vim.schedule(function()
+        local root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+        if vim.v.shell_error == 0 and root and root ~= '' then
+          vim.cmd('Neotree focus dir=' .. vim.fn.fnameescape(root))
+        else
+          vim.cmd('Neotree focus')
+        end
+        vim.cmd('wincmd p')
+      end)
     end
   end,
 })
@@ -262,6 +284,7 @@ require('lazy').setup({
   {
     'nvim-neo-tree/neo-tree.nvim',
     branch = 'v3.x',
+    cmd = { 'Neotree' },
     dependencies = {
       'nvim-lua/plenary.nvim',
       'MunifTanjim/nui.nvim',
@@ -314,21 +337,9 @@ require('lazy').setup({
       },
     },
     keys = {
-      { '<leader>e', '<cmd>Neotree toggle<CR>', desc = 'File explorer' },
-      { '<C-e>', function()
-          if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'filesystem' then
-            vim.cmd('Neotree close')
-          else
-            vim.cmd('Neotree focus source=filesystem')
-          end
-        end, desc = 'Focus/toggle file explorer' },
-      { '<D-e>', function()
-          if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'filesystem' then
-            vim.cmd('Neotree close')
-          else
-            vim.cmd('Neotree focus source=filesystem')
-          end
-        end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle file explorer' },
+      { '<leader>e', toggle_neotree_files, desc = 'File explorer' },
+      { '<C-e>', toggle_neotree_files, desc = 'Focus/toggle file explorer' },
+      { '<D-e>', toggle_neotree_files, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle file explorer' },
       {
         '<leader>g',
         function()
@@ -457,6 +468,7 @@ require('lazy').setup({
       { '<D-p>',     function() require('telescope.builtin').commands() end,   mode = { 'n', 'v', 'i' }, desc = 'Command palette' },
       { '<leader>f', function() require('telescope.builtin').find_files() end, desc = 'Find files' },
       { '<leader>b', function() require('telescope.builtin').buffers() end,    desc = 'Find buffers' },
+      { '<D-f>',     function() require('telescope.builtin').live_grep() end, mode = { 'n', 'v', 'i' }, desc = 'Ripgrep search' },
       { '<leader>r', function() require('telescope.builtin').live_grep() end,  desc = 'Ripgrep search' },
       { '<leader>p', function() require('telescope.builtin').commands() end,   desc = 'Command palette' },
       { '<leader>m', function() require('telescope.builtin').keymaps() end,    desc = 'Keybindings' },
