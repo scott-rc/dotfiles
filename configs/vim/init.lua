@@ -118,6 +118,50 @@ vim.keymap.set('v', '<leader>yL', function()
   vim.fn.setreg('+', vim.fn.expand('%:p') .. ':' .. s .. '-' .. e)
 end, { desc = 'Copy absolute path:lines' })
 
+local function git_base_branch()
+  local branch = vim.fn.systemlist('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')[1]
+  if vim.v.shell_error == 0 and branch and branch ~= '' then
+    return (branch:match('origin/(.*)') or branch)
+  end
+  return 'main'
+end
+
+local function github_url(opts)
+  local remote = vim.fn.systemlist('git remote get-url origin')[1]
+  if vim.v.shell_error ~= 0 or not remote then
+    vim.notify('No origin remote', vim.log.levels.WARN)
+    return nil
+  end
+  remote = remote:gsub('git@github%.com:', 'https://github.com/'):gsub('%.git$', '')
+  local branch = opts.branch or vim.fn.systemlist('git rev-parse --abbrev-ref HEAD')[1]
+  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  local rel_path = vim.fn.expand('%:p'):sub(#git_root + 2)
+  local url = remote .. '/blob/' .. branch .. '/' .. rel_path
+  if opts.visual then
+    local s, e = vim.fn.line('v'), vim.fn.line('.')
+    if s > e then s, e = e, s end
+    url = url .. '#L' .. s .. '-L' .. e
+  end
+  return url
+end
+
+vim.keymap.set('n', '<leader>go', function()
+  local url = github_url({})
+  if url then vim.fn.system({ 'open', url }) end
+end, { desc = 'Open in GitHub' })
+vim.keymap.set('v', '<leader>go', function()
+  local url = github_url({ visual = true })
+  if url then vim.fn.system({ 'open', url }) end
+end, { desc = 'Open in GitHub (selection)' })
+vim.keymap.set('n', '<leader>gO', function()
+  local url = github_url({ branch = 'main' })
+  if url then vim.fn.system({ 'open', url }) end
+end, { desc = 'Open in GitHub (main)' })
+vim.keymap.set('v', '<leader>gO', function()
+  local url = github_url({ branch = 'main', visual = true })
+  if url then vim.fn.system({ 'open', url }) end
+end, { desc = 'Open in GitHub (main, selection)' })
+
 -- Wildmenu navigation
 vim.o.wildcharm = vim.fn.char2nr(vim.api.nvim_replace_termcodes('<C-z>', true, true, true))
 vim.keymap.set('c', '<up>', function() return vim.fn.wildmenumode() == 1 and '<left>' or '<up>' end, { expr = true, desc = 'Wildmenu: previous match' })
@@ -141,7 +185,11 @@ local function toggle_neotree_files()
   end
   if neo_win then
     if vim.api.nvim_get_current_win() == neo_win then
-      vim.api.nvim_win_close(neo_win, true)
+      if #vim.api.nvim_list_wins() > 1 then
+        vim.api.nvim_win_close(neo_win, true)
+      else
+        vim.cmd('enew')
+      end
     else
       vim.api.nvim_set_current_win(neo_win)
     end
@@ -157,11 +205,10 @@ vim.api.nvim_create_autocmd('VimEnter', {
       vim.schedule(function()
         local root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
         if vim.v.shell_error == 0 and root and root ~= '' then
-          vim.cmd('Neotree focus dir=' .. vim.fn.fnameescape(root))
+          vim.cmd('Neotree show position=right dir=' .. vim.fn.fnameescape(root))
         else
-          vim.cmd('Neotree focus')
+          vim.cmd('Neotree show position=right')
         end
-        vim.cmd('wincmd p')
       end)
     end
   end,
@@ -262,6 +309,8 @@ require('lazy').setup({
       spec = {
         { '<leader>y', group = 'Yank path' },
 
+        { '<leader>g', group = 'Git' },
+
         { '<leader>o', group = 'Options' },
         { '<leader>ow', function()
           local wo = vim.wo
@@ -341,19 +390,9 @@ require('lazy').setup({
       { '<C-e>', toggle_neotree_files, desc = 'Focus/toggle file explorer' },
       { '<D-e>', toggle_neotree_files, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle file explorer' },
       {
-        '<leader>g',
+        '<leader>gc',
         function()
-          local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
-          local base = 'main'
-          if handle then
-            local result = handle:read('*a'):gsub('%s+', '')
-            handle:close()
-            local branch = result:match('origin/(.*)')
-            if branch and branch ~= '' then
-              base = branch
-            end
-          end
-          vim.cmd('Neotree git_status git_base=' .. base)
+          vim.cmd('Neotree git_status git_base=' .. git_base_branch())
         end,
         desc = 'Changed files vs base branch',
       },
@@ -361,30 +400,14 @@ require('lazy').setup({
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             vim.cmd('Neotree close')
           else
-            local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
-            local base = 'main'
-            if handle then
-              local result = handle:read('*a'):gsub('%s+', '')
-              handle:close()
-              local branch = result:match('origin/(.*)')
-              if branch and branch ~= '' then base = branch end
-            end
-            vim.cmd('Neotree focus source=git_status git_base=' .. base)
+            vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
           end
         end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle git changes' },
       { '<C-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             vim.cmd('Neotree close')
           else
-            local handle = io.popen('git rev-parse --abbrev-ref origin/HEAD 2>/dev/null')
-            local base = 'main'
-            if handle then
-              local result = handle:read('*a'):gsub('%s+', '')
-              handle:close()
-              local branch = result:match('origin/(.*)')
-              if branch and branch ~= '' then base = branch end
-            end
-            vim.cmd('Neotree focus source=git_status git_base=' .. base)
+            vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
           end
         end, desc = 'Focus/toggle git changes' },
     },
