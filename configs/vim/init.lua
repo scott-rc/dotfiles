@@ -18,6 +18,8 @@ vim.o.splitbelow = true
 vim.o.splitright = true
 
 -- Display
+vim.o.title = true
+vim.o.titlestring = ' %f%( %m%)'
 vim.o.showmode = false
 vim.o.showmatch = true
 vim.o.number = true
