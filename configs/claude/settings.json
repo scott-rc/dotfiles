@@ -24,7 +24,9 @@
     "defaultMode": "default",
     "additionalDirectories": [
       "./tmp",
-      "/tmp"
+      "/tmp",
+      "~/.cargo/registry",
+      "~/go/pkg/mod"
     ]
   },
   "hooks": {
