@@ -5,7 +5,7 @@ description: Loads coding style preferences and guides test-driven and benchmark
 
 # Code
 
-Load and apply the user's coding style preferences when producing or reviewing code. When the workflow is test-driven or benchmark-driven, follow the appropriate operation.
+Load and apply the user's coding style preferences when producing or reviewing code. Default to test-driven development — write tests first for new features and bug fixes. Use Apply only for changes that don't warrant tests (refactoring under existing coverage, config, glue code, one-liners).
 
 ## Operations
 
@@ -37,19 +37,23 @@ See [benchmark.md](benchmark.md) for detailed instructions.
 
 Users often request multiple operations together. Handle these as follows:
 
-- **"write code"** / **"implement this"** / **"refactor"** → Apply
+**Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
+
+- **"implement this"** / **"add this feature"** / **"write this"** (new functionality) → New Feature
+- **"fix this bug"** / **"debug this"** → Fix Bug
+- **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
+- **"write code"** (ambiguous) → New Feature if it involves behavior; Apply if it's config/glue/scripting
 - **"review code"** / **"review this"** / **"code review"** / **"check for issues"** / **"audit this code"** → Review
-- **"TDD this feature"** / **"write tests first"** → New Feature
-- **"fix this bug"** (no mention of tests) → Apply
-- **"test and fix this bug"** / **"regression test"** / **"fix a bug with tests"** → Fix Bug
 - **"backfill tests"** / **"add coverage"** / **"characterize this code"** / **"write tests"** (for existing code) → Add Coverage
 - **"benchmark this"** / **"BDD this"** / **"write a benchmark first"** → Benchmark
 - **"optimize this"** (with a specific performance target) → Benchmark
 - **"optimize this"** (general cleanup, no performance target) → Apply
-- **"review and fix"** / **"review then fix the issues"** → Review, then Apply
-- **"TDD the fix and add coverage for the rest"** → Fix Bug, then Add Coverage
-- **"implement and benchmark"** / **"TDD then benchmark"** → New Feature, then Benchmark
-- **"implement this feature with tests"** → New Feature
+- **"review and fix"** / **"review then fix the issues"** → Review, then Apply (or Fix Bug if a specific bug is found)
+- **"fix and add coverage for the rest"** → Fix Bug, then Add Coverage
+- **"implement and benchmark"** → New Feature, then Benchmark
+- **"skip tests"** / **"no tests"** / **"just the code"** → Apply (user explicitly opts out of TDD)
+
+**When to use Apply instead of TDD**: Refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 
 **Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
 
