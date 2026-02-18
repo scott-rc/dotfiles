@@ -7,6 +7,7 @@ These rules apply to ALL text written to GitHub -- PR titles, PR descriptions, P
 - **ASCII only**: MUST use only ASCII characters. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of `…`. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
 - **Use backticks for code**: Wrap function names, variable names, file paths, etc.
 - **Use code blocks for multi-line code**: Use triple backticks with language identifier for code examples.
+- **Safe posting**: When posting multi-line content via `gh` CLI, write the body to a temp file first and use `-F body=@file` instead of inline strings or heredocs. This avoids shell encoding issues with special characters.
 
 ## PR Description Title
 
