@@ -98,6 +98,7 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Ctrl+W` | Close surface |
 | `Cmd+Ctrl+N` | New Ghostty tab (repo chooser) |
 | `Cmd+Ctrl+[/]` | Previous/next Ghostty tab |
+| `Cmd+Ctrl+I/O` | Move Ghostty tab left/right |
 | `Cmd+Ctrl+1-9` | Go to Ghostty tab by number |
 
 #### Zellij (`Cmd+Shift`)
@@ -118,7 +119,8 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+Up/Down` | Focus up/down |
 | `Cmd+Shift+G` | Lock mode |
 | `Cmd+Shift+P` | Pane mode |
-| `Cmd+Shift+T` | Tab mode (then `n` for new tab) |
+| `Cmd+Shift+T` | New Zellij tab |
+| `Cmd+Shift+Y` | Tab mode |
 | `Cmd+Shift+S` | Session mode |
 | `Cmd+Shift+E` | Scroll mode |
 | `Cmd+Shift+R` | Resize mode |

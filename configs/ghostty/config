@@ -41,6 +41,8 @@ keybind = cmd+ctrl+w=close_surface
 keybind = cmd+ctrl+n=new_tab
 keybind = cmd+ctrl+left_bracket=previous_tab
 keybind = cmd+ctrl+right_bracket=next_tab
+keybind = cmd+ctrl+i=move_tab:-1
+keybind = cmd+ctrl+o=move_tab:1
 keybind = performable:cmd+ctrl+one=goto_tab:1
 keybind = performable:cmd+ctrl+two=goto_tab:2
 keybind = performable:cmd+ctrl+three=goto_tab:3
@@ -68,6 +70,7 @@ keybind = cmd+shift+s=unbind
 keybind = cmd+shift+t=unbind
 keybind = cmd+shift+w=unbind
 keybind = cmd+shift+x=unbind
+keybind = cmd+shift+y=unbind
 keybind = cmd+shift+z=unbind
 keybind = cmd+shift+equal=unbind
 keybind = cmd+shift+minus=unbind

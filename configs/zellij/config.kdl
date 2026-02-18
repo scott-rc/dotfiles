@@ -51,7 +51,7 @@ keybinds clear-defaults=true {
         bind "n" { NewTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
-        bind "Super Shift t" { SwitchToMode "normal"; }
+        bind "Super Shift y" { SwitchToMode "normal"; }
         bind "x" { CloseTab; SwitchToMode "normal"; }
         bind "tab" { ToggleTab; }
     }
@@ -187,7 +187,8 @@ keybinds clear-defaults=true {
         bind "Super Shift e" { SwitchToMode "scroll"; }
     }
     shared_except "locked" "tab" {
-        bind "Super Shift t" { SwitchToMode "tab"; }
+        bind "Super Shift t" { NewTab; }
+        bind "Super Shift y" { SwitchToMode "tab"; }
     }
     shared_except "locked" "pane" {
         bind "Super Shift p" { SwitchToMode "pane"; }
