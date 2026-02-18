@@ -2,7 +2,7 @@
 
 Zellij WASM plugin that synchronizes two side-by-side pane stacks. When navigating up/down in one stack, the other stack expands the pane at the same index — keeping both stacks visually aligned. Also provides synced new-pane creation and synced pane movement in move mode.
 
-Built by the parent `apply.sh`, which compiles the WASM binary and copies it to `~/.config/zellij/plugins/zellij-sync-stacks.wasm`.
+Built by the parent `apply.sh` and symlinked to `~/.config/zellij/plugins/zellij-sync-stacks.wasm`, so rebuilding with `cargo build --release` automatically updates the plugin.
 
 ## Usage
 

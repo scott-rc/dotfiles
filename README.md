@@ -114,7 +114,7 @@ Custom CLI tools.
 | Tool | Description |
 |------|-------------|
 | `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
-| `zellij-sync-stacks/` | Zellij WASM plugin (Rust) that synchronizes two side-by-side pane stacks. Handles synced navigation (up/down), synced new-pane creation (opens 2 panes to maintain stack balance), and synced move-mode (moves both counterpart panes). Falls back to normal Zellij behavior in non-stacked layouts. Built automatically by `apply.sh`. |
+| `zellij-sync-stacks/` | Zellij WASM plugin (Rust) that synchronizes two side-by-side pane stacks. Handles synced navigation (up/down), synced new-pane creation (opens 2 panes to maintain stack balance), and synced move-mode (moves both counterpart panes). Falls back to normal Zellij behavior in non-stacked layouts. Built by `apply.sh` and symlinked to `~/.config/zellij/plugins/zellij-sync-stacks.wasm`, so rebuilding with `cargo build --release` automatically updates the plugin. |
 
 ## Useful Commands
 

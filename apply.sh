@@ -260,7 +260,7 @@ if command -v cargo &>/dev/null; then
 	log_info "Building zellij-sync-stacks plugin"
 	mkdir -p "$ZELLIJ_PLUGIN_DIR"
 	(cd "$WORKSPACE_ROOT/tools/zellij-sync-stacks" && cargo build --release 2>&1)
-	cp "$WORKSPACE_ROOT/tools/zellij-sync-stacks/target/wasm32-wasip1/release/zellij-sync-stacks.wasm" \
+	ensure_symlink "$WORKSPACE_ROOT/tools/zellij-sync-stacks/target/wasm32-wasip1/release/zellij-sync-stacks.wasm" \
 		"$ZELLIJ_PLUGIN_DIR/zellij-sync-stacks.wasm"
 fi
 
