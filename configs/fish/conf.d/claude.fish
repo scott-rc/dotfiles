@@ -3,3 +3,5 @@ if not status is-interactive
 end
 
 abbr --add c claude
+abbr --add cc claude --continue
+abbr --add cr claude --resume
