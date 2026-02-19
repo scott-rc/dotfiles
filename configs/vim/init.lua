@@ -16,6 +16,7 @@ vim.o.gdefault = true
 -- Splits
 vim.o.splitbelow = true
 vim.o.splitright = true
+vim.o.splitkeep = 'screen'
 
 -- Display
 vim.o.title = true
@@ -24,7 +25,6 @@ vim.o.showmode = false
 vim.o.showmatch = true
 vim.o.number = true
 vim.o.wrap = false
-vim.o.lazyredraw = true
 vim.o.scrolloff = 8
 vim.opt.listchars = { tab = '→ ', trail = '·', nbsp = '+', extends = '>', precedes = '<' }
 
@@ -177,21 +177,20 @@ vim.keymap.set('c', '<right>', function() return vim.fn.wildmenumode() == 1 and 
 
 local augroup = vim.api.nvim_create_augroup('user_config', { clear = true })
 
+local function close_neotree(source)
+  local ei = vim.o.eventignore
+  vim.o.eventignore = 'BufEnter,WinEnter,WinLeave,BufLeave'
+  require('neo-tree.sources.manager').close(source)
+  vim.o.eventignore = ei
+end
+
 local function toggle_neotree_files()
-  local neo_win = nil
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'neo-tree' then
-      neo_win = win
-      break
-    end
-  end
-  if neo_win then
+  local manager = require('neo-tree.sources.manager')
+  local state = manager.get_state('filesystem')
+  local neo_win = state.winid
+  if neo_win and vim.api.nvim_win_is_valid(neo_win) then
     if vim.api.nvim_get_current_win() == neo_win then
-      if #vim.api.nvim_list_wins() > 1 then
-        vim.api.nvim_win_close(neo_win, true)
-      else
-        vim.cmd('enew')
-      end
+      close_neotree('filesystem')
     else
       vim.api.nvim_set_current_win(neo_win)
     end
@@ -199,22 +198,6 @@ local function toggle_neotree_files()
     vim.cmd('Neotree focus source=filesystem')
   end
 end
-
-vim.api.nvim_create_autocmd('VimEnter', {
-  group = augroup,
-  callback = function()
-    if vim.fn.argc() == 0 and vim.bo.buftype == '' then
-      vim.schedule(function()
-        local root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
-        if vim.v.shell_error == 0 and root and root ~= '' then
-          vim.cmd('Neotree show position=right dir=' .. vim.fn.fnameescape(root))
-        else
-          vim.cmd('Neotree show position=right')
-        end
-      end)
-    end
-  end,
-})
 
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter' }, {
   group = augroup,
@@ -228,6 +211,15 @@ vim.api.nvim_create_autocmd('BufEnter', {
     if vim.bo.buftype == '' then
       vim.g._last_file_win = vim.api.nvim_get_current_win()
     end
+  end,
+})
+
+-- Lock neo-tree sidebar width so equalalways doesn't resize it during focus changes
+vim.api.nvim_create_autocmd('FileType', {
+  group = augroup,
+  pattern = 'neo-tree',
+  callback = function()
+    vim.wo.winfixwidth = true
   end,
 })
 
@@ -335,7 +327,6 @@ require('lazy').setup({
   {
     'nvim-neo-tree/neo-tree.nvim',
     branch = 'v3.x',
-    cmd = { 'Neotree' },
     dependencies = {
       'nvim-lua/plenary.nvim',
       'MunifTanjim/nui.nvim',
@@ -344,45 +335,58 @@ require('lazy').setup({
     opts = {
       log_level = 'warn',
       commands = {
-        open_and_reveal = function(state)
+        open_and_refocus = function(state)
           local node = state.tree:get_node()
-          require('neo-tree.sources.' .. state.name .. '.commands').open(state)
-          if node.type ~= 'directory' then
-            vim.cmd('Neotree reveal source=' .. state.name)
+          if node.type == 'directory' then
+            require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+            return
           end
-        end,
-        open_and_reveal_diff = function(state)
-          local node = state.tree:get_node()
+          local ei = vim.o.eventignore
+          vim.o.eventignore = 'BufEnter,WinEnter,WinLeave,BufLeave'
           require('neo-tree.sources.' .. state.name .. '.commands').open(state)
-          if node.type ~= 'directory' then
-            local base = state.git_base or 'HEAD'
-            vim.b.diff_base = base
-            vim.schedule(function()
+          vim.api.nvim_set_current_win(state.winid)
+          vim.o.eventignore = ei
+        end,
+        open_and_refocus_diff = function(state)
+          local node = state.tree:get_node()
+          if node.type == 'directory' then
+            require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+            return
+          end
+          local ei = vim.o.eventignore
+          vim.o.eventignore = 'BufEnter,WinEnter,WinLeave,BufLeave'
+          require('neo-tree.sources.' .. state.name .. '.commands').open(state)
+          local base = state.git_base or 'HEAD'
+          vim.b.diff_base = base
+          local diff_win = vim.api.nvim_get_current_win()
+          vim.api.nvim_set_current_win(state.winid)
+          vim.o.eventignore = ei
+          vim.schedule(function()
+            vim.api.nvim_win_call(diff_win, function()
               local gs = require('gitsigns')
               gs.change_base(base)
               gs.toggle_deleted(true)
             end)
-            vim.cmd('Neotree reveal source=' .. state.name)
-          end
+          end)
         end,
       },
       window = {
         position = 'right',
         mappings = {
-          ['<cr>'] = 'open_and_reveal',
-          ['<space>'] = 'open_and_reveal',
+          ['<cr>'] = 'open_and_refocus',
+          ['<space>'] = 'open_and_refocus',
         },
       },
       filesystem = {
-        hijack_netrw_behavior = 'open_current',
+        hijack_netrw_behavior = 'open_default',
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
       },
       git_status = {
         window = {
           mappings = {
-            ['<cr>'] = 'open_and_reveal_diff',
-            ['<space>'] = 'open_and_reveal_diff',
+            ['<cr>'] = 'open_and_refocus_diff',
+            ['<space>'] = 'open_and_refocus_diff',
           },
         },
       },
@@ -400,14 +404,14 @@ require('lazy').setup({
       },
       { '<D-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
-            vim.cmd('Neotree close')
+            close_neotree('git_status')
           else
             vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
           end
         end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle git changes' },
       { '<C-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
-            vim.cmd('Neotree close')
+            close_neotree('git_status')
           else
             vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
           end
