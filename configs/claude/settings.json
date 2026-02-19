@@ -13,6 +13,7 @@
       "WebFetch",
       "WebSearch",
       "mcp__gadget-admin__*",
+      "mcp__gopls__*",
       "mcp__claude_ai_Slack__slack_read_thread",
       "mcp__claude_ai_Linear__get_issue"
     ],
