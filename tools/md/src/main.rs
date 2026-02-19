@@ -103,11 +103,6 @@ fn main() {
                             return;
                         }
                     };
-                    let real_path = std::fs::canonicalize(selection).map_or_else(
-                        |_| selection.to_string(),
-                        |p| p.to_string_lossy().to_string(),
-                    );
-
                     let centered = render_centered(&input, &style, &args);
                     let content_lines = centered.lines().count();
                     let terminal_rows = crossterm::terminal::size()
@@ -119,7 +114,7 @@ fn main() {
                         let mut on_resize = || render_centered(&input, &style, &args);
                         run_pager(
                             &centered,
-                            Some(&real_path),
+                            Some(selection),
                             Some(&raw),
                             Some(&mut on_resize),
                         );
@@ -151,9 +146,7 @@ fn main() {
             eprintln!("Error reading {file}: {e}");
             std::process::exit(1);
         });
-        let real_path = std::fs::canonicalize(file)
-            .map_or_else(|_| file.clone(), |p| p.to_string_lossy().to_string());
-        (content, Some(real_path))
+        (content, Some(file.clone()))
     };
 
     let centered = render_centered(&input, &style, &args);
