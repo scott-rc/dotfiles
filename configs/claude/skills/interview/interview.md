@@ -1,0 +1,49 @@
+# Interview
+
+Conduct a structured, multi-round interview with the user on any topic, then produce a summary or enrich session context.
+
+## Instructions
+
+1. **Parse the topic**:
+   Read the topic from `$ARGUMENTS`. If no arguments provided, ask the user what topic to explore.
+
+   MUST NOT proceed until a clear topic is established.
+
+2. **Set the frame**:
+   Before asking questions, briefly state:
+   - What you understand the topic to be
+   - What kind of questions you plan to ask (scope, depth, angle)
+   - Roughly how many rounds you expect (suggest 3-5, adjust based on complexity)
+
+   Ask the user to confirm or redirect before proceeding.
+
+3. **Conduct the interview**:
+   Ask questions in rounds. Each round SHOULD:
+   - Ask 2-4 related questions grouped by theme
+   - Use the AskUserQuestion tool to batch questions into a single interaction
+   - Build on prior answers -- do not repeat or re-ask what was already covered
+
+   Question strategy:
+   - **Round 1**: Broad strokes -- goals, motivation, constraints, who/what is involved
+   - **Subsequent rounds**: Drill into areas the user's answers reveal as complex, ambiguous, or important
+   - **Final round**: Edge cases, risks, open questions, anything the user wants to add
+
+   MUST adapt the number of rounds to the topic's complexity. Simple topics need 2-3 rounds. Complex topics MAY need 5+. End the interview when answers start converging or the user signals they're done.
+
+   SHOULD prioritize depth over breadth -- it is better to thoroughly explore 3 important areas than to superficially cover 10.
+
+4. **Summarize understanding**:
+   Write a concise summary of everything learned. Structure it with clear headings that match the topic's natural shape (not the question order).
+
+   MUST present the summary to the user and ask: "Does this capture everything accurately? Anything to add or correct?"
+
+   If the user corrects anything, update and re-confirm.
+
+5. **Deliver results**:
+   Ask the user what they want to do with the results:
+   - **Copy to clipboard** -- format as a clean summary document, copy via `pbcopy`, confirm it's copied
+   - **Save to file** -- ask for a file path, write the summary
+   - **Keep in context** -- do nothing further; the summary is now part of the session for follow-up work
+   - **Feed into another task** -- ask what task, then proceed with the gathered context
+
+   If the user doesn't specify, default to printing the summary and asking.
