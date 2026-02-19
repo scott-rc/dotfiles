@@ -61,11 +61,17 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 
 | Key | Action |
 |-----|--------|
-| `c` | Copy filename to clipboard |
+| `c` | Copy path to clipboard |
 | `C` | Copy absolute path to clipboard |
 | `y` | Copy raw markdown to clipboard |
 | `e` | Open in `$EDITOR` (jumps to approximate line) |
 | `v` | Open in `$EDITOR` read-only (jumps to approximate line) |
+
+### Help
+
+| Key | Action |
+|-----|--------|
+| `?` | Show help overlay |
 
 ### Quit
 

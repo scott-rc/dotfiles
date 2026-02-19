@@ -46,6 +46,7 @@ pub enum Key {
 pub enum Mode {
     Normal,
     Search,
+    Help,
 }
 
 pub struct PagerState {
@@ -230,7 +231,111 @@ pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_conte
     (ratio * source_count as f64).round() as usize + 1
 }
 
+pub fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
+    let content_height = rows.saturating_sub(1); // reserve 1 for status bar
+    let help = [
+        "Navigation",
+        "j/↓/Enter  Scroll down",
+        "k/↑        Scroll up",
+        "d/Space    Half page down",
+        "u          Half page up",
+        "g/Home     Top",
+        "G/End      Bottom",
+        "",
+        "Search",
+        "/          Search",
+        "n          Next match",
+        "N          Previous match",
+        "",
+        "Clipboard & Editor",
+        "c          Copy path",
+        "C          Copy absolute path",
+        "y          Copy raw markdown",
+        "e          Open in editor",
+        "v          Open read-only",
+        "",
+        "q          Quit",
+        "? / Esc    Close help",
+    ];
+
+    let mut lines = Vec::with_capacity(content_height);
+
+    // Vertically center: blank lines above, content, blank lines below
+    let top_padding = if content_height > help.len() {
+        (content_height - help.len()) / 2
+    } else {
+        0
+    };
+
+    for _ in 0..top_padding {
+        lines.push(" ".repeat(cols));
+    }
+
+    let max_width = help.iter().map(|h| h.chars().count()).max().unwrap_or(0);
+    let left_pad = cols.saturating_sub(max_width) / 2;
+
+    for &h in &help {
+        if lines.len() >= content_height {
+            break;
+        }
+        let visible_len = h.chars().count();
+        if visible_len >= cols {
+            let truncated: String = h.chars().take(cols).collect();
+            lines.push(truncated);
+        } else {
+            let right_pad = cols - left_pad - visible_len;
+            lines.push(format!(
+                "{}{}{}",
+                " ".repeat(left_pad),
+                h,
+                " ".repeat(right_pad)
+            ));
+        }
+    }
+
+    while lines.len() < content_height {
+        lines.push(" ".repeat(cols));
+    }
+
+    lines
+}
+
 pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
+    // Help mode
+    if state.mode == Mode::Help {
+        let left = "? to close";
+        let left_len = left.len();
+
+        let line_count = state.lines.len();
+        let max_top = max_scroll(line_count, content_height);
+        let top_line = state.top_line.min(max_top);
+        let end_line = (top_line + content_height).min(line_count);
+        let range = format!("{}-{}/{}", top_line + 1, end_line, line_count);
+        let position = if top_line == 0 {
+            "TOP".to_string()
+        } else if end_line >= line_count {
+            "END".to_string()
+        } else {
+            let pct = (end_line as f64 / line_count as f64 * 100.0).round() as usize;
+            format!("{pct}%")
+        };
+
+        let right = format!("{DIM}{range}{NO_DIM} {position}");
+        let right_visible_len = range.len() + 1 + position.len();
+        let total_visible = left_len + right_visible_len;
+
+        if total_visible >= cols {
+            let padding = if cols > right_visible_len {
+                " ".repeat(cols - right_visible_len)
+            } else {
+                String::new()
+            };
+            return format!("{padding}{right}");
+        }
+        let gap = cols - total_visible;
+        return format!("{left}{}{right}", " ".repeat(gap));
+    }
+
     // Search mode
     if state.mode == Mode::Search {
         let before = &state.search_input[..state.search_cursor];
@@ -548,6 +653,12 @@ pub fn run_pager(
             continue;
         }
 
+        if state.mode == Mode::Help {
+            state.mode = Mode::Normal;
+            render_screen(&mut stdout, &state);
+            continue;
+        }
+
         // Normal mode
         let (_cols, rows) = get_term_size();
         let content_height = rows.saturating_sub(1) as usize;
@@ -597,9 +708,11 @@ pub fn run_pager(
                 if let Some(ref fp) = state.file_path
                     && copy_to_clipboard(fp)
                 {
-                    let name = fp.rsplit('/').next().unwrap_or(fp);
-                    state.search_message = format!("Copied: {name}");
+                    state.search_message = format!("Copied: {fp}");
                 }
+            }
+            Key::Char('?') => {
+                state.mode = Mode::Help;
             }
             Key::Char('C') => {
                 if let Some(ref fp) = state.file_path
@@ -674,35 +787,45 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
 
     move_to(out, 0, 0);
 
-    let mut visual_row: usize = 0;
-    let mut logical_idx = top;
-
-    while visual_row < content_height && logical_idx < state.lines.len() {
-        let mut line = state.lines[logical_idx].clone();
-        if !state.search_query.is_empty() {
-            line = highlight_search(&line, &state.search_query);
-        }
-        let wrapped = wrap_line_for_display(&line, cols as usize);
-        for vline in wrapped {
-            if visual_row >= content_height {
-                break;
+    if state.mode == Mode::Help {
+        let help_lines = format_help_lines(cols as usize, rows as usize);
+        for (i, line) in help_lines.iter().enumerate() {
+            let _ = write!(out, "{CLEAR_LINE}{DIM}{line}{NO_DIM}");
+            if i < content_height - 1 {
+                let _ = write!(out, "\r\n");
             }
-            let _ = write!(out, "{CLEAR_LINE}{vline}");
+        }
+    } else {
+        let mut visual_row: usize = 0;
+        let mut logical_idx = top;
+
+        while visual_row < content_height && logical_idx < state.lines.len() {
+            let mut line = state.lines[logical_idx].clone();
+            if !state.search_query.is_empty() {
+                line = highlight_search(&line, &state.search_query);
+            }
+            let wrapped = wrap_line_for_display(&line, cols as usize);
+            for vline in wrapped {
+                if visual_row >= content_height {
+                    break;
+                }
+                let _ = write!(out, "{CLEAR_LINE}{vline}");
+                if visual_row < content_height - 1 {
+                    let _ = write!(out, "\r\n");
+                }
+                visual_row += 1;
+            }
+            logical_idx += 1;
+        }
+
+        // Clear remaining rows
+        while visual_row < content_height {
+            let _ = write!(out, "{CLEAR_LINE}");
             if visual_row < content_height - 1 {
                 let _ = write!(out, "\r\n");
             }
             visual_row += 1;
         }
-        logical_idx += 1;
-    }
-
-    // Clear remaining rows
-    while visual_row < content_height {
-        let _ = write!(out, "{CLEAR_LINE}");
-        if visual_row < content_height - 1 {
-            let _ = write!(out, "\r\n");
-        }
-        visual_row += 1;
     }
 
     let _ = write!(out, "\r\n{CLEAR_LINE}");
@@ -897,10 +1020,10 @@ mod tests {
                 search_query: case.input.state.search_query.clone(),
                 search_matches: case.input.state.search_matches.clone(),
                 current_match: case.input.state.current_match,
-                mode: if case.input.state.mode == "search" {
-                    Mode::Search
-                } else {
-                    Mode::Normal
+                mode: match case.input.state.mode.as_str() {
+                    "search" => Mode::Search,
+                    "help" => Mode::Help,
+                    _ => Mode::Normal,
                 },
                 search_input: case.input.state.search_input.clone(),
                 search_cursor: case.input.state.search_cursor,
@@ -918,6 +1041,86 @@ mod tests {
                 result.as_bytes(),
                 case.expected.as_bytes()
             );
+        }
+    }
+
+    // ---- format_help_lines ----
+    #[derive(Deserialize)]
+    struct FormatHelpLinesCase {
+        name: String,
+        input: FormatHelpLinesInput,
+        expected: FormatHelpLinesExpected,
+    }
+
+    #[derive(Deserialize)]
+    struct FormatHelpLinesInput {
+        cols: usize,
+        rows: usize,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct FormatHelpLinesExpected {
+        line_count: usize,
+        contains_lines: Vec<String>,
+        all_line_width: usize,
+        #[serde(default)]
+        same_leading_spaces: Vec<String>,
+    }
+
+    #[test]
+    fn test_format_help_lines() {
+        let json = include_str!("../fixtures/pager/format-help-lines.json");
+        let cases: Vec<FormatHelpLinesCase> = serde_json::from_str(json).unwrap();
+        for case in &cases {
+            let lines = format_help_lines(case.input.cols, case.input.rows);
+            assert_eq!(
+                lines.len(),
+                case.expected.line_count,
+                "format_help_lines line count: {}",
+                case.name
+            );
+            for expected_content in &case.expected.contains_lines {
+                assert!(
+                    lines.iter().any(|l| l.contains(expected_content.as_str())),
+                    "format_help_lines missing '{}': {}",
+                    expected_content,
+                    case.name
+                );
+            }
+            for (i, line) in lines.iter().enumerate() {
+                assert_eq!(
+                    line.chars().count(),
+                    case.expected.all_line_width,
+                    "format_help_lines line {} width: {}",
+                    i,
+                    case.name
+                );
+            }
+            if case.expected.same_leading_spaces.len() >= 2 {
+                let pads: Vec<usize> = case
+                    .expected
+                    .same_leading_spaces
+                    .iter()
+                    .map(|needle| {
+                        let line = lines
+                            .iter()
+                            .find(|l| l.contains(needle.as_str()))
+                            .unwrap_or_else(|| {
+                                panic!("same_leading_spaces needle '{}' not found: {}", needle, case.name)
+                            });
+                        line.chars().take_while(|c| *c == ' ').count()
+                    })
+                    .collect();
+                for pad in &pads[1..] {
+                    assert_eq!(
+                        *pad,
+                        pads[0],
+                        "format_help_lines leading spaces differ: {}",
+                        case.name
+                    );
+                }
+            }
         }
     }
 
@@ -1031,10 +1234,10 @@ mod tests {
                 search_query: case.state.search_query.clone(),
                 search_matches: case.state.search_matches.clone(),
                 current_match: case.state.current_match,
-                mode: if case.state.mode == "search" {
-                    Mode::Search
-                } else {
-                    Mode::Normal
+                mode: match case.state.mode.as_str() {
+                    "search" => Mode::Search,
+                    "help" => Mode::Help,
+                    _ => Mode::Normal,
                 },
                 search_input: case.state.search_input.clone(),
                 search_cursor: case.state.search_cursor,
@@ -1050,6 +1253,7 @@ mod tests {
                 let actual_mode = match state.mode {
                     Mode::Normal => "normal",
                     Mode::Search => "search",
+                    Mode::Help => "help",
                 };
                 assert_eq!(
                     actual_mode, expected_mode,

@@ -1,0 +1,48 @@
+[
+  {
+    "name": "standard 80x24 terminal",
+    "input": {
+      "cols": 80,
+      "rows": 24
+    },
+    "expected": {
+      "lineCount": 23,
+      "containsLines": [
+        "Navigation",
+        "j/↓/Enter  Scroll down",
+        "C          Copy absolute path",
+        "? / Esc    Close help"
+      ],
+      "allLineWidth": 80
+    }
+  },
+  {
+    "name": "narrow 40x24 terminal",
+    "input": {
+      "cols": 40,
+      "rows": 24
+    },
+    "expected": {
+      "lineCount": 23,
+      "containsLines": [
+        "Navigation",
+        "? / Esc    Close help"
+      ],
+      "allLineWidth": 40
+    }
+  },
+  {
+    "name": "short 80x10 terminal",
+    "input": {
+      "cols": 80,
+      "rows": 10
+    },
+    "expected": {
+      "lineCount": 9,
+      "containsLines": [
+        "Navigation"
+      ],
+      "allLineWidth": 80
+    }
+  }
+]

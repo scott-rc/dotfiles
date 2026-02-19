@@ -303,5 +303,25 @@
       "cols": 120
     },
     "expected": "README.md                                                                                                   \u001b[2m11-34/50\u001b[22m 68%"
+  },
+  {
+    "name": "help mode",
+    "input": {
+      "state": {
+        "mode": "help",
+        "searchInput": "",
+        "searchCursor": 0,
+        "searchMessage": "",
+        "searchQuery": "",
+        "searchMatches": [],
+        "currentMatch": -1,
+        "topLine": 10,
+        "lineCount": 50,
+        "contentHeight": 24,
+        "filePath": "/path/to/README.md"
+      },
+      "cols": 60
+    },
+    "expected": "? to close                                      \u001b[2m11-34/50\u001b[22m 68%"
   }
 ]
