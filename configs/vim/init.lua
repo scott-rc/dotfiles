@@ -256,6 +256,9 @@ require('lazy').setup({
             ['@function.call'] = { style = 'underline' },
             ['@method.call'] = { style = 'underline' },
             ['@comment'] = { style = 'italic' },
+            GitSignsAddInline = { link = 'Added' },
+            GitSignsDeleteInline = { link = 'Removed' },
+            GitSignsChangeInline = { link = 'Changed' },
           },
         },
       })
@@ -367,6 +370,7 @@ require('lazy').setup({
               local gs = require('gitsigns')
               gs.change_base(base)
               gs.toggle_deleted(true)
+              gs.toggle_word_diff(true)
             end)
           end)
         end,
@@ -388,6 +392,9 @@ require('lazy').setup({
           mappings = {
             ['<cr>'] = 'open_and_refocus_diff',
             ['<space>'] = 'open_and_refocus_diff',
+            ['gg'] = 'none',
+            ['gc'] = 'none',
+            ['gp'] = 'none',
           },
         },
       },
@@ -430,6 +437,7 @@ require('lazy').setup({
           local gs = require('gitsigns')
           gs.change_base(base)
           gs.toggle_deleted(true)
+          gs.toggle_word_diff(true)
         end
       end,
     },
