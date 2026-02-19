@@ -375,7 +375,7 @@ themes {
 plugins {
     about location="zellij:about"
     compact-bar location="zellij:compact-bar" {
-        tooltip "Super /"
+        tooltip "Super Ctrl /"
     }
     configuration location="zellij:configuration"
     filepicker location="zellij:strider" {
