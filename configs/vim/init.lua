@@ -25,6 +25,7 @@ vim.o.showmode = false
 vim.o.showmatch = true
 vim.o.number = true
 vim.o.wrap = false
+vim.o.lazyredraw = true
 vim.o.scrolloff = 8
 vim.opt.listchars = { tab = '→ ', trail = '·', nbsp = '+', extends = '>', precedes = '<' }
 
@@ -378,7 +379,7 @@ require('lazy').setup({
         },
       },
       filesystem = {
-        hijack_netrw_behavior = 'open_default',
+        hijack_netrw_behavior = 'open_current',
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
       },
