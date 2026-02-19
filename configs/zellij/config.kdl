@@ -440,7 +440,7 @@ default_layout "compact"
 //   - false
 //
 // mouse_mode false
-mouse_hover_effects false
+advanced_mouse_actions false
 
 // Toggle having pane frames around the panes
 // Options:
