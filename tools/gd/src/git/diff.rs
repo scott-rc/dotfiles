@@ -48,7 +48,7 @@ pub struct DiffLine {
     pub new_lineno: Option<u32>,
 }
 
-/// Parse full `git diff --unified=999999` output into per-file diffs.
+/// Parse `git diff` output into per-file diffs (supports multiple hunks per file).
 pub fn parse(raw: &str) -> Vec<DiffFile> {
     if raw.is_empty() {
         return Vec::new();
@@ -118,10 +118,24 @@ fn parse_file(chunk: &str) -> Option<DiffFile> {
     };
 
     let mut hunks = Vec::new();
-    if let Some(start) = hunk_start
-        && let Some(hunk) = parse_hunk(&lines[start..])
-    {
-        hunks.push(hunk);
+    if let Some(first) = hunk_start {
+        // Find all hunk boundaries and parse each
+        let mut hunk_starts = vec![first];
+        for (i, line) in lines.iter().enumerate().skip(first + 1) {
+            if line.starts_with("@@ ") {
+                hunk_starts.push(i);
+            }
+        }
+
+        for (idx, &start) in hunk_starts.iter().enumerate() {
+            let end = hunk_starts
+                .get(idx + 1)
+                .copied()
+                .unwrap_or(lines.len());
+            if let Some(hunk) = parse_hunk(&lines[start..end]) {
+                hunks.push(hunk);
+            }
+        }
     }
 
     Some(DiffFile {
@@ -156,7 +170,6 @@ fn parse_hunk(lines: &[&str]) -> Option<DiffHunk> {
 
     for &line in &lines[1..] {
         if line.starts_with("@@ ") {
-            // Shouldn't happen with --unified=999999 but be safe
             break;
         }
         if line == "\\ No newline at end of file" {
@@ -325,6 +338,41 @@ diff --git a/b.txt b/b.txt
         assert_eq!(files.len(), 2);
         assert_eq!(files[0].path(), "a.txt");
         assert_eq!(files[1].path(), "b.txt");
+    }
+
+    #[test]
+    fn parse_multiple_hunks() {
+        let diff = "\
+diff --git a/foo.rs b/foo.rs
+index 1234..5678 100644
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        let files = parse(diff);
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].hunks.len(), 2);
+
+        let h1 = &files[0].hunks[0];
+        assert_eq!(h1.old_start, 1);
+        assert_eq!(h1.new_start, 1);
+        assert_eq!(h1.lines.len(), 4);
+
+        let h2 = &files[0].hunks[1];
+        assert_eq!(h2.old_start, 10);
+        assert_eq!(h2.new_start, 11);
+        assert_eq!(h2.lines.len(), 4);
+        assert_eq!(h2.lines[1].kind, LineKind::Added);
+        assert_eq!(h2.lines[1].content, "added2");
     }
 
     #[test]

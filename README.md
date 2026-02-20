@@ -128,7 +128,7 @@ Three modifier layers to avoid conflicts:
 
 #### Neovim Git Diff
 
-Global diff mode toggle with inline hunk preview, stage/unstage, and file navigation. Uses gitsigns + neo-tree git_status panel. Features dual line number gutters (old + new), read-only mode for historical diffs, active `.git/index` watching for real-time refresh, and a CLI entry point (`vd`).
+Global diff mode toggle with inline hunk preview, stage/unstage, and file navigation. Uses gitsigns + neo-tree git_status panel. Features read-only mode for historical diffs, active `.git/index` watching for real-time refresh, and a CLI entry point (`vd`).
 
 | Shortcut | Action |
 |----------|--------|
@@ -151,7 +151,6 @@ Global diff mode toggle with inline hunk preview, stage/unstage, and file naviga
 | `Space gp` | Preview hunk inline (shows deleted lines) |
 | `Space gb` | Blame line |
 | `Space yh` | Copy hunk to clipboard (visual: copy selection) |
-| `Space yo` | Copy old version of current line |
 | `ih` | Hunk text object (e.g., `dih`, `vih`, `yih`) |
 
 #### Zed Git Diff
@@ -206,7 +205,7 @@ Custom CLI tools.
 | Tool | Description |
 |------|-------------|
 | `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Includes criterion microbenchmarks (`cargo bench`) for the render pipeline, wrapping, and syntax highlighting. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
-| `gd/` | Terminal git diff viewer (Rust) with embedded neovim for syntax highlighting and full vim navigation. Supports working tree, staged, commit, and range diffs with line-level and word-level highlighting, virtual lines for deleted content, dual line numbers, and hunk/file navigation (`]c`/`[c`/`]f`/`[f`). Uses ratatui + crossterm for TUI, nvim `--embed` with `ext_linegrid` for rendering, and tree-sitter for syntax colors. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
+| `gd/` | Terminal git diff viewer (Rust) with syntax highlighting (syntect, GitHub Dark theme), word-level diff highlights, dual line numbers, and a built-in pager with hunk/file navigation (`]c`/`[c`/`]f`/`[f`), search, and `$EDITOR` delegation. Supports working tree, staged, commit, and range diffs. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
 
 ## Useful Commands
 
