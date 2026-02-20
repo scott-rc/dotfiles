@@ -14,6 +14,8 @@ pub struct LineInfo {
     pub path: String,
     /// Source line number in the new file (for editor jump), if applicable.
     pub new_lineno: Option<u32>,
+    /// Source line number in the old file (for deleted lines), if applicable.
+    pub old_lineno: Option<u32>,
 }
 
 pub struct RenderOutput {
@@ -62,6 +64,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             file_idx,
             path: path.to_string(),
             new_lineno: None,
+            old_lineno: None,
         });
 
         // Syntax highlighter for this file's extension
@@ -96,6 +99,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
                 file_idx,
                 path: path.to_string(),
                 new_lineno: None,
+                old_lineno: None,
             });
 
             // Render diff lines with word-level highlights
@@ -120,6 +124,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
                 file_idx,
                 path: path.to_string(),
                 new_lineno: None,
+                old_lineno: None,
             });
         }
     }
@@ -418,6 +423,7 @@ fn render_hunk_lines(
                 file_idx,
                 path: path.to_string(),
                 new_lineno: diff_line.new_lineno,
+                old_lineno: diff_line.old_lineno,
             });
         }
     }

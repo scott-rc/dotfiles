@@ -44,6 +44,25 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 | `/` | Search |
 | `n` / `N` | Next/prev match |
 
+### File Tree
+
+| Key | Action |
+|-----|--------|
+| `T` | Toggle file tree panel |
+| `Tab` | Switch focus between diff and tree |
+| `j` / `k` | Navigate files (when tree focused) |
+| `Enter` | Jump to file (when tree focused) |
+| `Esc` | Return focus to diff (when tree focused) |
+
+### Visual Mode
+
+| Key | Action |
+|-----|--------|
+| `v` | Enter visual line selection mode |
+| `j` / `k` | Extend selection down/up (clamped to current file) |
+| `y` | Copy `path:start-end` to clipboard (via `pbcopy`) |
+| `Esc` | Cancel selection |
+
 ### Other
 
 | Key | Action |
@@ -58,7 +77,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, and `$EDITOR` delegation with line-number positioning.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with auto-sync cursor tracking, and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 

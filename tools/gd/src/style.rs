@@ -10,6 +10,9 @@ pub const BG_ADDED_WORD: &str = "\x1b[48;2;38;68;42m";
 /// Deleted word highlight (brighter red)
 pub const BG_DELETED_WORD: &str = "\x1b[48;2;85;36;36m";
 
+/// Visual selection background (subtle blue-violet tint)
+pub const BG_VISUAL: &str = "\x1b[48;2;40;50;80m";
+
 /// File header foreground (bold blue)
 pub const FG_FILE_HEADER: &str = "\x1b[1;38;2;121;192;255m";
 /// Hunk header foreground (dim cyan)

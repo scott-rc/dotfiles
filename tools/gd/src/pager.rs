@@ -5,7 +5,7 @@ use std::time::Duration;
 use crossterm::event::{self, Event, KeyEventKind};
 
 use crate::ansi::{split_ansi, strip_ansi};
-use crate::git::diff::DiffFile;
+use crate::git::diff::{DiffFile, FileStatus};
 use crate::render::{self, LineInfo, RenderOutput};
 use crate::style;
 
@@ -18,6 +18,7 @@ const CLEAR_LINE: &str = "\x1b[2K";
 #[derive(Debug, Clone, PartialEq)]
 enum Key {
     Char(char),
+    Tab,
     Enter,
     Escape,
     Backspace,
@@ -43,6 +44,7 @@ enum Mode {
     Normal,
     Search,
     Help,
+    Visual,
 }
 
 struct PagerState {
@@ -51,15 +53,22 @@ struct PagerState {
     file_starts: Vec<usize>,
     hunk_starts: Vec<usize>,
     top_line: usize,
+    cursor_line: usize,
+    visual_anchor: usize,
     search_query: String,
     search_matches: Vec<usize>,
     current_match: isize,
     mode: Mode,
     search_input: String,
     search_cursor: usize,
-    search_message: String,
+    status_message: String,
     /// Pending bracket key for two-key sequences like ]c, [c, ]f, [f
     pending_bracket: Option<char>,
+    tree_visible: bool,
+    tree_focused: bool,
+    tree_cursor: usize,
+    tree_width: usize,
+    tree_lines: Vec<String>,
 }
 
 fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
@@ -82,10 +91,19 @@ fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
         KeyCode::PageDown => Key::PageDown,
         KeyCode::Home => Key::Home,
         KeyCode::End => Key::End,
+        KeyCode::Tab => Key::Tab,
         KeyCode::Enter => Key::Enter,
         KeyCode::Esc => Key::Escape,
         KeyCode::Backspace => Key::Backspace,
         _ => Key::Unknown,
+    }
+}
+
+fn diff_area_width(cols: u16, tree_width: usize, tree_visible: bool) -> usize {
+    if tree_visible {
+        (cols as usize).saturating_sub(tree_width + 1)
+    } else {
+        cols as usize
     }
 }
 
@@ -179,6 +197,53 @@ fn highlight_search(line: &str, query: &str) -> String {
     result
 }
 
+/// Apply visual selection background tint to a rendered line.
+/// Prepends BG_VISUAL so the tint shows on gutter/context areas;
+/// diff bg codes (BG_ADDED/BG_DELETED) naturally override in content.
+fn highlight_visual_line(line: &str, width: usize) -> String {
+    let vis_w = crate::ansi::visible_width(line);
+    let pad = width.saturating_sub(vis_w);
+    format!(
+        "{}{line}{}{}",
+        style::BG_VISUAL,
+        " ".repeat(pad),
+        style::RESET,
+    )
+}
+
+/// Resolve start/end line numbers from a visual selection range.
+/// Prefers new_lineno, falls back to old_lineno for deleted lines.
+fn resolve_lineno(line_map: &[LineInfo], lo: usize, hi: usize) -> (Option<u32>, Option<u32>) {
+    let pick = |info: &LineInfo| info.new_lineno.or(info.old_lineno);
+    let start = (lo..=hi).find_map(|i| line_map.get(i).and_then(pick));
+    let end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(pick));
+    (start, end)
+}
+
+fn format_copy_ref(path: &str, start: Option<u32>, end: Option<u32>) -> String {
+    match (start, end) {
+        (Some(s), Some(e)) if s == e => format!("{path}:{s}"),
+        (Some(s), Some(e)) => format!("{path}:{s}-{e}"),
+        (Some(s), None) => format!("{path}:{s}"),
+        _ => path.to_string(),
+    }
+}
+
+fn copy_to_clipboard(text: &str) -> bool {
+    use std::io::Write as _;
+    let Ok(mut child) = Command::new("pbcopy").stdin(Stdio::piped()).spawn() else {
+        return false;
+    };
+    let Some(mut stdin) = child.stdin.take() else {
+        return false;
+    };
+    if stdin.write_all(text.as_bytes()).is_err() {
+        return false;
+    }
+    drop(stdin);
+    child.wait().is_ok()
+}
+
 fn word_boundary_left(text: &str, cursor: usize) -> usize {
     let bytes = text.as_bytes();
     let mut pos = cursor;
@@ -263,7 +328,7 @@ fn handle_search_key(state: &mut PagerState, key: &Key) {
 
             let matches = find_matches(&state.lines, &query);
             if matches.is_empty() {
-                state.search_message = format!("Pattern not found: {query}");
+                state.status_message = format!("Pattern not found: {query}");
                 state.search_query = query;
                 state.search_matches = Vec::new();
                 state.current_match = -1;
@@ -332,6 +397,16 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "n          Next match",
         "N          Previous match",
         "",
+        "File Tree",
+        "T          Toggle panel",
+        "Tab        Focus panel",
+        "",
+        "Visual Mode",
+        "v          Enter visual mode",
+        "j/k        Extend selection",
+        "y          Copy path:lines",
+        "Esc        Cancel",
+        "",
         "e          Open in editor",
         "q          Quit",
         "? / Esc    Close help",
@@ -384,6 +459,16 @@ fn current_file_label(state: &PagerState) -> String {
 }
 
 fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
+    if state.mode == Mode::Visual {
+        let lo = state.visual_anchor.min(state.cursor_line);
+        let hi = state.visual_anchor.max(state.cursor_line);
+        let count = hi - lo + 1;
+        let left = format!("-- VISUAL -- ({count} lines)");
+        let left_len = left.len();
+        let pad = cols.saturating_sub(left_len);
+        return format!("{left}{}", " ".repeat(pad));
+    }
+
     if state.mode == Mode::Help {
         let left = "? to close";
         let line_count = state.lines.len();
@@ -429,8 +514,8 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
         return format!("{content}{pad}");
     }
 
-    if !state.search_message.is_empty() {
-        let msg = &state.search_message;
+    if !state.status_message.is_empty() {
+        let msg = &state.status_message;
         let pad = " ".repeat(cols.saturating_sub(msg.len()));
         return format!("{msg}{pad}");
     }
@@ -451,7 +536,7 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
     let right = format!("{}{}{} {}", style::DIM, range, style::NO_DIM, position);
     let right_vis = range.len() + 1 + position.len();
 
-    let left = if !state.search_query.is_empty() {
+    let file_label = if !state.search_query.is_empty() {
         if state.current_match >= 0 {
             format!(
                 "/{} ({}/{})",
@@ -465,6 +550,11 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
     } else {
         current_file_label(state)
     };
+    let left = if state.tree_focused {
+        format!("TREE │ {file_label}")
+    } else {
+        file_label
+    };
 
     let left_vis = left.len();
     let total_vis = left_vis + right_vis;
@@ -477,37 +567,70 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
     }
 }
 
-fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
-    let content_height = rows.saturating_sub(1) as usize;
+fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, content_rows: u16) {
+    let content_height = content_rows as usize;
     let max_top = max_scroll(state.lines.len(), content_height);
     let top = state.top_line.min(max_top);
 
     if state.mode == Mode::Help {
-        let help_lines = format_help_lines(cols as usize, rows as usize);
+        let help_lines = format_help_lines(cols as usize, (content_rows + 1) as usize);
         for (i, line) in help_lines.iter().enumerate() {
             move_to(out, i as u16, 0);
             let _ = write!(out, "{CLEAR_LINE}{}{line}{}", style::DIM, style::NO_DIM);
         }
-    } else {
-        for row in 0..content_height {
-            move_to(out, row as u16, 0);
-            let idx = top + row;
-            if idx < state.lines.len() {
-                let mut line = state.lines[idx].clone();
-                if !state.search_query.is_empty() {
-                    line = highlight_search(&line, &state.search_query);
-                }
-                let _ = write!(out, "{CLEAR_LINE}{line}");
-            } else {
-                let _ = write!(out, "{CLEAR_LINE}");
-            }
-        }
+        return;
     }
 
-    move_to(out, content_height as u16, 0);
+    let diff_w = diff_area_width(cols, state.tree_width, state.tree_visible);
+
+    for row in 0..content_height {
+        move_to(out, row as u16, 0);
+        let idx = top + row;
+        if idx < state.lines.len() {
+            let mut line = state.lines[idx].clone();
+            if !state.search_query.is_empty() {
+                line = highlight_search(&line, &state.search_query);
+            }
+            if state.mode == Mode::Visual {
+                let lo = state.visual_anchor.min(state.cursor_line);
+                let hi = state.visual_anchor.max(state.cursor_line);
+                if idx >= lo && idx <= hi {
+                    line = highlight_visual_line(&line, diff_w);
+                }
+            }
+            let _ = write!(out, "{CLEAR_LINE}{line}");
+        } else {
+            let _ = write!(out, "{CLEAR_LINE}");
+        }
+
+        if state.tree_visible {
+            let _ = write!(
+                out,
+                "{}\x1b[{}G{}│",
+                style::RESET,
+                diff_w + 1,
+                style::FG_SEP,
+            );
+            if let Some(tree_line) = state.tree_lines.get(row) {
+                let _ = write!(out, "{tree_line}");
+            }
+            let _ = write!(out, "{}", style::RESET);
+        }
+    }
+}
+
+fn render_status_bar(out: &mut impl Write, state: &PagerState, cols: u16, content_rows: u16) {
+    let content_height = content_rows as usize;
+    move_to(out, content_rows, 0);
     let _ = write!(out, "{CLEAR_LINE}");
     let status = format_status_bar(state, content_height, cols as usize);
     let _ = write!(out, "{}{}{}{}", style::RESET, style::REVERSE, status, style::RESET);
+}
+
+fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
+    let content_rows = rows.saturating_sub(1);
+    render_content_area(out, state, cols, content_rows);
+    render_status_bar(out, state, cols, content_rows);
     let _ = out.flush();
 }
 
@@ -520,6 +643,7 @@ fn scroll_to_match(state: &mut PagerState, rows: u16) {
     let target = match_line.saturating_sub(content_height / 3);
     let max_top = max_scroll(state.lines.len(), content_height);
     state.top_line = target.min(max_top);
+    state.cursor_line = state.top_line;
 }
 
 /// Jump to next entry in `targets` after current top_line.
@@ -544,7 +668,8 @@ fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16)
         None
     };
 
-    let output = render::render(files, cols as usize, color);
+    let width = diff_area_width(cols, state.tree_width, state.tree_visible);
+    let output = render::render(files, width, color);
     state.lines = output.lines;
     state.line_map = output.line_map;
     state.file_starts = output.file_starts;
@@ -558,11 +683,85 @@ fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16)
             .position(|li| li.file_idx == file_idx && li.new_lineno == new_lineno)
             .unwrap_or(0);
     }
+    state.cursor_line = state.top_line;
+    state.visual_anchor = state.cursor_line;
 
     // Re-run search against new lines
     if !state.search_query.is_empty() {
         state.search_matches = find_matches(&state.lines, &state.search_query);
         state.current_match = find_nearest_match(&state.search_matches, state.top_line);
+    }
+
+    // Rebuild tree lines at current cursor
+    if state.tree_visible {
+        state.tree_lines = build_tree_lines(files, state.tree_cursor, state.tree_width);
+    }
+}
+
+fn file_status_icon(status: &FileStatus) -> &'static str {
+    match status {
+        FileStatus::Added => "+",
+        FileStatus::Deleted => "-",
+        FileStatus::Modified => "~",
+        FileStatus::Renamed => "→",
+    }
+}
+
+fn compute_tree_width(files: &[DiffFile]) -> usize {
+    let max_len = files.iter().map(|f| f.path().len()).max().unwrap_or(0);
+    (max_len + 4).min(30)
+}
+
+fn build_tree_lines(files: &[DiffFile], cursor: usize, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    // Header
+    let header = "CHANGED FILES";
+    let hdr_len = header.len().min(width);
+    let pad = width.saturating_sub(hdr_len);
+    lines.push(format!("\x1b[1m{}{}\x1b[22m", &header[..hdr_len], " ".repeat(pad)));
+
+    // Spacer
+    lines.push(" ".repeat(width));
+
+    // File entries
+    for (i, file) in files.iter().enumerate() {
+        let icon = file_status_icon(&file.status);
+        let path = file.path();
+        let label = format!("{icon} {path}");
+        let max_label = width.saturating_sub(2);
+        let truncated: String = label.chars().take(max_label).collect();
+        let vis = truncated.chars().count();
+        let content_len = 1 + vis; // leading space
+        let right_pad = width.saturating_sub(content_len);
+        let padded = format!(" {truncated}{}", " ".repeat(right_pad));
+
+        if i == cursor {
+            lines.push(format!(
+                "{}\x1b[7m{padded}\x1b[27m{}",
+                style::FG_FILE_HEADER,
+                style::RESET,
+            ));
+        } else {
+            lines.push(padded);
+        }
+    }
+
+    lines
+}
+
+fn sync_tree_cursor(state: &mut PagerState, files: &[DiffFile]) {
+    if !state.tree_visible || state.tree_focused {
+        return;
+    }
+    let new_cursor = state
+        .line_map
+        .get(state.top_line)
+        .map(|li| li.file_idx)
+        .unwrap_or(0);
+    if new_cursor != state.tree_cursor {
+        state.tree_cursor = new_cursor;
+        state.tree_lines = build_tree_lines(files, state.tree_cursor, state.tree_width);
     }
 }
 
@@ -579,17 +778,30 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
         file_starts: output.file_starts,
         hunk_starts: output.hunk_starts,
         top_line: 0,
+        cursor_line: 0,
+        visual_anchor: 0,
         search_query: String::new(),
         search_matches: Vec::new(),
         current_match: -1,
         mode: Mode::Normal,
         search_input: String::new(),
         search_cursor: 0,
-        search_message: String::new(),
+        status_message: String::new(),
         pending_bracket: None,
+        tree_visible: false,
+        tree_focused: false,
+        tree_cursor: 0,
+        tree_width: 0,
+        tree_lines: vec![],
     };
 
+    // Initialize file tree panel
+    state.tree_width = compute_tree_width(files);
+    state.tree_lines = build_tree_lines(files, 0, state.tree_width);
+    state.tree_visible = true;
+
     let mut last_size = get_term_size();
+    re_render(&mut state, files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
     loop {
@@ -627,6 +839,7 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
             handle_search_key(&mut state, &key);
             if state.mode == Mode::Normal && state.current_match >= 0 {
                 scroll_to_match(&mut state, last_size.1);
+                sync_tree_cursor(&mut state, files);
             }
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
@@ -634,6 +847,120 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
 
         if state.mode == Mode::Help {
             state.mode = Mode::Normal;
+            render_screen(&mut stdout, &state, last_size.0, last_size.1);
+            continue;
+        }
+
+        if state.mode == Mode::Visual {
+            let content_height = last_size.1.saturating_sub(1) as usize;
+            match key {
+                Key::Escape | Key::CtrlC => {
+                    state.mode = Mode::Normal;
+                    state.cursor_line = state.top_line;
+                }
+                Key::Char('j') | Key::Down => {
+                    let next = state.cursor_line + 1;
+                    let anchor_file = state
+                        .line_map
+                        .get(state.visual_anchor)
+                        .map(|l| l.file_idx)
+                        .unwrap_or(0);
+                    let next_file = state
+                        .line_map
+                        .get(next)
+                        .map(|l| l.file_idx)
+                        .unwrap_or(usize::MAX);
+                    if next < state.lines.len() && next_file == anchor_file {
+                        state.cursor_line = next;
+                        if state.cursor_line >= state.top_line + content_height {
+                            state.top_line = state.cursor_line - content_height + 1;
+                        }
+                    }
+                }
+                Key::Char('k') | Key::Up => {
+                    if state.cursor_line > 0 {
+                        let prev = state.cursor_line - 1;
+                        let anchor_file = state
+                            .line_map
+                            .get(state.visual_anchor)
+                            .map(|l| l.file_idx)
+                            .unwrap_or(0);
+                        let prev_file = state
+                            .line_map
+                            .get(prev)
+                            .map(|l| l.file_idx)
+                            .unwrap_or(usize::MAX);
+                        if prev_file == anchor_file {
+                            state.cursor_line = prev;
+                            if state.cursor_line < state.top_line {
+                                state.top_line = state.cursor_line;
+                            }
+                        }
+                    }
+                }
+                Key::Char('y') => {
+                    let lo = state.visual_anchor.min(state.cursor_line);
+                    let hi = state.visual_anchor.max(state.cursor_line);
+                    let path = state
+                        .line_map
+                        .get(lo)
+                        .map(|l| l.path.clone())
+                        .unwrap_or_default();
+                    let (start, end) = resolve_lineno(&state.line_map, lo, hi);
+                    let text = format_copy_ref(&path, start, end);
+                    let ok = copy_to_clipboard(&text);
+                    state.status_message = if ok {
+                        format!("Copied: {text}")
+                    } else {
+                        "Copy failed (pbcopy not available)".to_string()
+                    };
+                    state.mode = Mode::Normal;
+                    state.cursor_line = state.top_line;
+                }
+                Key::Char('q') => break,
+                _ => {}
+            }
+            render_screen(&mut stdout, &state, last_size.0, last_size.1);
+            continue;
+        }
+
+        // Tree focus mode
+        if state.tree_focused {
+            match key {
+                Key::Char('j') | Key::Down => {
+                    if state.tree_cursor + 1 < files.len() {
+                        state.tree_cursor += 1;
+                        state.tree_lines =
+                            build_tree_lines(files, state.tree_cursor, state.tree_width);
+                    }
+                }
+                Key::Char('k') | Key::Up => {
+                    if state.tree_cursor > 0 {
+                        state.tree_cursor -= 1;
+                        state.tree_lines =
+                            build_tree_lines(files, state.tree_cursor, state.tree_width);
+                    }
+                }
+                Key::Enter => {
+                    if let Some(&target) = state.file_starts.get(state.tree_cursor) {
+                        let content_height = last_size.1.saturating_sub(1) as usize;
+                        let max_top = max_scroll(state.lines.len(), content_height);
+                        state.top_line = target.min(max_top);
+                        state.cursor_line = state.top_line;
+                    }
+                    state.tree_focused = false;
+                }
+                Key::Escape | Key::Tab => {
+                    state.tree_focused = false;
+                }
+                Key::Char('T') => {
+                    state.tree_visible = false;
+                    state.tree_focused = false;
+                    re_render(&mut state, files, color, last_size.0);
+                }
+                Key::Char('q') | Key::CtrlC => break,
+                _ => {}
+            }
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
         }
@@ -666,6 +993,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                 }
                 _ => {} // Unknown sequence — ignore
             }
+            state.cursor_line = state.top_line;
+            sync_tree_cursor(&mut state, files);
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
         }
@@ -676,7 +1005,7 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
         let half_page = content_height / 2;
         let max_top = max_scroll(state.lines.len(), content_height);
 
-        state.search_message.clear();
+        state.status_message.clear();
 
         match key {
             Key::Char('q') | Key::CtrlC => break,
@@ -739,12 +1068,34 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                     last_size = get_term_size();
                 }
             }
+            Key::Char('T') => {
+                state.tree_visible = !state.tree_visible;
+                if state.tree_visible {
+                    state.tree_cursor = state
+                        .line_map
+                        .get(state.top_line)
+                        .map(|li| li.file_idx)
+                        .unwrap_or(0);
+                }
+                re_render(&mut state, files, color, last_size.0);
+            }
+            Key::Tab => {
+                if state.tree_visible {
+                    state.tree_focused = true;
+                }
+            }
+            Key::Char('v') => {
+                state.mode = Mode::Visual;
+                state.visual_anchor = state.cursor_line;
+            }
             Key::Char('?') => {
                 state.mode = Mode::Help;
             }
             _ => {}
         }
 
+        state.cursor_line = state.top_line;
+        sync_tree_cursor(&mut state, files);
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
     }
 
