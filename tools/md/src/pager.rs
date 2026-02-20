@@ -588,7 +588,7 @@ pub fn run_pager(
     plain: bool,
     mut on_rerender: Option<&mut dyn FnMut(bool) -> String>,
 ) {
-    let mut stdout = io::stdout();
+    let mut stdout = io::BufWriter::new(io::stdout());
 
     // Enter alternate screen, hide cursor
     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
@@ -612,12 +612,12 @@ pub fn run_pager(
         raw_content: raw_content.map(String::from),
     };
 
-    render_screen(&mut stdout, &state);
-
     let mut last_size = get_term_size();
+    let mut pending_rerender = false;
+    render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
     loop {
-        let event = match event::poll(Duration::from_millis(250)) {
+        let event = match event::poll(Duration::from_millis(50)) {
             Ok(true) => match event::read() {
                 Ok(ev) => ev,
                 Err(_) => break,
@@ -625,10 +625,11 @@ pub fn run_pager(
             Ok(false) => {
                 // Poll timeout — check for size changes (Zellij may not send SIGWINCH)
                 let current_size = get_term_size();
-                if current_size != last_size {
+                if current_size != last_size || pending_rerender {
                     last_size = current_size;
+                    pending_rerender = false;
                     refresh_content(&mut state, &mut on_rerender);
-                    render_screen(&mut stdout, &state);
+                    render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 }
                 continue;
             }
@@ -639,7 +640,8 @@ pub fn run_pager(
             Event::Resize(_, _) => {
                 last_size = get_term_size();
                 refresh_content(&mut state, &mut on_rerender);
-                render_screen(&mut stdout, &state);
+                render_screen(&mut stdout, &state, last_size.0, last_size.1);
+                pending_rerender = true;
                 continue;
             }
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
@@ -651,20 +653,20 @@ pub fn run_pager(
         if state.mode == Mode::Search {
             handle_search_key(&mut state, &key);
             if state.mode == Mode::Normal && state.current_match >= 0 {
-                scroll_to_match(&mut state);
+                scroll_to_match(&mut state, last_size.1);
             }
-            render_screen(&mut stdout, &state);
+            render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
         }
 
         if state.mode == Mode::Help {
             state.mode = Mode::Normal;
-            render_screen(&mut stdout, &state);
+            render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
         }
 
         // Normal mode
-        let (_cols, rows) = get_term_size();
+        let rows = last_size.1;
         let content_height = rows.saturating_sub(1) as usize;
         let half_page = content_height / 2;
         let max_top = max_scroll(state.lines.len(), content_height);
@@ -698,7 +700,7 @@ pub fn run_pager(
                 if !state.search_matches.is_empty() {
                     state.current_match =
                         (state.current_match + 1) % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state);
+                    scroll_to_match(&mut state, rows);
                 }
             }
             Key::Char('N') => {
@@ -706,7 +708,7 @@ pub fn run_pager(
                     state.current_match = (state.current_match - 1
                         + state.search_matches.len() as isize)
                         % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state);
+                    scroll_to_match(&mut state, rows);
                 }
             }
             Key::Char('c') => {
@@ -761,12 +763,14 @@ pub fn run_pager(
                     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
                     let _ = stdout.flush();
                     let _ = crossterm::terminal::enable_raw_mode();
+                    last_size = get_term_size();
+                    refresh_content(&mut state, &mut on_rerender);
                 }
             }
             _ => {}
         }
 
-        render_screen(&mut stdout, &state);
+        render_screen(&mut stdout, &state, last_size.0, last_size.1);
     }
 
     // Cleanup
@@ -775,35 +779,29 @@ pub fn run_pager(
     let _ = stdout.flush();
 }
 
-fn scroll_to_match(state: &mut PagerState) {
+fn scroll_to_match(state: &mut PagerState, rows: u16) {
     if state.current_match < 0 || state.current_match as usize >= state.search_matches.len() {
         return;
     }
     let match_line = state.search_matches[state.current_match as usize];
-    let (_, rows) = get_term_size();
     let content_height = rows.saturating_sub(1) as usize;
     let target = match_line.saturating_sub(content_height / 3);
     let max_top = max_scroll(state.lines.len(), content_height);
     state.top_line = target.min(max_top);
 }
 
-fn render_screen(out: &mut impl Write, state: &PagerState) {
-    let (cols, rows) = get_term_size();
+fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
     let content_height = rows.saturating_sub(1) as usize;
 
     // Clamp top_line
     let max_top = max_scroll(state.lines.len(), content_height);
     let top = state.top_line.min(max_top);
 
-    move_to(out, 0, 0);
-
     if state.mode == Mode::Help {
         let help_lines = format_help_lines(cols as usize, rows as usize);
         for (i, line) in help_lines.iter().enumerate() {
+            move_to(out, i as u16, 0);
             let _ = write!(out, "{CLEAR_LINE}{DIM}{line}{NO_DIM}");
-            if i < content_height - 1 {
-                let _ = write!(out, "\r\n");
-            }
         }
     } else {
         let mut visual_row: usize = 0;
@@ -819,10 +817,8 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
                 if visual_row >= content_height {
                     break;
                 }
+                move_to(out, visual_row as u16, 0);
                 let _ = write!(out, "{CLEAR_LINE}{vline}");
-                if visual_row < content_height - 1 {
-                    let _ = write!(out, "\r\n");
-                }
                 visual_row += 1;
             }
             logical_idx += 1;
@@ -830,15 +826,14 @@ fn render_screen(out: &mut impl Write, state: &PagerState) {
 
         // Clear remaining rows
         while visual_row < content_height {
+            move_to(out, visual_row as u16, 0);
             let _ = write!(out, "{CLEAR_LINE}");
-            if visual_row < content_height - 1 {
-                let _ = write!(out, "\r\n");
-            }
             visual_row += 1;
         }
     }
 
-    let _ = write!(out, "\r\n{CLEAR_LINE}");
+    move_to(out, content_height as u16, 0);
+    let _ = write!(out, "{CLEAR_LINE}");
 
     let status = render_status_bar(state, content_height, cols as usize);
     let _ = write!(out, "{status}");
