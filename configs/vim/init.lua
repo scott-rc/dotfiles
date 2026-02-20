@@ -200,6 +200,17 @@ local function toggle_neotree_files()
   end
 end
 
+local function set_diff_readonly(source)
+  vim.g._diff_source = source
+  local readonly = (source == 'branch' or source == 'commit')
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].buftype == '' and vim.api.nvim_buf_is_loaded(buf) then
+      vim.bo[buf].modifiable = not readonly
+      vim.bo[buf].readonly = readonly
+    end
+  end
+end
+
 local function set_diff_highlights(enabled)
   vim.g._diff_mode = enabled
   local gs = require('gitsigns')
@@ -207,12 +218,22 @@ local function set_diff_highlights(enabled)
   gs.toggle_linehl(enabled)
   gs.toggle_numhl(enabled)
   gs.toggle_deleted(enabled)
+  local sc = enabled and 'yes' or 'auto'
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(win)].buftype == '' then
+      vim.wo[win].signcolumn = sc
+    end
+  end
+  if not enabled then
+    set_diff_readonly(nil)
+  end
 end
 
 local function toggle_diff_mode()
   local enabled = not vim.g._diff_mode
   set_diff_highlights(enabled)
   if enabled then
+    require('gitsigns').change_base(git_base_branch(), true)
     vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
   else
     close_neotree('git_status')
@@ -260,12 +281,77 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end,
 })
 
+-- Enforce readonly + fixed signcolumn on newly-opened buffers during diff mode
+vim.api.nvim_create_autocmd('BufEnter', {
+  group = augroup,
+  callback = function()
+    if vim.bo.buftype ~= '' then return end
+    local src = vim.g._diff_source
+    if src == 'branch' or src == 'commit' then
+      vim.bo.modifiable = false
+      vim.bo.readonly = true
+    end
+    if vim.g._diff_mode then
+      vim.wo.signcolumn = 'yes'
+    end
+  end,
+})
+
 -- Lock neo-tree sidebar width so equalalways doesn't resize it during focus changes
 vim.api.nvim_create_autocmd('FileType', {
   group = augroup,
   pattern = 'neo-tree',
   callback = function()
     vim.wo.winfixwidth = true
+  end,
+})
+
+-- Active git index/refs watching for real-time diff refresh
+local git_watchers = {}
+
+local function setup_git_watcher()
+  local git_dir = vim.fn.systemlist('git rev-parse --git-dir 2>/dev/null')[1]
+  if vim.v.shell_error ~= 0 or not git_dir then return end
+  if not vim.startswith(git_dir, '/') then
+    git_dir = vim.fn.getcwd() .. '/' .. git_dir
+  end
+
+  local debounce_timer = nil
+  local function on_change()
+    if vim.g._suppress_git_watcher then return end
+    if debounce_timer then debounce_timer:stop() end
+    debounce_timer = vim.defer_fn(function()
+      debounce_timer = nil
+      vim.cmd('checktime')
+      pcall(function() require('gitsigns').refresh() end)
+      pcall(function() require('neo-tree.sources.manager').refresh('git_status') end)
+    end, 200)
+  end
+
+  local index_watcher = vim.uv.new_fs_event()
+  if index_watcher then
+    index_watcher:start(git_dir .. '/index', {}, vim.schedule_wrap(on_change))
+    git_watchers[#git_watchers + 1] = index_watcher
+  end
+
+  local refs_watcher = vim.uv.new_fs_event()
+  if refs_watcher then
+    refs_watcher:start(git_dir .. '/refs', { recursive = true }, vim.schedule_wrap(on_change))
+    git_watchers[#git_watchers + 1] = refs_watcher
+  end
+end
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  group = augroup,
+  callback = setup_git_watcher,
+})
+
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  group = augroup,
+  callback = function()
+    for _, w in ipairs(git_watchers) do
+      w:stop()
+    end
   end,
 })
 
@@ -361,7 +447,7 @@ require('lazy').setup({
     opts = {
       preset = 'modern',
       spec = {
-        { '<leader>y', group = 'Yank path' },
+        { '<leader>y', group = 'Yank' },
 
         { '<leader>g', group = 'Git' },
 
@@ -392,7 +478,24 @@ require('lazy').setup({
       'MunifTanjim/nui.nvim',
       'nvim-tree/nvim-web-devicons',
     },
-    opts = {
+    config = function()
+      -- Monkey-patch: neo-tree crashes on deleted files whose parent directory
+      -- was also deleted (fs_lstat returns nil → type "unknown" → no children
+      -- table → table.insert crashes). Force non-existent extensionless paths
+      -- to type "directory" so parent nodes always have a children table.
+      local file_items = require('neo-tree.sources.common.file-items')
+      local orig_create_item = file_items.create_item
+      file_items.create_item = function(context, path, _type)
+        if _type == nil and not vim.uv.fs_lstat(path) then
+          local basename = vim.fn.fnamemodify(path, ':t')
+          if not basename:match('%.') then
+            _type = 'directory'
+          end
+        end
+        return orig_create_item(context, path, _type)
+      end
+
+      require('neo-tree').setup({
       log_level = 'warn',
       commands = {
         open_and_refocus = function(state)
@@ -413,22 +516,16 @@ require('lazy').setup({
             require('neo-tree.sources.' .. state.name .. '.commands').open(state)
             return
           end
+          vim.g._suppress_git_watcher = true
+          vim.defer_fn(function() vim.g._suppress_git_watcher = false end, 500)
           local ei = vim.o.eventignore
           vim.o.eventignore = 'BufEnter,WinEnter,WinLeave,BufLeave'
           require('neo-tree.sources.' .. state.name .. '.commands').open(state)
-          local base = state.git_base or 'HEAD'
-          vim.b.diff_base = base
-          local diff_win = vim.api.nvim_get_current_win()
           vim.api.nvim_set_current_win(state.winid)
           vim.o.eventignore = ei
-          vim.schedule(function()
-            vim.api.nvim_win_call(diff_win, function()
-              require('gitsigns').change_base(base)
-            end)
-            if not vim.g._diff_mode then
-              set_diff_highlights(true)
-            end
-          end)
+          if not vim.g._diff_mode then
+            set_diff_highlights(true)
+          end
         end,
       },
       window = {
@@ -454,7 +551,8 @@ require('lazy').setup({
           },
         },
       },
-    },
+      })
+    end,
     keys = {
       { '<leader>e', toggle_neotree_files, desc = 'File explorer' },
       { '<C-e>', toggle_neotree_files, desc = 'Focus/toggle file explorer' },
@@ -463,6 +561,8 @@ require('lazy').setup({
         '<leader>gc',
         function()
           set_diff_highlights(true)
+          set_diff_readonly('branch')
+          require('gitsigns').change_base(git_base_branch(), true)
           vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
         end,
         desc = 'Changed files vs base branch',
@@ -471,11 +571,13 @@ require('lazy').setup({
       { '<leader>gw', function()
           require('gitsigns').change_base(nil, true)
           set_diff_highlights(true)
+          set_diff_readonly('working')
           vim.cmd('Neotree focus source=git_status')
         end, desc = 'Working tree diff' },
       { '<leader>gi', function()
           require('gitsigns').change_base('HEAD', true)
           set_diff_highlights(true)
+          set_diff_readonly('staged')
           vim.cmd('Neotree focus source=git_status')
         end, desc = 'Staged changes (vs HEAD)' },
       { '<leader>gB', function()
@@ -489,18 +591,102 @@ require('lazy').setup({
                 local branch = selection.value
                 require('gitsigns').change_base(branch, true)
                 set_diff_highlights(true)
+                set_diff_readonly('branch')
                 vim.cmd('Neotree focus source=git_status git_base=' .. branch)
               end)
               return true
             end,
           })
         end, desc = 'Diff against branch' },
+      { '<leader>gX', function()
+          vim.ui.input({ prompt = 'Diff base ref: ' }, function(input)
+            if not input or input == '' then return end
+            require('gitsigns').change_base(input, true)
+            set_diff_highlights(true)
+            set_diff_readonly('commit')
+            vim.cmd('Neotree focus source=git_status git_base=' .. vim.fn.fnameescape(input))
+          end)
+        end, desc = 'Diff against ref' },
+      { '<leader>gD', function()
+          local pickers = require('telescope.pickers')
+          local finders = require('telescope.finders')
+          local conf = require('telescope.config').values
+          local actions = require('telescope.actions')
+          local action_state = require('telescope.actions.state')
+
+          local entries = {
+            { display = 'Working tree (unstaged)', value = '__working__' },
+            { display = 'Staged (vs HEAD)', value = '__staged__' },
+            { display = 'vs ' .. git_base_branch(), value = '__base__' },
+          }
+
+          local branches = vim.fn.systemlist('git branch -a --format=%(refname:short) 2>/dev/null')
+          if vim.v.shell_error == 0 then
+            for _, b in ipairs(branches) do
+              entries[#entries + 1] = { display = 'branch: ' .. b, value = b }
+            end
+          end
+
+          local commits = vim.fn.systemlist('git log --oneline -15 2>/dev/null')
+          if vim.v.shell_error == 0 then
+            for _, c in ipairs(commits) do
+              local hash = c:match('^(%S+)')
+              if hash then
+                entries[#entries + 1] = { display = 'commit: ' .. c, value = hash }
+              end
+            end
+          end
+
+          pickers.new({}, {
+            prompt_title = 'Diff Source',
+            finder = finders.new_table({
+              results = entries,
+              entry_maker = function(e)
+                return { value = e.value, display = e.display, ordinal = e.display }
+              end,
+            }),
+            sorter = conf.generic_sorter({}),
+            attach_mappings = function(prompt_bufnr)
+              actions.select_default:replace(function()
+                local sel = action_state.get_selected_entry()
+                actions.close(prompt_bufnr)
+                local v = sel.value
+                local gs = require('gitsigns')
+                if v == '__working__' then
+                  gs.change_base(nil, true)
+                  set_diff_highlights(true)
+                  set_diff_readonly('working')
+                  vim.cmd('Neotree focus source=git_status')
+                elseif v == '__staged__' then
+                  gs.change_base('HEAD', true)
+                  set_diff_highlights(true)
+                  set_diff_readonly('staged')
+                  vim.cmd('Neotree focus source=git_status')
+                elseif v == '__base__' then
+                  local base = git_base_branch()
+                  gs.change_base(base, true)
+                  set_diff_highlights(true)
+                  set_diff_readonly('branch')
+                  vim.cmd('Neotree focus source=git_status git_base=' .. base)
+                else
+                  gs.change_base(v, true)
+                  set_diff_highlights(true)
+                  set_diff_readonly('commit')
+                  vim.cmd('Neotree focus source=git_status git_base=' .. vim.fn.fnameescape(v))
+                end
+              end)
+              return true
+            end,
+          }):find()
+        end, desc = 'Diff source picker' },
       { '<D-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             close_neotree('git_status')
             set_diff_highlights(false)
           else
-            vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
+            local base = git_base_branch()
+            require('gitsigns').change_base(base, true)
+            vim.cmd('Neotree focus source=git_status git_base=' .. base)
             set_diff_highlights(true)
           end
         end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle git changes' },
@@ -509,7 +695,9 @@ require('lazy').setup({
             close_neotree('git_status')
             set_diff_highlights(false)
           else
-            vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
+            local base = git_base_branch()
+            require('gitsigns').change_base(base, true)
+            vim.cmd('Neotree focus source=git_status git_base=' .. base)
             set_diff_highlights(true)
           end
         end, desc = 'Focus/toggle git changes' },
@@ -522,12 +710,6 @@ require('lazy').setup({
     opts = {
       on_attach = function(bufnr)
         local gs = require('gitsigns')
-
-        -- Apply per-buffer diff base if set by open_and_refocus_diff
-        local base = vim.b[bufnr].diff_base
-        if base then
-          gs.change_base(base)
-        end
 
         local function map(mode, l, r, desc)
           vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
@@ -558,6 +740,24 @@ require('lazy').setup({
 
         -- Hunk text object
         map({ 'o', 'x' }, 'ih', gs.select_hunk, 'Select hunk')
+
+        -- Copy hunk to clipboard
+        map('n', '<leader>yh', function()
+          local hunks = gs.get_hunks(bufnr)
+          if not hunks then return end
+          local lnum = vim.fn.line('.')
+          for _, h in ipairs(hunks) do
+            local s = h.added.start
+            local e = s + math.max(h.added.count, 1) - 1
+            if lnum >= s and lnum <= e then
+              vim.fn.setreg('+', table.concat(h.lines, '\n'))
+              vim.notify('Copied hunk (' .. #h.lines .. ' lines)')
+              return
+            end
+          end
+          vim.notify('No hunk at cursor', vim.log.levels.WARN)
+        end, 'Copy hunk')
+        map('v', '<leader>yh', '"+y', 'Copy selection')
       end,
     },
   },
@@ -745,5 +945,42 @@ vim.api.nvim_create_autocmd('LspAttach', {
       buffer = args.buf,
       desc = 'Hover documentation',
     })
+  end,
+})
+
+-- ============================================================================
+-- CLI Diff Viewer (vd)
+-- ============================================================================
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  group = augroup,
+  callback = function()
+    if not vim.g.diff_viewer then return end
+    vim.schedule(function()
+      local mode = vim.g.diff_mode or 'base'
+      local gs = require('gitsigns')
+      if mode == 'staged' then
+        gs.change_base('HEAD', true)
+        set_diff_highlights(true)
+        set_diff_readonly('staged')
+        vim.cmd('Neotree focus source=git_status')
+      elseif mode == 'commit' then
+        local base = vim.g.diff_base or 'HEAD~1'
+        gs.change_base(base, true)
+        set_diff_highlights(true)
+        set_diff_readonly('commit')
+        vim.cmd('Neotree focus source=git_status git_base=' .. base)
+      else
+        local base = git_base_branch()
+        gs.change_base(base, true)
+        set_diff_highlights(true)
+        set_diff_readonly('branch')
+        vim.cmd('Neotree focus source=git_status git_base=' .. base)
+      end
+      -- Navigate to first changed file
+      vim.defer_fn(function()
+        nav_changed_file('next')
+      end, 100)
+    end)
   end,
 })
