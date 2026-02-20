@@ -638,6 +638,9 @@ require('lazy').setup({
     keys = {
       { '<leader>/', '<Plug>CommentaryLine', desc = 'Toggle comment' },
       { '<leader>/', '<Plug>Commentary', mode = 'v', desc = 'Toggle comment' },
+      { '<D-/>', '<Plug>CommentaryLine', desc = 'Toggle comment' },
+      { '<D-/>', '<Plug>Commentary', mode = 'v', desc = 'Toggle comment' },
+      { '<D-/>', '<Esc><Plug>CommentaryLine', mode = 'i', desc = 'Toggle comment' },
     },
   },
 
