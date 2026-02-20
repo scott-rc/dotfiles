@@ -33,23 +33,20 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
             return code.to_string();
         };
         for (style, text) in regions {
-            let mut codes = Vec::new();
-
-            // Foreground color
             let fg = style.foreground;
-            codes.push(format!("38;2;{};{};{}", fg.r, fg.g, fg.b));
-
+            let _ = write!(result, "\x1b[38;2;{};{};{}", fg.r, fg.g, fg.b);
             if style.font_style.contains(FontStyle::BOLD) {
-                codes.push("1".to_string());
+                result.push_str(";1");
             }
             if style.font_style.contains(FontStyle::ITALIC) {
-                codes.push("3".to_string());
+                result.push_str(";3");
             }
             if style.font_style.contains(FontStyle::UNDERLINE) {
-                codes.push("4".to_string());
+                result.push_str(";4");
             }
-
-            let _ = write!(result, "\x1b[{}m{text}\x1b[0m", codes.join(";"));
+            result.push('m');
+            result.push_str(text);
+            result.push_str("\x1b[0m");
         }
     }
 

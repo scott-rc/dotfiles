@@ -79,12 +79,56 @@ impl AnsiState {
 
 /// Remove ANSI escape codes from a string.
 pub fn strip_ansi(text: &str) -> String {
+    if !text.contains('\x1b') {
+        return text.to_string();
+    }
     ANSI_RE.replace_all(text, "").into_owned()
 }
 
 /// Get the visible length of a string, ignoring ANSI escape codes.
 pub fn visible_length(text: &str) -> usize {
-    strip_ansi(text).width()
+    if !text.contains('\x1b') {
+        return text.width();
+    }
+    let mut width = 0;
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == 0x1b {
+            // Skip ANSI escape: \x1b[...m
+            i += 1;
+            while i < bytes.len() && bytes[i] != b'm' {
+                i += 1;
+            }
+            if i < bytes.len() {
+                i += 1;
+            }
+            continue;
+        }
+        // Decode UTF-8 char and sum its display width
+        let start = i;
+        if bytes[i] < 0x80 {
+            width += 1; // ASCII char is always width 1
+            i += 1;
+        } else {
+            // Multi-byte UTF-8: determine length from leading byte
+            let len = if bytes[i] & 0xE0 == 0xC0 {
+                2
+            } else if bytes[i] & 0xF0 == 0xE0 {
+                3
+            } else {
+                4
+            };
+            let end = (start + len).min(bytes.len());
+            if let Ok(s) = std::str::from_utf8(&bytes[start..end]) {
+                if let Some(c) = s.chars().next() {
+                    width += c.width().unwrap_or(0);
+                }
+            }
+            i = end;
+        }
+    }
+    width
 }
 
 /// Split a string into alternating plain-text and ANSI-code segments.
@@ -141,16 +185,12 @@ fn wrap_line(line: &str, width: usize) -> Vec<String> {
     let results = wrap_line_greedy(line, width);
 
     // Widow prevention: avoid a single word on the last line
-    if results.len() >= 2 {
-        let last_visible = strip_ansi(results.last().unwrap()).trim().to_string();
-        if is_single_word(&last_visible) {
-            let min_width = if width > 15 { width - 15 } else { 1 };
-            for w in (min_width..width).rev() {
-                let alt = wrap_line_greedy(line, w);
-                let alt_last_visible = strip_ansi(alt.last().unwrap()).trim().to_string();
-                if !is_single_word(&alt_last_visible) {
-                    return alt;
-                }
+    if results.len() >= 2 && !has_multiple_visible_words(results.last().unwrap()) {
+        let min_width = if width > 15 { width - 15 } else { 1 };
+        for w in (min_width..width).rev() {
+            let alt = wrap_line_greedy(line, w);
+            if has_multiple_visible_words(alt.last().unwrap()) {
+                return alt;
             }
         }
     }
@@ -158,8 +198,36 @@ fn wrap_line(line: &str, width: usize) -> Vec<String> {
     results
 }
 
-fn is_single_word(s: &str) -> bool {
-    !s.is_empty() && !s.contains(char::is_whitespace)
+/// Check if a string has multiple visible words (skipping ANSI sequences),
+/// without allocating. Returns false for empty/whitespace-only strings.
+fn has_multiple_visible_words(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    let mut word_count = 0;
+    let mut in_word = false;
+    while i < bytes.len() {
+        if bytes[i] == 0x1b {
+            i += 1;
+            while i < bytes.len() && bytes[i] != b'm' {
+                i += 1;
+            }
+            if i < bytes.len() {
+                i += 1;
+            }
+            continue;
+        }
+        if bytes[i] == b' ' || bytes[i] == b'\t' {
+            in_word = false;
+        } else if !in_word {
+            in_word = true;
+            word_count += 1;
+            if word_count >= 2 {
+                return true;
+            }
+        }
+        i += 1;
+    }
+    false
 }
 
 /// Greedy line wrapping: fit as many words as possible on each line.
