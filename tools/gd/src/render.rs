@@ -363,36 +363,63 @@ fn render_hunk_lines(
             content.clone()
         };
 
-        // Pad to terminal width for full-line background
-        let content_width = crate::ansi::visible_width(&styled_content);
-        let avail = width.saturating_sub(style::GUTTER_WIDTH + 1); // +1 for marker
-        let padding = if color && diff_line.kind != LineKind::Context && content_width < avail {
-            " ".repeat(avail - content_width)
-        } else {
-            String::new()
-        };
-
-        let reset = style::RESET;
         let marker_styled = if color && !marker_color.is_empty() {
-            format!("{marker_color}{marker}{reset}")
+            format!("{}{marker}{}", marker_color, style::SOFT_RESET)
         } else {
             marker.to_string()
         };
 
-        let line = if color && diff_line.kind != LineKind::Context {
-            format!(
-                "{gutter}{line_bg}{marker_styled}{styled_content}{padding}{reset}"
-            )
-        } else {
-            format!("{gutter}{marker_styled}{styled_content}")
-        };
+        let is_changed = diff_line.kind != LineKind::Context;
+        let avail = width.saturating_sub(style::GUTTER_WIDTH + 1); // +1 for marker
 
-        lines.push(line);
-        line_map.push(LineInfo {
-            file_idx,
-            path: path.to_string(),
-            new_lineno: diff_line.new_lineno,
-        });
+        // Pre-wrap: prepend line_bg so AnsiState tracks it during wrapping
+        let wrappable = if color && is_changed {
+            format!("{line_bg}{styled_content}")
+        } else {
+            styled_content.clone()
+        };
+        let wrapped = crate::ansi::wrap_line_for_display(&wrappable, avail);
+
+        let cont_gutter = style::continuation_gutter(color);
+
+        for (seg_idx, seg) in wrapped.iter().enumerate() {
+            // Strip trailing reset from wrapped segment (we add our own)
+            let content_part = seg.trim_end_matches(style::RESET);
+
+            let seg_width = crate::ansi::visible_width(content_part);
+            let pad_len = avail.saturating_sub(seg_width);
+            // Padding spaces inherit the current bg
+            let padding = if color && is_changed && pad_len > 0 {
+                " ".repeat(pad_len)
+            } else {
+                String::new()
+            };
+
+            let line = if seg_idx == 0 {
+                if color && is_changed {
+                    format!(
+                        "{gutter}{line_bg}{marker_styled}{content_part}{padding}{}",
+                        style::RESET
+                    )
+                } else {
+                    format!("{gutter}{marker_styled}{content_part}")
+                }
+            } else if color && is_changed {
+                format!(
+                    "{cont_gutter}{line_bg} {content_part}{padding}{}",
+                    style::RESET
+                )
+            } else {
+                format!("{cont_gutter} {content_part}")
+            };
+
+            lines.push(line);
+            line_map.push(LineInfo {
+                file_idx,
+                path: path.to_string(),
+                new_lineno: diff_line.new_lineno,
+            });
+        }
     }
 }
 
@@ -420,7 +447,7 @@ fn syntax_highlight_line(
         }
         let _ = write!(out, "\x1b[38;2;{};{};{}m", fg.r, fg.g, fg.b);
         out.push_str(text);
-        out.push_str(style::RESET);
+        out.push_str(style::SOFT_RESET);
     }
 
     out
@@ -477,8 +504,7 @@ fn apply_diff_colors(
         if vis_start < vis_to_byte.len() && vis_end <= vis_to_byte.len() {
             let byte_start = vis_to_byte[vis_start];
             let byte_end = vis_to_byte[vis_end.min(vis_to_byte.len() - 1)];
-            let reset = style::RESET;
-            insertions.push((byte_end, format!("{reset}{line_bg}")));
+            insertions.push((byte_end, line_bg.to_string()));
             insertions.push((byte_start, word_bg.to_string()));
         }
     }
@@ -600,5 +626,134 @@ diff --git a/f.rs b/f.rs
             .find(|li| li.new_lineno == Some(2))
             .expect("should find new_lineno=2");
         assert_eq!(added_info.path, "f.rs");
+    }
+
+    #[test]
+    fn colored_added_line_has_bg_spanning_content() {
+        let raw = "\
+diff --git a/foo.txt b/foo.txt
+--- a/foo.txt
++++ b/foo.txt
+@@ -1,1 +1,2 @@
+ ctx
++added line
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, true);
+
+        // Find the added line (after file header, hunk header, context)
+        let added = &output.lines[3];
+        let stripped = crate::ansi::strip_ansi(added);
+        assert!(stripped.contains('+'), "should have + marker");
+
+        // The full RESET (\x1b[0m) should only appear at the very end of the line,
+        // not between the marker and content or between syntax tokens
+        let content_area = added.split(style::BG_ADDED).last().unwrap_or(added);
+        let mid_section = &content_area[..content_area.rfind("\x1b[0m").unwrap_or(content_area.len())];
+        assert!(
+            !mid_section.contains("\x1b[0m"),
+            "full RESET should not appear mid-line (kills bg): {mid_section:?}"
+        );
+    }
+
+    #[test]
+    fn syntax_highlight_uses_soft_reset() {
+        use syntect::highlighting::ThemeSet;
+        use syntect::parsing::SyntaxSet;
+
+        let ss = SyntaxSet::load_defaults_newlines();
+        let ts = ThemeSet::load_defaults();
+        let theme = &ts.themes["base16-ocean.dark"];
+        let syntax = ss.find_syntax_by_extension("rs").unwrap();
+        let mut hl = syntect::easy::HighlightLines::new(syntax, theme);
+
+        let result = syntax_highlight_line("let x = 42;\n", &mut hl, &ss);
+        // Should use SOFT_RESET (22;23;39) not full RESET (0m) between tokens
+        assert!(
+            !result.contains("\x1b[0m"),
+            "syntax_highlight_line should use SOFT_RESET, not RESET: {result:?}"
+        );
+        assert!(
+            result.contains("\x1b[22;23;39m"),
+            "should contain SOFT_RESET: {result:?}"
+        );
+    }
+
+    #[test]
+    fn long_line_wraps_with_continuation_gutter() {
+        let long_content = "x".repeat(100);
+        let raw = format!(
+            "\
+diff --git a/foo.txt b/foo.txt
+--- a/foo.txt
++++ b/foo.txt
+@@ -1,1 +1,2 @@
+ ctx
++{long_content}
+"
+        );
+        let files = diff::parse(&raw);
+        // Narrow width forces wrapping: gutter(12) + marker(1) + avail
+        let width = 40;
+        let output = render(&files, width, false);
+
+        // Should produce more lines than the 4 logical lines (header, hunk, ctx, added)
+        assert!(
+            output.lines.len() > 4,
+            "long line should wrap into multiple output lines, got {}",
+            output.lines.len()
+        );
+
+        // Continuation lines should have blank gutter with separators
+        let cont_lines: Vec<_> = output.lines.iter().skip(4).collect();
+        assert!(!cont_lines.is_empty(), "should have continuation lines");
+        for cont in &cont_lines {
+            assert!(
+                cont.contains('|'),
+                "continuation line should have gutter separators: {cont:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn colored_wrap_has_bg_on_continuation() {
+        let long_content = "x".repeat(100);
+        let raw = format!(
+            "\
+diff --git a/foo.txt b/foo.txt
+--- a/foo.txt
++++ b/foo.txt
+@@ -1,1 +1,2 @@
+ ctx
++{long_content}
+"
+        );
+        let files = diff::parse(&raw);
+        let width = 40;
+        let output = render(&files, width, true);
+
+        // Find continuation lines — they have blank gutter (no line numbers)
+        // and contain 'x' from the long content
+        let first_added = output
+            .lines
+            .iter()
+            .position(|l| crate::ansi::strip_ansi(l).contains('+'))
+            .expect("should find added line");
+        let cont_lines: Vec<_> = output.lines.iter().skip(first_added + 1)
+            .filter(|l| {
+                let s = crate::ansi::strip_ansi(l);
+                // Continuation lines have blank gutter (starts with spaces before │)
+                // and contain 'xx' (the repeated content)
+                s.contains("xx") && s.trim_start().starts_with('\u{2502}')
+            })
+            .collect();
+
+        assert!(!cont_lines.is_empty(), "should have continuation lines");
+        for cont in &cont_lines {
+            assert!(
+                cont.contains(style::BG_ADDED),
+                "continuation line should have added bg: {cont:?}"
+            );
+        }
     }
 }

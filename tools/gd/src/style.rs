@@ -24,6 +24,8 @@ pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 pub const FG_DELETED_MARKER: &str = "\x1b[38;2;248;81;73m";
 
 pub const RESET: &str = "\x1b[0m";
+/// Reset bold/italic/fg but preserve background color.
+pub const SOFT_RESET: &str = "\x1b[22;23;39m";
 pub const DIM: &str = "\x1b[2m";
 pub const NO_DIM: &str = "\x1b[22m";
 pub const REVERSE: &str = "\x1b[7m";
@@ -58,3 +60,12 @@ pub fn gutter(old: Option<u32>, new: Option<u32>) -> String {
 
 /// The visible width of the gutter (always 12: "NNNN |NNNN |").
 pub const GUTTER_WIDTH: usize = 12;
+
+/// Blank gutter for continuation lines (same width, dim separators).
+pub fn continuation_gutter(color: bool) -> String {
+    if color {
+        format!("{FG_GUTTER}     {FG_SEP}\u{2502}     {FG_SEP}\u{2502}{RESET}")
+    } else {
+        "     |     |".to_string()
+    }
+}

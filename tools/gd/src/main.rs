@@ -108,7 +108,7 @@ fn main() {
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
     if is_tty && !cli.no_pager && output.lines.len() > rows as usize {
-        pager::run_pager(output);
+        pager::run_pager(output, &files, color);
     } else {
         let mut stdout = io::BufWriter::new(io::stdout().lock());
         for line in &output.lines {

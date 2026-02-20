@@ -4,8 +4,9 @@ use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::ansi::{split_ansi, strip_ansi, wrap_line_for_display};
-use crate::render::{LineInfo, RenderOutput};
+use crate::ansi::{split_ansi, strip_ansi};
+use crate::git::diff::DiffFile;
+use crate::render::{self, LineInfo, RenderOutput};
 use crate::style;
 
 const ALT_SCREEN_ON: &str = "\x1b[?1049h";
@@ -488,30 +489,18 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
             let _ = write!(out, "{CLEAR_LINE}{}{line}{}", style::DIM, style::NO_DIM);
         }
     } else {
-        let mut visual_row: usize = 0;
-        let mut logical_idx = top;
-
-        while visual_row < content_height && logical_idx < state.lines.len() {
-            let mut line = state.lines[logical_idx].clone();
-            if !state.search_query.is_empty() {
-                line = highlight_search(&line, &state.search_query);
-            }
-            let wrapped = wrap_line_for_display(&line, cols as usize);
-            for vline in wrapped {
-                if visual_row >= content_height {
-                    break;
+        for row in 0..content_height {
+            move_to(out, row as u16, 0);
+            let idx = top + row;
+            if idx < state.lines.len() {
+                let mut line = state.lines[idx].clone();
+                if !state.search_query.is_empty() {
+                    line = highlight_search(&line, &state.search_query);
                 }
-                move_to(out, visual_row as u16, 0);
-                let _ = write!(out, "{CLEAR_LINE}{vline}");
-                visual_row += 1;
+                let _ = write!(out, "{CLEAR_LINE}{line}");
+            } else {
+                let _ = write!(out, "{CLEAR_LINE}");
             }
-            logical_idx += 1;
-        }
-
-        while visual_row < content_height {
-            move_to(out, visual_row as u16, 0);
-            let _ = write!(out, "{CLEAR_LINE}");
-            visual_row += 1;
         }
     }
 
@@ -543,7 +532,41 @@ fn jump_prev(targets: &[usize], top_line: usize) -> Option<usize> {
     targets.iter().rev().find(|&&t| t < top_line).copied()
 }
 
-pub fn run_pager(output: RenderOutput) {
+/// Re-render the diff at a new width, preserving scroll position by anchoring
+/// to the file_idx/new_lineno of the current top line.
+fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
+    // Capture anchor from current top line
+    let anchor = if !state.line_map.is_empty() {
+        let top = state.top_line.min(state.line_map.len() - 1);
+        let info = &state.line_map[top];
+        Some((info.file_idx, info.new_lineno))
+    } else {
+        None
+    };
+
+    let output = render::render(files, cols as usize, color);
+    state.lines = output.lines;
+    state.line_map = output.line_map;
+    state.file_starts = output.file_starts;
+    state.hunk_starts = output.hunk_starts;
+
+    // Restore scroll position by finding the anchored line
+    if let Some((file_idx, new_lineno)) = anchor {
+        state.top_line = state
+            .line_map
+            .iter()
+            .position(|li| li.file_idx == file_idx && li.new_lineno == new_lineno)
+            .unwrap_or(0);
+    }
+
+    // Re-run search against new lines
+    if !state.search_query.is_empty() {
+        state.search_matches = find_matches(&state.lines, &state.search_query);
+        state.current_match = find_nearest_match(&state.search_matches, state.top_line);
+    }
+}
+
+pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
     let mut stdout = io::BufWriter::new(io::stdout());
 
     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
@@ -579,6 +602,7 @@ pub fn run_pager(output: RenderOutput) {
                 let current_size = get_term_size();
                 if current_size != last_size {
                     last_size = current_size;
+                    re_render(&mut state, files, color, last_size.0);
                     render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 }
                 continue;
@@ -589,6 +613,7 @@ pub fn run_pager(output: RenderOutput) {
         let key = match ev {
             Event::Resize(_, _) => {
                 last_size = get_term_size();
+                re_render(&mut state, files, color, last_size.0);
                 render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 continue;
             }

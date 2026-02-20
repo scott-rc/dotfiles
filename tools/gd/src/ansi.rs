@@ -238,4 +238,42 @@ mod tests {
         let result = wrap_line_for_display("abcdefghij", 5);
         assert_eq!(result, vec!["abcde", "fghij"]);
     }
+
+    #[test]
+    fn soft_reset_preserves_bg() {
+        let mut state = AnsiState::default();
+        // Set bg
+        state.update("\x1b[48;2;22;39;27m");
+        assert!(state.bg.is_some());
+        // Apply SOFT_RESET (22;23;39 = no-bold/dim, no-italic, default-fg)
+        state.update("\x1b[22;23;39m");
+        assert!(state.bg.is_some(), "SOFT_RESET must preserve bg");
+        assert!(!state.bold);
+        assert!(!state.italic);
+        assert!(state.fg.is_none());
+    }
+
+    #[test]
+    fn full_reset_clears_bg() {
+        let mut state = AnsiState::default();
+        state.update("\x1b[48;2;22;39;27m");
+        assert!(state.bg.is_some());
+        state.update("\x1b[0m");
+        assert!(state.bg.is_none(), "full RESET must clear bg");
+    }
+
+    #[test]
+    fn wrap_preserves_bg_on_continuation() {
+        // Content with bg set, long enough to wrap
+        let bg = "\x1b[48;2;22;39;27m";
+        let line = format!("{bg}abcdefghij");
+        let result = wrap_line_for_display(&line, 5);
+        assert_eq!(result.len(), 2);
+        // Second row should re-apply the bg
+        assert!(
+            result[1].contains("48;2;22;39;27"),
+            "continuation row must re-apply bg: {:?}",
+            result[1]
+        );
+    }
 }
