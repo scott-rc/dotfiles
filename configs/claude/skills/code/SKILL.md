@@ -57,10 +57,9 @@ Users often request multiple operations together. Handle these as follows:
 
 **Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
 
-All TDD and BDD operations (New Feature, Fix Bug, Add Coverage, Benchmark) MUST also load and apply the coding style guidelines when writing code, tests, and benchmarks.
-
 ## References
 
 - [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, testing, and string conventions
 - [typescript-guidelines.md](typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
+- [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup

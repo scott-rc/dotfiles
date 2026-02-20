@@ -6,7 +6,7 @@ Short and contextual. Narrow-scope variables get short names (`i`, `el`, `err`).
 
 ## Comments
 
-- JSDoc on public APIs
+- Document public APIs per language convention
 - Brief inline "why" comments for non-obvious logic
 - No comments restating what the code does
 
