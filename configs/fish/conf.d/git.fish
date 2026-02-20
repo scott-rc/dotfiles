@@ -26,9 +26,9 @@ abbr --add gcob git checkout -b
 abbr --add gcoB git checkout -B
 abbr --add gcom git checkout main
 abbr --add gcp git cherry-pick
-abbr --add gd git diff
-abbr --add gds git diff --staged
-abbr --add gd~ git diff HEAD~
+# abbr --add gd git diff
+# abbr --add gds git diff --staged
+# abbr --add gd~ git diff HEAD~
 abbr --add gf git fetch
 abbr --add gl git log
 abbr --add gp git pull
