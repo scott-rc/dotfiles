@@ -77,6 +77,11 @@ function gwc --description "Clean up merged and orphaned worktrees"
         set -l dir_name (basename $wt_dirs[$i])
         set -l branch $wt_branches[$i]
 
+        # Never clean the default branch
+        if test "$branch" = "$default_branch"
+            continue
+        end
+
         # Regular merge: branch tip is ancestor of default branch
         if command git -C $repo_root merge-base --is-ancestor refs/heads/$branch origin/$default_branch 2>/dev/null
             set -a stale_dirs $dir_name
