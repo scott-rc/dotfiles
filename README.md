@@ -175,7 +175,7 @@ Custom CLI tools.
 | Tool | Description |
 |------|-------------|
 | `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
-| `gd/` | Terminal git diff viewer (Rust) with embedded neovim for syntax highlighting and full vim editing. Uses ratatui + crossterm for TUI, nvim `--embed` with `ext_linegrid` for rendering, and tree-sitter for syntax colors. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
+| `gd/` | Terminal git diff viewer (Rust) with embedded neovim for syntax highlighting and full vim navigation. Supports working tree, staged, commit, and range diffs with line-level and word-level highlighting, virtual lines for deleted content, dual line numbers, and hunk/file navigation (`]c`/`[c`/`]f`/`[f`). Uses ratatui + crossterm for TUI, nvim `--embed` with `ext_linegrid` for rendering, and tree-sitter for syntax colors. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
 
 ## Useful Commands
 
