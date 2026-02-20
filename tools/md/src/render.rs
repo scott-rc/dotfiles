@@ -174,7 +174,26 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                             }
                             None => style.marker("```"),
                         };
-                        format!("{}\n{}\n{}", opening, highlighted, style.marker("```"))
+                        let marker_width = 2; // "↪ "
+                        let wrap_width = width.saturating_sub(marker_width);
+                        let wrapped = highlighted
+                            .lines()
+                            .flat_map(|line| {
+                                let segs = wrap_line_greedy(line, wrap_width)
+                                    .into_iter()
+                                    .flat_map(|l| wrap_line_for_display(&l, wrap_width))
+                                    .collect::<Vec<_>>();
+                                segs.into_iter().enumerate().map(|(i, s)| {
+                                    if i == 0 {
+                                        s
+                                    } else {
+                                        format!("{}{}", style.marker("↪ "), s)
+                                    }
+                                })
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        format!("{}\n{}\n{}", opening, wrapped, style.marker("```"))
                     };
 
                     code_block = None;
@@ -845,20 +864,40 @@ fn render_code_block_pretty(
         }
     };
 
-    // Content lines: │ code ... │
+    // Content lines: │ code ... │ (continuations get ↪ prefix)
+    let content_width = inner.saturating_sub(1); // space available after "│ "
+    let marker_width = 2; // "↪ "
+    let wrap_width = content_width.saturating_sub(marker_width);
     let content_lines: Vec<String> = highlighted
         .lines()
-        .map(|line| {
-            let vis_len = visible_length(line);
-            // 1 char for " " after │, pad to fill inner width
-            let pad = inner.saturating_sub(vis_len + 1);
-            format!(
-                "{} {}{}{}",
-                style.marker("│"),
-                line,
-                " ".repeat(pad),
-                style.marker("│")
-            )
+        .flat_map(|line| {
+            let wrapped = wrap_line_greedy(line, wrap_width)
+                .into_iter()
+                .flat_map(|l| wrap_line_for_display(&l, wrap_width))
+                .collect::<Vec<_>>();
+            wrapped.into_iter().enumerate().map(|(i, wline)| {
+                let vis_len = visible_length(&wline);
+                if i == 0 {
+                    let pad = content_width.saturating_sub(vis_len);
+                    format!(
+                        "{} {}{}{}",
+                        style.marker("│"),
+                        wline,
+                        " ".repeat(pad),
+                        style.marker("│")
+                    )
+                } else {
+                    let pad = content_width.saturating_sub(vis_len + marker_width);
+                    format!(
+                        "{} {}{}{}{}",
+                        style.marker("│"),
+                        style.marker("↪ "),
+                        wline,
+                        " ".repeat(pad),
+                        style.marker("│")
+                    )
+                }
+            })
         })
         .collect();
 
@@ -1032,6 +1071,8 @@ mod tests {
     rendering_fixture!(test_task_list, "task-list");
     rendering_fixture!(test_footnote, "footnote");
     rendering_fixture!(test_dangling_bracket, "dangling-bracket");
+    rendering_fixture!(test_code_block_long_line, "code-block-long-line");
+    rendering_fixture!(test_code_block_lang_long_line, "code-block-lang-long-line");
 
     // Group 1b: pretty rendering fixtures
     fn render_pretty(md: &str) -> String {
@@ -1062,6 +1103,8 @@ mod tests {
     pretty_fixture!(test_pretty_nested_list, "nested-list");
     pretty_fixture!(test_pretty_task_list, "task-list");
     pretty_fixture!(test_pretty_table, "table");
+    pretty_fixture!(test_pretty_code_block_long_line, "code-block-long-line");
+    pretty_fixture!(test_pretty_code_block_lang_long_line, "code-block-lang-long-line");
 
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {
