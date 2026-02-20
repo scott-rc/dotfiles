@@ -52,6 +52,7 @@ pub enum Mode {
 pub struct PagerState {
     pub lines: Vec<String>,
     pub top_line: usize,
+    pub is_plain: bool,
     pub search_query: String,
     pub search_matches: Vec<usize>,
     pub current_match: isize,
@@ -253,6 +254,7 @@ pub fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "y          Copy raw markdown",
         "e          Open in editor",
         "v          Open read-only",
+        "p          Toggle plain/pretty",
         "",
         "q          Quit",
         "? / Esc    Close help",
@@ -564,12 +566,12 @@ fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
         .status();
 }
 
-fn handle_resize(
+fn refresh_content(
     state: &mut PagerState,
-    on_resize: &mut Option<&mut dyn FnMut() -> String>,
+    on_rerender: &mut Option<&mut dyn FnMut(bool) -> String>,
 ) {
-    if let Some(resize_fn) = on_resize {
-        let new_content = resize_fn();
+    if let Some(rerender_fn) = on_rerender {
+        let new_content = rerender_fn(state.is_plain);
         let old_count = state.lines.len();
         state.lines = new_content.lines().map(String::from).collect();
         state.top_line = map_scroll_position(state.top_line, old_count, state.lines.len());
@@ -583,7 +585,8 @@ pub fn run_pager(
     content: &str,
     file_path: Option<&str>,
     raw_content: Option<&str>,
-    mut on_resize: Option<&mut dyn FnMut() -> String>,
+    plain: bool,
+    mut on_rerender: Option<&mut dyn FnMut(bool) -> String>,
 ) {
     let mut stdout = io::stdout();
 
@@ -597,6 +600,7 @@ pub fn run_pager(
     let mut state = PagerState {
         lines: content.lines().map(String::from).collect(),
         top_line: 0,
+        is_plain: plain,
         search_query: String::new(),
         search_matches: Vec::new(),
         current_match: -1,
@@ -623,7 +627,7 @@ pub fn run_pager(
                 let current_size = get_term_size();
                 if current_size != last_size {
                     last_size = current_size;
-                    handle_resize(&mut state, &mut on_resize);
+                    refresh_content(&mut state, &mut on_rerender);
                     render_screen(&mut stdout, &state);
                 }
                 continue;
@@ -634,7 +638,7 @@ pub fn run_pager(
         let key = match event {
             Event::Resize(_, _) => {
                 last_size = get_term_size();
-                handle_resize(&mut state, &mut on_resize);
+                refresh_content(&mut state, &mut on_rerender);
                 render_screen(&mut stdout, &state);
                 continue;
             }
@@ -665,6 +669,8 @@ pub fn run_pager(
         let half_page = content_height / 2;
         let max_top = max_scroll(state.lines.len(), content_height);
 
+        state.search_message.clear();
+
         match key {
             Key::Char('q') | Key::CtrlC => break,
             Key::Char('j') | Key::Down | Key::Enter => {
@@ -687,7 +693,6 @@ pub fn run_pager(
             }
             Key::Char('/') => {
                 state.mode = Mode::Search;
-                state.search_message.clear();
             }
             Key::Char('n') => {
                 if !state.search_matches.is_empty() {
@@ -731,6 +736,12 @@ pub fn run_pager(
                     state.search_message = "Copied raw markdown".to_string();
                 }
             }
+            Key::Char('p') => {
+                state.is_plain = !state.is_plain;
+                refresh_content(&mut state, &mut on_rerender);
+                let label = if state.is_plain { "plain" } else { "pretty" };
+                state.search_message = format!("Switched to {label} mode");
+            }
             Key::Char('v') | Key::Char('e') => {
                 if let Some(ref fp) = state.file_path {
                     let fp = fp.clone();
@@ -755,7 +766,6 @@ pub fn run_pager(
             _ => {}
         }
 
-        state.search_message.clear();
         render_screen(&mut stdout, &state);
     }
 
@@ -1029,6 +1039,7 @@ mod tests {
                 search_cursor: case.input.state.search_cursor,
                 search_message: case.input.state.search_message.clone(),
                 file_path: case.input.state.file_path.clone(),
+                is_plain: false,
                 raw_content: None,
             };
             let result =
@@ -1231,6 +1242,7 @@ mod tests {
             let mut state = PagerState {
                 lines: case.state.lines.clone(),
                 top_line: case.state.top_line,
+                is_plain: false,
                 search_query: case.state.search_query.clone(),
                 search_matches: case.state.search_matches.clone(),
                 current_match: case.state.current_match,
@@ -1469,13 +1481,14 @@ mod tests {
         );
     }
 
-    // ---- handle_resize ----
+    // ---- refresh_content ----
 
     #[test]
-    fn test_handle_resize_updates_content_and_scroll() {
+    fn test_refresh_content_updates_content_and_scroll() {
         let mut state = PagerState {
             lines: vec!["line1".into(), "line2".into(), "line3".into(), "line4".into()],
             top_line: 2,
+            is_plain: false,
             search_query: String::new(),
             search_matches: Vec::new(),
             current_match: -1,
@@ -1487,9 +1500,9 @@ mod tests {
             raw_content: None,
         };
 
-        let mut callback = || "a\nb\nc\nd\ne\nf\ng\nh".to_string();
-        let mut on_resize: Option<&mut dyn FnMut() -> String> = Some(&mut callback);
-        handle_resize(&mut state, &mut on_resize);
+        let mut callback = |_: bool| "a\nb\nc\nd\ne\nf\ng\nh".to_string();
+        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = Some(&mut callback);
+        refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.lines.len(), 8);
         // top_line=2, old_count=4, new_count=8 → ratio 2/3 * 7 ≈ 5
@@ -1497,10 +1510,11 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_resize_updates_search_matches() {
+    fn test_refresh_content_updates_search_matches() {
         let mut state = PagerState {
             lines: vec!["hello".into(), "world".into()],
             top_line: 0,
+            is_plain: false,
             search_query: "foo".to_string(),
             search_matches: Vec::new(),
             current_match: -1,
@@ -1512,18 +1526,19 @@ mod tests {
             raw_content: None,
         };
 
-        let mut callback = || "no match\nfoo bar\nanother\nfoo baz".to_string();
-        let mut on_resize: Option<&mut dyn FnMut() -> String> = Some(&mut callback);
-        handle_resize(&mut state, &mut on_resize);
+        let mut callback = |_: bool| "no match\nfoo bar\nanother\nfoo baz".to_string();
+        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = Some(&mut callback);
+        refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.search_matches, vec![1, 3]);
     }
 
     #[test]
-    fn test_handle_resize_no_callback() {
+    fn test_refresh_content_no_callback() {
         let mut state = PagerState {
             lines: vec!["unchanged".into()],
             top_line: 0,
+            is_plain: false,
             search_query: String::new(),
             search_matches: Vec::new(),
             current_match: -1,
@@ -1535,8 +1550,8 @@ mod tests {
             raw_content: None,
         };
 
-        let mut on_resize: Option<&mut dyn FnMut() -> String> = None;
-        handle_resize(&mut state, &mut on_resize);
+        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = None;
+        refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.lines, vec!["unchanged".to_string()]);
         assert_eq!(state.top_line, 0);

@@ -24,6 +24,10 @@ struct Args {
     #[arg(long)]
     no_color: bool,
 
+    /// Disable Unicode decorations; use raw markdown syntax
+    #[arg(short, long)]
+    plain: bool,
+
     /// Disable the built-in pager
     #[arg(long)]
     no_pager: bool,
@@ -71,7 +75,7 @@ fn main() {
     let args = Args::parse();
 
     let color = !args.no_color && io::stdout().is_terminal();
-    let style = Style::new(color);
+    let style = Style::new(color, !args.plain);
     let is_tty = io::stdout().is_terminal();
 
     // No file and stdin is a TTY → print usage
@@ -111,12 +115,17 @@ fn main() {
 
                     if should_page(no_pager, is_tty, content_lines, terminal_rows, true) {
                         let raw = input.clone();
-                        let mut on_resize = || render_centered(&input, &style, &args);
+                        let color = style.color;
+                        let mut on_rerender = |plain: bool| {
+                            let s = Style::new(color, !plain);
+                            render_centered(&input, &s, &args)
+                        };
                         run_pager(
                             &centered,
                             Some(selection),
                             Some(&raw),
-                            Some(&mut on_resize),
+                            args.plain,
+                            Some(&mut on_rerender),
                         );
                     } else {
                         println!("{centered}");
@@ -160,8 +169,18 @@ fn main() {
     {
         let fp = file_path.as_deref().unwrap();
         let raw = input.clone();
-        let mut on_resize = || render_centered(&input, &style, &args);
-        run_pager(&centered, Some(fp), Some(&raw), Some(&mut on_resize));
+        let color = style.color;
+        let mut on_rerender = |plain: bool| {
+            let s = Style::new(color, !plain);
+            render_centered(&input, &s, &args)
+        };
+        run_pager(
+            &centered,
+            Some(fp),
+            Some(&raw),
+            args.plain,
+            Some(&mut on_rerender),
+        );
     } else {
         print!("{centered}");
     }

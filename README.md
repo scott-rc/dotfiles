@@ -24,7 +24,7 @@ The main setup script that:
 6. Configures iTerm2 preferences via `defaults write`
 7. Installs Nix package manager if missing
 8. Sets up Rust toolchain and wasm32-wasip1 target via rustup
-9. Builds CLI tools (md) via Cargo
+9. Builds CLI tools (md, gd) via Cargo
 10. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
 ### Brewfile
@@ -126,6 +126,30 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Ctrl+R` | Resize mode |
 | `Cmd+Ctrl+M` | Move mode |
 
+#### Neovim Git Diff
+
+Global diff mode toggle with inline hunk preview, stage/unstage, and file navigation. Uses gitsigns + neo-tree git_status panel.
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+G` / `Ctrl+G` | Focus/toggle git changes panel (enables/disables diff highlights) |
+| `Space gd` | Toggle diff mode (highlights + panel) |
+| `Space gc` | Changed files vs base branch |
+| `Space gw` | Working tree diff (unstaged changes) |
+| `Space gi` | Staged changes (vs HEAD) |
+| `Space gB` | Diff against branch (telescope picker) |
+| `]c` / `[c` | Next/prev hunk |
+| `]C` / `[C` | Last/first hunk |
+| `]f` / `[f` | Next/prev changed file |
+| `Space gs` | Stage hunk (visual: stage selected lines) |
+| `Space gu` | Undo stage hunk |
+| `Space gS` | Stage entire buffer |
+| `Space gr` | Reset hunk (visual: reset selected lines) |
+| `Space gR` | Reset entire buffer |
+| `Space gp` | Preview hunk inline (shows deleted lines) |
+| `Space gb` | Blame line |
+| `ih` | Hunk text object (e.g., `dih`, `vih`, `yih`) |
+
 ### Workflow: Ghostty Tabs + Zellij Sessions
 
 Each Ghostty tab runs its own Zellij session for a repo. Zellij tabs represent worktrees within a repo, and panes are free-form within each worktree tab.
@@ -150,7 +174,8 @@ Custom CLI tools.
 
 | Tool | Description |
 |------|-------------|
-| `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, clipboard copy, and `$EDITOR` integration. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
+| `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
+| `gd/` | Terminal git diff viewer (Rust) with embedded neovim for syntax highlighting and full vim editing. Uses ratatui + crossterm for TUI, nvim `--embed` with `ext_linegrid` for rendering, and tree-sitter for syntax colors. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
 
 ## Useful Commands
 

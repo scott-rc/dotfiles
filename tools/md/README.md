@@ -17,6 +17,7 @@ md [OPTIONS] [FILE]
 | Flag | Description |
 |------|-------------|
 | `-w`, `--width <N>` | Set render width (default: terminal width, max 100) |
+| `-p`, `--plain` | Disable Unicode decorations; use raw markdown syntax |
 | `--no-color` | Disable ANSI color output |
 | `--no-pager` | Disable the built-in pager |
 
@@ -25,6 +26,7 @@ When output fits in the terminal or stdout is not a TTY, the pager is skipped au
 ## Features
 
 - **Markdown rendering** — headings, bold, italic, strikethrough, code spans, code blocks, blockquotes, lists (ordered/unordered/nested/task lists), tables with alignment, horizontal rules, links, images, footnotes
+- **Pretty mode** (default) — Unicode decorations: box-drawing borders on code blocks and tables, `•◦▪` bullets, `☑☐` task markers, `│` blockquotes, `═`/`─` heading underlines, full-width `─` horizontal rules, hidden inline delimiters (bold/italic/strikethrough/code) when color is on, clean link format. Disable with `--plain`
 - **YAML frontmatter** — parsed and rendered as a key-value table above the body
 - **Syntax highlighting** — fenced code blocks highlighted using the GitHub Dark theme (via syntect)
 - **Word wrapping** — ANSI-aware with widow prevention (avoids leaving a single word on the last line)
@@ -67,6 +69,12 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 | `e` | Open in `$EDITOR` (jumps to approximate line) |
 | `v` | Open in `$EDITOR` read-only (jumps to approximate line) |
 
+### Display
+
+| Key | Action |
+|-----|--------|
+| `p` | Toggle plain/pretty mode |
+
 ### Help
 
 | Key | Action |
@@ -85,7 +93,7 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 |--------|---------|
 | `main.rs` | CLI argument parsing (clap), input routing (file/stdin/directory), width calculation, centering |
 | `render.rs` | Markdown-to-styled-text conversion using pulldown-cmark; handles all block and inline elements |
-| `style.rs` | `Style` struct with color/plain-text formatting methods; GitHub Dark palette constants |
+| `style.rs` | `Style` struct with color/pretty/plain-text formatting methods; GitHub Dark palette constants |
 | `wrap.rs` | ANSI-aware word wrapping, `strip_ansi()`, `visible_length()`, `split_ansi()`, display wrapping |
 | `pager.rs` | Interactive pager with alternate screen, search highlighting, status bar, clipboard, editor launch |
 | `browse.rs` | Directory browsing via `find` piped to `fzf`, spawned through `$SHELL` |
@@ -101,5 +109,6 @@ cargo test
 Three fixture systems:
 
 - **Rendering** — `.md` + `.expected.txt` pairs in `fixtures/rendering/`, registered via `rendering_fixture!` / `frontmatter_fixture!` macros in `render.rs` tests. Width 60, no color.
+- **Pretty** — `.md` + `.expected.txt` pairs in `fixtures/pretty/`, registered via `pretty_fixture!` macro. Width 60, no color, pretty mode enabled.
 - **JSON** — per-module fixtures in `fixtures/{module}/` (e.g., `fixtures/pager/`), loaded via `include_str!()` with serde deserialization.
 - **Integration** — `tests/integration.rs` spawns the binary via `CARGO_BIN_EXE_md` and uses the `run_md()` helper.
