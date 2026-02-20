@@ -60,8 +60,20 @@ function ls --wraps=lsd --description 'lsd with dimmed merged worktrees'
         set -a wt_branches $cur_branch
     end
 
-    # Check each worktree branch for merge status
+    # Detect orphaned directories (on disk but not in git worktree list)
+    set -l known_basenames
+    for d in $wt_dirs
+        set -a known_basenames (basename $d)
+    end
     set -l merged_dirs
+    for entry in $resolved/*/
+        set -l entry_name (basename $entry)
+        if not contains $entry_name $known_basenames
+            set -a merged_dirs $entry_name
+        end
+    end
+
+    # Check each worktree branch for merge status
     for i in (seq (count $wt_dirs))
         set -l dir_name (basename $wt_dirs[$i])
         set -l branch $wt_branches[$i]
