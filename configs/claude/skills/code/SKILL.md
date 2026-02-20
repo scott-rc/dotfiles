@@ -62,4 +62,5 @@ Users often request multiple operations together. Handle these as follows:
 - [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, testing, and string conventions
 - [typescript-guidelines.md](typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
+- [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup

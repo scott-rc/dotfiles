@@ -10,11 +10,13 @@ Load the user's coding style preferences, write code, and verify it matches.
 
 3. **Read language-specific preferences** (if available):
    - **TypeScript**: [typescript-guidelines.md](typescript-guidelines.md)
+   - **Go**: [go-guidelines.md](go-guidelines.md)
+   - **Bash / Fish**: [shell-guidelines.md](shell-guidelines.md)
 
    If no file exists for the target language, use only the general guidelines.
 
 4. **Write the code**: Apply the loaded preferences. When they conflict with existing project conventions (linter config, formatter, existing patterns), SHOULD follow project conventions.
 
-5. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. If any violation is found, fix it and re-check. Repeat until all items pass.
+5. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Repeat until all items pass.
 
 6. **Present results**: Present the code to the user with a summary of which preferences were applied and any conflicts resolved.

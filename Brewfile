@@ -5,6 +5,7 @@
 brew "fish"
 
 # Shell tools
+brew "shellcheck"
 brew "atuin"
 brew "bat"
 brew "bottom"

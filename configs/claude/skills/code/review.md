@@ -11,6 +11,8 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 3. **Read language-specific preferences** (if available):
    - **TypeScript**: [typescript-guidelines.md](typescript-guidelines.md)
+   - **Go**: [go-guidelines.md](go-guidelines.md)
+   - **Bash / Fish**: [shell-guidelines.md](shell-guidelines.md)
 
    If no file exists for the target language, use only the general guidelines.
 
