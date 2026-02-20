@@ -1,5 +1,3 @@
-use crate::wrap::{split_ansi, strip_ansi};
-
 // GitHub Dark Default palette
 const HEADING_BLUE: u32 = 0x79c0ff;
 const FOREGROUND: u32 = 0xe6edf3;
@@ -32,35 +30,23 @@ fn strikethrough(s: &str) -> String {
     format!("\x1b[9m{s}\x1b[29m")
 }
 
-/// Uppercase visible text while preserving ANSI codes.
-fn ansi_upper_case(s: &str) -> String {
-    split_ansi(s)
-        .into_iter()
-        .map(|seg| {
-            if seg.starts_with('\x1b') {
-                seg.to_string()
-            } else {
-                seg.to_uppercase()
-            }
-        })
-        .collect()
-}
-
 /// Style configuration. When `color` is false, all methods return unstyled text.
+/// When `pretty` is true, Unicode decorations replace ASCII markdown syntax.
 pub struct Style {
     pub color: bool,
+    pub pretty: bool,
 }
 
 impl Style {
-    pub fn new(color: bool) -> Self {
-        Self { color }
+    pub fn new(color: bool, pretty: bool) -> Self {
+        Self { color, pretty }
     }
 
     pub fn h1(&self, s: &str) -> String {
         if self.color {
-            bold(&rgb24(&ansi_upper_case(s), HEADING_BLUE))
+            bold(&rgb24(s, HEADING_BLUE))
         } else {
-            strip_ansi(s).to_uppercase()
+            s.to_string()
         }
     }
 
@@ -137,7 +123,9 @@ impl Style {
     }
 
     pub fn code_span(&self, s: &str) -> String {
-        if self.color {
+        if self.color && self.pretty {
+            rgb24(s, CODE_ORANGE)
+        } else if self.color {
             format!(
                 "{}{}{}",
                 rgb24("`", COMMENT_GRAY),
@@ -269,32 +257,24 @@ mod tests {
     }
 
     #[test]
-    fn test_h1_bold_blue_uppercase() {
+    fn test_h1_bold_blue() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h1("hello");
         assert!(
             result.contains(&rgb24_sequence(blue)),
             "h1 should contain HEADING_BLUE"
         );
         assert!(result.contains("\x1b[1m"), "h1 should contain bold");
-        assert_eq!(strip_ansi(&result), "HELLO");
-    }
-
-    #[test]
-    fn test_h1_preserves_ansi_while_uppercasing() {
-        let style = Style::new(true);
-        let inner = "\x1b[31mred\x1b[0m text";
-        let result = style.h1(inner);
-        assert_eq!(strip_ansi(&result), "RED TEXT");
+        assert_eq!(strip_ansi(&result), "hello");
     }
 
     #[test]
     fn test_h2_bold_blue_no_uppercase() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h2("hello");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(result.contains("\x1b[1m"));
@@ -305,7 +285,7 @@ mod tests {
     fn test_h3_bold_blue() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h3("sub");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(result.contains("\x1b[1m"));
@@ -315,7 +295,7 @@ mod tests {
     fn test_h4_blue_no_bold() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h4("sub");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(!result.contains("\x1b[1m"));
@@ -325,7 +305,7 @@ mod tests {
     fn test_h5_blue_no_bold() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h5("sub");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(!result.contains("\x1b[1m"));
@@ -335,7 +315,7 @@ mod tests {
     fn test_h6_blue_no_bold() {
         let palette = load_palette();
         let blue = parse_hex(&palette["HEADING_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.h6("sub");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(!result.contains("\x1b[1m"));
@@ -345,7 +325,7 @@ mod tests {
     fn test_marker_comment_gray() {
         let palette = load_palette();
         let gray = parse_hex(&palette["COMMENT_GRAY"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.marker("#");
         assert!(result.contains(&rgb24_sequence(gray)));
         assert_eq!(strip_ansi(&result), "#");
@@ -355,7 +335,7 @@ mod tests {
     fn test_list_marker_blue() {
         let palette = load_palette();
         let blue = parse_hex(&palette["LIST_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.list_marker("-");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert_eq!(strip_ansi(&result), "-");
@@ -365,7 +345,7 @@ mod tests {
     fn test_strong_style_bold_foreground() {
         let palette = load_palette();
         let fg = parse_hex(&palette["FOREGROUND"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.strong_style("bold");
         assert!(result.contains(&rgb24_sequence(fg)));
         assert!(result.contains("\x1b[1m"));
@@ -376,7 +356,7 @@ mod tests {
     fn test_em_style_italic_foreground() {
         let palette = load_palette();
         let fg = parse_hex(&palette["FOREGROUND"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.em_style("italic");
         assert!(result.contains(&rgb24_sequence(fg)));
         assert!(result.contains("\x1b[3m"));
@@ -388,7 +368,7 @@ mod tests {
         let palette = load_palette();
         let gray = parse_hex(&palette["COMMENT_GRAY"]);
         let orange = parse_hex(&palette["CODE_ORANGE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.code_span("foo");
         assert!(result.contains(&rgb24_sequence(gray)));
         assert!(result.contains(&rgb24_sequence(orange)));
@@ -399,7 +379,7 @@ mod tests {
     fn test_code_language_italic_gray() {
         let palette = load_palette();
         let gray = parse_hex(&palette["COMMENT_GRAY"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.code_language("typescript");
         assert!(result.contains(&rgb24_sequence(gray)));
         assert!(result.contains("\x1b[3m"));
@@ -410,7 +390,7 @@ mod tests {
     fn test_link_text_underline_foreground() {
         let palette = load_palette();
         let fg = parse_hex(&palette["FOREGROUND"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.link_text("example");
         assert!(result.contains(&rgb24_sequence(fg)));
         assert!(result.contains("\x1b[4m"));
@@ -421,7 +401,7 @@ mod tests {
     fn test_link_url_italic_underline_blue() {
         let palette = load_palette();
         let blue = parse_hex(&palette["LINK_BLUE"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.link_url("https://example.com");
         assert!(result.contains(&rgb24_sequence(blue)));
         assert!(result.contains("\x1b[3m"));
@@ -433,7 +413,7 @@ mod tests {
     fn test_blockquote_text_green() {
         let palette = load_palette();
         let green = parse_hex(&palette["QUOTE_GREEN"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.blockquote_text("quoted");
         assert!(result.contains(&rgb24_sequence(green)));
         assert_eq!(strip_ansi(&result), "quoted");
@@ -443,7 +423,7 @@ mod tests {
     fn test_hr_style_gray() {
         let palette = load_palette();
         let gray = parse_hex(&palette["COMMENT_GRAY"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.hr_style("---");
         assert!(result.contains(&rgb24_sequence(gray)));
         assert_eq!(strip_ansi(&result), "---");
@@ -453,7 +433,7 @@ mod tests {
     fn test_frontmatter_key_gray() {
         let palette = load_palette();
         let gray = parse_hex(&palette["COMMENT_GRAY"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.frontmatter_key("title");
         assert!(result.contains(&rgb24_sequence(gray)));
         assert_eq!(strip_ansi(&result), "title");
@@ -463,7 +443,7 @@ mod tests {
     fn test_frontmatter_value_foreground() {
         let palette = load_palette();
         let fg = parse_hex(&palette["FOREGROUND"]);
-        let style = Style::new(true);
+        let style = Style::new(true, false);
         let result = style.frontmatter_value("My Doc");
         assert!(result.contains(&rgb24_sequence(fg)));
         assert_eq!(strip_ansi(&result), "My Doc");
@@ -471,8 +451,8 @@ mod tests {
 
     #[test]
     fn test_no_color_mode() {
-        let style = Style::new(false);
-        assert_eq!(style.h1("hello"), "HELLO");
+        let style = Style::new(false, false);
+        assert_eq!(style.h1("hello"), "hello");
         assert_eq!(style.h2("hello"), "hello");
         assert_eq!(style.marker("#"), "#");
         assert_eq!(style.code_span("foo"), "`foo`");

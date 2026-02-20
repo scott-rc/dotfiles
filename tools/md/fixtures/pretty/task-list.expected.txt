@@ -1,0 +1,3 @@
+• ☑ Buy groceries
+• ☐ Clean the house
+• ☑ Write code

@@ -51,7 +51,7 @@ fn test_width_constrains_output() {
     let input =
         "The quick brown fox jumps over the lazy dog and continues running through the forest.";
     let (stdout, _, code) = run_md(
-        &["--no-color", "--no-pager", "--width", "40", "-"],
+        &["--no-color", "--no-pager", "--plain", "--width", "40", "-"],
         Some(input),
     );
     assert_eq!(code, 0);
@@ -79,7 +79,7 @@ fn test_empty_file_exits_0() {
 fn test_stdin_pipe() {
     let (stdout, _, code) = run_md(&["--no-color", "--no-pager", "-"], Some("# Hello\n"));
     assert_eq!(code, 0);
-    assert!(stdout.contains("HELLO"), "H1 should uppercase: {}", stdout);
+    assert!(stdout.contains("Hello"), "H1 should render: {}", stdout);
 }
 
 // ── Rendering fixture tests (mirror run_compat_tests.sh) ──
@@ -106,7 +106,7 @@ fn test_rendering_fixtures() {
         let expected = std::fs::read_to_string(&expected_path).unwrap();
 
         let (stdout, stderr, code) = run_md(
-            &["--no-color", "--no-pager", "--width", "60", "-"],
+            &["--no-color", "--no-pager", "--plain", "--width", "60", "-"],
             Some(&input),
         );
 
@@ -123,6 +123,65 @@ fn test_rendering_fixtures() {
     assert!(
         tested >= 28,
         "expected at least 28 rendering fixtures, found {tested}"
+    );
+}
+
+#[test]
+fn test_pretty_produces_unicode() {
+    let input = "# Heading\n\n- item\n\n> quote\n\n---\n\n- [x] done\n";
+    let (stdout, _, code) = run_md(
+        &["--no-color", "--no-pager", "-"],
+        Some(input),
+    );
+    assert_eq!(code, 0);
+    assert!(stdout.contains('═'), "h1 should have ═ underline: {stdout}");
+    assert!(stdout.contains('•'), "bullet should be •: {stdout}");
+    assert!(stdout.contains('│'), "blockquote should use │: {stdout}");
+    assert!(stdout.contains('─'), "hr should use ─: {stdout}");
+    assert!(stdout.contains('☑'), "checked task should use ☑: {stdout}");
+    assert!(!stdout.contains("**"), "pretty should not have ** delimiters: {stdout}");
+    assert!(!stdout.contains("~~"), "pretty should not have ~~ delimiters: {stdout}");
+}
+
+#[test]
+fn test_pretty_fixtures() {
+    let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/pretty");
+    let mut tested = 0;
+
+    for entry in std::fs::read_dir(&fixture_dir).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.extension().map_or(true, |e| e != "md") {
+            continue;
+        }
+
+        let stem = path.file_stem().unwrap().to_str().unwrap();
+        let expected_path = fixture_dir.join(format!("{stem}.expected.txt"));
+        if !expected_path.exists() {
+            continue;
+        }
+
+        let input = std::fs::read_to_string(&path).unwrap();
+        let expected = std::fs::read_to_string(&expected_path).unwrap();
+
+        let (stdout, stderr, code) = run_md(
+            &["--no-color", "--no-pager", "--width", "60", "-"],
+            Some(&input),
+        );
+
+        assert_eq!(code, 0, "pretty fixture {stem} exited with {code}: {stderr}");
+        assert_eq!(
+            stdout.trim_end(),
+            expected,
+            "pretty fixture {stem} output mismatch"
+        );
+
+        tested += 1;
+    }
+
+    assert!(
+        tested >= 10,
+        "expected at least 10 pretty fixtures, found {tested}"
     );
 }
 

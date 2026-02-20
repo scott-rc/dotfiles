@@ -165,11 +165,17 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     let lang = cb.lang.clone();
                     let highlighted = highlight_code(&content, lang.as_deref(), style.color);
 
-                    let opening = match &lang {
-                        Some(l) => format!("{}{}", style.marker("```"), style.code_language(l)),
-                        None => style.marker("```"),
+                    let block = if style.pretty {
+                        render_code_block_pretty(&highlighted, lang.as_deref(), width, style)
+                    } else {
+                        let opening = match &lang {
+                            Some(l) => {
+                                format!("{}{}", style.marker("```"), style.code_language(l))
+                            }
+                            None => style.marker("```"),
+                        };
+                        format!("{}\n{}\n{}", opening, highlighted, style.marker("```"))
                     };
-                    let block = format!("{}\n{}\n{}", opening, highlighted, style.marker("```"));
 
                     code_block = None;
                     push_block(
@@ -192,10 +198,25 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::End(TagEnd::Heading(_)) => {
                 let level = heading_level.take().unwrap_or(HeadingLevel::H1);
-                let level_num = heading_level_num(level);
-                let prefix = style.marker(&"#".repeat(level_num));
                 let styled_text = apply_heading_style(style, level, &inline_buffer);
-                let block = format!("{prefix} {styled_text}");
+                let heading_line =
+                    if style.pretty && matches!(level, HeadingLevel::H1 | HeadingLevel::H2) {
+                        styled_text
+                    } else {
+                        let level_num = heading_level_num(level);
+                        let prefix = style.marker(&"#".repeat(level_num));
+                        format!("{prefix} {styled_text}")
+                    };
+                let block = if style.pretty
+                    && matches!(level, HeadingLevel::H1 | HeadingLevel::H2)
+                {
+                    let vis_len = visible_length(&heading_line);
+                    let ch = if matches!(level, HeadingLevel::H1) { "═" } else { "─" };
+                    let underline = style.marker(&ch.repeat(vis_len));
+                    format!("{heading_line}\n{underline}")
+                } else {
+                    heading_line
+                };
                 inline_buffer.clear();
                 push_block(
                     &mut output_parts,
@@ -262,45 +283,67 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 }
             }
             Event::Start(Tag::Strong) => {
-                inline_buffer.push_str(&style.marker("**"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("**"));
+                }
                 in_strong = true;
             }
             Event::End(TagEnd::Strong) => {
-                inline_buffer.push_str(&style.marker("**"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("**"));
+                }
                 in_strong = false;
             }
             Event::Start(Tag::Emphasis) => {
-                inline_buffer.push_str(&style.marker("*"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("*"));
+                }
                 in_emphasis = true;
             }
             Event::End(TagEnd::Emphasis) => {
-                inline_buffer.push_str(&style.marker("*"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("*"));
+                }
                 in_emphasis = false;
             }
             Event::Start(Tag::Strikethrough) => {
-                inline_buffer.push_str(&style.marker("~~"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("~~"));
+                }
                 in_strikethrough = true;
             }
             Event::End(TagEnd::Strikethrough) => {
-                inline_buffer.push_str(&style.marker("~~"));
+                if !(style.pretty && style.color) {
+                    inline_buffer.push_str(&style.marker("~~"));
+                }
                 in_strikethrough = false;
             }
             Event::Code(text) => {
                 inline_buffer.push_str(&style.code_span(&text));
             }
             Event::Start(Tag::Link { dest_url, .. }) => {
-                inline_buffer.push_str(&style.marker("["));
+                if !style.pretty {
+                    inline_buffer.push_str(&style.marker("["));
+                }
                 link_dest.push(dest_url.to_string());
             }
             Event::End(TagEnd::Link) => {
                 let dest = link_dest.pop().unwrap_or_default();
-                let _ = write!(
-                    inline_buffer,
-                    "{}{}{}",
-                    style.marker("]("),
-                    style.link_url(&dest),
-                    style.marker(")")
-                );
+                if style.pretty {
+                    let _ = write!(
+                        inline_buffer,
+                        " ({})",
+                        style.link_url(&dest),
+                    );
+                } else {
+                    let _ = write!(
+                        inline_buffer,
+                        "{}{}{}",
+                        style.marker("]("),
+                        style.link_url(&dest),
+                        style.marker(")")
+                    );
+                }
             }
             Event::Start(Tag::CodeBlock(kind)) => {
                 let lang = match kind {
@@ -375,10 +418,11 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 blockquote_depth = blockquote_depth.saturating_sub(1);
                 if let Some(inner_parts) = blockquote_buffer.pop() {
                     let inner = inner_parts.join("\n\n");
+                    let bq_marker = if style.pretty { "│" } else { ">" };
                     let prefixed: String = inner
                         .lines()
                         .map(|line| {
-                            format!("{} {}", style.marker(">"), style.blockquote_text(line))
+                            format!("{} {}", style.marker(bq_marker), style.blockquote_text(line))
                         })
                         .collect::<Vec<_>>()
                         .join("\n");
@@ -392,7 +436,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 }
             }
             Event::Rule => {
-                let block = style.hr_style("---");
+                let hr_text = if style.pretty {
+                    "─".repeat(width)
+                } else {
+                    "---".to_string()
+                };
+                let block = style.hr_style(&hr_text);
                 push_block(
                     &mut output_parts,
                     &mut list_stack,
@@ -491,7 +540,9 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 }
             }
             Event::TaskListMarker(checked) => {
-                let marker = if checked {
+                let marker = if style.pretty {
+                    if checked { style.task_marker("☑") } else { style.task_marker("☐") }
+                } else if checked {
                     style.task_marker("[x]")
                 } else {
                     style.task_marker("[ ]")
@@ -525,7 +576,12 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
 
     // Render footnote definitions at the bottom
     if !footnotes.is_empty() {
-        output_parts.push(style.hr_style("---"));
+        let fn_hr = if style.pretty {
+            "─".repeat(width)
+        } else {
+            "---".to_string()
+        };
+        output_parts.push(style.hr_style(&fn_hr));
         for (label, body_parts) in &footnotes {
             let num = footnote_labels
                 .iter()
@@ -654,29 +710,44 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
         shrink_columns(&mut col_widths, width);
     }
 
-    // Build separator line with alignment markers
-    let separator_line = || -> String {
+    let pipe = if style.pretty { "│" } else { "|" };
+    let dash = if style.pretty { "─" } else { "-" };
+
+    // Build a horizontal border line: left + segments + right
+    let border_line = |left: &str, mid: &str, right: &str| -> String {
         let segments: Vec<String> = col_widths
             .iter()
-            .enumerate()
-            .map(|(i, &w)| {
-                let dashes = w + 2; // padding on each side
-                match table.alignments.get(i) {
-                    Some(Alignment::Left) => format!(":{}|", "-".repeat(dashes - 1)),
-                    Some(Alignment::Center) => {
-                        format!(":{}:|", "-".repeat(dashes.saturating_sub(2)))
-                    }
-                    Some(Alignment::Right) => format!("{}:|", "-".repeat(dashes - 1)),
-                    _ => format!("{}|", "-".repeat(dashes)),
-                }
-            })
+            .map(|&w| dash.repeat(w + 2))
             .collect();
-        style.table_border(&format!("|{}", segments.join("")))
+        style.table_border(&format!("{}{}{}", left, segments.join(mid), right))
+    };
+
+    // Build separator line (between head and body)
+    let separator_line = || -> String {
+        if style.pretty {
+            border_line("├", "┼", "┤")
+        } else {
+            let segments: Vec<String> = col_widths
+                .iter()
+                .enumerate()
+                .map(|(i, &w)| {
+                    let dashes = w + 2;
+                    match table.alignments.get(i) {
+                        Some(Alignment::Left) => format!(":{}{pipe}", "-".repeat(dashes - 1)),
+                        Some(Alignment::Center) => {
+                            format!(":{}:{pipe}", "-".repeat(dashes.saturating_sub(2)))
+                        }
+                        Some(Alignment::Right) => format!("{}:{pipe}", "-".repeat(dashes - 1)),
+                        _ => format!("{}{pipe}", "-".repeat(dashes)),
+                    }
+                })
+                .collect();
+            style.table_border(&format!("{pipe}{}", segments.join("")))
+        }
     };
 
     // Render a row of cells, wrapping content into multiple visual lines if needed.
     let format_row = |cells: &[String], bold_cells: bool| -> Vec<String> {
-        // Wrap each cell
         let wrapped: Vec<Vec<String>> = cells
             .iter()
             .enumerate()
@@ -685,7 +756,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             .collect();
 
         let row_height = wrapped.iter().map(std::vec::Vec::len).max().unwrap_or(1);
-        let sep = format!(" {} ", style.table_border("|"));
+        let sep = format!(" {} ", style.table_border(pipe));
 
         let mut row_lines = Vec::new();
         for line_idx in 0..row_height {
@@ -718,21 +789,90 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
             }
             row_lines.push(format!(
                 "{} {} {}",
-                style.table_border("|"),
+                style.table_border(pipe),
                 parts.join(&sep),
-                style.table_border("|")
+                style.table_border(pipe)
             ));
         }
         row_lines
     };
 
     let mut lines = Vec::new();
+    if style.pretty {
+        lines.push(border_line("┌", "┬", "┐"));
+    }
     lines.extend(format_row(&table.head_cells, true));
     lines.push(separator_line());
     for row in &table.rows {
         lines.extend(format_row(row, false));
     }
+    if style.pretty {
+        lines.push(border_line("└", "┴", "┘"));
+    }
 
+    lines.join("\n")
+}
+
+fn render_code_block_pretty(
+    highlighted: &str,
+    lang: Option<&str>,
+    width: usize,
+    style: &Style,
+) -> String {
+    // inner_width = width minus the two border chars (╭/│/╰ and ╮/│/╯)
+    let inner = width.saturating_sub(2);
+
+    // Top border: ╭─ lang ───...╮ or ╭───...╮
+    let top = match lang {
+        Some(l) => {
+            // "─ {lang} " then fill with ─
+            let label_vis = 2 + l.len() + 1; // "─ " + lang + " "
+            let fill = inner.saturating_sub(label_vis);
+            format!(
+                "{}{}{}{}",
+                style.marker("╭"),
+                style.marker(&format!("─ ")),
+                style.code_language(&format!("{} ", l)),
+                style.marker(&format!("{}╮", "─".repeat(fill)))
+            )
+        }
+        None => {
+            format!(
+                "{}{}",
+                style.marker(&format!("╭{}", "─".repeat(inner))),
+                style.marker("╮")
+            )
+        }
+    };
+
+    // Content lines: │ code ... │
+    let content_lines: Vec<String> = highlighted
+        .lines()
+        .map(|line| {
+            let vis_len = visible_length(line);
+            // 1 char for " " after │, pad to fill inner width
+            let pad = inner.saturating_sub(vis_len + 1);
+            format!(
+                "{} {}{}{}",
+                style.marker("│"),
+                line,
+                " ".repeat(pad),
+                style.marker("│")
+            )
+        })
+        .collect();
+
+    // Bottom border: ╰───...╯
+    let bottom = format!(
+        "{}{}{}",
+        style.marker("╰"),
+        style.marker(&"─".repeat(inner)),
+        style.marker("╯")
+    );
+
+    let mut lines = vec![top];
+    lines.extend(content_lines);
+    lines.push(bottom);
     lines.join("\n")
 }
 
@@ -766,11 +906,15 @@ fn push_block(
     }
 }
 
+const PRETTY_BULLETS: [&str; 3] = ["•", "◦", "▪"];
+
 fn make_list_marker(ctx: &mut ListContext, style: &Style) -> String {
     if ctx.ordered {
         let m = style.list_marker(&format!("{}.", ctx.next_number));
         ctx.next_number += 1;
         m
+    } else if style.pretty {
+        style.list_marker(PRETTY_BULLETS[ctx.depth % PRETTY_BULLETS.len()])
     } else {
         style.list_marker("-")
     }
@@ -828,12 +972,12 @@ mod tests {
     const WIDTH: usize = 60;
 
     fn render_plain(md: &str) -> String {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         render_tokens(md, WIDTH, &style)
     }
 
     fn render_md_plain(md: &str) -> String {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         render_markdown(md, WIDTH, &style)
     }
 
@@ -889,6 +1033,36 @@ mod tests {
     rendering_fixture!(test_footnote, "footnote");
     rendering_fixture!(test_dangling_bracket, "dangling-bracket");
 
+    // Group 1b: pretty rendering fixtures
+    fn render_pretty(md: &str) -> String {
+        let style = Style::new(false, true);
+        render_tokens(md, WIDTH, &style)
+    }
+
+    macro_rules! pretty_fixture {
+        ($name:ident, $file:expr) => {
+            #[test]
+            fn $name() {
+                let input = include_str!(concat!("../fixtures/pretty/", $file, ".md"));
+                let expected =
+                    include_str!(concat!("../fixtures/pretty/", $file, ".expected.txt"));
+                let result = render_pretty(input);
+                assert_eq!(result, expected, "pretty fixture: {}", $file);
+            }
+        };
+    }
+
+    pretty_fixture!(test_pretty_heading_h1, "heading-h1");
+    pretty_fixture!(test_pretty_heading_h2, "heading-h2");
+    pretty_fixture!(test_pretty_code_block_lang, "code-block-lang");
+    pretty_fixture!(test_pretty_code_block_plain, "code-block-plain");
+    pretty_fixture!(test_pretty_blockquote, "blockquote");
+    pretty_fixture!(test_pretty_hr, "hr");
+    pretty_fixture!(test_pretty_unordered_list, "unordered-list");
+    pretty_fixture!(test_pretty_nested_list, "nested-list");
+    pretty_fixture!(test_pretty_task_list, "task-list");
+    pretty_fixture!(test_pretty_table, "table");
+
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {
         ($name:ident, $file:expr) => {
@@ -915,7 +1089,7 @@ mod tests {
     // Group 4: render_frontmatter unit tests
     #[test]
     fn test_render_frontmatter_formats_key_value() {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let mut attrs = IndexMap::new();
         attrs.insert("title".into(), serde_yaml::Value::String("Hello".into()));
         let result = render_frontmatter(&attrs, WIDTH, &style);
@@ -925,7 +1099,7 @@ mod tests {
 
     #[test]
     fn test_render_frontmatter_aligns_keys() {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let mut attrs = IndexMap::new();
         attrs.insert("a".into(), serde_yaml::Value::String("short".into()));
         attrs.insert("longer".into(), serde_yaml::Value::String("val".into()));
@@ -940,7 +1114,7 @@ mod tests {
 
     #[test]
     fn test_render_frontmatter_joins_arrays() {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let mut attrs = IndexMap::new();
         attrs.insert(
             "tags".into(),
@@ -959,7 +1133,7 @@ mod tests {
 
     #[test]
     fn test_render_frontmatter_empty_map() {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let attrs = IndexMap::new();
         let result = render_frontmatter(&attrs, WIDTH, &style);
         assert_eq!(result, "");
@@ -967,7 +1141,7 @@ mod tests {
 
     #[test]
     fn test_render_frontmatter_long_values_wrap() {
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let mut attrs = IndexMap::new();
         let long_value = "word ".repeat(30);
         attrs.insert(
@@ -988,7 +1162,7 @@ mod tests {
 
     #[test]
     fn test_wrap_cell_preserves_ansi() {
-        let styled = Style::new(true).code_span("done");
+        let styled = Style::new(true, false).code_span("done");
         // Force wrapping by using a narrow width
         let result = wrap_cell(&styled, 4);
         let joined = result.join("");
@@ -1114,7 +1288,7 @@ mod tests {
         for md in cases {
             for w in 20..120 {
                 for color in [false, true] {
-                    let style = Style::new(color);
+                    let style = Style::new(color, false);
                     let result = render_tokens(md, w, &style);
                     for (i, line) in result.lines().enumerate() {
                         let vis = strip_ansi(line).trim().to_string();
@@ -1144,7 +1318,7 @@ mod tests {
     #[test]
     fn test_loose_list_wraps() {
         let md = "- When given a directory, it uses `find` piped to `fzf` (via `$SHELL`) to pick a `.md` file and render it.\n\n- Second\n";
-        let style = Style::new(false);
+        let style = Style::new(false, false);
         let result = render_tokens(md, 50, &style);
         // Should have list marker
         assert!(result.starts_with("- "), "should start with list marker: {result:?}");
@@ -1160,7 +1334,7 @@ mod tests {
         let md = "- Uses `find` + `fzf` (via `$SHELL`) to pick a file\n\n- Second\n";
         for w in 20..80 {
             for color in [false, true] {
-                let style = Style::new(color);
+                let style = Style::new(color, false);
                 let result = render_tokens(md, w, &style);
                 for (i, line) in result.lines().enumerate() {
                     let vis = strip_ansi(line).trim().to_string();

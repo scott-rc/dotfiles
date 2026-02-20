@@ -1,0 +1,3 @@
+- [x] Buy groceries
+- [ ] Clean the house
+- [x] Write code
