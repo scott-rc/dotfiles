@@ -1,6 +1,6 @@
 # Clean Operation
 
-Remove worktrees whose branches have been merged to main.
+Remove merged, squash-merged, and orphaned worktrees using the `gwc` fish function.
 
 ## Instructions
 
@@ -9,28 +9,21 @@ Remove worktrees whose branches have been merged to main.
    - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat as "not in a git repo" and scan other repositories
    - **If not in a git repo**: Scan all repositories in `~/Code/*/*`, excluding the dotfiles repo
 
-2. **List worktrees** for each repository using `git worktree list --porcelain`
+2. **Fetch and prune** for each repository: `git -C <repo> fetch origin --prune --quiet`
 
-3. **Check merge status** for each worktree (excluding the main worktree):
-   - Get the branch name from the worktree
-   - Detect the base branch (see [git-patterns.md](git-patterns.md))
-   - Fetch and prune: `git fetch origin --prune --quiet`
-   - Check if the branch should be cleaned up (either condition):
-     - **Merged**: `git branch --merged origin/<default-branch>` includes the branch
-     - **Squash-merged**: Remote branch was deleted AND the PR was merged. Check with `git ls-remote --heads origin <branch>` returning empty, then verify with `gh pr list --head <branch> --state merged --json number --jq 'length'` returning > 0. If the remote branch is deleted but no merged PR exists, do NOT mark for cleanup — flag it to the user as "remote branch deleted but no merged PR found" so they can investigate.
+3. **Discover stale worktrees** by running `gwc` (or `gwc <repo>/.worktrees` for multi-repo). The function's `read` prompt receives no input from the Bash tool, so it lists stale entries without deleting. `gwc` detects three kinds of stale worktrees:
+   - **Orphaned**: directories in `.worktrees/` not tracked by `git worktree list`
+   - **Merged**: branch is ancestor of `origin/<default-branch>`
+   - **Gone**: upstream tracking ref deleted (squash-merged)
 
-4. **Present merged worktrees** to the user:
-   - Show the worktree path and branch name for each
-   - If no merged worktrees found, report that and exit
+4. **Present stale worktrees** to the user with their labels. If none found, report that and stop.
 
-5. **Confirm deletion**: MUST confirm with the user before removing (show the full list)
+5. **Confirm deletion**: MUST confirm with the user before removing.
 
-6. **Remove confirmed worktrees**:
-   - Run `git worktree remove <path>` to remove the worktree
-   - Delete the local branch: use `git branch -d <branch>`, or `git branch -D <branch>` for squash-merged branches
+6. **Delete** by piping confirmation: `printf 'y\n' | gwc <repo>/.worktrees`
 
-7. **Prune stale references**: `git worktree prune`
+7. **Prune stale references**: `git -C <repo> worktree prune`
 
-8. **Report summary** of what was cleaned up
+8. **Report summary** of what was cleaned up across all repositories.
 
-See [git-patterns.md](git-patterns.md) for base branch detection and dotfiles exception patterns.
+See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.

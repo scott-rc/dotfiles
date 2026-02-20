@@ -34,7 +34,7 @@ Create a new git worktree for a task or convert an existing branch.
 See [worktree.md](worktree.md) for detailed instructions.
 
 ### Clean
-Remove worktrees whose branches have been merged to main.
+Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
 See [clean-worktrees.md](clean-worktrees.md) for detailed instructions.
 
 ### Fix CI
