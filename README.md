@@ -87,44 +87,44 @@ Three modifier layers to avoid conflicts:
 | Layer | Modifier | Purpose |
 |-------|----------|---------|
 | `Cmd+*` | unbound from Ghostty | Pass through to CLI tools (Neovim, etc.) |
-| `Cmd+Shift+*` | Ghostty | Repo/tab/window management |
-| `Cmd+Ctrl+*` | Zellij | Worktree/pane management |
+| `Cmd+Ctrl+*` | Ghostty | Repo/tab/window management |
+| `Cmd+Shift+*` | Zellij | Worktree/pane management |
 
-#### Ghostty (`Cmd+Shift`)
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+Shift+T` | New Ghostty tab (repo chooser) |
-| `Cmd+Shift+W` | Close surface |
-| `Cmd+Shift+N` | New Ghostty tab (repo chooser) |
-| `Cmd+Shift+[/]` | Previous/next Ghostty tab |
-| `Cmd+Shift+I/O` | Move Ghostty tab left/right |
-| `Cmd+Shift+1-9` | Go to Ghostty tab by number |
-
-#### Zellij (`Cmd+Ctrl`)
+#### Ghostty (`Cmd+Ctrl`)
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd+Ctrl+N` | New pane |
-| `Cmd+Ctrl+W` | Close pane |
-| `Cmd+Ctrl+H/J/K/L` | Focus left/down/up/right |
-| `Cmd+Ctrl+F` | Toggle fullscreen |
-| `Cmd+Ctrl+Z` | Toggle pane frames |
-| `Cmd+Ctrl+\\` | Toggle floating panes |
-| `Cmd+Ctrl+,/.` | Previous/next swap layout |
-| `Cmd+Ctrl+[/]` | Previous/next Zellij tab |
-| `Cmd+Ctrl+I/O` | Move tab left/right |
-| `Cmd+Ctrl+X` | Close pane (alt) |
-| `Cmd+Ctrl++/-/=` | Resize increase/decrease |
-| `Cmd+Ctrl+Up/Down` | Focus up/down |
-| `Cmd+Ctrl+G` | Lock mode |
-| `Cmd+Ctrl+P` | Pane mode |
-| `Cmd+Ctrl+T` | New Zellij tab |
-| `Cmd+Ctrl+Y` | Tab mode |
-| `Cmd+Ctrl+S` | Session mode |
-| `Cmd+Ctrl+E` | Scroll mode |
-| `Cmd+Ctrl+R` | Resize mode |
-| `Cmd+Ctrl+M` | Move mode |
+| `Cmd+Ctrl+T` | New Ghostty tab (repo chooser) |
+| `Cmd+Ctrl+W` | Close surface |
+| `Cmd+Ctrl+N` | New Ghostty tab (repo chooser) |
+| `Cmd+Ctrl+[/]` | Previous/next Ghostty tab |
+| `Cmd+Ctrl+I/O` | Move Ghostty tab left/right |
+| `Cmd+Ctrl+1-9` | Go to Ghostty tab by number |
+
+#### Zellij (`Cmd+Shift`)
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Shift+N` | New pane |
+| `Cmd+Shift+W` | Close pane |
+| `Cmd+Shift+H/J/K/L` | Focus left/down/up/right |
+| `Cmd+Shift+F` | Toggle fullscreen |
+| `Cmd+Shift+Z` | Toggle pane frames |
+| `Cmd+Shift+\\` | Toggle floating panes |
+| `Cmd+Shift+,/.` | Previous/next swap layout |
+| `Cmd+Shift+[/]` | Previous/next Zellij tab |
+| `Cmd+Shift+I/O` | Move tab left/right |
+| `Cmd+Shift+X` | Close pane (alt) |
+| `Cmd+Shift++/-/=` | Resize increase/decrease |
+| `Cmd+Shift+Up/Down` | Focus up/down |
+| `Cmd+Shift+G` | Lock mode |
+| `Cmd+Shift+P` | Pane mode |
+| `Cmd+Shift+T` | New Zellij tab |
+| `Cmd+Shift+Y` | Tab mode |
+| `Cmd+Shift+S` | Session mode |
+| `Cmd+Shift+E` | Scroll mode |
+| `Cmd+Shift+R` | Resize mode |
+| `Cmd+Shift+M` | Move mode |
 
 #### Neovim Git Diff
 

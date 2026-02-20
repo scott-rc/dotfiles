@@ -4,7 +4,7 @@
 
 keybinds clear-defaults=true {
     locked {
-        bind "Super Ctrl g" { SwitchToMode "normal"; }
+        bind "Super Shift g" { SwitchToMode "normal"; }
     }
     pane {
         bind "left" { MoveFocus "left"; }
@@ -22,7 +22,7 @@ keybinds clear-defaults=true {
         bind "l" { MoveFocus "right"; }
         bind "n" { NewPane; SwitchToMode "normal"; }
         bind "p" { SwitchFocus; }
-        bind "Super Ctrl p" { SwitchToMode "normal"; }
+        bind "Super Shift p" { SwitchToMode "normal"; }
         bind "r" { NewPane "right"; SwitchToMode "normal"; }
         bind "w" { ToggleFloatingPanes; SwitchToMode "normal"; }
         bind "z" { TogglePaneFrames; SwitchToMode "normal"; }
@@ -51,7 +51,7 @@ keybinds clear-defaults=true {
         bind "n" { NewTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
-        bind "Super Ctrl y" { SwitchToMode "normal"; }
+        bind "Super Shift y" { SwitchToMode "normal"; }
         bind "x" { CloseTab; SwitchToMode "normal"; }
         bind "tab" { ToggleTab; }
     }
@@ -71,7 +71,7 @@ keybinds clear-defaults=true {
         bind "j" { Resize "Increase down"; }
         bind "k" { Resize "Increase up"; }
         bind "l" { Resize "Increase right"; }
-        bind "Super Ctrl r" { SwitchToMode "normal"; }
+        bind "Super Shift r" { SwitchToMode "normal"; }
     }
     move {
         bind "h"     { MovePane "left"; }
@@ -85,7 +85,7 @@ keybinds clear-defaults=true {
         bind "n"     { MovePane; }
         bind "p"     { MovePaneBackwards; }
         bind "tab"   { MovePane; }
-        bind "Super Ctrl m" { SwitchToMode "normal"; }
+        bind "Super Shift m" { SwitchToMode "normal"; }
     }
     scroll {
         bind "e" { EditScrollback; SwitchToMode "normal"; }
@@ -113,7 +113,7 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
-        bind "Super Ctrl s" { SwitchToMode "normal"; }
+        bind "Super Shift s" { SwitchToMode "normal"; }
         bind "p" {
             LaunchOrFocusPlugin "plugin-manager" {
                 floating true
@@ -131,47 +131,47 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" {
         // CMD keybindings (forwarded from Ghostty via unbind)
-        bind "Super Ctrl n" { NewPane; }
-        bind "Super Ctrl w" { CloseFocus; }
-        bind "Super Ctrl [" { GoToPreviousTab; }
-        bind "Super Ctrl ]" { GoToNextTab; }
-        bind "Super Ctrl h" { MoveFocus "left"; }
-        bind "Super Ctrl j" { MoveFocus "down"; }
-        bind "Super Ctrl k" { MoveFocus "up"; }
-        bind "Super Ctrl l" { MoveFocus "right"; }
-        bind "Super Ctrl f" { ToggleFocusFullscreen; }
-        bind "Super Ctrl z" { TogglePaneFrames; }
-        bind "Super Ctrl down" { MoveFocus "down"; }
-        bind "Super Ctrl up" { MoveFocus "up"; }
-        bind "Super Ctrl +" { Resize "Increase"; }
-        bind "Super Ctrl -" { Resize "Decrease"; }
-        bind "Super Ctrl =" { Resize "Increase"; }
-        bind "Super Ctrl ," { PreviousSwapLayout; }
-        bind "Super Ctrl \\" { ToggleFloatingPanes; }
-        bind "Super Ctrl ." { NextSwapLayout; }
-        bind "Super Ctrl i" { MoveTab "left"; }
-        bind "Super Ctrl o" { MoveTab "right"; }
-        bind "Super Ctrl x" { CloseFocus; }
-        bind "Super Ctrl g" { SwitchToMode "locked"; }
+        bind "Super Shift n" { NewPane; }
+        bind "Super Shift w" { CloseFocus; }
+        bind "Super Shift [" { GoToPreviousTab; }
+        bind "Super Shift ]" { GoToNextTab; }
+        bind "Super Shift h" { MoveFocus "left"; }
+        bind "Super Shift j" { MoveFocus "down"; }
+        bind "Super Shift k" { MoveFocus "up"; }
+        bind "Super Shift l" { MoveFocus "right"; }
+        bind "Super Shift f" { ToggleFocusFullscreen; }
+        bind "Super Shift z" { TogglePaneFrames; }
+        bind "Super Shift down" { MoveFocus "down"; }
+        bind "Super Shift up" { MoveFocus "up"; }
+        bind "Super Shift +" { Resize "Increase"; }
+        bind "Super Shift -" { Resize "Decrease"; }
+        bind "Super Shift =" { Resize "Increase"; }
+        bind "Super Shift ," { PreviousSwapLayout; }
+        bind "Super Shift \\" { ToggleFloatingPanes; }
+        bind "Super Shift ." { NextSwapLayout; }
+        bind "Super Shift i" { MoveTab "left"; }
+        bind "Super Shift o" { MoveTab "right"; }
+        bind "Super Shift x" { CloseFocus; }
+        bind "Super Shift g" { SwitchToMode "locked"; }
     }
     shared_except "locked" "move" {
-        bind "Super Ctrl m" { SwitchToMode "move"; }
+        bind "Super Shift m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
-        bind "Super Ctrl s" { SwitchToMode "session"; }
+        bind "Super Shift s" { SwitchToMode "session"; }
     }
     shared_except "locked" "scroll" "search" {
-        bind "Super Ctrl e" { SwitchToMode "scroll"; }
+        bind "Super Shift e" { SwitchToMode "scroll"; }
     }
     shared_except "locked" "tab" {
-        bind "Super Ctrl t" { NewTab; }
-        bind "Super Ctrl y" { SwitchToMode "tab"; }
+        bind "Super Shift t" { NewTab; }
+        bind "Super Shift y" { SwitchToMode "tab"; }
     }
     shared_except "locked" "pane" {
-        bind "Super Ctrl p" { SwitchToMode "pane"; }
+        bind "Super Shift p" { SwitchToMode "pane"; }
     }
     shared_except "locked" "resize" {
-        bind "Super Ctrl r" { SwitchToMode "resize"; }
+        bind "Super Shift r" { SwitchToMode "resize"; }
     }
     shared_except "normal" "locked" "entersearch" {
         bind "enter" { SwitchToMode "normal"; }
@@ -197,7 +197,7 @@ keybinds clear-defaults=true {
         bind "j" { ScrollDown; }
         bind "k" { ScrollUp; }
         bind "l" { PageScrollDown; }
-        bind "Super Ctrl e" { SwitchToMode "normal"; }
+        bind "Super Shift e" { SwitchToMode "normal"; }
         bind "u" { HalfPageScrollUp; }
         bind "g" { ScrollToTop; }
         bind "G" { ScrollToBottom; }
@@ -375,7 +375,7 @@ themes {
 plugins {
     about location="zellij:about"
     compact-bar location="zellij:compact-bar" {
-        tooltip "Super Ctrl /"
+        tooltip "Super Shift /"
     }
     configuration location="zellij:configuration"
     filepicker location="zellij:strider" {
