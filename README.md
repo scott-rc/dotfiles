@@ -157,7 +157,9 @@ Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors 
 | Shortcut | Context | Action |
 |----------|---------|--------|
 | `Cmd+G` | Global | Toggle git panel (right dock) |
-| `Cmd+Shift+G` | Global | Open full working tree diff view |
+| `Cmd+Shift+G` | Global | Toggle inline/split diff view |
+| `Cmd+1` | Global | Focus git panel changes list |
+| `Cmd+1` | Git panel | Focus back to editor |
 | `Space gd` | Editor (normal) | Working tree diff |
 | `Space gc` | Editor (normal) | Branch diff (vs default branch) |
 | `Space gs` | Editor (normal) | Stage file |
@@ -170,9 +172,9 @@ Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors 
 | `d o` | Editor (normal) | Expand diff hunk inline (built-in vim) |
 | `d u` / `d U` | Editor (normal) | Stage hunk / stage all (built-in vim) |
 | `d p` | Editor (normal) | Restore hunk (built-in vim) |
-| `s` | Git panel | Toggle staged |
-| `x` | Git panel | Restore hunk |
-| `X` | Git panel | Restore file |
+| `space` | Git panel | Open/navigate to file |
+| `a` | Git panel | Toggle staged |
+| `d` | Git panel | Discard changes |
 | `t` | Git panel | Toggle tree/list view |
 
 ### Workflow: Ghostty Tabs + Zellij Sessions

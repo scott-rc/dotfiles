@@ -9,11 +9,11 @@
       "cmd-]": "pane::GoForward",
 
       // Panels & Docks
-      "cmd-1": "editor::ToggleFocus",
+      "cmd-1": "git_panel::FocusChanges",
       "cmd-l": "workspace::ToggleRightDock",
       "cmd-e": "project_panel::ToggleFocus",
       "cmd-g": "git_panel::ToggleFocus",
-      "cmd-shift-g": "git::Diff",
+      "cmd-shift-g": "editor::ToggleSplitDiff",
       "cmd-o": "outline_panel::ToggleFocus",
       "cmd-t": "terminal_panel::ToggleFocus",
 
@@ -79,6 +79,16 @@
       "ctrl-space": "editor::Hover",
       "shift-h": "vim::FirstNonWhitespace",
       "shift-l": "vim::EndOfLine",
+
+      // Git
+      "space g d": "git::Diff",
+      "space g c": "git::BranchDiff",
+      "space g s": "git::StageFile",
+      "space g u": "git::UnstageFile",
+      "space g r": "git::Restore",
+      "space g shift-r": "git::RestoreFile",
+      "space g h": "git::FileHistory",
+      "space g p": "editor::ToggleSelectedDiffHunks",
     },
   },
 
@@ -120,7 +130,17 @@
     "context": "GitPanel",
     "bindings": {
       "cmd-g": "workspace::ToggleRightDock",
+      "cmd-1": "git_panel::ToggleFocus",
       "cmd-d": "git::Diff",
+    },
+  },
+  {
+    "context": "GitPanel && !editing",
+    "bindings": {
+      "space": "menu::Confirm",
+      "a": "git::ToggleStaged",
+      "d": "git::Restore",
+      "t": "git_panel::ToggleTreeView",
     },
   },
 
