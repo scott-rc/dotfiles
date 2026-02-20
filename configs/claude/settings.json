@@ -27,7 +27,20 @@
     "additionalDirectories": [
       "./tmp",
       "/tmp",
+      "~/.cargo/bin",
       "~/.cargo/registry",
+      "~/.config/atuin",
+      "~/.config/bat",
+      "~/.config/direnv",
+      "~/.config/fish",
+      "~/.config/git",
+      "~/.config/gitui",
+      "~/.config/karabiner",
+      "~/.config/nix",
+      "~/.config/nvim",
+      "~/.config/zed",
+      "~/.config/zellij",
+      "~/.rustup",
       "~/go/pkg/mod"
     ]
   },
