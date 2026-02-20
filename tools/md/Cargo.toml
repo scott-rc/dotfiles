@@ -16,7 +16,12 @@ unicode-width = "0.2"
 indexmap = { version = "2.13.0", features = ["serde"] }
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
 serde_json = "1"
+
+[[bench]]
+name = "bench"
+harness = false
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

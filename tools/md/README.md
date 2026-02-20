@@ -112,3 +112,46 @@ Three fixture systems:
 - **Pretty** — `.md` + `.expected.txt` pairs in `fixtures/pretty/`, registered via `pretty_fixture!` macro. Width 60, no color, pretty mode enabled.
 - **JSON** — per-module fixtures in `fixtures/{module}/` (e.g., `fixtures/pager/`), loaded via `include_str!()` with serde deserialization.
 - **Integration** — `tests/integration.rs` spawns the binary via `CARGO_BIN_EXE_md` and uses the `run_md()` helper.
+
+## Benchmarking
+
+### Microbenchmarks
+
+```bash
+cargo bench
+```
+
+Criterion benchmarks in `benches/bench.rs` cover the render pipeline, word wrapping, ANSI stripping, and syntax highlighting. Results are stored in `target/criterion/` with HTML reports.
+
+Compare against a baseline after making changes:
+
+```bash
+cargo bench -- --save-baseline before
+# ... make changes ...
+cargo bench -- --baseline before
+```
+
+### End-to-end timing
+
+```bash
+hyperfine --warmup 3 'md --no-pager ../../README.md'
+```
+
+Compare plain vs pretty:
+
+```bash
+hyperfine --warmup 3 \
+  'md --no-pager --no-color --plain ../../README.md' \
+  'md --no-pager ../../README.md'
+```
+
+### Profiling
+
+Generate a flamegraph with [samply](https://github.com/mstange/samply):
+
+```bash
+cargo build --release
+samply record ./target/release/md --no-pager --no-color ../../README.md
+```
+
+This opens the Firefox Profiler with a call tree and flame chart. Look for hot functions in `wrap.rs` (`strip_ansi`, `visible_length`, `word_wrap`) and `highlight.rs` (`highlight_code`).

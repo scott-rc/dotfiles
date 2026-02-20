@@ -18,6 +18,9 @@ brew "starship"
 brew "zellij"
 brew "zoxide"
 
+# Benchmarking
+brew "hyperfine"
+
 # Git
 brew "git-delta"
 brew "gitui"

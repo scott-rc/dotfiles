@@ -150,31 +150,6 @@ Global diff mode toggle with inline hunk preview, stage/unstage, and file naviga
 | `Space gb` | Blame line |
 | `ih` | Hunk text object (e.g., `dih`, `vih`, `yih`) |
 
-#### Zed Git Diff
-
-Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors the Neovim workflow where possible.
-
-| Shortcut | Context | Action |
-|----------|---------|--------|
-| `Cmd+G` | Global | Toggle git panel (right dock) |
-| `Cmd+Shift+G` | Global | Open full working tree diff view |
-| `Space gd` | Editor (normal) | Working tree diff |
-| `Space gc` | Editor (normal) | Branch diff (vs default branch) |
-| `Space gs` | Editor (normal) | Stage file |
-| `Space gu` | Editor (normal) | Unstage file |
-| `Space gr` | Editor (normal) | Restore hunk |
-| `Space gR` | Editor (normal) | Restore file |
-| `Space gh` | Editor (normal) | File history |
-| `Space gp` | Editor (normal) | Toggle inline diff hunks |
-| `]c` / `[c` | Editor (normal) | Next/prev hunk (built-in vim) |
-| `d o` | Editor (normal) | Expand diff hunk inline (built-in vim) |
-| `d u` / `d U` | Editor (normal) | Stage hunk / stage all (built-in vim) |
-| `d p` | Editor (normal) | Restore hunk (built-in vim) |
-| `s` | Git panel | Toggle staged |
-| `x` | Git panel | Restore hunk |
-| `X` | Git panel | Restore file |
-| `t` | Git panel | Toggle tree/list view |
-
 ### Workflow: Ghostty Tabs + Zellij Sessions
 
 Each Ghostty tab runs its own Zellij session for a repo. Zellij tabs represent worktrees within a repo, and panes are free-form within each worktree tab.
@@ -199,7 +174,7 @@ Custom CLI tools.
 
 | Tool | Description |
 |------|-------------|
-| `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Includes criterion microbenchmarks (`cargo bench`) for the render pipeline, wrapping, and syntax highlighting. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
+| `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
 | `gd/` | Terminal git diff viewer (Rust) with embedded neovim for syntax highlighting and full vim navigation. Supports working tree, staged, commit, and range diffs with line-level and word-level highlighting, virtual lines for deleted content, dual line numbers, and hunk/file navigation (`]c`/`[c`/`]f`/`[f`). Uses ratatui + crossterm for TUI, nvim `--embed` with `ext_linegrid` for rendering, and tree-sitter for syntax colors. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
 
 ## Useful Commands
