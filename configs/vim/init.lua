@@ -200,6 +200,51 @@ local function toggle_neotree_files()
   end
 end
 
+local function set_diff_highlights(enabled)
+  vim.g._diff_mode = enabled
+  local gs = require('gitsigns')
+  gs.toggle_word_diff(enabled)
+  gs.toggle_linehl(enabled)
+  gs.toggle_numhl(enabled)
+  gs.toggle_deleted(enabled)
+end
+
+local function toggle_diff_mode()
+  local enabled = not vim.g._diff_mode
+  set_diff_highlights(enabled)
+  if enabled then
+    vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
+  else
+    close_neotree('git_status')
+  end
+end
+
+local function nav_changed_file(direction)
+  local base = git_base_branch()
+  local files = vim.fn.systemlist('git diff --name-only ' .. base)
+  if #files == 0 then
+    vim.notify('No changed files', vim.log.levels.INFO)
+    return
+  end
+  local git_root = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  local current = vim.fn.expand('%:p')
+  if git_root then current = current:sub(#git_root + 2) end
+  local idx
+  for i, f in ipairs(files) do
+    if f == current then idx = i; break end
+  end
+  if not idx then
+    idx = direction == 'next' and 1 or #files
+  else
+    idx = direction == 'next' and (idx % #files) + 1 or ((idx - 2) % #files) + 1
+  end
+  local target = git_root and (git_root .. '/' .. files[idx]) or files[idx]
+  vim.cmd('edit ' .. vim.fn.fnameescape(target))
+  vim.schedule(function()
+    require('gitsigns').nav_hunk('first')
+  end)
+end
+
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter' }, {
   group = augroup,
   command = 'checktime',
@@ -256,9 +301,20 @@ require('lazy').setup({
             ['@function.call'] = { style = 'underline' },
             ['@method.call'] = { style = 'underline' },
             ['@comment'] = { style = 'italic' },
-            GitSignsAddInline = { link = 'Added' },
-            GitSignsDeleteInline = { link = 'Removed' },
-            GitSignsChangeInline = { link = 'Changed' },
+            -- Word-level diff highlights (bg-only to preserve syntax colors)
+            GitSignsAddInline    = { bg = '#1a3a2a' },
+            GitSignsDeleteInline = { bg = '#4a1c20' },
+            GitSignsChangeInline = { bg = '#1a3a2a' },
+            GitSignsAddLnInline    = { bg = '#1a3a2a' },
+            GitSignsChangeLnInline = { bg = '#1a3a2a' },
+            GitSignsDeleteLnInline = { bg = '#4a1c20' },
+            -- Virtual lines for deleted content
+            GitSignsDeleteVirtLn       = { bg = '#2d1216' },
+            GitSignsDeleteVirtLnInLine = { bg = '#4a1c20' },
+            -- Changed lines → green (with show_deleted, old version shows above in red)
+            GitSignsChangeLn = { link = 'DiffAdd' },
+            GitSignsChange   = { link = 'GitSignsAdd' },
+            GitSignsChangeNr = { link = 'GitSignsAddNr' },
           },
         },
       })
@@ -367,11 +423,11 @@ require('lazy').setup({
           vim.o.eventignore = ei
           vim.schedule(function()
             vim.api.nvim_win_call(diff_win, function()
-              local gs = require('gitsigns')
-              gs.change_base(base)
-              gs.toggle_deleted(true)
-              gs.toggle_word_diff(true)
+              require('gitsigns').change_base(base)
             end)
+            if not vim.g._diff_mode then
+              set_diff_highlights(true)
+            end
           end)
         end,
       },
@@ -406,22 +462,55 @@ require('lazy').setup({
       {
         '<leader>gc',
         function()
-          vim.cmd('Neotree git_status git_base=' .. git_base_branch())
+          set_diff_highlights(true)
+          vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
         end,
         desc = 'Changed files vs base branch',
       },
+      { '<leader>gd', toggle_diff_mode, desc = 'Toggle diff mode' },
+      { '<leader>gw', function()
+          require('gitsigns').change_base(nil, true)
+          set_diff_highlights(true)
+          vim.cmd('Neotree focus source=git_status')
+        end, desc = 'Working tree diff' },
+      { '<leader>gi', function()
+          require('gitsigns').change_base('HEAD', true)
+          set_diff_highlights(true)
+          vim.cmd('Neotree focus source=git_status')
+        end, desc = 'Staged changes (vs HEAD)' },
+      { '<leader>gB', function()
+          require('telescope.builtin').git_branches({
+            attach_mappings = function(prompt_bufnr, map)
+              local actions = require('telescope.actions')
+              local action_state = require('telescope.actions.state')
+              actions.select_default:replace(function()
+                local selection = action_state.get_selected_entry()
+                actions.close(prompt_bufnr)
+                local branch = selection.value
+                require('gitsigns').change_base(branch, true)
+                set_diff_highlights(true)
+                vim.cmd('Neotree focus source=git_status git_base=' .. branch)
+              end)
+              return true
+            end,
+          })
+        end, desc = 'Diff against branch' },
       { '<D-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             close_neotree('git_status')
+            set_diff_highlights(false)
           else
             vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
+            set_diff_highlights(true)
           end
         end, mode = { 'n', 'v', 'i' }, desc = 'Focus/toggle git changes' },
       { '<C-g>', function()
           if vim.bo.filetype == 'neo-tree' and vim.b.neo_tree_source == 'git_status' then
             close_neotree('git_status')
+            set_diff_highlights(false)
           else
             vim.cmd('Neotree focus source=git_status git_base=' .. git_base_branch())
+            set_diff_highlights(true)
           end
         end, desc = 'Focus/toggle git changes' },
     },
@@ -432,13 +521,43 @@ require('lazy').setup({
     'lewis6991/gitsigns.nvim',
     opts = {
       on_attach = function(bufnr)
+        local gs = require('gitsigns')
+
+        -- Apply per-buffer diff base if set by open_and_refocus_diff
         local base = vim.b[bufnr].diff_base
         if base then
-          local gs = require('gitsigns')
           gs.change_base(base)
-          gs.toggle_deleted(true)
-          gs.toggle_word_diff(true)
         end
+
+        local function map(mode, l, r, desc)
+          vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
+        end
+
+        -- Hunk navigation
+        map('n', ']c', function() gs.nav_hunk('next') end, 'Next hunk')
+        map('n', '[c', function() gs.nav_hunk('prev') end, 'Prev hunk')
+        map('n', ']C', function() gs.nav_hunk('last') end, 'Last hunk')
+        map('n', '[C', function() gs.nav_hunk('first') end, 'First hunk')
+
+        -- File navigation
+        map('n', ']f', function() nav_changed_file('next') end, 'Next changed file')
+        map('n', '[f', function() nav_changed_file('prev') end, 'Prev changed file')
+
+        -- Stage/unstage
+        map('n', '<leader>gs', gs.stage_hunk, 'Stage hunk')
+        map('v', '<leader>gs', function() gs.stage_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, 'Stage selected lines')
+        map('n', '<leader>gu', gs.undo_stage_hunk, 'Undo stage hunk')
+        map('n', '<leader>gS', gs.stage_buffer, 'Stage buffer')
+        map('n', '<leader>gr', gs.reset_hunk, 'Reset hunk')
+        map('v', '<leader>gr', function() gs.reset_hunk({ vim.fn.line('.'), vim.fn.line('v') }) end, 'Reset selected lines')
+        map('n', '<leader>gR', gs.reset_buffer, 'Reset buffer')
+
+        -- Preview and blame
+        map('n', '<leader>gp', gs.preview_hunk_inline, 'Preview hunk inline')
+        map('n', '<leader>gb', gs.blame_line, 'Blame line')
+
+        -- Hunk text object
+        map({ 'o', 'x' }, 'ih', gs.select_hunk, 'Select hunk')
       end,
     },
   },
