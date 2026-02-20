@@ -31,7 +31,7 @@ When output fits in the terminal or stdout is not a TTY, the pager is skipped au
 - **Syntax highlighting** — fenced code blocks highlighted using the GitHub Dark theme (via syntect)
 - **Word wrapping** — ANSI-aware with widow prevention (avoids leaving a single word on the last line)
 - **Centering** — content is horizontally centered when the terminal is wider than the render width
-- **Interactive pager** — alternate screen with search, clipboard, and editor integration
+- **Interactive pager** — alternate screen with search, clipboard, and editor integration. Status bar is hidden by default; appears only for search input and brief feedback messages
 - **Directory browsing** — when given a directory, uses `find` + `fzf` (via `$SHELL`) to pick a `.md`/`.mdx` file, then renders it
 
 ## Pager Keybindings
@@ -95,7 +95,7 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 | `render.rs` | Markdown-to-styled-text conversion using pulldown-cmark; handles all block and inline elements |
 | `style.rs` | `Style` struct with color/pretty/plain-text formatting methods; GitHub Dark palette constants |
 | `wrap.rs` | ANSI-aware word wrapping, `strip_ansi()`, `visible_length()`, `split_ansi()`, display wrapping |
-| `pager.rs` | Interactive pager with alternate screen, search highlighting, status bar, clipboard, editor launch |
+| `pager.rs` | Interactive pager with alternate screen, search highlighting, hidden-by-default status bar, clipboard, editor launch |
 | `browse.rs` | Directory browsing via `find` piped to `fzf`, spawned through `$SHELL` |
 | `frontmatter.rs` | YAML frontmatter parser (extracts `---` delimited block into `IndexMap`) |
 | `highlight.rs` | Syntax highlighting for fenced code blocks using syntect with a bundled GitHub Dark `.tmTheme` |

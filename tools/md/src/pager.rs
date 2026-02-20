@@ -18,6 +18,8 @@ const NO_REVERSE: &str = "\x1b[27m";
 const RESET: &str = "\x1b[0m";
 const DIM: &str = "\x1b[2m";
 const NO_DIM: &str = "\x1b[22m";
+const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
+const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Key {
@@ -62,6 +64,20 @@ pub struct PagerState {
     pub search_message: String,
     pub file_path: Option<String>,
     pub raw_content: Option<String>,
+}
+
+fn bar_visible(state: &PagerState) -> bool {
+    state.mode == Mode::Search
+        || state.mode == Mode::Help
+        || !state.search_message.is_empty()
+}
+
+fn content_height(rows: u16, state: &PagerState) -> usize {
+    if bar_visible(state) {
+        rows.saturating_sub(1) as usize
+    } else {
+        rows as usize
+    }
 }
 
 pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
@@ -232,8 +248,7 @@ pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_conte
     (ratio * source_count as f64).round() as usize + 1
 }
 
-pub fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
-    let content_height = rows.saturating_sub(1); // reserve 1 for status bar
+pub fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
     let help = [
         "Navigation",
         "j/↓/Enter  Scroll down",
@@ -302,40 +317,12 @@ pub fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
     lines
 }
 
-pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
+pub fn format_status_bar(state: &PagerState, cols: usize) -> String {
     // Help mode
     if state.mode == Mode::Help {
         let left = "? to close";
-        let left_len = left.len();
-
-        let line_count = state.lines.len();
-        let max_top = max_scroll(line_count, content_height);
-        let top_line = state.top_line.min(max_top);
-        let end_line = (top_line + content_height).min(line_count);
-        let range = format!("{}-{}/{}", top_line + 1, end_line, line_count);
-        let position = if top_line == 0 {
-            "TOP".to_string()
-        } else if end_line >= line_count {
-            "END".to_string()
-        } else {
-            let pct = (end_line as f64 / line_count as f64 * 100.0).round() as usize;
-            format!("{pct}%")
-        };
-
-        let right = format!("{DIM}{range}{NO_DIM} {position}");
-        let right_visible_len = range.len() + 1 + position.len();
-        let total_visible = left_len + right_visible_len;
-
-        if total_visible >= cols {
-            let padding = if cols > right_visible_len {
-                " ".repeat(cols - right_visible_len)
-            } else {
-                String::new()
-            };
-            return format!("{padding}{right}");
-        }
-        let gap = cols - total_visible;
-        return format!("{left}{}{right}", " ".repeat(gap));
+        let padding = cols.saturating_sub(left.len());
+        return format!("{left}{}", " ".repeat(padding));
     }
 
     // Search mode
@@ -346,9 +333,9 @@ pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize)
         let cursor_char = if state.search_cursor < state.search_input.len() {
             let c = after.chars().next().unwrap();
             let rest = &after[c.len_utf8()..];
-            format!("{NO_REVERSE}{c}{REVERSE}{rest}")
+            format!("{REVERSE}{c}{NO_REVERSE}{rest}")
         } else {
-            format!("{NO_REVERSE}\u{2588}{REVERSE}")
+            format!("{REVERSE}\u{2588}{NO_REVERSE}")
         };
 
         let content = format!("/{before}{cursor_char}");
@@ -377,64 +364,13 @@ pub fn format_status_bar(state: &PagerState, content_height: usize, cols: usize)
         return format!("{msg}{padding}");
     }
 
-    // Normal mode: build right side first
-    let line_count = state.lines.len();
-    let max_top = max_scroll(line_count, content_height);
-    let top_line = state.top_line.min(max_top);
-    let end_line = (top_line + content_height).min(line_count);
-    let range = format!("{}-{}/{}", top_line + 1, end_line, line_count);
-
-    let position = if top_line == 0 {
-        "TOP".to_string()
-    } else if end_line >= line_count {
-        "END".to_string()
-    } else {
-        let pct = (end_line as f64 / line_count as f64 * 100.0).round() as usize;
-        format!("{pct}%")
-    };
-
-    let right = format!("{DIM}{range}{NO_DIM} {position}");
-    let right_visible_len = range.len() + 1 + position.len();
-
-    // Build left side
-    let left = if state.search_query.is_empty() {
-        state
-            .file_path
-            .as_ref()
-            .map(|p| p.rsplit('/').next().unwrap_or(p).to_string())
-            .unwrap_or_default()
-    } else if state.current_match >= 0 {
-        format!(
-            "/{} ({}/{})",
-            state.search_query,
-            state.current_match + 1,
-            state.search_matches.len()
-        )
-    } else {
-        format!("/{}", state.search_query)
-    };
-
-    let left_visible_len = left.len();
-    let total_visible = left_visible_len + right_visible_len;
-
-    if total_visible >= cols {
-        // Right side only
-        let padding = if cols > right_visible_len {
-            " ".repeat(cols - right_visible_len)
-        } else {
-            String::new()
-        };
-        format!("{padding}{right}")
-    } else {
-        let gap = cols - total_visible;
-        format!("{left}{}{right}", " ".repeat(gap))
-    }
+    String::new()
 }
 
-pub fn render_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
+pub fn render_status_bar(state: &PagerState, cols: usize) -> String {
     format!(
-        "{RESET}{REVERSE}{}{RESET}",
-        format_status_bar(state, content_height, cols)
+        "{RESET}{STATUS_BG}{STATUS_FG}{}{RESET}",
+        format_status_bar(state, cols)
     )
 }
 
@@ -653,7 +589,8 @@ pub fn run_pager(
         if state.mode == Mode::Search {
             handle_search_key(&mut state, &key);
             if state.mode == Mode::Normal && state.current_match >= 0 {
-                scroll_to_match(&mut state, last_size.1);
+                let ch = content_height(last_size.1, &state);
+                scroll_to_match(&mut state, ch);
             }
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
@@ -667,9 +604,9 @@ pub fn run_pager(
 
         // Normal mode
         let rows = last_size.1;
-        let content_height = rows.saturating_sub(1) as usize;
-        let half_page = content_height / 2;
-        let max_top = max_scroll(state.lines.len(), content_height);
+        let ch = content_height(rows, &state);
+        let half_page = ch / 2;
+        let max_top = max_scroll(state.lines.len(), ch);
 
         state.search_message.clear();
 
@@ -700,7 +637,7 @@ pub fn run_pager(
                 if !state.search_matches.is_empty() {
                     state.current_match =
                         (state.current_match + 1) % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state, rows);
+                    scroll_to_match(&mut state, ch);
                 }
             }
             Key::Char('N') => {
@@ -708,7 +645,7 @@ pub fn run_pager(
                     state.current_match = (state.current_match - 1
                         + state.search_matches.len() as isize)
                         % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state, rows);
+                    scroll_to_match(&mut state, ch);
                 }
             }
             Key::Char('c') => {
@@ -779,26 +716,25 @@ pub fn run_pager(
     let _ = stdout.flush();
 }
 
-fn scroll_to_match(state: &mut PagerState, rows: u16) {
+fn scroll_to_match(state: &mut PagerState, content_height: usize) {
     if state.current_match < 0 || state.current_match as usize >= state.search_matches.len() {
         return;
     }
     let match_line = state.search_matches[state.current_match as usize];
-    let content_height = rows.saturating_sub(1) as usize;
     let target = match_line.saturating_sub(content_height / 3);
     let max_top = max_scroll(state.lines.len(), content_height);
     state.top_line = target.min(max_top);
 }
 
 fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
-    let content_height = rows.saturating_sub(1) as usize;
+    let ch = content_height(rows, state);
 
     // Clamp top_line
-    let max_top = max_scroll(state.lines.len(), content_height);
+    let max_top = max_scroll(state.lines.len(), ch);
     let top = state.top_line.min(max_top);
 
     if state.mode == Mode::Help {
-        let help_lines = format_help_lines(cols as usize, rows as usize);
+        let help_lines = format_help_lines(cols as usize, ch);
         for (i, line) in help_lines.iter().enumerate() {
             move_to(out, i as u16, 0);
             let _ = write!(out, "{CLEAR_LINE}{DIM}{line}{NO_DIM}");
@@ -807,14 +743,14 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
         let mut visual_row: usize = 0;
         let mut logical_idx = top;
 
-        while visual_row < content_height && logical_idx < state.lines.len() {
+        while visual_row < ch && logical_idx < state.lines.len() {
             let mut line = state.lines[logical_idx].clone();
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }
             let wrapped = wrap_line_for_display(&line, cols as usize);
             for vline in wrapped {
-                if visual_row >= content_height {
+                if visual_row >= ch {
                     break;
                 }
                 move_to(out, visual_row as u16, 0);
@@ -825,18 +761,19 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
         }
 
         // Clear remaining rows
-        while visual_row < content_height {
+        while visual_row < ch {
             move_to(out, visual_row as u16, 0);
             let _ = write!(out, "{CLEAR_LINE}");
             visual_row += 1;
         }
     }
 
-    move_to(out, content_height as u16, 0);
-    let _ = write!(out, "{CLEAR_LINE}");
-
-    let status = render_status_bar(state, content_height, cols as usize);
-    let _ = write!(out, "{status}");
+    if bar_visible(state) {
+        move_to(out, ch as u16, 0);
+        let _ = write!(out, "{CLEAR_LINE}");
+        let status = render_status_bar(state, cols as usize);
+        let _ = write!(out, "{status}");
+    }
     let _ = out.flush();
 }
 
@@ -1010,7 +947,6 @@ mod tests {
         current_match: isize,
         top_line: usize,
         line_count: usize,
-        content_height: usize,
         file_path: Option<String>,
     }
 
@@ -1037,8 +973,7 @@ mod tests {
                 is_plain: false,
                 raw_content: None,
             };
-            let result =
-                format_status_bar(&state, case.input.state.content_height, case.input.cols);
+            let result = format_status_bar(&state, case.input.cols);
             assert_eq!(
                 result,
                 case.expected,
@@ -1079,7 +1014,7 @@ mod tests {
         let json = include_str!("../fixtures/pager/format-help-lines.json");
         let cases: Vec<FormatHelpLinesCase> = serde_json::from_str(json).unwrap();
         for case in &cases {
-            let lines = format_help_lines(case.input.cols, case.input.rows);
+            let lines = format_help_lines(case.input.cols, case.input.rows - 1);
             assert_eq!(
                 lines.len(),
                 case.expected.line_count,
