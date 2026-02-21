@@ -376,7 +376,7 @@ fn render_hunk_lines(
         };
 
         let is_changed = diff_line.kind != LineKind::Context;
-        let avail = width.saturating_sub(style::GUTTER_WIDTH + 1); // +1 for marker
+        let avail = width.saturating_sub(style::GUTTER_WIDTH + 2); // +1 marker, +1 wrap indicator
 
         // Pre-wrap: prepend line_bg so AnsiState tracks it during wrapping
         let wrappable = if color && is_changed {
@@ -401,6 +401,7 @@ fn render_hunk_lines(
                 String::new()
             };
 
+            let wrap = style::wrap_marker(color);
             let line = if seg_idx == 0 {
                 if color && is_changed {
                     format!(
@@ -412,11 +413,11 @@ fn render_hunk_lines(
                 }
             } else if color && is_changed {
                 format!(
-                    "{cont_gutter}{line_bg} {content_part}{padding}{}",
+                    "{cont_gutter}{line_bg}{wrap}{content_part}{padding}{}",
                     style::RESET
                 )
             } else {
-                format!("{cont_gutter} {content_part}")
+                format!("{cont_gutter}{wrap}{content_part}")
             };
 
             lines.push(line);

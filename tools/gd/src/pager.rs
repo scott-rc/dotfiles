@@ -24,6 +24,8 @@ enum Key {
     Backspace,
     CtrlC,
     CtrlD,
+    CtrlH,
+    CtrlL,
     CtrlU,
     Up,
     Down,
@@ -54,6 +56,7 @@ struct PagerState {
     hunk_starts: Vec<usize>,
     top_line: usize,
     cursor_line: usize,
+    cursor_visible: bool,
     visual_anchor: usize,
     search_query: String,
     search_matches: Vec<usize>,
@@ -68,6 +71,7 @@ struct PagerState {
     tree_focused: bool,
     tree_cursor: usize,
     tree_width: usize,
+    tree_scroll: usize,
     tree_lines: Vec<String>,
 }
 
@@ -78,6 +82,8 @@ fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
     match key_event.code {
         KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlC,
         KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
+        KeyCode::Char('h') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlH,
+        KeyCode::Char('l') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlL,
         KeyCode::Char('u') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlU,
         KeyCode::Char('b') | KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
         KeyCode::Char('f') | KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
@@ -113,6 +119,21 @@ fn max_scroll(line_count: usize, content_height: usize) -> usize {
     } else {
         0
     }
+}
+
+const SCROLLOFF: usize = 8;
+
+fn enforce_scrolloff(state: &mut PagerState, content_height: usize) {
+    let max_top = max_scroll(state.lines.len(), content_height);
+    let max_cursor = state.lines.len().saturating_sub(1);
+    state.cursor_line = state.cursor_line.min(max_cursor);
+    if state.cursor_line < state.top_line + SCROLLOFF {
+        state.top_line = state.cursor_line.saturating_sub(SCROLLOFF);
+    }
+    if state.cursor_line + SCROLLOFF >= state.top_line + content_height {
+        state.top_line = (state.cursor_line + SCROLLOFF + 1).saturating_sub(content_height);
+    }
+    state.top_line = state.top_line.min(max_top);
 }
 
 fn find_matches(lines: &[String], query: &str) -> Vec<usize> {
@@ -202,7 +223,8 @@ fn highlight_search(line: &str, query: &str) -> String {
 /// diff bg codes (BG_ADDED/BG_DELETED) naturally override in content.
 fn highlight_visual_line(line: &str, width: usize) -> String {
     let vis_w = crate::ansi::visible_width(line);
-    let pad = width.saturating_sub(vis_w);
+    let target = width.saturating_sub(1);
+    let pad = target.saturating_sub(vis_w);
     format!(
         "{}{line}{}{}",
         style::BG_VISUAL,
@@ -381,10 +403,11 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "Navigation",
         "j/\u{2193}/Enter  Scroll down",
         "k/\u{2191}        Scroll up",
-        "d/Space    Half page down",
-        "u          Half page up",
+        "d/Ctrl-D   Half page down",
+        "u/Ctrl-U   Half page up",
         "g/Home     Top",
         "G/End      Bottom",
+        "Space      Toggle cursor",
         "",
         "Diff Navigation",
         "]c         Next hunk",
@@ -398,8 +421,10 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "N          Previous match",
         "",
         "File Tree",
-        "T          Toggle panel",
+        "l          Toggle panel",
         "Tab        Focus panel",
+        "Ctrl-L     Show + focus tree",
+        "Ctrl-H     Return to diff",
         "",
         "Visual Mode",
         "v          Enter visual mode",
@@ -450,8 +475,8 @@ fn current_file_label(state: &PagerState) -> String {
     if state.line_map.is_empty() {
         return String::new();
     }
-    let top = state.top_line.min(state.line_map.len() - 1);
-    let info = &state.line_map[top];
+    let pos = state.cursor_line.min(state.line_map.len() - 1);
+    let info = &state.line_map[pos];
     let file_idx = info.file_idx + 1;
     let total = state.file_starts.len();
     let name = info.path.rsplit('/').next().unwrap_or(&info.path);
@@ -598,6 +623,9 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
                     line = highlight_visual_line(&line, diff_w);
                 }
             }
+            if state.cursor_visible && idx == state.cursor_line && state.mode != Mode::Visual {
+                line = format!("{}{line}{}", style::UNDERLINE, style::NO_UNDERLINE);
+            }
             let _ = write!(out, "{CLEAR_LINE}{line}");
         } else {
             let _ = write!(out, "{CLEAR_LINE}");
@@ -606,12 +634,13 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
         if state.tree_visible {
             let _ = write!(
                 out,
-                "{}\x1b[{}G{}│",
+                "{}\x1b[{}G\x1b[K{}│{}",
                 style::RESET,
                 diff_w + 1,
                 style::FG_SEP,
+                style::RESET,
             );
-            if let Some(tree_line) = state.tree_lines.get(row) {
+            if let Some(tree_line) = state.tree_lines.get(state.tree_scroll + row) {
                 let _ = write!(out, "{tree_line}");
             }
             let _ = write!(out, "{}", style::RESET);
@@ -640,10 +669,15 @@ fn scroll_to_match(state: &mut PagerState, rows: u16) {
     }
     let match_line = state.search_matches[state.current_match as usize];
     let content_height = rows.saturating_sub(1) as usize;
-    let target = match_line.saturating_sub(content_height / 3);
-    let max_top = max_scroll(state.lines.len(), content_height);
-    state.top_line = target.min(max_top);
-    state.cursor_line = state.top_line;
+    if state.cursor_visible {
+        state.cursor_line = match_line;
+        enforce_scrolloff(state, content_height);
+    } else {
+        let target = match_line.saturating_sub(content_height / 3);
+        let max_top = max_scroll(state.lines.len(), content_height);
+        state.top_line = target.min(max_top);
+        state.cursor_line = state.top_line;
+    }
 }
 
 /// Jump to next entry in `targets` after current top_line.
@@ -744,25 +778,45 @@ fn build_tree_lines(files: &[DiffFile], cursor: usize, width: usize) -> Vec<Stri
                 style::RESET,
             ));
         } else {
-            lines.push(padded);
+            lines.push(format!(
+                "{}{padded}{}",
+                style::FG_TREE,
+                style::RESET,
+            ));
         }
     }
 
     lines
 }
 
-fn sync_tree_cursor(state: &mut PagerState, files: &[DiffFile]) {
+fn sync_tree_cursor(state: &mut PagerState, files: &[DiffFile], content_height: usize) {
     if !state.tree_visible || state.tree_focused {
         return;
     }
+    let anchor = if state.cursor_visible {
+        state.cursor_line
+    } else {
+        state.top_line
+    };
     let new_cursor = state
         .line_map
-        .get(state.top_line)
+        .get(anchor)
         .map(|li| li.file_idx)
         .unwrap_or(0);
     if new_cursor != state.tree_cursor {
         state.tree_cursor = new_cursor;
         state.tree_lines = build_tree_lines(files, state.tree_cursor, state.tree_width);
+        ensure_tree_cursor_visible(state, content_height);
+    }
+}
+
+fn ensure_tree_cursor_visible(state: &mut PagerState, content_height: usize) {
+    let offset = state.tree_cursor + 2; // +2 for header + spacer in tree_lines
+    if offset < state.tree_scroll + 2 {
+        state.tree_scroll = offset.saturating_sub(2);
+    }
+    if offset >= state.tree_scroll + content_height {
+        state.tree_scroll = offset + 1 - content_height;
     }
 }
 
@@ -780,6 +834,7 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
         hunk_starts: output.hunk_starts,
         top_line: 0,
         cursor_line: 0,
+        cursor_visible: false,
         visual_anchor: 0,
         search_query: String::new(),
         search_matches: Vec::new(),
@@ -793,13 +848,14 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
         tree_focused: false,
         tree_cursor: 0,
         tree_width: 0,
+        tree_scroll: 0,
         tree_lines: vec![],
     };
 
     // Initialize file tree panel
     state.tree_width = compute_tree_width(files);
     state.tree_lines = build_tree_lines(files, 0, state.tree_width);
-    state.tree_visible = true;
+    state.tree_visible = false;
 
     let mut last_size = get_term_size();
     re_render(&mut state, files, color, last_size.0);
@@ -816,6 +872,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                 if current_size != last_size {
                     last_size = current_size;
                     re_render(&mut state, files, color, last_size.0);
+                    let ch = last_size.1.saturating_sub(1) as usize;
+                    ensure_tree_cursor_visible(&mut state, ch);
                     render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 }
                 continue;
@@ -827,6 +885,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
             Event::Resize(_, _) => {
                 last_size = get_term_size();
                 re_render(&mut state, files, color, last_size.0);
+                let ch = last_size.1.saturating_sub(1) as usize;
+                ensure_tree_cursor_visible(&mut state, ch);
                 render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 continue;
             }
@@ -840,7 +900,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
             handle_search_key(&mut state, &key);
             if state.mode == Mode::Normal && state.current_match >= 0 {
                 scroll_to_match(&mut state, last_size.1);
-                sync_tree_cursor(&mut state, files);
+                let ch = last_size.1.saturating_sub(1) as usize;
+                sync_tree_cursor(&mut state, files, ch);
             }
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
@@ -933,6 +994,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                         state.tree_cursor += 1;
                         state.tree_lines =
                             build_tree_lines(files, state.tree_cursor, state.tree_width);
+                        let ch = last_size.1.saturating_sub(1) as usize;
+                        ensure_tree_cursor_visible(&mut state, ch);
                     }
                 }
                 Key::Char('k') | Key::Up => {
@@ -940,6 +1003,8 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                         state.tree_cursor -= 1;
                         state.tree_lines =
                             build_tree_lines(files, state.tree_cursor, state.tree_width);
+                        let ch = last_size.1.saturating_sub(1) as usize;
+                        ensure_tree_cursor_visible(&mut state, ch);
                     }
                 }
                 Key::Enter => {
@@ -949,12 +1014,11 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                         state.top_line = target.min(max_top);
                         state.cursor_line = state.top_line;
                     }
+                }
+                Key::CtrlH | Key::Escape | Key::Tab => {
                     state.tree_focused = false;
                 }
-                Key::Escape | Key::Tab => {
-                    state.tree_focused = false;
-                }
-                Key::Char('T') => {
+                Key::Char('l') => {
                     state.tree_visible = false;
                     state.tree_focused = false;
                     re_render(&mut state, files, color, last_size.0);
@@ -971,31 +1035,57 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
             let rows = last_size.1;
             let content_height = rows.saturating_sub(1) as usize;
             let max_top = max_scroll(state.lines.len(), content_height);
+            let anchor = if state.cursor_visible {
+                state.cursor_line
+            } else {
+                state.top_line
+            };
             match (bracket, &key) {
                 (']', Key::Char('c')) => {
-                    if let Some(target) = jump_next(&state.hunk_starts, state.top_line) {
-                        state.top_line = target.min(max_top);
+                    if let Some(target) = jump_next(&state.hunk_starts, anchor) {
+                        if state.cursor_visible {
+                            state.cursor_line = target;
+                        } else {
+                            state.top_line = target.min(max_top);
+                        }
                     }
                 }
                 ('[', Key::Char('c')) => {
-                    if let Some(target) = jump_prev(&state.hunk_starts, state.top_line) {
-                        state.top_line = target.min(max_top);
+                    if let Some(target) = jump_prev(&state.hunk_starts, anchor) {
+                        if state.cursor_visible {
+                            state.cursor_line = target;
+                        } else {
+                            state.top_line = target.min(max_top);
+                        }
                     }
                 }
                 (']', Key::Char('f')) => {
-                    if let Some(target) = jump_next(&state.file_starts, state.top_line) {
-                        state.top_line = target.min(max_top);
+                    if let Some(target) = jump_next(&state.file_starts, anchor) {
+                        if state.cursor_visible {
+                            state.cursor_line = target;
+                        } else {
+                            state.top_line = target.min(max_top);
+                        }
                     }
                 }
                 ('[', Key::Char('f')) => {
-                    if let Some(target) = jump_prev(&state.file_starts, state.top_line) {
-                        state.top_line = target.min(max_top);
+                    if let Some(target) = jump_prev(&state.file_starts, anchor) {
+                        if state.cursor_visible {
+                            state.cursor_line = target;
+                        } else {
+                            state.top_line = target.min(max_top);
+                        }
                     }
                 }
                 _ => {} // Unknown sequence — ignore
             }
-            state.cursor_line = state.top_line;
-            sync_tree_cursor(&mut state, files);
+            if state.cursor_visible {
+                enforce_scrolloff(&mut state, content_height);
+            } else {
+                state.cursor_line = state.top_line;
+            }
+            let ch = last_size.1.saturating_sub(1) as usize;
+            sync_tree_cursor(&mut state, files, ch);
             render_screen(&mut stdout, &state, last_size.0, last_size.1);
             continue;
         }
@@ -1011,22 +1101,55 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
         match key {
             Key::Char('q') | Key::CtrlC => break,
             Key::Char('j') | Key::Down | Key::Enter => {
-                state.top_line = (state.top_line + 1).min(max_top);
+                if state.cursor_visible {
+                    state.cursor_line = (state.cursor_line + 1)
+                        .min(state.lines.len().saturating_sub(1));
+                } else {
+                    state.top_line = (state.top_line + 1).min(max_top);
+                }
             }
             Key::Char('k') | Key::Up => {
-                state.top_line = state.top_line.saturating_sub(1);
+                if state.cursor_visible {
+                    state.cursor_line = state.cursor_line.saturating_sub(1);
+                } else {
+                    state.top_line = state.top_line.saturating_sub(1);
+                }
             }
-            Key::Char('d' | ' ') | Key::CtrlD | Key::PageDown => {
-                state.top_line = (state.top_line + half_page).min(max_top);
+            Key::Char('d') | Key::CtrlD | Key::PageDown => {
+                if state.cursor_visible {
+                    state.cursor_line = (state.cursor_line + half_page)
+                        .min(state.lines.len().saturating_sub(1));
+                } else {
+                    state.top_line = (state.top_line + half_page).min(max_top);
+                }
             }
             Key::Char('u') | Key::CtrlU | Key::PageUp => {
-                state.top_line = state.top_line.saturating_sub(half_page);
+                if state.cursor_visible {
+                    state.cursor_line = state.cursor_line.saturating_sub(half_page);
+                } else {
+                    state.top_line = state.top_line.saturating_sub(half_page);
+                }
             }
             Key::Char('g') | Key::Home => {
-                state.top_line = 0;
+                if state.cursor_visible {
+                    state.cursor_line = 0;
+                } else {
+                    state.top_line = 0;
+                }
             }
             Key::Char('G') | Key::End => {
-                state.top_line = max_top;
+                if state.cursor_visible {
+                    state.cursor_line = state.lines.len().saturating_sub(1);
+                } else {
+                    state.top_line = max_top;
+                }
+            }
+            Key::Char(' ') => {
+                state.cursor_visible = !state.cursor_visible;
+                if state.cursor_visible {
+                    state.cursor_line = (state.top_line + content_height / 2)
+                        .min(state.lines.len().saturating_sub(1));
+                }
             }
             Key::Char(c @ (']' | '[')) => {
                 state.pending_bracket = Some(c);
@@ -1051,9 +1174,9 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                 }
             }
             Key::Char('e') => {
-                let top = state.top_line.min(state.line_map.len().saturating_sub(1));
+                let pos = state.cursor_line.min(state.line_map.len().saturating_sub(1));
                 if !state.line_map.is_empty() {
-                    let info = &state.line_map[top];
+                    let info = &state.line_map[pos];
                     let path = info.path.clone();
                     let lineno = info.new_lineno;
 
@@ -1069,21 +1192,46 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
                     last_size = get_term_size();
                 }
             }
-            Key::Char('T') => {
+            Key::Char('l') => {
                 state.tree_visible = !state.tree_visible;
                 if state.tree_visible {
+                    let anchor = if state.cursor_visible {
+                        state.cursor_line
+                    } else {
+                        state.top_line
+                    };
                     state.tree_cursor = state
                         .line_map
-                        .get(state.top_line)
+                        .get(anchor)
                         .map(|li| li.file_idx)
                         .unwrap_or(0);
+                    ensure_tree_cursor_visible(&mut state, content_height);
                 }
                 re_render(&mut state, files, color, last_size.0);
             }
             Key::Tab => {
                 if state.tree_visible {
                     state.tree_focused = true;
+                    ensure_tree_cursor_visible(&mut state, content_height);
                 }
+            }
+            Key::CtrlL => {
+                if !state.tree_visible {
+                    state.tree_visible = true;
+                    let anchor = if state.cursor_visible {
+                        state.cursor_line
+                    } else {
+                        state.top_line
+                    };
+                    state.tree_cursor = state
+                        .line_map
+                        .get(anchor)
+                        .map(|li| li.file_idx)
+                        .unwrap_or(0);
+                    re_render(&mut state, files, color, last_size.0);
+                }
+                state.tree_focused = true;
+                ensure_tree_cursor_visible(&mut state, content_height);
             }
             Key::Char('v') => {
                 state.mode = Mode::Visual;
@@ -1095,8 +1243,12 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
             _ => {}
         }
 
-        state.cursor_line = state.top_line;
-        sync_tree_cursor(&mut state, files);
+        if state.cursor_visible {
+            enforce_scrolloff(&mut state, content_height);
+        } else {
+            state.cursor_line = state.top_line;
+        }
+        sync_tree_cursor(&mut state, files, content_height);
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
     }
 

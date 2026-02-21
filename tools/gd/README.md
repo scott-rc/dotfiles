@@ -26,10 +26,11 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 |-----|--------|
 | `j` / `Down` / `Enter` | Scroll down one line |
 | `k` / `Up` | Scroll up one line |
-| `d` / `Space` / `Ctrl-D` / `PageDown` | Half page down |
+| `d` / `Ctrl-D` / `PageDown` | Half page down |
 | `u` / `Ctrl-U` / `PageUp` | Half page up |
 | `g` / `Home` | Top |
 | `G` / `End` | Bottom |
+| `Space` | Toggle cursor (underline indicator with scrolloff=8) |
 
 ### Diff Navigation
 
@@ -49,11 +50,13 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 | Key | Action |
 |-----|--------|
-| `T` | Toggle file tree panel |
-| `Tab` | Switch focus between diff and tree |
+| `l` | Toggle file tree panel (hidden by default) |
+| `Tab` | Switch focus to tree |
+| `Ctrl-L` | Show + focus tree |
+| `Ctrl-H` | Return focus to diff |
 | `j` / `k` | Navigate files (when tree focused) |
-| `Enter` | Jump to file (when tree focused) |
-| `Esc` | Return focus to diff (when tree focused) |
+| `Enter` | Jump to file (stays in tree) |
+| `Esc` | Return focus to diff |
 
 ### Visual Mode
 
@@ -76,9 +79,9 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 **Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then renders all files as a single ANSI-colored document with dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
 
-**Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, and file/hunk header separators.
+**Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with auto-sync cursor tracking, and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel (hidden by default, `l` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus) with auto-sync cursor tracking, an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 

@@ -21,18 +21,31 @@ pub const FG_HUNK_HEADER: &str = "\x1b[2;38;2;121;192;255m";
 pub const FG_GUTTER: &str = "\x1b[2;38;2;110;118;129m";
 /// Separator character (dim gray)
 pub const FG_SEP: &str = "\x1b[2;38;2;68;76;86m";
+/// File tree text (muted gray, no DIM to avoid bleed)
+pub const FG_TREE: &str = "\x1b[38;2;139;148;158m";
 /// Added line marker foreground
 pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 /// Deleted line marker foreground
 pub const FG_DELETED_MARKER: &str = "\x1b[38;2;248;81;73m";
 
 pub const RESET: &str = "\x1b[0m";
+
+/// Wrap continuation marker for long lines.
+pub fn wrap_marker(color: bool) -> String {
+    if color {
+        format!("{FG_GUTTER}\u{21aa}{RESET}")
+    } else {
+        "\u{21aa}".to_string()
+    }
+}
 /// Reset bold/italic/fg but preserve background color.
 pub const SOFT_RESET: &str = "\x1b[22;23;39m";
 pub const DIM: &str = "\x1b[2m";
 pub const NO_DIM: &str = "\x1b[22m";
 pub const REVERSE: &str = "\x1b[7m";
 pub const NO_REVERSE: &str = "\x1b[27m";
+pub const UNDERLINE: &str = "\x1b[4m";
+pub const NO_UNDERLINE: &str = "\x1b[24m";
 
 /// Format a file header separator line.
 pub fn file_header(path: &str, status: &str, width: usize) -> String {
