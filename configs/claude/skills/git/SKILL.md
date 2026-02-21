@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, rebases, squashes, worktrees, CI fixes and reruns, PR review comments, PR description updates, and GitHub comment/reply posting. Use when the user asks to commit, push, create or update a PR, rebase, squash commits, manage worktrees, check CI, fix CI, rerun CI, address review comments, fix review feedback, fix bugbot comments, update PR description, sync PR, reply to a PR comment, reply to reviews, or post a comment on GitHub.
+description: Handles git commits, amends, pushes, rebases, squashes, worktrees, CI fixes and reruns, PR review comments, PR description updates, and GitHub comment/reply posting. Use when the user asks to commit, amend, push, create or update a PR, rebase, squash commits, manage worktrees, check CI, fix CI, rerun CI, address review comments, fix review feedback, fix bugbot comments, update PR description, sync PR, reply to a PR comment, reply to reviews, or post a comment on GitHub.
 ---
 
 # Git Operations
@@ -16,6 +16,10 @@ Route to the appropriate operation based on user intent.
 ### Commit
 Commit outstanding changes with a well-formatted message.
 See [commit.md](commit.md) for detailed instructions.
+
+### Amend
+Fold outstanding changes into the last commit.
+See [amend.md](amend.md) for detailed instructions.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
@@ -62,6 +66,8 @@ See [reply.md](reply.md) for detailed instructions.
 Users often request multiple operations together. Handle these as follows:
 
 - **"commit and push"** → Run commit operation, then push operation
+- **"amend"** / **"fold into last commit"** / **"add to last commit"** → Run amend operation
+- **"amend and push"** → Run amend operation, then push operation
 - **"squash and push"** → Run squash operation, then push operation
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
