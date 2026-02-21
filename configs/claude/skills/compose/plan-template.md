@@ -113,6 +113,71 @@ Execute the implementation chunk defined in CHUNK_FILE_PATH.
 ---
 ```
 
+## Chunk Writer Subagent Prompt Template
+
+This prompt is used by the plan-task operation to delegate chunk file writing to a Task subagent. Fill in all `<...>` placeholders.
+
+```markdown
+Write a plan chunk file to <output-file-path>.
+
+## Chunk Details
+
+- **Number**: <NN>
+- **Title**: <chunk title>
+- **Depends on**: <chunk-NN-slug.md, or "None">
+- **Summary**: <2-4 sentences explaining what this chunk does and why>
+
+## High-Level Steps
+
+<Numbered list of the high-level implementation steps from the decomposition, with enough detail for the subagent to expand into checkboxes>
+
+## Codebase Context
+
+<Relevant file paths, function/type names, patterns, and conventions the chunk will touch. Include enough detail that a fresh agent can write precise checkboxes without exploring the codebase.>
+
+## Build and Test
+
+- Build: `<build command>`
+- Test: `<test command>`
+
+## Output Format
+
+Write the chunk file using this exact template structure:
+
+# Chunk <NN>: <Title>
+
+**Depends on**: <dependency>
+
+## What and Why
+
+<2-4 sentences with enough context for a fresh agent session to understand the purpose without reading other chunks.>
+
+## Implementation Steps
+
+### 1. <Step Group Name>
+
+- [ ] <Concrete action with file paths, function names, or shell commands>
+- [ ] <Next action>
+
+### 2. <Step Group Name>
+
+- [ ] <Action>
+- [ ] ...
+
+## Verification
+
+- [ ] <Build command passes>
+- [ ] <Test command passes>
+- [ ] <Manual check or assertion>
+
+## Rules
+
+- Target ~15-25 total checkboxes. If it would exceed 25, report that the chunk should be split.
+- Each checkbox MUST be completable in a single focused action.
+- Use specific file paths, function names, and shell commands -- not vague descriptions.
+- The "What and Why" section MUST be self-contained: a fresh agent session should understand the chunk without reading other chunks or having prior conversation context.
+```
+
 ## Chunking Guidelines
 
 Follow these when decomposing a task into chunks:

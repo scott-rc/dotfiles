@@ -35,17 +35,29 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    MUST NOT proceed to writing chunk files until the user approves the chunk list. If the user requests changes, revise and re-present.
 
-5. **Write chunk files**:
-   Create `./tmp/<plan-name>/chunk-NN-<slug>.md` for each approved chunk using the Chunk File Template from [plan-template.md](plan-template.md).
+5. **Write chunk files via subagents**:
+   For each approved chunk, spawn a Task tool subagent (type: general-purpose) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
 
-   Each chunk file MUST have:
-   - A "Depends on" line naming its prerequisite chunk (or "None")
-   - A "What and Why" section with enough context for a fresh agent session
-   - An "Implementation Steps" section with numbered sub-step groups and `- [ ]` checkboxes
-   - A "Verification" section with `- [ ]` checkboxes for build, test, and manual checks
-   - ~15-25 total checkboxes (split the chunk if it exceeds 25)
+   MUST read [plan-template.md](plan-template.md) for the Chunk File Template and Chunk Writer Subagent Prompt Template.
 
-   MUST include specific file paths, function names, and shell commands -- not vague descriptions. Each checkbox SHOULD be completable in a single focused action.
+   For each chunk, launch a subagent with the Chunk Writer Subagent Prompt Template filled in:
+   - The chunk number, title, slug, and one-line description
+   - What the chunk does and why (2-4 sentences from your decomposition)
+   - The dependency (prior chunk file name, or "None")
+   - The high-level implementation steps from your decomposition
+   - Relevant codebase context: file paths, function names, types, and patterns discovered during exploration
+   - Build and test commands
+   - The output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md`
+
+   Run chunk writer subagents sequentially (later chunks may reference earlier ones). After each subagent completes, read the chunk file and verify it meets these requirements:
+   - Has a "Depends on" line naming its prerequisite chunk (or "None")
+   - Has a "What and Why" section with enough context for a fresh agent session
+   - Has an "Implementation Steps" section with numbered sub-step groups and `- [ ]` checkboxes
+   - Has a "Verification" section with `- [ ]` checkboxes for build, test, and manual checks
+   - Has ~15-25 total checkboxes (split the chunk if it exceeds 25)
+   - Includes specific file paths, function names, and shell commands -- not vague descriptions
+
+   If a chunk file fails validation, provide feedback and re-run the subagent.
 
 6. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](plan-template.md).
