@@ -39,6 +39,7 @@
       "~/.config/nix",
       "~/.config/nvim",
       "~/.config/zed",
+      "~/.config/claude",
       "~/.config/zellij",
       "~/.rustup",
       "~/go/pkg/mod"
