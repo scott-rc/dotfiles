@@ -20,7 +20,7 @@ Current branch and recent history:
 
 2. **Detect base**:
    Determine the comparison base:
-   - Branch diff: merge-base with the base branch. Run `gbb` to detect it. Use `git merge-base origin/(gbb) HEAD`.
+   - Branch diff: merge-base with the base branch. Run `fish -c 'gbb'` to detect it. Use `git merge-base origin/(gbb) HEAD`.
    - Single commit: `<commit>~1`
    - Commit range: use the range directly
    - File-only (no commit/branch): diff against the default branch merge-base

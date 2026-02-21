@@ -22,18 +22,18 @@ Create a new git worktree for the given task, or convert an existing branch into
    - Pass the slug words as positional args to `gwt` (it will kebab-case them)
    - Example: task "fix the login page redirect bug" → args: `fix login redirect`
 
-5. **Run `gwt`** with the appropriate flags:
+5. **Run `gwt`** via `fish -c '...'` with the appropriate flags:
    - Repo outside cwd: `-C <repo-path>`
    - Existing branch: `--branch <name>`
    - New branch: slug words as positional args, plus `--from <base>` if not current branch
-   - Example: `gwt -C ~/Code/gadget/gadget --from main fix login redirect`
+   - Example: `fish -c 'gwt -C ~/Code/gadget/gadget --from main fix login redirect'`
 
 6. **Handle exit codes**:
    - **0**: Success -- proceed to step 7
    - **1**: Error -- report the output to the user
    - **2**: Branch exists and is not merged -- ask the user:
-     - Use the existing branch as-is (`gwt --branch <name>`)
-     - Delete and start fresh (`gwt --force <same args>`)
+     - Use the existing branch as-is (`fish -c 'gwt --branch <name>'`)
+     - Delete and start fresh (`fish -c 'gwt --force <same args>'`)
      - Choose a different name
 
 7. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.

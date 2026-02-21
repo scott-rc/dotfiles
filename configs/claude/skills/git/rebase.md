@@ -9,7 +9,7 @@ Fetch the latest from the base branch and rebase the current branch onto it.
    git fetch origin
    ```
 
-2. **Detect base branch**: Run `gbb` to get the base branch name.
+2. **Detect base branch**: Run `fish -c 'gbb'` to get the base branch name.
 
 3. **Rebase onto base branch**:
    ```bash

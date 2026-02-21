@@ -14,7 +14,7 @@ Fold outstanding changes into the last commit.
    - If there are no staged or unstaged changes, inform the user there is nothing to amend and stop
 
 3. **Capture pre-amend scope**:
-   - Detect base branch: `gbb`
+   - Detect base branch: `fish -c 'gbb'`
    - Fetch latest: `git fetch origin`
    - Record the current file set: `git diff --name-only origin/<base> HEAD`
    - Record the current commit message: `git log -1 --format=%B`

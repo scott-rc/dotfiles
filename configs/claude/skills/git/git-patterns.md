@@ -2,9 +2,13 @@
 
 Shared patterns used across git skill operations. Reference this file for consistent implementation.
 
+## Fish Functions
+
+Custom fish functions (`gbb`, `gwc`, `gwt`) MUST be called via `fish -c '...'` in the Bash tool. They use fish-specific syntax and are not available in bash.
+
 ## Base Branch Detection
 
-Run `gbb` to get the base branch. Returns the nearest fork-point branch (handles stacked branches), falling back to the default branch (`main`/`master`). Accepts an optional branch argument: `gbb [branch]`.
+Run `fish -c 'gbb'` to get the base branch. Returns the nearest fork-point branch (handles stacked branches), falling back to the default branch (`main`/`master`). Accepts an optional branch argument: `fish -c 'gbb [branch]'`.
 
 ## Dotfiles Exception
 
