@@ -31,7 +31,7 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 ## What and Why
 
-<2-4 sentences explaining what this chunk does and why it matters. Include enough context that a fresh agent session can understand the purpose without reading other chunks.>
+<2-4 sentences explaining what this chunk does and why it matters. Include enough context that a fresh Claude Code session can understand the purpose without reading other chunks.>
 
 ## Implementation Steps
 
@@ -133,7 +133,7 @@ Write a plan chunk file to <output-file-path>.
 
 ## Codebase Context
 
-<Relevant file paths, function/type names, patterns, and conventions the chunk will touch. Include enough detail that a fresh agent can write precise checkboxes without exploring the codebase.>
+<Relevant file paths, function/type names, patterns, and conventions the chunk will touch. Include enough detail that a fresh session can write precise checkboxes without exploring the codebase.>
 
 ## Build and Test
 
@@ -150,7 +150,7 @@ Write the chunk file using this exact template structure:
 
 ## What and Why
 
-<2-4 sentences with enough context for a fresh agent session to understand the purpose without reading other chunks.>
+<2-4 sentences with enough context for a fresh Claude Code session to understand the purpose without reading other chunks.>
 
 ## Implementation Steps
 
@@ -175,7 +175,7 @@ Write the chunk file using this exact template structure:
 - Target ~15-25 total checkboxes. If it would exceed 25, report that the chunk should be split.
 - Each checkbox MUST be completable in a single focused action.
 - Use specific file paths, function names, and shell commands -- not vague descriptions.
-- The "What and Why" section MUST be self-contained: a fresh agent session should understand the chunk without reading other chunks or having prior conversation context.
+- The "What and Why" section MUST be self-contained: a fresh Claude Code session should understand the chunk without reading other chunks or having prior conversation context.
 ```
 
 ## Chunking Guidelines
@@ -185,7 +185,7 @@ Follow these when decomposing a task into chunks:
 - **Refactor first** -- if the task requires new abstractions or restructuring, make chunk 01 a pure refactor with no behavior change. This gives later chunks a clean foundation.
 - **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. Do not mix unrelated changes.
 - **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
-- **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one agent session. If a chunk exceeds 25, split it.
+- **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
 - **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
 - **Docs and cleanup last** -- put documentation updates, README changes, and cleanup in the final chunk. Earlier chunks focus on implementation.
 - **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks. A reviewer should be able to check one chunk in isolation.

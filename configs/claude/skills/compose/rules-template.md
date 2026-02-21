@@ -11,7 +11,7 @@ Annotated templates for creating CLAUDE.md and `.claude/rules/` files. Replace p
 
 ---
 
-<Section for build/test/lint commands the agent should run>
+<Section for build/test/lint commands Claude should run>
 
 ---
 

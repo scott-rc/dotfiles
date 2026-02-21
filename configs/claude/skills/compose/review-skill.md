@@ -24,7 +24,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
 
 5. **Check for additional anti-patterns** not covered by the checklist:
    - Operation files that duplicate content from other operation files
-   - Reference files that contain operation logic (numbered steps telling the agent what to do)
+   - Reference files that contain operation logic (numbered steps telling Claude what to do)
    - Missing combined operations when multiple operations could logically be chained
    - Skills with side effects that don't use `disable-model-invocation: true`
    - Skills with `context: fork` that contain only reference content (no task instructions)

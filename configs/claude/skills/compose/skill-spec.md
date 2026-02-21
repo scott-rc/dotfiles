@@ -30,7 +30,7 @@ Required fields: `name` and `description`. Optional fields (include only when ne
 - `argument-hint` — autocomplete hint shown after skill name (e.g., `[issue-number]`)
 - `disable-model-invocation: true` — prevents Claude from auto-loading the skill; only the user can invoke it via `/`. Use for side-effect workflows where unintended invocation would be harmful.
 - `user-invocable: false` — hides the skill from the `/` menu; only Claude can load it. Use for background knowledge that should augment Claude's behavior without user invocation.
-- `allowed-tools` — comma-separated list of tools available when this skill is active (e.g., `Read, Grep, Glob`). Restricts the agent's capabilities during the skill.
+- `allowed-tools` — comma-separated list of tools available when this skill is active (e.g., `Read, Grep, Glob`). Restricts Claude's available tools during the skill.
 - `model` — model override for this skill (`sonnet`, `opus`, `haiku`)
 - `context: fork` — runs the skill in a subagent (see Subagent Execution below)
 - `agent` — subagent type when `context: fork` is set (`Explore`, `Plan`, `general-purpose`, or a custom agent type)
@@ -51,7 +51,7 @@ The `description` field is how Claude discovers and matches the skill to user in
 
 ### Description Budget
 
-Skill descriptions consume context budget (2% of context window, fallback 16,000 chars). Many skills with long descriptions can exceed the budget, causing some to be excluded from the agent's awareness. Keep descriptions concise. The env var `SLASH_COMMAND_TOOL_CHAR_BUDGET` overrides the default budget.
+Skill descriptions consume context budget (2% of context window, fallback 16,000 chars). Many skills with long descriptions can exceed the budget, causing some to be excluded from Claude's awareness. Keep descriptions concise. The env var `SLASH_COMMAND_TOOL_CHAR_BUDGET` overrides the default budget.
 
 ### String Substitutions
 

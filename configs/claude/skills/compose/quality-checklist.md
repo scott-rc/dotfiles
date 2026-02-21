@@ -35,7 +35,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 
 - [ ] **Token justification**: Every file contributes unique information -- no file exists just for organizational aesthetics
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
-- [ ] **No over-explaining**: Steps don't explain basic concepts the agent already knows (e.g., "markdown is a formatting language")
+- [ ] **No over-explaining**: Steps don't explain basic concepts Claude already knows (e.g., "markdown is a formatting language")
 - [ ] **Concise steps** *(Skills only)*: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
 - [ ] **Tight prose**: Terse, imperative style per [shared-rules.md](shared-rules.md) Content Rules
 - [ ] **No tables**: Lists instead of markdown tables per [shared-rules.md](shared-rules.md) Content Rules
@@ -47,7 +47,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 ## Scripts (if applicable, Skills only)
 
 - [ ] **Error handling**: Scripts check for failure conditions and provide useful error messages rather than failing silently
-- [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for the agent to interpret
+- [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for Claude to interpret
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
 - [ ] **Dependencies declared**: Required tools are documented in the skill
 - [ ] **POSIX paths**: Scripts use forward slashes only
@@ -57,7 +57,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Sequential steps**: Operations use numbered steps that flow logically from start to finish
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
 - [ ] **Error cases**: Operations handle likely failure modes (missing files, invalid input, conflicts)
-- [ ] **Feedback to user**: Operations tell the agent when to report progress or results to the user
+- [ ] **Feedback to user**: Operations tell Claude when to report progress or results to the user
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
 - [ ] **Degrees of freedom**: Each step's specificity matches its fragility -- fragile/critical steps are prescriptive, variable/creative steps leave room
 - [ ] **RFC keyword usage**: MUST/SHOULD/MAY keywords are used to distinguish hard requirements from recommendations and optional behavior

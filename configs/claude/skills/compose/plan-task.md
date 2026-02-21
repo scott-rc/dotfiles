@@ -67,7 +67,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    After all subagents complete, read each chunk file and verify it meets these requirements:
    - Has a "Depends on" line naming its prerequisite chunk (or "None")
-   - Has a "What and Why" section with enough context for a fresh agent session
+   - Has a "What and Why" section with enough context for a fresh Claude Code session
    - Has an "Implementation Steps" section with numbered sub-step groups and `- [ ]` checkboxes
    - Has a "Verification" section with `- [ ]` checkboxes for build, test, and manual checks
    - Has ~15-25 total checkboxes (split the chunk if it exceeds 25)

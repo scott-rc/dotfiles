@@ -3,9 +3,9 @@ name: compose
 description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts. Plans and decomposes large tasks into chunked execution plans.
 ---
 
-# Instructing Agents
+# Composing for Claude Code
 
-Help create and review Claude Code agent skills and CLAUDE.md rules files based on best practices.
+Help create and review Claude Code skills and CLAUDE.md rules files based on best practices.
 
 ## Operations
 

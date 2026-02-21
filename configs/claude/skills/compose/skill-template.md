@@ -20,7 +20,7 @@ description: <Third-person sentence. What it does AND when to use it. Include tr
 
 # <Skill Title>
 
-<One sentence: what this skill helps the agent do.>
+<One sentence: what this skill helps Claude do.>
 
 ## Operations
 

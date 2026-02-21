@@ -41,7 +41,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - MUST include: H1 heading matching the SKILL.md operation name, one-line summary, numbered steps with bold step names
    - MUST include decision points for conditional logic ("If X, do Y. Otherwise, do Z.")
    - MUST end each operation with a step that reports results to the user
-   - Steps MUST be specific and actionable -- tell the agent exactly what to do, not vague guidance
+   - Steps MUST be specific and actionable -- tell Claude exactly what to do, not vague guidance
    - SHOULD include error handling for likely failure modes
    - SHOULD choose the right degree of freedom for each step (see Skill Content Rules in [skill-spec.md](skill-spec.md))
    - SHOULD apply content patterns from [content-patterns.md](content-patterns.md) where they fit: feedback loops for quality-critical steps, checklists for multi-step tracking, examples for ambiguous output
