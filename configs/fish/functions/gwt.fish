@@ -161,6 +161,7 @@ function gwt --description "Create a git worktree for a task"
 
     if status is-interactive
         cd $wt_path
+        claude
     else
         echo "cd $wt_path" | pbcopy
         echo (set_color brblack)"  cd $wt_path  (copied to clipboard)"(set_color normal)
