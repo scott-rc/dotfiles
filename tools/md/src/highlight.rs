@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use syntect::highlighting::{FontStyle, Theme, ThemeSet};
 use syntect::parsing::SyntaxSet;
 
-static SYNTAX_SET: LazyLock<SyntaxSet> = LazyLock::new(SyntaxSet::load_defaults_newlines);
+static SYNTAX_SET: LazyLock<SyntaxSet> = LazyLock::new(two_face::syntax::extra_newlines);
 static THEME: LazyLock<Theme> = LazyLock::new(|| {
     let theme_bytes = include_bytes!("../themes/github-dark.tmTheme");
     ThemeSet::load_from_reader(&mut std::io::Cursor::new(theme_bytes)).unwrap()
