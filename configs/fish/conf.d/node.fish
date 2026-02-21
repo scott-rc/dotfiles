@@ -1,3 +1,5 @@
+fish_add_path ~/.local/share/pnpm
+
 if not status is-interactive
     return
 end

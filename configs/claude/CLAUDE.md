@@ -14,6 +14,7 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 
 - `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills** (see Skills below)
 - `~/Code/personal/recipe-book` — Recipe collection
+- `~/Code/personal/slides` — Slidev presentations (pnpm workspace)
 
 ### Gadget (work)
 

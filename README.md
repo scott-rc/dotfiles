@@ -211,6 +211,12 @@ Custom CLI tools.
 | `gd/` | Terminal git diff viewer (Rust) with syntax highlighting (syntect, GitHub Dark theme), word-level diff highlights, dual line numbers, `↪` wrap continuation markers, and a built-in pager with hunk/file navigation with centered viewport (`]c`/`[c`/`]f`/`[f`), full-file context toggle with scrollbar (`o`), search, `$EDITOR` delegation (`E`), a toggleable file tree panel with flat and hierarchical views, file type icons, lsd-style tree connector lines, directory collapsing, folder expand/collapse (`e` toggle, `1` tree focus toggle, `Ctrl-H`/`Ctrl-L` directional focus, scrollable, hidden by default), single-file view (`i` toggle independent of tree, or via tree panel), an optional cursor line (`Space` toggle, underline, scrolloff=8), and visual line selection (`v`) for copying `path:line` references. Supports working tree (including untracked files by default, `--no-untracked` to hide), staged, commit, and range diffs. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
 | `tui/` | Shared terminal UI library (Rust) providing ANSI utilities (strip, measure, split, wrap), syntax highlighting (syntect, GitHub Dark theme), and pager helpers (key mapping, terminal control, clipboard, editor delegation). Used by `md` and `gd` as a workspace dependency. |
 
+### Claude Code Skills
+
+| Skill | Description |
+|-------|-------------|
+| `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
+
 ## Useful Commands
 
 | Command | Description |
@@ -221,3 +227,4 @@ Custom CLI tools.
 | `vd` | Open Neovim diff viewer (vs base branch) |
 | `vd --staged` | Diff viewer for staged changes |
 | `vd <ref>` | Diff viewer against a specific ref or commit |
+| `/slides` | Manage Slidev presentations (create, dev, build, deploy, export) |

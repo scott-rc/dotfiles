@@ -32,6 +32,7 @@ brew "deno"
 brew "rustup"
 brew "go"
 brew "node"
+brew "pnpm"
 brew "typescript-language-server"
 
 # Cloud & infrastructure
