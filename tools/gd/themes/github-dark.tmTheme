@@ -32,7 +32,7 @@
 			<key>name</key>
 			<string>String</string>
 			<key>scope</key>
-			<string>string, string.quoted</string>
+			<string>string, string.quoted, punctuation.definition.string</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
@@ -43,7 +43,7 @@
 			<key>name</key>
 			<string>Keyword</string>
 			<key>scope</key>
-			<string>keyword, keyword.control, keyword.operator.new</string>
+			<string>keyword, keyword.control, keyword.operator.new, keyword.operator.assignment</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
@@ -65,7 +65,7 @@
 			<key>name</key>
 			<string>Function Name</string>
 			<key>scope</key>
-			<string>entity.name.function, meta.function-call</string>
+			<string>entity.name.function, meta.function-call, variable.function</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
