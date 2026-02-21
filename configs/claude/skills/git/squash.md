@@ -9,7 +9,7 @@ Squash all commits on the current branch into a single commit.
    git fetch origin
    ```
 
-2. **Detect base branch** (see [git-patterns.md](git-patterns.md)).
+2. **Detect base branch**: Run `gbb` to get the base branch name.
 
 3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`
 

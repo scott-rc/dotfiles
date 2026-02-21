@@ -4,13 +4,7 @@ Shared patterns used across git skill operations. Reference this file for consis
 
 ## Base Branch Detection
 
-Detect the default branch (main/master) from the remote:
-
-```bash
-git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||' || echo 'main'
-```
-
-This returns the branch that `origin/HEAD` points to (typically `main` or `master`).
+Run `gbb` to get the base branch. Returns the nearest fork-point branch (handles stacked branches), falling back to the default branch (`main`/`master`). Accepts an optional branch argument: `gbb [branch]`.
 
 ## Dotfiles Exception
 
