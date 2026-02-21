@@ -24,6 +24,46 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 ## Chunk File Template
 
+For chunks adding testable behavior, structure step groups as red-green-refactor: write failing tests first, implement to make them pass, then refactor. For pure refactoring, config, or glue code, use plain step groups.
+
+### TDD chunk (adding testable behavior)
+
+```markdown
+# Chunk <NN>: <Title>
+
+**Depends on**: <chunk-NN-slug.md, or "None">
+
+## What and Why
+
+<2-4 sentences explaining what this chunk does and why it matters. Include enough context that a fresh Claude Code session can understand the purpose without reading other chunks.>
+
+## Implementation Steps
+
+### 1. Red: Write failing tests for <feature>
+
+- [ ] <Create/update test file at path>
+- [ ] <Write test for expected behavior>
+- [ ] <Run tests -- confirm they fail for the right reason>
+
+### 2. Green: Implement <feature>
+
+- [ ] <Implement the minimal code to make tests pass>
+- [ ] <Run tests -- confirm they pass>
+
+### 3. Refactor
+
+- [ ] <Clean up implementation if needed>
+- [ ] <Run tests -- confirm they still pass>
+
+## Verification
+
+- [ ] <Build command passes>
+- [ ] <Test command passes>
+- [ ] <Manual check or assertion>
+```
+
+### Non-TDD chunk (refactoring, config, glue)
+
 ```markdown
 # Chunk <NN>: <Title>
 
@@ -39,7 +79,6 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 - [ ] <Concrete action with file paths, function names, or shell commands>
 - [ ] <Next action>
-- [ ] ...
 
 ### 2. <Step Group Name>
 
@@ -93,15 +132,16 @@ Execute the implementation chunk defined in CHUNK_FILE_PATH.
 
 ## Process
 
-1. Read the chunk file
-2. Check the "Depends on" line. If it names a dependency, read that chunk file and verify all its checkboxes are checked. If any are unchecked, STOP and report the dependency is incomplete.
-3. Scan for the first unchecked `- [ ]` item. If all items are checked, report "Chunk already complete" and stop.
-4. Starting from that item, execute each unchecked step in order:
+1. If this chunk involves writing or modifying code, invoke the code skill first: `skill: "code"` (no args). Follow its coding preferences and TDD workflow guidance throughout execution.
+2. Read the chunk file
+3. Check the "Depends on" line. If it names a dependency, read that chunk file and verify all its checkboxes are checked. If any are unchecked, STOP and report the dependency is incomplete.
+4. Scan for the first unchecked `- [ ]` item. If all items are checked, report "Chunk already complete" and stop.
+5. Starting from that item, execute each unchecked step in order:
    a. Perform the action described
    b. Mark the checkbox: replace `- [ ]` with `- [x]` in the chunk file
    c. After completing each numbered step group, run the build command and fix any errors before moving on
-5. After all Implementation Steps are checked, execute the Verification section the same way
-6. When all checkboxes are checked, report "Chunk complete"
+6. After all Implementation Steps are checked, execute the Verification section the same way
+7. When all checkboxes are checked, report "Chunk complete"
 
 ## Rules
 
@@ -109,6 +149,7 @@ Execute the implementation chunk defined in CHUNK_FILE_PATH.
 - MUST mark each checkbox immediately after completing it -- this is the progress ledger
 - MUST NOT skip ahead or reorder steps
 - MUST run the build command after each step group, not just at the end
+- For TDD chunks (step groups named "Red/Green/Refactor"), MUST verify test failures before implementing and test passes after implementing
 
 ---
 ```
@@ -176,6 +217,8 @@ Write the chunk file using this exact template structure:
 - Each checkbox MUST be completable in a single focused action.
 - Use specific file paths, function names, and shell commands -- not vague descriptions.
 - The "What and Why" section MUST be self-contained: a fresh Claude Code session should understand the chunk without reading other chunks or having prior conversation context.
+- For chunks adding testable behavior, MUST use TDD structure: "Red" step group (write failing tests), "Green" step group (implement to pass), "Refactor" step group (clean up). Include explicit "run tests -- confirm fail/pass" checkboxes.
+- For pure refactoring, config, or glue code, use plain step groups without TDD structure.
 ```
 
 ## Chunking Guidelines
@@ -187,5 +230,6 @@ Follow these when decomposing a task into chunks:
 - **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
 - **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
 - **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
+- **Test first when testable** -- for chunks adding testable behavior, structure step groups as red-green-refactor: "Red" (write failing tests), "Green" (implement to pass), "Refactor" (clean up). Include explicit test-run checkboxes to confirm failure then success. Chunks that are pure refactoring, config, or glue code use plain step groups.
 - **Docs and cleanup last** -- put documentation updates, README changes, and cleanup in the final chunk. Earlier chunks focus on implementation.
 - **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks. A reviewer should be able to check one chunk in isolation.

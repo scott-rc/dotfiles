@@ -72,6 +72,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - Has a "Verification" section with `- [ ]` checkboxes for build, test, and manual checks
    - Has ~15-25 total checkboxes (split the chunk if it exceeds 25)
    - Includes specific file paths, function names, and shell commands -- not vague descriptions
+   - Chunks adding testable behavior use TDD structure: step groups named "Red: ...", "Green: ...", "Refactor" with explicit test-run checkboxes confirming failure then success
 
    If a chunk file fails validation, provide feedback and re-run the subagent.
 
