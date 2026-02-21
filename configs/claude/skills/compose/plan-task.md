@@ -14,7 +14,19 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if answers are ambiguous or incomplete.
 
-2. **Explore codebase context**:
+2. **Load coding preferences** (conditional):
+   If the task involves writing or modifying code:
+   - MUST invoke the code skill to load coding preferences: `skill: "code"` (no routing args -- loading references only)
+   - Read from the code skill's References section: general-guidelines and the applicable language-specific guidelines (TypeScript, Go, or Shell)
+   - Read test-environment for test runner detection, file placement, and build/test commands
+   - Apply these during decomposition:
+     - Default to TDD structure (red-green-refactor) for chunks adding testable behavior
+     - Chunks that are pure refactoring, config, or glue code do not need TDD structure
+     - Include build and test commands in chunk context
+
+   If no code changes are involved, MUST skip this step.
+
+3. **Explore codebase context**:
    If a codebase is relevant:
    - MUST explore key file paths, directory structure, and architecture
    - SHOULD identify naming conventions, types, and patterns the chunks will reference
@@ -23,19 +35,19 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    If no codebase applies, MUST skip this step entirely.
 
-3. **Confirm understanding**:
+4. **Confirm understanding**:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
    - MUST NOT proceed to decomposition until the user confirms the summary is accurate
    - If the user corrects anything, update understanding and re-confirm
 
-4. **Decompose into chunks**:
+5. **Decompose into chunks**:
    Identify 2-6 chunks that partition the work. Present the chunk list with one-line descriptions for user approval.
 
    MUST read [plan-template.md](plan-template.md) and follow the Chunking Guidelines before decomposing.
 
    MUST NOT proceed to writing chunk files until the user approves the chunk list. If the user requests changes, revise and re-present.
 
-5. **Write chunk files via subagents**:
+6. **Write chunk files via subagents**:
    For each approved chunk, spawn a Task tool subagent (type: general-purpose) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
 
    MUST read [plan-template.md](plan-template.md) for the Chunk File Template and Chunk Writer Subagent Prompt Template.
@@ -63,19 +75,19 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    If a chunk file fails validation, provide feedback and re-run the subagent.
 
-6. **Write master plan**:
+7. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](plan-template.md).
 
    The orchestrator prompt code block MUST use the Orchestrator Prompt Template from plan-template.md, with all `<...>` placeholders filled in using details from the interview and exploration steps.
 
-7. **Validate**:
+8. **Validate**:
    - MUST verify all chunk file paths in plan.md resolve to actual files
    - MUST verify dependency links between chunks are correct and acyclic
    - MUST verify chunk numbering is sequential with no gaps
    - MUST verify every chunk has at least one checkbox in both Implementation Steps and Verification
    - MUST scan all files for non-ASCII characters and replace with ASCII equivalents
 
-8. **Deliver**:
+9. **Deliver**:
    - MUST print the orchestrator prompt inside a markdown code block
    - MUST copy the orchestrator prompt to the clipboard via `pbcopy`
    - MUST list all created files with their paths
