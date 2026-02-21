@@ -125,7 +125,8 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+T` | New Zellij tab |
 | `Cmd+Shift+Y` | Tab mode |
 | `Cmd+Shift+S` | Session mode |
-| `Cmd+Shift+E` | Scroll mode |
+| `Cmd+Shift+U` | Enter scroll mode + half-page up |
+| `Cmd+Shift+D` | Enter scroll mode + half-page down |
 | `Cmd+Shift+R` | Resize mode |
 | `Cmd+Shift+M` | Move mode |
 

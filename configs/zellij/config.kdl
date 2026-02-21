@@ -161,7 +161,8 @@ keybinds clear-defaults=true {
         bind "Super Shift s" { SwitchToMode "session"; }
     }
     shared_except "locked" "scroll" "search" {
-        bind "Super Shift e" { SwitchToMode "scroll"; }
+        bind "Super Shift u" { SwitchToMode "scroll"; HalfPageScrollUp; }
+        bind "Super Shift d" { SwitchToMode "scroll"; HalfPageScrollDown; }
     }
     shared_except "locked" "tab" {
         bind "Super Shift t" { NewTab; }
@@ -197,7 +198,8 @@ keybinds clear-defaults=true {
         bind "j" { ScrollDown; }
         bind "k" { ScrollUp; }
         bind "l" { PageScrollDown; }
-        bind "Super Shift e" { SwitchToMode "normal"; }
+        bind "Super Shift u" { HalfPageScrollUp; }
+        bind "Super Shift d" { HalfPageScrollDown; }
         bind "u" { HalfPageScrollUp; }
         bind "g" { ScrollToTop; }
         bind "G" { ScrollToBottom; }
