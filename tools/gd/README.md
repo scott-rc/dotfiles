@@ -1,6 +1,6 @@
 # gd
 
-Terminal git diff viewer with syntax highlighting, word-level diff highlights, and a built-in pager.
+Terminal git diff viewer with syntax highlighting, word-level diff highlights, file type icons, and a built-in pager.
 
 Built by the parent `apply.sh` and symlinked to `~/.cargo/bin/gd`.
 
@@ -38,6 +38,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 |-----|--------|
 | `]c` / `[c` | Next/prev hunk |
 | `]f` / `[f` | Next/prev file |
+| `o` | Toggle full file context |
 
 ### Search
 
@@ -50,7 +51,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 | Key | Action |
 |-----|--------|
-| `l` | Toggle file tree panel (hidden by default) |
+| `e` | Toggle file tree panel (open/focus/close cycle) |
 | `Tab` | Switch focus to tree |
 | `Ctrl-L` | Show + focus tree |
 | `Ctrl-H` | Return focus to diff |
@@ -71,7 +72,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 | Key | Action |
 |-----|--------|
-| `e` | Open file in `$EDITOR` at current line |
+| `E` | Open file in `$EDITOR` at current line |
 | `?` | Help overlay |
 | `q` / `Ctrl-C` | Quit |
 
@@ -81,7 +82,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel (hidden by default, `l` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus) with auto-sync cursor tracking, an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with flat and hierarchical views, file type icons, box-drawing connector lines, and directory collapsing (hidden by default, `e` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus) with auto-sync cursor tracking, centered viewport on hunk/file jumps, full-file context toggle (`o`), an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 

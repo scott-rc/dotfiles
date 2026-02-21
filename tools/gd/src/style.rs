@@ -23,6 +23,10 @@ pub const FG_GUTTER: &str = "\x1b[2;38;2;110;118;129m";
 pub const FG_SEP: &str = "\x1b[2;38;2;68;76;86m";
 /// File tree text (muted gray, no DIM to avoid bleed)
 pub const FG_TREE: &str = "\x1b[38;2;139;148;158m";
+/// File tree directory names (folder yellow)
+pub const FG_TREE_DIR: &str = "\x1b[38;2;224;177;77m";
+/// File tree connector lines (dim gray, matches FG_SEP)
+pub const FG_TREE_GUIDE: &str = "\x1b[2;38;2;68;76;86m";
 /// Added line marker foreground
 pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 /// Deleted line marker foreground
@@ -84,4 +88,31 @@ pub fn continuation_gutter(color: bool) -> String {
     } else {
         "     |     |".to_string()
     }
+}
+
+/// Return (icon, ansi_color) for a file path based on extension.
+pub fn file_icon(path: &str) -> (&'static str, &'static str) {
+    let ext = path.rsplit('.').next().unwrap_or("");
+    match ext {
+        "rs" => ("\u{e7a8}", "\x1b[38;2;222;135;53m"),          // Rust orange
+        "ts" | "tsx" => ("\u{e628}", "\x1b[38;2;49;120;198m"),   // TypeScript blue
+        "js" | "jsx" => ("\u{e781}", "\x1b[38;2;241;224;90m"),   // JavaScript yellow
+        "go" => ("\u{e627}", "\x1b[38;2;0;173;216m"),            // Go cyan
+        "py" => ("\u{e73c}", "\x1b[38;2;55;118;171m"),           // Python blue
+        "md" => ("\u{e73e}", "\x1b[38;2;81;154;186m"),           // Markdown teal
+        "json" => ("\u{e60b}", "\x1b[38;2;241;224;90m"),         // JSON yellow
+        "toml" => ("\u{e6b2}", "\x1b[38;2;139;148;158m"),        // TOML gray
+        "yaml" | "yml" => ("\u{e6a8}", "\x1b[38;2;203;75;83m"),  // YAML red
+        "sh" | "fish" | "bash" | "zsh" => ("\u{e795}", "\x1b[38;2;137;224;81m"), // Shell green
+        "lua" => ("\u{e620}", "\x1b[38;2;81;160;207m"),          // Lua blue
+        "html" => ("\u{e736}", "\x1b[38;2;228;77;38m"),          // HTML orange
+        "css" => ("\u{e749}", "\x1b[38;2;86;156;214m"),          // CSS blue
+        "lock" => ("\u{f023}", "\x1b[38;2;139;148;158m"),        // Lock gray
+        _ => ("\u{f15b}", FG_TREE),                              // Generic file
+    }
+}
+
+/// Return (icon, ansi_color) for a directory entry.
+pub fn dir_icon() -> (&'static str, &'static str) {
+    ("\u{f413}", FG_TREE_DIR)
 }

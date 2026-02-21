@@ -8,6 +8,8 @@ use std::io::{self, IsTerminal, Write};
 
 use clap::Parser;
 
+use crate::git::{DiffSource, resolve_source};
+
 #[derive(Parser)]
 #[command(name = "gd", about = "Terminal git diff viewer")]
 struct Cli {
@@ -34,51 +36,6 @@ struct Cli {
     /// Hide untracked files (only applies to working tree mode)
     #[arg(long)]
     no_untracked: bool,
-}
-
-#[derive(Debug, Clone)]
-enum DiffSource {
-    WorkingTree,
-    Staged,
-    Commit(String),
-    Range(String, String),
-}
-
-impl DiffSource {
-    fn diff_args(&self) -> Vec<String> {
-        let mut args = vec!["diff".into()];
-        match self {
-            Self::WorkingTree => {}
-            Self::Staged => args.push("--staged".into()),
-            Self::Commit(r) => {
-                args.push(format!("{r}~1"));
-                args.push(r.clone());
-            }
-            Self::Range(l, r) => {
-                args.push(l.clone());
-                args.push(r.clone());
-            }
-        }
-        args
-    }
-}
-
-fn resolve_source(staged: bool, source: &[String]) -> DiffSource {
-    if staged {
-        return DiffSource::Staged;
-    }
-    match source {
-        [] => DiffSource::WorkingTree,
-        [arg] => {
-            if arg.contains("..") {
-                let parts: Vec<&str> = arg.splitn(2, "..").collect();
-                DiffSource::Range(parts[0].into(), parts[1].into())
-            } else {
-                DiffSource::Commit(arg.clone())
-            }
-        }
-        [left, right, ..] => DiffSource::Range(left.clone(), right.clone()),
-    }
 }
 
 fn main() {
@@ -138,7 +95,12 @@ fn main() {
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
     if is_tty && !cli.no_pager && output.lines.len() > rows as usize {
-        pager::run_pager(output, &files, color);
+        let diff_ctx = pager::DiffContext {
+            repo: repo.clone(),
+            source: source.clone(),
+            no_untracked: cli.no_untracked,
+        };
+        pager::run_pager(output, files, color, diff_ctx);
     } else {
         let mut stdout = io::BufWriter::new(io::stdout().lock());
         for line in &output.lines {
