@@ -1,18 +1,19 @@
 use std::io::{self, Write};
-use std::process::{Command, Stdio};
-
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::wrap::{split_ansi, strip_ansi, wrap_line_for_display};
+use tui::pager::{
+    ALT_SCREEN_OFF, ALT_SCREEN_ON, CLEAR_LINE, CURSOR_HIDE, CURSOR_SHOW, copy_to_clipboard,
+    get_term_size, move_to,
+};
+use tui::search::{
+    find_matches, find_nearest_match, highlight_search, max_scroll, word_boundary_left,
+    word_boundary_right,
+};
 
-// ANSI constants
-const ALT_SCREEN_ON: &str = "\x1b[?1049h";
-const ALT_SCREEN_OFF: &str = "\x1b[?1049l";
-const CURSOR_HIDE: &str = "\x1b[?25l";
-const CURSOR_SHOW: &str = "\x1b[?25h";
-const CLEAR_LINE: &str = "\x1b[2K";
+use crate::wrap::wrap_line_for_display;
+
 const REVERSE: &str = "\x1b[7m";
 const NO_REVERSE: &str = "\x1b[27m";
 const RESET: &str = "\x1b[0m";
@@ -21,28 +22,7 @@ const NO_DIM: &str = "\x1b[22m";
 const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
 const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Key {
-    Char(char),
-    Enter,
-    Escape,
-    Backspace,
-    CtrlC,
-    CtrlD,
-    CtrlU,
-    Up,
-    Down,
-    Left,
-    Right,
-    AltLeft,
-    AltRight,
-    AltBackspace,
-    PageUp,
-    PageDown,
-    Home,
-    End,
-    Unknown,
-}
+pub use tui::pager::Key;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Mode {
@@ -80,131 +60,7 @@ fn content_height(rows: u16, state: &PagerState) -> usize {
     }
 }
 
-pub fn crossterm_key_to_key(key_event: crossterm::event::KeyEvent) -> Key {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
-    let mods = key_event.modifiers;
-    match key_event.code {
-        // Ctrl combos
-        KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlC,
-        KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
-        KeyCode::Char('u') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlU,
-        // Alt combos
-        KeyCode::Char('b') | KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
-        KeyCode::Char('f') | KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
-        KeyCode::Backspace if mods.contains(KeyModifiers::ALT) => Key::AltBackspace,
-        // Plain chars
-        KeyCode::Char(c) => Key::Char(c),
-        // Nav keys
-        KeyCode::Up => Key::Up,
-        KeyCode::Down => Key::Down,
-        KeyCode::Left => Key::Left,
-        KeyCode::Right => Key::Right,
-        KeyCode::PageUp => Key::PageUp,
-        KeyCode::PageDown => Key::PageDown,
-        KeyCode::Home => Key::Home,
-        KeyCode::End => Key::End,
-        // Special keys
-        KeyCode::Enter => Key::Enter,
-        KeyCode::Esc => Key::Escape,
-        KeyCode::Backspace => Key::Backspace,
-        _ => Key::Unknown,
-    }
-}
-
-pub fn highlight_search(line: &str, query: &str) -> String {
-    if query.is_empty() {
-        return line.to_string();
-    }
-
-    let stripped = strip_ansi(line);
-    let lower_stripped = stripped.to_lowercase();
-    let lower_query = query.to_lowercase();
-
-    // Find all match positions in the stripped text
-    let mut match_ranges: Vec<(usize, usize)> = Vec::new();
-    let mut start = 0;
-    while let Some(pos) = lower_stripped[start..].find(&lower_query) {
-        let abs_pos = start + pos;
-        match_ranges.push((abs_pos, abs_pos + query.len()));
-        start = abs_pos + 1;
-    }
-
-    if match_ranges.is_empty() {
-        return line.to_string();
-    }
-
-    // Build position map: visible char index → byte index in original string
-    let mut vis_to_orig: Vec<usize> = Vec::new();
-    let segments = split_ansi(line);
-    let mut orig_pos = 0;
-    for seg in &segments {
-        if seg.starts_with('\x1b') {
-            orig_pos += seg.len();
-        } else {
-            for (i, _) in seg.char_indices() {
-                vis_to_orig.push(orig_pos + i);
-            }
-            orig_pos += seg.len();
-        }
-    }
-    // Sentinel for end-of-string insertions
-    vis_to_orig.push(orig_pos);
-
-    // Collect insertion points (reverse order to preserve indices)
-    let mut insertions: Vec<(usize, &str)> = Vec::new();
-    for (mstart, mend) in &match_ranges {
-        let orig_start = vis_to_orig[*mstart];
-        let orig_end = vis_to_orig[*mend];
-        insertions.push((orig_end, NO_REVERSE));
-        insertions.push((orig_start, REVERSE));
-    }
-    insertions.sort_by(|a, b| b.0.cmp(&a.0));
-
-    let mut result = line.to_string();
-    for (pos, code) in insertions {
-        result.insert_str(pos, code);
-    }
-
-    result
-}
-
-pub fn word_boundary_left(text: &str, cursor: usize) -> usize {
-    let bytes = text.as_bytes();
-    let mut pos = cursor;
-    // Skip spaces left
-    while pos > 0 && bytes[pos - 1] == b' ' {
-        pos -= 1;
-    }
-    // Skip non-spaces left
-    while pos > 0 && bytes[pos - 1] != b' ' {
-        pos -= 1;
-    }
-    pos
-}
-
-pub fn word_boundary_right(text: &str, cursor: usize) -> usize {
-    let bytes = text.as_bytes();
-    let len = bytes.len();
-    let mut pos = cursor;
-    // Skip non-spaces right
-    while pos < len && bytes[pos] != b' ' {
-        pos += 1;
-    }
-    // Skip spaces right
-    while pos < len && bytes[pos] == b' ' {
-        pos += 1;
-    }
-    pos
-}
-
-pub fn max_scroll(line_count: usize, content_height: usize) -> usize {
-    if line_count > content_height {
-        line_count - content_height + content_height / 2
-    } else {
-        0
-    }
-}
+pub use tui::pager::crossterm_to_key as crossterm_key_to_key;
 
 pub fn map_scroll_position(old_top: usize, old_count: usize, new_count: usize) -> usize {
     if old_count <= 1 || new_count <= 1 {
@@ -212,31 +68,6 @@ pub fn map_scroll_position(old_top: usize, old_count: usize, new_count: usize) -
     }
     let ratio = old_top as f64 / (old_count - 1) as f64;
     (ratio * (new_count - 1) as f64).round() as usize
-}
-
-pub fn find_nearest_match(matches: &[usize], top_line: usize) -> isize {
-    if matches.is_empty() {
-        return -1;
-    }
-    for (i, &m) in matches.iter().enumerate() {
-        if m >= top_line {
-            return i as isize;
-        }
-    }
-    matches.len() as isize - 1
-}
-
-pub fn find_matches(lines: &[String], query: &str) -> Vec<usize> {
-    if query.is_empty() {
-        return Vec::new();
-    }
-    let lower_query = query.to_lowercase();
-    lines
-        .iter()
-        .enumerate()
-        .filter(|(_, line)| strip_ansi(line).to_lowercase().contains(&lower_query))
-        .map(|(i, _)| i)
-        .collect()
 }
 
 pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_content: &str) -> usize {
@@ -453,53 +284,8 @@ pub fn handle_search_key(state: &mut PagerState, key: &Key) {
     }
 }
 
-fn move_to(out: &mut impl Write, row: u16, col: u16) {
-    let _ = write!(out, "\x1b[{};{}H", row + 1, col + 1);
-}
-
-fn get_term_size() -> (u16, u16) {
-    crossterm::terminal::size().unwrap_or((80, 24))
-}
-
-fn copy_to_clipboard(text: &str) -> bool {
-    let child = Command::new("pbcopy")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn();
-
-    match child {
-        Ok(mut proc) => {
-            if let Some(ref mut stdin) = proc.stdin {
-                let _ = stdin.write_all(text.as_bytes());
-            }
-            drop(proc.stdin.take());
-            proc.wait().map(|s| s.success()).unwrap_or(false)
-        }
-        Err(_) => false,
-    }
-}
-
 fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
-    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nvim".to_string());
-    let basename = editor.rsplit('/').next().unwrap_or(&editor);
-    let is_vim = basename == "vim" || basename == "nvim";
-
-    let mut args: Vec<String> = Vec::new();
-    if is_vim && read_only {
-        args.push("-R".to_string());
-    }
-    if is_vim && let Some(l) = line {
-        args.push(format!("+{l}"));
-    }
-    args.push(file_path.to_string());
-
-    let _ = Command::new(&editor)
-        .args(&args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status();
+    tui::pager::open_in_editor(file_path, line.map(|l| l as u32), read_only);
 }
 
 fn refresh_content(
@@ -1406,7 +1192,7 @@ mod tests {
     #[test]
     fn test_crossterm_key_to_key_unknown() {
         assert_eq!(
-            crossterm_key_to_key(make_key(KeyCode::Tab, KeyModifiers::NONE)),
+            crossterm_key_to_key(make_key(KeyCode::Insert, KeyModifiers::NONE)),
             Key::Unknown
         );
     }

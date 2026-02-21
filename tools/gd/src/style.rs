@@ -25,8 +25,8 @@ pub const FG_SEP: &str = "\x1b[2;38;2;68;76;86m";
 pub const FG_TREE: &str = "\x1b[38;2;139;148;158m";
 /// File tree directory names (folder yellow)
 pub const FG_TREE_DIR: &str = "\x1b[38;2;224;177;77m";
-/// File tree connector lines (dim gray, matches FG_SEP)
-pub const FG_TREE_GUIDE: &str = "\x1b[2;38;2;68;76;86m";
+/// File tree connector lines (gray, matches lsd tree-edge #484f58)
+pub const FG_TREE_GUIDE: &str = "\x1b[38;2;72;79;88m";
 /// Added line marker foreground
 pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 /// Deleted line marker foreground

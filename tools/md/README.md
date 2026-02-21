@@ -94,11 +94,11 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 | `main.rs` | CLI argument parsing (clap), input routing (file/stdin/directory), width calculation, centering |
 | `render.rs` | Markdown-to-styled-text conversion using pulldown-cmark; handles all block and inline elements |
 | `style.rs` | `Style` struct with color/pretty/plain-text formatting methods; GitHub Dark palette constants |
-| `wrap.rs` | ANSI-aware word wrapping, `strip_ansi()`, `visible_length()`, `split_ansi()`, display wrapping |
+| `wrap.rs` | ANSI-aware word wrapping (`word_wrap`, `wrap_line`); re-exports ANSI utilities (`strip_ansi`, `visible_length`, `split_ansi`) from `tui::ansi` |
 | `pager.rs` | Interactive pager with alternate screen, search highlighting, hidden-by-default status bar, clipboard, editor launch |
 | `browse.rs` | Directory browsing via `find` piped to `fzf`, spawned through `$SHELL` |
 | `frontmatter.rs` | YAML frontmatter parser (extracts `---` delimited block into `IndexMap`) |
-| `highlight.rs` | Syntax highlighting for fenced code blocks using syntect with a bundled GitHub Dark `.tmTheme` |
+| `highlight.rs` | Syntax highlighting for fenced code blocks using `tui::highlight` (syntect, bundled GitHub Dark theme) |
 
 ## Testing
 

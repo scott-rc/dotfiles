@@ -1,8 +1,8 @@
-use std::fmt::Write as _;
-
 use similar::TextDiff;
-use syntect::highlighting::{FontStyle, ThemeSet};
-use syntect::parsing::SyntaxSet;
+use tui::highlight::{
+    highlight_line, HighlightLines, SyntaxReference, SyntectSyntaxSet, SyntectTheme, SYNTAX_SET,
+    THEME,
+};
 
 use crate::git::diff::{DiffFile, DiffHunk, FileStatus, LineKind};
 use crate::style;
@@ -26,11 +26,6 @@ pub struct RenderOutput {
 }
 
 pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
-    let ss = two_face::syntax::extra_newlines();
-    let theme_bytes = include_bytes!("../themes/github-dark.tmTheme");
-    let theme = ThemeSet::load_from_reader(&mut std::io::Cursor::new(theme_bytes))
-        .unwrap_or_else(|_| ThemeSet::load_defaults().themes["base16-ocean.dark"].clone());
-
     let mut lines = Vec::new();
     let mut line_map = Vec::new();
     let mut file_starts = Vec::new();
@@ -69,15 +64,14 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
         });
 
         // Syntax highlighter for this file's extension
-        let syntax = ss
+        let syntax = SYNTAX_SET
             .find_syntax_by_extension(
                 std::path::Path::new(path)
                     .extension()
                     .and_then(|e| e.to_str())
                     .unwrap_or(""),
             )
-            .unwrap_or_else(|| ss.find_syntax_plain_text());
-        let theme_ref = &theme;
+            .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
 
         for hunk in &file.hunks {
             hunk_starts.push(lines.len());
@@ -109,8 +103,8 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
                 file_idx,
                 path,
                 syntax,
-                &ss,
-                theme_ref,
+                &SYNTAX_SET,
+                &THEME,
                 color,
                 width,
                 &mut lines,
@@ -363,9 +357,9 @@ fn render_hunk_lines(
     hunk: &DiffHunk,
     file_idx: usize,
     path: &str,
-    syntax: &syntect::parsing::SyntaxReference,
-    ss: &SyntaxSet,
-    theme: &syntect::highlighting::Theme,
+    syntax: &SyntaxReference,
+    ss: &SyntectSyntaxSet,
+    theme: &SyntectTheme,
     color: bool,
     width: usize,
     lines: &mut Vec<String>,
@@ -388,7 +382,7 @@ fn render_hunk_lines(
     }
 
     // Syntax highlighter state (applied in order for best results)
-    let mut hl_state = syntect::easy::HighlightLines::new(syntax, theme);
+    let mut hl_state = HighlightLines::new(syntax, theme);
 
     for (i, diff_line) in hunk.lines.iter().enumerate() {
         let gutter = if color {
@@ -420,10 +414,11 @@ fn render_hunk_lines(
 
         // Build the content portion with syntax + diff coloring
         let styled_content = if color {
-            let syntax_colored = syntax_highlight_line(
+            let syntax_colored = highlight_line(
                 &format!("{content}\n"),
                 &mut hl_state,
                 ss,
+                style::SOFT_RESET,
             );
             apply_diff_colors(
                 &syntax_colored,
@@ -497,36 +492,6 @@ fn render_hunk_lines(
             });
         }
     }
-}
-
-/// Syntax-highlight a single line using syntect, returning ANSI-colored text.
-fn syntax_highlight_line(
-    line: &str,
-    hl: &mut syntect::easy::HighlightLines,
-    ss: &SyntaxSet,
-) -> String {
-    let regions = hl.highlight_line(line, ss).unwrap_or_default();
-    let mut out = String::new();
-
-    for (style, text) in &regions {
-        let text = text.trim_end_matches('\n');
-        if text.is_empty() {
-            continue;
-        }
-
-        let fg = style.foreground;
-        if style.font_style.contains(FontStyle::BOLD) {
-            out.push_str("\x1b[1m");
-        }
-        if style.font_style.contains(FontStyle::ITALIC) {
-            out.push_str("\x1b[3m");
-        }
-        let _ = write!(out, "\x1b[38;2;{};{};{}m", fg.r, fg.g, fg.b);
-        out.push_str(text);
-        out.push_str(style::SOFT_RESET);
-    }
-
-    out
 }
 
 /// Apply diff background colors and word-level highlights to syntax-colored text.
@@ -734,19 +699,14 @@ diff --git a/foo.txt b/foo.txt
 
     #[test]
     fn syntax_highlight_uses_soft_reset() {
-        use syntect::highlighting::ThemeSet;
+        let syntax = SYNTAX_SET.find_syntax_by_extension("rs").unwrap();
+        let mut hl = HighlightLines::new(syntax, &THEME);
 
-        let ss = two_face::syntax::extra_newlines();
-        let ts = ThemeSet::load_defaults();
-        let theme = &ts.themes["base16-ocean.dark"];
-        let syntax = ss.find_syntax_by_extension("rs").unwrap();
-        let mut hl = syntect::easy::HighlightLines::new(syntax, theme);
-
-        let result = syntax_highlight_line("let x = 42;\n", &mut hl, &ss);
+        let result = highlight_line("let x = 42;\n", &mut hl, &SYNTAX_SET, style::SOFT_RESET);
         // Should use SOFT_RESET (22;23;39) not full RESET (0m) between tokens
         assert!(
             !result.contains("\x1b[0m"),
-            "syntax_highlight_line should use SOFT_RESET, not RESET: {result:?}"
+            "highlight_line should use SOFT_RESET, not RESET: {result:?}"
         );
         assert!(
             result.contains("\x1b[22;23;39m"),

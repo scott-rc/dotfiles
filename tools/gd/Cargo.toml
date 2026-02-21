@@ -7,10 +7,7 @@ edition = "2024"
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
 similar = "2"
-syntect = "5"
-two-face = "0.5"
-unicode-width = "0.2"
-regex = "1"
+tui = { path = "../tui" }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

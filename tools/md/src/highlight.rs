@@ -1,14 +1,4 @@
-use std::fmt::Write;
-use std::sync::LazyLock;
-
-use syntect::highlighting::{FontStyle, Theme, ThemeSet};
-use syntect::parsing::SyntaxSet;
-
-static SYNTAX_SET: LazyLock<SyntaxSet> = LazyLock::new(two_face::syntax::extra_newlines);
-static THEME: LazyLock<Theme> = LazyLock::new(|| {
-    let theme_bytes = include_bytes!("../themes/github-dark.tmTheme");
-    ThemeSet::load_from_reader(&mut std::io::Cursor::new(theme_bytes)).unwrap()
-});
+use tui::highlight::{highlight_line, SYNTAX_SET, THEME};
 
 pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
     if !color {
@@ -19,34 +9,17 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
         return code.to_string();
     };
 
-    let theme = &*THEME;
-
     let Some(syntax) = SYNTAX_SET.find_syntax_by_token(lang) else {
         return code.to_string();
     };
 
-    let mut highlighter = syntect::easy::HighlightLines::new(syntax, theme);
+    let mut highlighter = syntect::easy::HighlightLines::new(syntax, &THEME);
     let mut result = String::new();
 
     for line in syntect::util::LinesWithEndings::from(code) {
-        let Ok(regions) = highlighter.highlight_line(line, &SYNTAX_SET) else {
-            return code.to_string();
-        };
-        for (style, text) in regions {
-            let fg = style.foreground;
-            let _ = write!(result, "\x1b[38;2;{};{};{}", fg.r, fg.g, fg.b);
-            if style.font_style.contains(FontStyle::BOLD) {
-                result.push_str(";1");
-            }
-            if style.font_style.contains(FontStyle::ITALIC) {
-                result.push_str(";3");
-            }
-            if style.font_style.contains(FontStyle::UNDERLINE) {
-                result.push_str(";4");
-            }
-            result.push('m');
-            result.push_str(text);
-            result.push_str("\x1b[0m");
+        result.push_str(&highlight_line(line, &mut highlighter, &SYNTAX_SET, "\x1b[0m"));
+        if line.ends_with('\n') {
+            result.push('\n');
         }
     }
 

@@ -24,7 +24,7 @@ The main setup script that:
 6. Configures iTerm2 preferences via `defaults write`
 7. Installs Nix package manager if missing
 8. Sets up Rust toolchain and wasm32-wasip1 target via rustup
-9. Builds CLI tools (md, gd) via Cargo
+9. Builds CLI tools via Cargo workspace (md, gd, tui)
 10. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
 ### Brewfile
@@ -208,7 +208,8 @@ Custom CLI tools.
 | Tool | Description |
 |------|-------------|
 | `md/` | Terminal markdown renderer (Rust) with color output, syntax highlighting (github-dark theme), YAML frontmatter support, word wrapping, pretty mode (default; Unicode box-drawing borders, bullets, decorations, hidden inline delimiters — disable with `--plain`), directory browsing (via `$SHELL` + `fzf`), and a built-in pager with terminal resize handling, style toggle, clipboard copy, and `$EDITOR` integration. Includes criterion microbenchmarks (`cargo bench`) for the render pipeline, wrapping, and syntax highlighting. Built by `apply.sh` and symlinked to `~/.cargo/bin/md`, so rebuilding with `cargo build --release` automatically updates the binary in PATH. |
-| `gd/` | Terminal git diff viewer (Rust) with syntax highlighting (syntect, GitHub Dark theme), word-level diff highlights, dual line numbers, `↪` wrap continuation markers, and a built-in pager with hunk/file navigation with centered viewport (`]c`/`[c`/`]f`/`[f`), full-file context toggle (`o`), search, `$EDITOR` delegation (`E`), a toggleable file tree panel with flat and hierarchical views, file type icons, box-drawing connector lines, and directory collapsing (`e` toggle, `Ctrl-H`/`Ctrl-L` directional focus, scrollable, hidden by default), an optional cursor line (`Space` toggle, underline, scrolloff=8), and visual line selection (`v`) for copying `path:line` references. Supports working tree (including untracked files by default, `--no-untracked` to hide), staged, commit, and range diffs. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
+| `gd/` | Terminal git diff viewer (Rust) with syntax highlighting (syntect, GitHub Dark theme), word-level diff highlights, dual line numbers, `↪` wrap continuation markers, and a built-in pager with hunk/file navigation with centered viewport (`]c`/`[c`/`]f`/`[f`), full-file context toggle (`o`), search, `$EDITOR` delegation (`E`), a toggleable file tree panel with flat and hierarchical views, file type icons, lsd-style tree connector lines, and directory collapsing (`e` toggle, `Ctrl-H`/`Ctrl-L` directional focus, scrollable, hidden by default), single-file view when tree is visible, an optional cursor line (`Space` toggle, underline, scrolloff=8), and visual line selection (`v`) for copying `path:line` references. Supports working tree (including untracked files by default, `--no-untracked` to hide), staged, commit, and range diffs. Built by `apply.sh` and symlinked to `~/.cargo/bin/gd`. |
+| `tui/` | Shared terminal UI library (Rust) providing ANSI utilities (strip, measure, split, wrap), syntax highlighting (syntect, GitHub Dark theme), and pager helpers (key mapping, terminal control, clipboard, editor delegation). Used by `md` and `gd` as a workspace dependency. |
 
 ## Useful Commands
 

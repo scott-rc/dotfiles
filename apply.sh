@@ -256,12 +256,10 @@ fi
 
 if command -v cargo &>/dev/null; then
 	mkdir -p "$HOME/.cargo/bin"
-	log_info "Building md"
-	(cd "$WORKSPACE_ROOT/tools/md" && cargo build --release 2>&1)
-	ensure_symlink "$WORKSPACE_ROOT/tools/md/target/release/md" "$HOME/.cargo/bin/md"
-	log_info "Building gd"
-	(cd "$WORKSPACE_ROOT/tools/gd" && cargo build --release 2>&1)
-	ensure_symlink "$WORKSPACE_ROOT/tools/gd/target/release/gd" "$HOME/.cargo/bin/gd"
+	log_info "Building tools workspace"
+	(cd "$WORKSPACE_ROOT/tools" && cargo build --release 2>&1)
+	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/md" "$HOME/.cargo/bin/md"
+	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/gd" "$HOME/.cargo/bin/gd"
 fi
 
 # --- Zsh ---

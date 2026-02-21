@@ -1,45 +1,22 @@
 use std::io::{self, Write};
-use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyEventKind};
 
-use crate::ansi::{split_ansi, strip_ansi};
+use tui::pager::{
+    ALT_SCREEN_OFF, ALT_SCREEN_ON, CLEAR_LINE, CURSOR_HIDE, CURSOR_SHOW, copy_to_clipboard,
+    get_term_size, move_to,
+};
+use tui::search::{
+    find_matches, find_nearest_match, highlight_search, max_scroll, word_boundary_left,
+    word_boundary_right,
+};
+
 use crate::git::diff::{DiffFile, FileStatus};
 use crate::render::{self, LineInfo, RenderOutput};
 use crate::style;
 
-const ALT_SCREEN_ON: &str = "\x1b[?1049h";
-const ALT_SCREEN_OFF: &str = "\x1b[?1049l";
-const CURSOR_HIDE: &str = "\x1b[?25l";
-const CURSOR_SHOW: &str = "\x1b[?25h";
-const CLEAR_LINE: &str = "\x1b[2K";
-
-#[derive(Debug, Clone, PartialEq)]
-enum Key {
-    Char(char),
-    Tab,
-    Enter,
-    Escape,
-    Backspace,
-    CtrlC,
-    CtrlD,
-    CtrlH,
-    CtrlL,
-    CtrlU,
-    Up,
-    Down,
-    Left,
-    Right,
-    AltLeft,
-    AltRight,
-    AltBackspace,
-    PageUp,
-    PageDown,
-    Home,
-    End,
-    Unknown,
-}
+use tui::pager::Key;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Mode {
@@ -80,53 +57,19 @@ struct PagerState {
     tree_scroll: usize,
     tree_lines: Vec<String>,
     tree_entries: Vec<TreeEntry>,
+    /// When `Some(idx)`, diff panel shows only file `idx`; `None` = all-files view
+    active_file: Option<usize>,
     top_padding: usize,
     full_context: bool,
 }
 
-fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
-    use crossterm::event::{KeyCode, KeyModifiers};
-
-    let mods = key_event.modifiers;
-    match key_event.code {
-        KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlC,
-        KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
-        KeyCode::Char('h') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlH,
-        KeyCode::Char('l') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlL,
-        KeyCode::Char('u') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlU,
-        KeyCode::Char('b') | KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
-        KeyCode::Char('f') | KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
-        KeyCode::Backspace if mods.contains(KeyModifiers::ALT) => Key::AltBackspace,
-        KeyCode::Char(c) => Key::Char(c),
-        KeyCode::Up => Key::Up,
-        KeyCode::Down => Key::Down,
-        KeyCode::Left => Key::Left,
-        KeyCode::Right => Key::Right,
-        KeyCode::PageUp => Key::PageUp,
-        KeyCode::PageDown => Key::PageDown,
-        KeyCode::Home => Key::Home,
-        KeyCode::End => Key::End,
-        KeyCode::Tab => Key::Tab,
-        KeyCode::Enter => Key::Enter,
-        KeyCode::Esc => Key::Escape,
-        KeyCode::Backspace => Key::Backspace,
-        _ => Key::Unknown,
-    }
-}
+use tui::pager::crossterm_to_key;
 
 fn diff_area_width(cols: u16, tree_width: usize, tree_visible: bool) -> usize {
     if tree_visible {
         (cols as usize).saturating_sub(tree_width + 1)
     } else {
         cols as usize
-    }
-}
-
-fn max_scroll(line_count: usize, content_height: usize) -> usize {
-    if line_count > content_height {
-        line_count - content_height + content_height / 2
-    } else {
-        0
     }
 }
 
@@ -181,98 +124,35 @@ fn apply_top_padding(state: &mut PagerState, content_height: usize) {
 const SCROLLOFF: usize = 8;
 
 fn enforce_scrolloff(state: &mut PagerState, content_height: usize) {
-    let max_top = max_scroll(state.lines.len(), content_height);
-    let max_cursor = state.lines.len().saturating_sub(1);
-    state.cursor_line = state.cursor_line.min(max_cursor);
+    let (range_start, range_end) = visible_range(state);
+    let range_lines = range_end - range_start;
+    let max_top = range_start + range_lines.saturating_sub(content_height);
+    let max_cursor = range_end.saturating_sub(1);
+    state.cursor_line = state.cursor_line.clamp(range_start, max_cursor);
     if state.cursor_line < state.top_line + SCROLLOFF {
-        state.top_line = state.cursor_line.saturating_sub(SCROLLOFF);
+        state.top_line = state.cursor_line.saturating_sub(SCROLLOFF).max(range_start);
     }
     if state.cursor_line + SCROLLOFF >= state.top_line + content_height {
         state.top_line = (state.cursor_line + SCROLLOFF + 1).saturating_sub(content_height);
     }
-    state.top_line = state.top_line.min(max_top);
+    state.top_line = state.top_line.clamp(range_start, max_top);
 }
 
-fn find_matches(lines: &[String], query: &str) -> Vec<usize> {
-    if query.is_empty() {
-        return Vec::new();
-    }
-    let lower = query.to_lowercase();
-    lines
-        .iter()
-        .enumerate()
-        .filter(|(_, line)| strip_ansi(line).to_lowercase().contains(&lower))
-        .map(|(i, _)| i)
-        .collect()
-}
-
-fn find_nearest_match(matches: &[usize], top_line: usize) -> isize {
-    if matches.is_empty() {
-        return -1;
-    }
-    for (i, &m) in matches.iter().enumerate() {
-        if m >= top_line {
-            return i as isize;
+/// Return the `(start, end)` line range for the active file, or the full
+/// document range when no file is selected.
+fn visible_range(state: &PagerState) -> (usize, usize) {
+    match state.active_file {
+        Some(idx) => {
+            let start = state.file_starts[idx];
+            let end = state
+                .file_starts
+                .get(idx + 1)
+                .copied()
+                .unwrap_or(state.lines.len());
+            (start, end)
         }
+        None => (0, state.lines.len()),
     }
-    matches.len() as isize - 1
-}
-
-fn highlight_search(line: &str, query: &str) -> String {
-    if query.is_empty() {
-        return line.to_string();
-    }
-
-    let stripped = strip_ansi(line);
-    let lower_stripped = stripped.to_lowercase();
-    let lower_query = query.to_lowercase();
-
-    let mut match_ranges: Vec<(usize, usize)> = Vec::new();
-    let mut start = 0;
-    while let Some(pos) = lower_stripped[start..].find(&lower_query) {
-        let abs = start + pos;
-        match_ranges.push((abs, abs + query.len()));
-        start = abs + 1;
-    }
-
-    if match_ranges.is_empty() {
-        return line.to_string();
-    }
-
-    let mut vis_to_orig: Vec<usize> = Vec::new();
-    let segments = split_ansi(line);
-    let mut orig_pos = 0;
-    for seg in &segments {
-        if seg.starts_with('\x1b') {
-            orig_pos += seg.len();
-        } else {
-            for (i, _) in seg.char_indices() {
-                vis_to_orig.push(orig_pos + i);
-            }
-            orig_pos += seg.len();
-        }
-    }
-    vis_to_orig.push(orig_pos);
-
-    let mut insertions: Vec<(usize, &str)> = Vec::new();
-    for (mstart, mend) in &match_ranges {
-        if *mend <= vis_to_orig.len() && *mstart < vis_to_orig.len() {
-            let orig_start = vis_to_orig[*mstart];
-            let orig_end = vis_to_orig[*mend];
-            insertions.push((orig_end, style::NO_REVERSE));
-            insertions.push((orig_start, style::REVERSE));
-        }
-    }
-    insertions.sort_by(|a, b| b.0.cmp(&a.0));
-
-    let mut result = line.to_string();
-    for (pos, code) in insertions {
-        if pos <= result.len() {
-            result.insert_str(pos, code);
-        }
-    }
-
-    result
 }
 
 /// Apply visual selection background tint to a rendered line.
@@ -306,46 +186,6 @@ fn format_copy_ref(path: &str, start: Option<u32>, end: Option<u32>) -> String {
         (Some(s), None) => format!("{path}:{s}"),
         _ => path.to_string(),
     }
-}
-
-fn copy_to_clipboard(text: &str) -> bool {
-    use std::io::Write as _;
-    let Ok(mut child) = Command::new("pbcopy").stdin(Stdio::piped()).spawn() else {
-        return false;
-    };
-    let Some(mut stdin) = child.stdin.take() else {
-        return false;
-    };
-    if stdin.write_all(text.as_bytes()).is_err() {
-        return false;
-    }
-    drop(stdin);
-    child.wait().is_ok()
-}
-
-fn word_boundary_left(text: &str, cursor: usize) -> usize {
-    let bytes = text.as_bytes();
-    let mut pos = cursor;
-    while pos > 0 && bytes[pos - 1] == b' ' {
-        pos -= 1;
-    }
-    while pos > 0 && bytes[pos - 1] != b' ' {
-        pos -= 1;
-    }
-    pos
-}
-
-fn word_boundary_right(text: &str, cursor: usize) -> usize {
-    let bytes = text.as_bytes();
-    let len = bytes.len();
-    let mut pos = cursor;
-    while pos < len && bytes[pos] != b' ' {
-        pos += 1;
-    }
-    while pos < len && bytes[pos] == b' ' {
-        pos += 1;
-    }
-    pos
 }
 
 fn handle_search_key(state: &mut PagerState, key: &Key) {
@@ -427,31 +267,8 @@ fn handle_search_key(state: &mut PagerState, key: &Key) {
     }
 }
 
-fn get_term_size() -> (u16, u16) {
-    crossterm::terminal::size().unwrap_or((80, 24))
-}
-
-fn move_to(out: &mut impl Write, row: u16, col: u16) {
-    let _ = write!(out, "\x1b[{};{}H", row + 1, col + 1);
-}
-
 fn open_in_editor(path: &str, line: Option<u32>) {
-    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nvim".to_string());
-    let basename = editor.rsplit('/').next().unwrap_or(&editor);
-    let is_vim = basename == "vim" || basename == "nvim";
-
-    let mut args: Vec<String> = Vec::new();
-    if is_vim && let Some(l) = line {
-        args.push(format!("+{l}"));
-    }
-    args.push(path.to_string());
-
-    let _ = Command::new(&editor)
-        .args(&args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status();
+    tui::pager::open_in_editor(path, line, false);
 }
 
 fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
@@ -532,6 +349,13 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
 fn current_file_label(state: &PagerState) -> String {
     if state.line_map.is_empty() {
         return String::new();
+    }
+    if let Some(fi) = state.active_file {
+        let total = state.file_starts.len();
+        let pos = state.file_starts[fi].min(state.line_map.len() - 1);
+        let info = &state.line_map[pos];
+        let name = info.path.rsplit('/').next().unwrap_or(&info.path);
+        return format!("{name} ({}/{total})", fi + 1);
     }
     let pos = state.cursor_line.min(state.line_map.len() - 1);
     let info = &state.line_map[pos];
@@ -888,7 +712,7 @@ fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
 fn compute_tree_width(tree_entries: &[TreeEntry]) -> usize {
     let max_len = tree_entries
         .iter()
-        .map(|e| (e.depth + 1) * 3 + 2 + e.label.len() + 2) // connectors + icon+space + label + padding
+        .map(|e| (e.depth + 1) * 4 + 2 + e.label.len() + 2) // connectors + icon+space + label + padding
         .max()
         .unwrap_or(0);
     max_len.min(40)
@@ -902,8 +726,8 @@ fn file_idx_to_entry_idx(tree_entries: &[TreeEntry], file_idx: usize) -> usize {
 }
 
 /// Build the Unicode box-drawing prefix for a tree entry at `idx`.
-/// Each depth level contributes 3 characters: either a continuation pipe
-/// (`│  `) or blank (`   `), and the entry's own connector (`├─ ` or `└─ `).
+/// Each depth level contributes 4 characters: either a continuation pipe
+/// (`│   `) or blank (`    `), and the entry's own connector (`├── ` or `└── `).
 fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
     let depth = entries[idx].depth;
     let mut prefix = String::new();
@@ -913,9 +737,9 @@ fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
     for d in 0..depth {
         let has_continuation = entries[idx + 1..].iter().any(|e| e.depth <= d);
         if has_continuation {
-            prefix.push_str("│  ");
+            prefix.push_str("│   ");
         } else {
-            prefix.push_str("   ");
+            prefix.push_str("    ");
         }
     }
 
@@ -925,9 +749,9 @@ fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
         .take_while(|e| e.depth >= depth)
         .any(|e| e.depth == depth);
     if has_sibling_after {
-        prefix.push_str("├─ ");
+        prefix.push_str("├── ");
     } else {
-        prefix.push_str("└─ ");
+        prefix.push_str("└── ");
     }
 
     prefix
@@ -945,8 +769,8 @@ fn build_tree_lines(tree_entries: &[TreeEntry], cursor_entry_idx: usize, width: 
             style::dir_icon()
         };
 
-        // prefix is (depth+1)*3 chars, plus icon(1) + space(1) + label
-        let vis_len = (entry.depth + 1) * 3 + 2 + entry.label.chars().count();
+        // prefix is (depth+1)*4 chars, plus icon(1) + space(1) + label
+        let vis_len = (entry.depth + 1) * 4 + 2 + entry.label.chars().count();
         let right_pad = width.saturating_sub(vis_len);
         let guide = style::FG_TREE_GUIDE;
 
@@ -979,16 +803,20 @@ fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
     if !state.tree_visible || state.tree_focused {
         return;
     }
-    let anchor = if state.cursor_visible {
-        state.cursor_line
+    let new_cursor = if let Some(fi) = state.active_file {
+        fi
     } else {
-        state.top_line
+        let anchor = if state.cursor_visible {
+            state.cursor_line
+        } else {
+            state.top_line
+        };
+        state
+            .line_map
+            .get(anchor)
+            .map(|li| li.file_idx)
+            .unwrap_or(0)
     };
-    let new_cursor = state
-        .line_map
-        .get(anchor)
-        .map(|li| li.file_idx)
-        .unwrap_or(0);
     let new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     if new_entry_idx != state.tree_cursor {
         state.tree_cursor = new_entry_idx;
@@ -1075,6 +903,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         tree_scroll: 0,
         tree_lines: vec![],
         tree_entries: Vec::new(),
+        active_file: None,
         top_padding: 0,
         full_context: false,
     };
@@ -1226,6 +1055,10 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         .map(|p| idx + 1 + p)
                     {
                         state.tree_cursor = next;
+                        let fi = state.tree_entries[next].file_idx.unwrap();
+                        state.active_file = Some(fi);
+                        state.top_line = state.file_starts[fi];
+                        state.cursor_line = state.top_line;
                         state.tree_lines =
                             build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                         let ch = last_size.1.saturating_sub(1) as usize;
@@ -1239,6 +1072,10 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         .rposition(|e| e.file_idx.is_some())
                     {
                         state.tree_cursor = prev;
+                        let fi = state.tree_entries[prev].file_idx.unwrap();
+                        state.active_file = Some(fi);
+                        state.top_line = state.file_starts[fi];
+                        state.cursor_line = state.top_line;
                         state.tree_lines =
                             build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                         let ch = last_size.1.saturating_sub(1) as usize;
@@ -1247,12 +1084,9 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 }
                 Key::Enter => {
                     if let Some(file_idx) = state.tree_entries.get(state.tree_cursor).and_then(|e| e.file_idx) {
+                        state.active_file = Some(file_idx);
                         if let Some(&target) = state.file_starts.get(file_idx) {
-                            let content_height = last_size.1.saturating_sub(1) as usize;
-                            let max_top = max_scroll(state.lines.len(), content_height);
-                            state.top_line = target
-                                .saturating_sub(content_height / 2)
-                                .min(max_top);
+                            state.top_line = target;
                             state.cursor_line = state.top_line;
                         }
                     }
@@ -1261,6 +1095,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                     state.tree_focused = false;
                 }
                 Key::Char('e') => {
+                    state.active_file = None;
                     state.tree_visible = false;
                     state.tree_focused = false;
                     re_render(&mut state, &files, color, last_size.0, last_size.1.saturating_sub(1) as usize);
@@ -1285,23 +1120,53 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             let mut jump_target: Option<usize> = None;
             match (bracket, &key) {
                 (']', Key::Char('c')) => {
-                    if let Some(target) = jump_next(&state.hunk_starts, anchor) {
-                        jump_target = Some(target);
+                    if state.active_file.is_some() {
+                        let (rs, re) = visible_range(&state);
+                        let filtered: Vec<usize> = state.hunk_starts.iter().copied()
+                            .filter(|&h| h >= rs && h < re).collect();
+                        jump_target = jump_next(&filtered, anchor);
+                    } else if let Some(t) = jump_next(&state.hunk_starts, anchor) {
+                        jump_target = Some(t);
                     }
                 }
                 ('[', Key::Char('c')) => {
-                    if let Some(target) = jump_prev(&state.hunk_starts, anchor) {
-                        jump_target = Some(target);
+                    if state.active_file.is_some() {
+                        let (rs, re) = visible_range(&state);
+                        let filtered: Vec<usize> = state.hunk_starts.iter().copied()
+                            .filter(|&h| h >= rs && h < re).collect();
+                        jump_target = jump_prev(&filtered, anchor);
+                    } else if let Some(t) = jump_prev(&state.hunk_starts, anchor) {
+                        jump_target = Some(t);
                     }
                 }
                 (']', Key::Char('f')) => {
-                    if let Some(target) = jump_next(&state.file_starts, anchor) {
-                        jump_target = Some(target);
+                    if let Some(idx) = state.active_file {
+                        let next = (idx + 1).min(state.file_starts.len() - 1);
+                        if next != idx {
+                            state.active_file = Some(next);
+                            state.top_line = state.file_starts[next];
+                            state.cursor_line = state.top_line;
+                            state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, next);
+                            state.tree_lines = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                            ensure_tree_cursor_visible(&mut state, content_height);
+                        }
+                    } else if let Some(t) = jump_next(&state.file_starts, anchor) {
+                        jump_target = Some(t);
                     }
                 }
                 ('[', Key::Char('f')) => {
-                    if let Some(target) = jump_prev(&state.file_starts, anchor) {
-                        jump_target = Some(target);
+                    if let Some(idx) = state.active_file {
+                        let prev = idx.saturating_sub(1);
+                        if prev != idx {
+                            state.active_file = Some(prev);
+                            state.top_line = state.file_starts[prev];
+                            state.cursor_line = state.top_line;
+                            state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, prev);
+                            state.tree_lines = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                            ensure_tree_cursor_visible(&mut state, content_height);
+                        }
+                    } else if let Some(t) = jump_prev(&state.file_starts, anchor) {
+                        jump_target = Some(t);
                     }
                 }
                 _ => {} // Unknown sequence — ignore
@@ -1330,7 +1195,14 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         let rows = last_size.1;
         let content_height = rows.saturating_sub(1) as usize;
         let half_page = content_height / 2;
-        let max_top = max_scroll(state.lines.len(), content_height);
+        let (range_start, range_end) = visible_range(&state);
+        let range_lines = range_end - range_start;
+        let max_top = if state.active_file.is_some() {
+            range_start + range_lines.saturating_sub(content_height)
+        } else {
+            max_scroll(state.lines.len(), content_height)
+        };
+        let max_cursor = range_end.saturating_sub(1);
 
         state.status_message.clear();
 
@@ -1338,44 +1210,47 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             Key::Char('q') | Key::CtrlC => break,
             Key::Char('j') | Key::Down | Key::Enter => {
                 if state.cursor_visible {
-                    state.cursor_line = (state.cursor_line + 1)
-                        .min(state.lines.len().saturating_sub(1));
+                    state.cursor_line = (state.cursor_line + 1).min(max_cursor);
                 } else {
                     state.top_line = (state.top_line + 1).min(max_top);
                 }
             }
             Key::Char('k') | Key::Up => {
                 if state.cursor_visible {
-                    state.cursor_line = state.cursor_line.saturating_sub(1);
+                    state.cursor_line =
+                        state.cursor_line.saturating_sub(1).max(range_start);
                 } else {
-                    state.top_line = state.top_line.saturating_sub(1);
+                    state.top_line =
+                        state.top_line.saturating_sub(1).max(range_start);
                 }
             }
             Key::Char('d') | Key::CtrlD | Key::PageDown => {
                 if state.cursor_visible {
-                    state.cursor_line = (state.cursor_line + half_page)
-                        .min(state.lines.len().saturating_sub(1));
+                    state.cursor_line =
+                        (state.cursor_line + half_page).min(max_cursor);
                 } else {
                     state.top_line = (state.top_line + half_page).min(max_top);
                 }
             }
             Key::Char('u') | Key::CtrlU | Key::PageUp => {
                 if state.cursor_visible {
-                    state.cursor_line = state.cursor_line.saturating_sub(half_page);
+                    state.cursor_line =
+                        state.cursor_line.saturating_sub(half_page).max(range_start);
                 } else {
-                    state.top_line = state.top_line.saturating_sub(half_page);
+                    state.top_line =
+                        state.top_line.saturating_sub(half_page).max(range_start);
                 }
             }
             Key::Char('g') | Key::Home => {
                 if state.cursor_visible {
-                    state.cursor_line = 0;
+                    state.cursor_line = range_start;
                 } else {
-                    state.top_line = 0;
+                    state.top_line = range_start;
                 }
             }
             Key::Char('G') | Key::End => {
                 if state.cursor_visible {
-                    state.cursor_line = state.lines.len().saturating_sub(1);
+                    state.cursor_line = max_cursor;
                 } else {
                     state.top_line = max_top;
                 }
@@ -1396,17 +1271,60 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             }
             Key::Char('n') => {
                 if !state.search_matches.is_empty() {
-                    state.current_match =
-                        (state.current_match + 1) % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state, rows);
+                    if state.active_file.is_some() {
+                        let (rs, re) = visible_range(&state);
+                        let filtered: Vec<usize> = state.search_matches.iter().copied()
+                            .filter(|&m| m >= rs && m < re).collect();
+                        if !filtered.is_empty() {
+                            let cur_line = if state.current_match >= 0 {
+                                state.search_matches[state.current_match as usize]
+                            } else {
+                                0
+                            };
+                            if let Some(pos) = filtered.iter().position(|&m| m > cur_line) {
+                                let global = state.search_matches.iter().position(|&m| m == filtered[pos]).unwrap();
+                                state.current_match = global as isize;
+                            } else {
+                                let global = state.search_matches.iter().position(|&m| m == filtered[0]).unwrap();
+                                state.current_match = global as isize;
+                            }
+                            scroll_to_match(&mut state, rows);
+                        }
+                    } else {
+                        state.current_match =
+                            (state.current_match + 1) % state.search_matches.len() as isize;
+                        scroll_to_match(&mut state, rows);
+                    }
                 }
             }
             Key::Char('N') => {
                 if !state.search_matches.is_empty() {
-                    state.current_match = (state.current_match - 1
-                        + state.search_matches.len() as isize)
-                        % state.search_matches.len() as isize;
-                    scroll_to_match(&mut state, rows);
+                    if state.active_file.is_some() {
+                        let (rs, re) = visible_range(&state);
+                        let filtered: Vec<usize> = state.search_matches.iter().copied()
+                            .filter(|&m| m >= rs && m < re).collect();
+                        if !filtered.is_empty() {
+                            let cur_line = if state.current_match >= 0 {
+                                state.search_matches[state.current_match as usize]
+                            } else {
+                                usize::MAX
+                            };
+                            if let Some(pos) = filtered.iter().rposition(|&m| m < cur_line) {
+                                let global = state.search_matches.iter().position(|&m| m == filtered[pos]).unwrap();
+                                state.current_match = global as isize;
+                            } else {
+                                let last = *filtered.last().unwrap();
+                                let global = state.search_matches.iter().position(|&m| m == last).unwrap();
+                                state.current_match = global as isize;
+                            }
+                            scroll_to_match(&mut state, rows);
+                        }
+                    } else {
+                        state.current_match = (state.current_match - 1
+                            + state.search_matches.len() as isize)
+                            % state.search_matches.len() as isize;
+                        scroll_to_match(&mut state, rows);
+                    }
                 }
             }
             Key::Char('E') => {
@@ -1441,6 +1359,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         .get(anchor)
                         .map(|li| li.file_idx)
                         .unwrap_or(0);
+                    state.active_file = Some(file_idx);
                     state.tree_entries = build_tree_entries(&files);
                     state.tree_width = compute_tree_width(&state.tree_entries);
                     state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
@@ -1471,6 +1390,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         .get(anchor)
                         .map(|li| li.file_idx)
                         .unwrap_or(0);
+                    state.active_file = Some(file_idx);
                     state.tree_entries = build_tree_entries(&files);
                     state.tree_width = compute_tree_width(&state.tree_entries);
                     state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
@@ -1533,9 +1453,9 @@ mod tests {
             entry("b.rs", 0, Some(1)),
             entry("c.rs", 0, Some(2)),
         ];
-        assert_eq!(compute_connector_prefix(&entries, 0), "├─ ");
-        assert_eq!(compute_connector_prefix(&entries, 1), "├─ ");
-        assert_eq!(compute_connector_prefix(&entries, 2), "└─ ");
+        assert_eq!(compute_connector_prefix(&entries, 0), "├── ");
+        assert_eq!(compute_connector_prefix(&entries, 1), "├── ");
+        assert_eq!(compute_connector_prefix(&entries, 2), "└── ");
     }
 
     #[test]
@@ -1551,13 +1471,13 @@ mod tests {
             entry("README.md", 0, Some(2)),
         ];
         // src dir: has sibling README.md at depth 0 after it
-        assert_eq!(compute_connector_prefix(&entries, 0), "├─ ");
+        assert_eq!(compute_connector_prefix(&entries, 0), "├── ");
         // a.rs: parent (depth 0) continues, sibling b.rs at depth 1 follows
-        assert_eq!(compute_connector_prefix(&entries, 1), "│  ├─ ");
+        assert_eq!(compute_connector_prefix(&entries, 1), "│   ├── ");
         // b.rs: parent (depth 0) continues, no more siblings at depth 1
-        assert_eq!(compute_connector_prefix(&entries, 2), "│  └─ ");
+        assert_eq!(compute_connector_prefix(&entries, 2), "│   └── ");
         // README.md: last root entry
-        assert_eq!(compute_connector_prefix(&entries, 3), "└─ ");
+        assert_eq!(compute_connector_prefix(&entries, 3), "└── ");
     }
 
     #[test]

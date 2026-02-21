@@ -12,7 +12,7 @@ MUST NOT introduce custom error types, `Result` types, or error enums. Use `epri
 
 ---
 
-MUST NOT duplicate ANSI regex patterns. Reuse the helpers in `ansi.rs`.
+MUST NOT duplicate ANSI regex patterns. Reuse the helpers in `tui::ansi` (re-exported via `ansi.rs`).
 
 ---
 

@@ -37,7 +37,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 | Key | Action |
 |-----|--------|
 | `]c` / `[c` | Next/prev hunk |
-| `]f` / `[f` | Next/prev file |
+| `]f` / `[f` | Next/prev file (switches single-file view when tree is visible) |
 | `o` | Toggle full file context |
 
 ### Search
@@ -49,14 +49,16 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 ### File Tree
 
+When the file tree is visible, the diff pane shows only the currently selected file. Use `]f`/`[f` or arrow keys in the tree to switch files. Closing the tree returns to the full concatenated diff view.
+
 | Key | Action |
 |-----|--------|
 | `e` | Toggle file tree panel (open/focus/close cycle) |
 | `Tab` | Switch focus to tree |
 | `Ctrl-L` | Show + focus tree |
 | `Ctrl-H` | Return focus to diff |
-| `j` / `k` | Navigate files (when tree focused) |
-| `Enter` | Jump to file (stays in tree) |
+| `j` / `k` | Navigate and preview files (when tree focused) |
+| `Enter` | Select file and show its diff (stays in tree) |
 | `Esc` | Return focus to diff |
 
 ### Visual Mode
@@ -82,17 +84,17 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with flat and hierarchical views, file type icons, box-drawing connector lines, and directory collapsing (hidden by default, `e` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus) with auto-sync cursor tracking, centered viewport on hunk/file jumps, full-file context toggle (`o`), an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), and directory collapsing (hidden by default, `e` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus), single-file view when tree is visible (diff pane shows only the selected file, `]f`/`[f` switches files), with auto-sync cursor tracking, centered viewport on hunk/file jumps, full-file context toggle (`o`), an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 
 - `main.rs` — CLI parsing (clap), `DiffSource` resolution, git diff, render, pager decision
 - `git/mod.rs` — Synchronous git command runner (`std::process::Command`)
 - `git/diff.rs` — Unified diff parser with multi-hunk support
-- `render.rs` — `DiffFile[]` → ANSI text with line numbers, syntax + diff colors, word-level highlights
+- `render.rs` — `DiffFile[]` → ANSI text with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
 - `style.rs` — Diff color palette (GitHub Dark-inspired) and ANSI helpers
 - `pager.rs` — Built-in pager with diff navigation, search, editor delegation
-- `ansi.rs` — `strip_ansi`, `visible_width`, `split_ansi`, `wrap_line_for_display`
+- `ansi.rs` — Re-exports from `tui::ansi`: `strip_ansi`, `visible_width`, `split_ansi`, `wrap_line_for_display`, `AnsiState`
 
 ## Build
 
