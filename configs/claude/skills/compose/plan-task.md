@@ -49,7 +49,11 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - Build and test commands
    - The output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md`
 
-   Run chunk writer subagents sequentially (later chunks may reference earlier ones). After each subagent completes, read the chunk file and verify it meets these requirements:
+   Run chunk writer subagents in parallel when chunks have no dependency on each other's files. Run sequentially only when a chunk's writer prompt references content from an earlier chunk file.
+
+   Decision point: If all chunks receive their full context from the parent prompt (the typical case), launch all subagents in parallel. If a chunk's writer prompt says "read chunk-NN for context," that chunk must wait for chunk-NN's subagent to finish.
+
+   After all subagents complete, read each chunk file and verify it meets these requirements:
    - Has a "Depends on" line naming its prerequisite chunk (or "None")
    - Has a "What and Why" section with enough context for a fresh agent session
    - Has an "Implementation Steps" section with numbered sub-step groups and `- [ ]` checkboxes

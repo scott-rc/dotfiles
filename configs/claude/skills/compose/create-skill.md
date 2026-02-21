@@ -17,7 +17,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Any tool restrictions needed (`allowed-tools`)?
 
 2. **Determine skill name**:
-   - MUST apply naming rules from the Skill Specification section of [spec.md](spec.md): lowercase, hyphens, max 64 chars
+   - MUST apply naming rules from [skill-spec.md](skill-spec.md): lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
    - MUST confirm the name with the user before proceeding
 
@@ -27,9 +27,10 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
 4. **Write SKILL.md**:
    - MUST use the SKILL.md template from [skill-template.md](skill-template.md)
-   - MUST write the frontmatter: `name` matching directory name, `description` following the Skill Specification section of [spec.md](spec.md)
+   - MUST write the frontmatter: `name` matching directory name, `description` following [skill-spec.md](skill-spec.md)
    - SHOULD include optional frontmatter fields when applicable: `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `argument-hint`
-   - MUST distinguish task vs reference content and set invocation control accordingly (see Skill Content Rules in [spec.md](spec.md))
+   - MUST distinguish task vs reference content and set invocation control accordingly (see Skill Content Rules in [skill-spec.md](skill-spec.md))
+   - MUST read [shared-rules.md](shared-rules.md) and apply Content Rules to all written content
    - MUST write the Operations section with one H3 per operation, each with a one-line summary and file link
    - SHOULD write Combined Operations if multiple operations can be chained (map user phrases to operation sequences)
    - SHOULD write References section linking any shared reference files
@@ -42,8 +43,8 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - MUST end each operation with a step that reports results to the user
    - Steps MUST be specific and actionable -- tell the agent exactly what to do, not vague guidance
    - SHOULD include error handling for likely failure modes
-   - SHOULD choose the right degree of freedom for each step (see Skill Content Rules in [spec.md](spec.md))
-   - SHOULD apply content patterns from [skill-template.md](skill-template.md) where they fit: feedback loops for quality-critical steps, checklists for multi-step tracking, examples for ambiguous output
+   - SHOULD choose the right degree of freedom for each step (see Skill Content Rules in [skill-spec.md](skill-spec.md))
+   - SHOULD apply content patterns from [content-patterns.md](content-patterns.md) where they fit: feedback loops for quality-critical steps, checklists for multi-step tracking, examples for ambiguous output
 
 6. **Write reference files**:
    - SHOULD create one `.md` file per shared knowledge area (guidelines, patterns, templates, checklists)
@@ -54,7 +55,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 7. **Validate and evaluate**:
    - MUST run through [quality-checklist.md](quality-checklist.md)
    - MUST check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
-   - SHOULD build evaluations: create at least one test scenario per operation as a JSON object with `input` (user phrase), `expected` (correct behavior), and `criteria` (how to judge pass/fail)
+   - SHOULD write at least one test scenario per operation: a user phrase, the expected behavior, and how to judge pass/fail. Format as a markdown list, not JSON
    - SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails
    - MUST fix any issues found before reporting to the user
 

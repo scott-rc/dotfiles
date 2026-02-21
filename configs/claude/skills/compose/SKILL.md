@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files, crafts session task prompts, and plans large tasks into chunked execution plans, when users ask to scaffold, build, review, improve, or fix skills, write, update, or review CLAUDE.md rules files, craft prompts for new sessions, or plan, decompose, chunk, or break down a task.
+description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts. Plans and decomposes large tasks into chunked execution plans.
 ---
 
 # Instructing Agents
@@ -29,6 +29,10 @@ See [review-rules.md](review-rules.md) for detailed instructions.
 Craft a session task prompt interactively, producing a polished prompt ready to paste into a new Claude Code session.
 See [create-prompt.md](create-prompt.md) for detailed instructions.
 
+### Review Prompt
+Evaluate a session task prompt against best practices, report findings, and offer to improve it.
+See [review-prompt.md](review-prompt.md) for detailed instructions.
+
 ### Plan Task
 Decompose a large task into ordered chunks with orchestrated subagent execution.
 See [plan-task.md](plan-task.md) for detailed instructions.
@@ -42,6 +46,8 @@ Users often request multiple operations together. Handle these as follows:
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
+- **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
+- **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
 - **"review"** (ambiguous) → Ask the user whether they mean a skill or a rules file
 
@@ -51,8 +57,11 @@ Users often request multiple operations together. Handle these as follows:
 
 These files are referenced by the operation instructions. Operations that link to a reference file MUST read it before proceeding.
 
-- [spec.md](spec.md) - Authoring rules for skills (Skill Specification) and CLAUDE.md files (Rules Specification), plus shared content rules
+- [shared-rules.md](shared-rules.md) - Shared authoring rules (keyword conventions, content rules) for both skills and rules files
+- [skill-spec.md](skill-spec.md) - Specification for authoring Claude Code skills (naming, frontmatter, structure, content rules)
+- [rules-spec.md](rules-spec.md) - Specification for authoring CLAUDE.md and `.claude/rules/` rules files (locations, structure, content guidelines)
 - [quality-checklist.md](quality-checklist.md) - Pass/fail evaluation criteria for skills and rules files
 - [skill-template.md](skill-template.md) - Annotated templates for SKILL.md and operation files
+- [content-patterns.md](content-patterns.md) - Reusable patterns for operation steps, task skills, and dynamic context injection
 - [rules-template.md](rules-template.md) - Templates for CLAUDE.md and scoped rules files
 - [plan-template.md](plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt, and chunking guidelines

@@ -37,8 +37,8 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
 - [ ] **No over-explaining**: Steps don't explain basic concepts the agent already knows (e.g., "markdown is a formatting language")
 - [ ] **Concise steps** *(Skills only)*: Operation steps are actionable instructions, not essays. Each step should be 1-3 sentences.
-- [ ] **Tight prose**: Terse, imperative style per [spec.md](spec.md) Content Rules
-- [ ] **No tables**: Lists instead of markdown tables per [spec.md](spec.md) Content Rules
+- [ ] **Tight prose**: Terse, imperative style per [shared-rules.md](shared-rules.md) Content Rules
+- [ ] **No tables**: Lists instead of markdown tables per [shared-rules.md](shared-rules.md) Content Rules
 - [ ] **Only novel information** *(Rules only)*: Every instruction teaches something Claude cannot infer from the codebase or common knowledge
 - [ ] **Actionable instructions** *(Rules only)*: Every instruction is specific enough to act on (FAIL: "write clean code", "follow best practices")
 - [ ] **Conciseness test** *(Rules only)*: For each line, "would removing this cause Claude to make mistakes?" If no, it should be cut
@@ -79,18 +79,18 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 
 ### Shared Anti-patterns
 
-- [ ] **No time-sensitive content**: No version numbers, dates, or URLs that will rot per [spec.md](spec.md) Content Rules
-- [ ] **No inconsistent terms**: Same concept uses the same word everywhere per [spec.md](spec.md) Content Rules
-- [ ] **No Windows paths**: No backslashes in file paths
+- [ ] **No time-sensitive content**: No version numbers, dates, or URLs that will rot per [shared-rules.md](shared-rules.md) Content Rules
+- [ ] **No inconsistent terms**: Same concept uses the same word everywhere per [shared-rules.md](shared-rules.md) Content Rules
+- [ ] **No Windows paths**: Per [shared-rules.md](shared-rules.md) POSIX paths rule
 
 ### Skill Anti-patterns
 
-- [ ] **No nested references**: Reference files do not link to other reference files
+- [ ] **No nested references**: Per [skill-spec.md](skill-spec.md) Reference Files rules
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
-- [ ] **No SKILL.md instructions**: SKILL.md routes to operation files, it does not contain step-by-step instructions itself
+- [ ] **No SKILL.md instructions**: Per [skill-spec.md](skill-spec.md) SKILL.md Body rules
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content (reference content needs no fork)
-- [ ] **No cross-skill file references**: Operations do not use relative paths to reference files in other skill directories (e.g., `../other-skill/file.md`). Cross-skill needs use the Skill tool instead.
+- [ ] **No cross-skill file references**: Per [skill-spec.md](skill-spec.md) Cross-skill delegation rules
 

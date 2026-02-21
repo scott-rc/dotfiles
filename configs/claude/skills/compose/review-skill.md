@@ -17,7 +17,7 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - SHOULD read any scripts in `scripts/` if present
 
 3. **Validate structure against spec**:
-   MUST validate the skill against every rule in the Skill Specification section of [spec.md](spec.md), covering frontmatter, naming, SKILL.md body, operation files, reference files, and orphan files.
+   MUST validate the skill against every rule in [skill-spec.md](skill-spec.md) and [shared-rules.md](shared-rules.md), covering frontmatter, naming, SKILL.md body, operation files, reference files, and orphan files.
 
 4. **Evaluate content quality against checklist**:
    MUST evaluate against every item in [quality-checklist.md](quality-checklist.md).

@@ -17,7 +17,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - MUST read `.claude/rules/` files if they exist (including subdirectories — all `.md` files are discovered recursively)
 
 3. **Validate against spec**:
-   MUST validate the rules file against every rule in the Rules Specification section of [spec.md](spec.md), covering file location, structure, content guidelines, `@file` references, scoped rules frontmatter, and anti-patterns.
+   MUST validate the rules file against every rule in [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md), covering file location, structure, content guidelines, `@file` references, scoped rules frontmatter, and anti-patterns.
 
 4. **Evaluate content quality against checklist**:
    MUST evaluate against every Rules-relevant item in [quality-checklist.md](quality-checklist.md).

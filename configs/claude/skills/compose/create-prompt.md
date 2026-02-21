@@ -37,8 +37,6 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    - **Anti-requirements** -- what NOT to do, common mistakes to avoid
    - **Output** -- what the result should look like: files to create/modify, format, scope
 
-   MUST use only ASCII characters in the prompt. Use "--" for dashes, "->" for arrows, and straight quotes. Non-ASCII characters (em dashes, arrows, smart quotes, ellipses) corrupt into mojibake when pasted across sessions.
-
    MUST use imperative voice ("Add a function...", "Modify the handler..."). MUST include specific file paths and function names where known. SHOULD keep the prompt under ~60 lines. MUST NOT include common knowledge or general best practices the model already knows.
 
 5. **Review and tighten**:
@@ -48,7 +46,7 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    - SHOULD verify that every line adds information the model would not have without the prompt
 
 6. **Deliver**:
-   - MUST scan the final prompt for non-ASCII characters and replace them with ASCII equivalents before printing or copying
+   - MUST scan the final prompt for non-ASCII characters and replace them with ASCII equivalents before printing or copying: "--" for em dashes, "->" for arrows, straight quotes for smart quotes, "..." for ellipses. Non-ASCII characters corrupt into mojibake when pasted across sessions.
    - MUST print the final prompt inside a markdown code block
    - MUST copy the prompt to the clipboard via `pbcopy`
    - MUST tell the user the prompt is copied and ready to paste into a new session

@@ -32,7 +32,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - SHOULD check for existing CLAUDE.md files in parent/child directories to avoid conflicts or redundancy
 
 4. **Write the rules file**:
-   - MUST follow the Rules Specification section of [spec.md](spec.md)
+   - MUST follow [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md)
    - MUST use the appropriate template from [rules-template.md](rules-template.md)
    - MUST use `@file` references for existing documentation instead of duplicating content
    - MUST write only instructions that teach Claude something it cannot infer on its own
