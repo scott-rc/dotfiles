@@ -84,9 +84,15 @@ keybind = cmd+shift+right_bracket=text:\x1b[93;10u
 keybind = cmd+slash=unbind
 keybind = cmd+shift+slash=text:\x1b[47;10u
 keybind = cmd+?=unbind
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+keybind = cmd+ctrl+j=jump_to_prompt:1
+keybind = cmd+ctrl+k=jump_to_prompt:-1
 link-url = true
 macos-option-as-alt = true
 maximize = true
 mouse-hide-while-typing = true
-shell-integration-features = no-cursor
+quick-terminal-autohide = true
+quick-terminal-position = top
+shell-integration-features = no-cursor,sudo,title
 theme = light:Github Dark Default,dark:Github Dark Default
+window-save-state = always
