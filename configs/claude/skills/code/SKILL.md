@@ -26,8 +26,9 @@ Write characterization tests for existing untested code.
 See [add-coverage.md](add-coverage.md) for detailed instructions.
 
 ### Plan
-Decompose a coding task into ordered chunks with TDD structure for testable behavior, using the compose skill's plan-task workflow.
-See [plan.md](plan.md) for detailed instructions.
+Decompose a coding task into ordered chunks with TDD structure for testable behavior.
+**Delegates to the compose skill — do NOT use EnterPlanMode.**
+See [plan.md](plan.md) for coding constraints to apply during the compose workflow.
 
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues.
@@ -43,7 +44,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **"plan this"** / **"design this"** / **"how should I implement this"** → Plan (delegates to compose)
+- **"plan this"** / **"design this"** / **"how should I implement this"** → MUST invoke compose immediately: `skill: "compose", args: "plan this task"`. See [plan.md](plan.md) for coding constraints to apply during the compose workflow.
 - **"implement this"** / **"add this feature"** / **"write this"** (new functionality) → New Feature
 - **"fix this bug"** / **"debug this"** → Fix Bug
 - **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
