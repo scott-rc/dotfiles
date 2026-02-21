@@ -15,6 +15,14 @@ function gwt --description "Create a git worktree for a task"
     end
     set repo (realpath $repo 2>/dev/null; or echo $repo)
 
+    # If inside a worktree (.git is a file), resolve to the main repo
+    if test -f $repo/.git
+        set -l common (command git -C $repo rev-parse --git-common-dir 2>/dev/null)
+        if test -n "$common"
+            set repo (realpath "$common/.." 2>/dev/null; or echo $repo)
+        end
+    end
+
     if not test -d $repo/.git
         echo (set_color red)"gwt:"(set_color normal)" $repo is not a git repo"
         return 1
@@ -80,8 +88,11 @@ function gwt --description "Create a git worktree for a task"
         # Remove stale worktree directory if it exists
         set -l old_wt $wt_root/$dir_name
         if test -d $old_wt
-            command git -C $repo worktree remove --force $old_wt 2>/dev/null
-            or rm -rf $old_wt
+            if contains $dir_name (__gwt_active_basenames $repo)
+                echo (set_color red)"gwt:"(set_color normal)" worktree '$dir_name' already exists"
+                return 2
+            end
+            rm -rf $old_wt
         end
 
         # Handle existing branch with same name
@@ -103,8 +114,11 @@ function gwt --description "Create a git worktree for a task"
 
     # Remove leftover directory (e.g., orphaned worktree)
     if test -d $wt_path; and set -q _flag_branch
-        command git -C $repo worktree remove --force $wt_path 2>/dev/null
-        or rm -rf $wt_path
+        if contains $dir_name (__gwt_active_basenames $repo)
+            echo (set_color red)"gwt:"(set_color normal)" worktree '$dir_name' already exists"
+            return 2
+        end
+        rm -rf $wt_path
     end
 
     echo (set_color cyan)"→"(set_color normal)" Creating worktree on branch "(set_color --bold)$branch(set_color normal)

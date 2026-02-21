@@ -53,10 +53,7 @@ function gwc --description "Clean up merged and orphaned worktrees"
     end
 
     # Build set of known basenames from git worktree list
-    set -l known_basenames
-    for d in $wt_dirs
-        set -a known_basenames (basename $d)
-    end
+    set -l known_basenames (__gwt_active_basenames $repo_root)
 
     set -l stale_dirs
     set -l stale_labels
