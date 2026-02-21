@@ -26,7 +26,7 @@ pub struct RenderOutput {
 }
 
 pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
-    let ss = SyntaxSet::load_defaults_newlines();
+    let ss = two_face::syntax::extra_newlines();
     let theme_bytes = include_bytes!("../themes/github-dark.tmTheme");
     let theme = ThemeSet::load_from_reader(&mut std::io::Cursor::new(theme_bytes))
         .unwrap_or_else(|_| ThemeSet::load_defaults().themes["base16-ocean.dark"].clone());
@@ -666,9 +666,8 @@ diff --git a/foo.txt b/foo.txt
     #[test]
     fn syntax_highlight_uses_soft_reset() {
         use syntect::highlighting::ThemeSet;
-        use syntect::parsing::SyntaxSet;
 
-        let ss = SyntaxSet::load_defaults_newlines();
+        let ss = two_face::syntax::extra_newlines();
         let ts = ThemeSet::load_defaults();
         let theme = &ts.themes["base16-ocean.dark"];
         let syntax = ss.find_syntax_by_extension("rs").unwrap();
