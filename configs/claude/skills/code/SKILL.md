@@ -25,6 +25,10 @@ See [fix-bug.md](fix-bug.md) for detailed instructions.
 Write characterization tests for existing untested code.
 See [add-coverage.md](add-coverage.md) for detailed instructions.
 
+### Plan
+Design an implementation plan, structuring around TDD when the task involves testable behavior.
+See [plan.md](plan.md) for detailed instructions.
+
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues.
 See [review.md](review.md) for detailed instructions.
@@ -39,6 +43,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
+- **"plan this"** / **"design this"** / **"how should I implement this"** (enters plan mode) → Plan
 - **"implement this"** / **"add this feature"** / **"write this"** (new functionality) → New Feature
 - **"fix this bug"** / **"debug this"** → Fix Bug
 - **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
