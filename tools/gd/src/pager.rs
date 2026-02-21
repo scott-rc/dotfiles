@@ -12,7 +12,7 @@ use tui::search::{
     word_boundary_right,
 };
 
-use crate::git::diff::{DiffFile, FileStatus};
+use crate::git::diff::{DiffFile, FileStatus, LineKind};
 use crate::render::{self, LineInfo, RenderOutput};
 use crate::style;
 
@@ -57,6 +57,8 @@ struct PagerState {
     tree_scroll: usize,
     tree_lines: Vec<String>,
     tree_entries: Vec<TreeEntry>,
+    /// Maps visible tree line index to original `tree_entries` index
+    tree_visible_to_entry: Vec<usize>,
     /// When `Some(idx)`, diff panel shows only file `idx`; `None` = all-files view
     active_file: Option<usize>,
     top_padding: usize,
@@ -65,11 +67,66 @@ struct PagerState {
 
 use tui::pager::crossterm_to_key;
 
-fn diff_area_width(cols: u16, tree_width: usize, tree_visible: bool) -> usize {
-    if tree_visible {
+fn diff_area_width(cols: u16, tree_width: usize, tree_visible: bool, scrollbar: bool) -> usize {
+    let w = if tree_visible {
         (cols as usize).saturating_sub(tree_width + 1)
     } else {
         cols as usize
+    };
+    if scrollbar { w.saturating_sub(1) } else { w }
+}
+
+fn render_scrollbar_cell(
+    row: usize,
+    content_height: usize,
+    total_lines: usize,
+    vis_start: usize,
+    vis_end: usize,
+    top: usize,
+    line_map: &[LineInfo],
+) -> String {
+    let range = vis_end - vis_start;
+    if total_lines == 0 || range == 0 {
+        return format!("{} {}", style::BG_SCROLLBAR_TRACK, style::RESET);
+    }
+
+    // Map this screen row to the proportional range of content lines
+    let line_start = (vis_start + (row * range) / content_height).min(line_map.len());
+    let line_end = (vis_start + ((row + 1) * range) / content_height).min(line_map.len());
+
+    // Scan for change markers in the mapped range
+    let mut change: Option<LineKind> = None;
+    for li in &line_map[line_start..line_end] {
+        match li.line_kind {
+            Some(LineKind::Added) | Some(LineKind::Deleted) => {
+                change = li.line_kind;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    // Determine if this row falls within the viewport thumb
+    let thumb_start = (top.saturating_sub(vis_start)) * content_height / range;
+    let thumb_end = (thumb_start + content_height * content_height / range).max(thumb_start + 1);
+    let in_thumb = row >= thumb_start && row < thumb_end;
+
+    let bg = if in_thumb {
+        style::BG_SCROLLBAR_THUMB
+    } else {
+        style::BG_SCROLLBAR_TRACK
+    };
+
+    match change {
+        Some(LineKind::Added) => {
+            format!("{bg}{}\u{2590}{}", style::FG_ADDED_MARKER, style::RESET)
+        }
+        Some(LineKind::Deleted) => {
+            format!("{bg}{}\u{2590}{}", style::FG_DELETED_MARKER, style::RESET)
+        }
+        _ => {
+            format!("{bg} {}", style::RESET)
+        }
     }
 }
 
@@ -92,7 +149,7 @@ fn apply_top_padding(state: &mut PagerState, content_height: usize) {
     }
 
     // Apply new padding
-    let padding = content_height / 2;
+    let padding = if state.full_context { 0 } else { content_height / 2 };
     state
         .lines
         .splice(0..0, std::iter::repeat_with(String::new).take(padding));
@@ -103,6 +160,7 @@ fn apply_top_padding(state: &mut PagerState, content_height: usize) {
             path: String::new(),
             new_lineno: None,
             old_lineno: None,
+            line_kind: None,
         })
         .take(padding),
     );
@@ -288,7 +346,8 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "[c         Previous hunk",
         "]f         Next file",
         "[f         Previous file",
-        "o          Toggle full file",
+        "i          Toggle single file",
+        "o          Toggle full file + scrollbar",
         "",
         "Search",
         "/          Search",
@@ -296,10 +355,12 @@ fn format_help_lines(cols: usize, rows: usize) -> Vec<String> {
         "N          Previous match",
         "",
         "File Tree",
-        "e          Toggle panel",
+        "e          Toggle tree panel",
         "Tab        Focus panel",
+        "1          Toggle tree focus",
         "Ctrl-L     Show + focus tree",
         "Ctrl-H     Return to diff",
+        "Enter      Select / toggle folder",
         "",
         "Visual Mode",
         "v          Enter visual mode",
@@ -478,6 +539,7 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
     let content_height = content_rows as usize;
     let max_top = max_scroll(state.lines.len(), content_height);
     let top = state.top_line.min(max_top);
+    let (vis_start, vis_end) = visible_range(state);
 
     if state.mode == Mode::Help {
         let help_lines = format_help_lines(cols as usize, (content_rows + 1) as usize);
@@ -488,12 +550,13 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
         return;
     }
 
-    let diff_w = diff_area_width(cols, state.tree_width, state.tree_visible);
+    let diff_w = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
+    let show_scrollbar = state.full_context;
 
     for row in 0..content_height {
         move_to(out, row as u16, 0);
         let idx = top + row;
-        if idx < state.lines.len() {
+        if idx >= vis_start && idx < vis_end {
             let mut line = state.lines[idx].clone();
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
@@ -513,12 +576,26 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
             let _ = write!(out, "{CLEAR_LINE}");
         }
 
+        if show_scrollbar {
+            let cell = render_scrollbar_cell(
+                row,
+                content_height,
+                vis_end.saturating_sub(vis_start),
+                vis_start,
+                vis_end,
+                top,
+                &state.line_map,
+            );
+            let _ = write!(out, "{}\x1b[{}G{cell}", style::RESET, diff_w + 1);
+        }
+
         if state.tree_visible {
+            let tree_col = diff_w + 1 + if show_scrollbar { 1 } else { 0 };
             let _ = write!(
                 out,
                 "{}\x1b[{}G\x1b[K{}│{}",
                 style::RESET,
-                diff_w + 1,
+                tree_col,
                 style::FG_SEP,
                 style::RESET,
             );
@@ -591,7 +668,7 @@ fn re_render(
         None
     };
 
-    let width = diff_area_width(cols, state.tree_width, state.tree_visible);
+    let width = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
     let output = render::render(files, width, color);
     state.lines = output.lines;
     state.line_map = output.line_map;
@@ -618,21 +695,27 @@ fn re_render(
 
     // Rebuild tree entries and lines at current cursor
     if state.tree_visible {
+        let cursor_file_idx = state.tree_entries.get(state.tree_cursor)
+            .and_then(|e| e.file_idx)
+            .unwrap_or(0);
         state.tree_entries = build_tree_entries(files);
         state.tree_width = compute_tree_width(&state.tree_entries);
-        let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, state.tree_cursor);
-        state.tree_lines = build_tree_lines(&state.tree_entries, cursor_entry_idx, state.tree_width);
+        let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
+        state.tree_cursor = cursor_entry_idx;
+        let (tl, tv) = build_tree_lines(&state.tree_entries, cursor_entry_idx, state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
     }
 
     apply_top_padding(state, content_height);
 }
 
-#[allow(dead_code)]
 struct TreeEntry {
     label: String,
     depth: usize,
     file_idx: Option<usize>,
     status: Option<FileStatus>,
+    collapsed: bool,
 }
 
 fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
@@ -662,6 +745,7 @@ fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
                 depth,
                 file_idx: None,
                 status: None,
+                collapsed: false,
             });
         }
 
@@ -671,6 +755,7 @@ fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
             depth: dir_parts.len(),
             file_idx: Some(*file_idx),
             status: Some(files[*file_idx].status.clone()),
+            collapsed: false,
         });
 
         prev_components = dir_parts.to_vec();
@@ -725,17 +810,18 @@ fn file_idx_to_entry_idx(tree_entries: &[TreeEntry], file_idx: usize) -> usize {
         .unwrap_or(0)
 }
 
-/// Build the Unicode box-drawing prefix for a tree entry at `idx`.
+/// Build the Unicode box-drawing prefix for a visible entry at `idx`.
 /// Each depth level contributes 4 characters: either a continuation pipe
 /// (`│   `) or blank (`    `), and the entry's own connector (`├── ` or `└── `).
-fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
-    let depth = entries[idx].depth;
+/// Operates on the filtered visible slice so connectors reflect hidden entries.
+fn compute_connector_prefix(visible: &[&TreeEntry], idx: usize) -> String {
+    let depth = visible[idx].depth;
     let mut prefix = String::new();
 
     // Ancestor columns: for each depth 0..depth-1, draw a continuation pipe
-    // if any subsequent entry returns to that depth (meaning the branch continues)
+    // if any subsequent visible entry returns to that depth
     for d in 0..depth {
-        let has_continuation = entries[idx + 1..].iter().any(|e| e.depth <= d);
+        let has_continuation = visible[idx + 1..].iter().any(|e| e.depth <= d);
         if has_continuation {
             prefix.push_str("│   ");
         } else {
@@ -743,8 +829,8 @@ fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
         }
     }
 
-    // Entry's own connector: check if a sibling follows at the same depth
-    let has_sibling_after = entries[idx + 1..]
+    // Entry's own connector: check if a visible sibling follows at the same depth
+    let has_sibling_after = visible[idx + 1..]
         .iter()
         .take_while(|e| e.depth >= depth)
         .any(|e| e.depth == depth);
@@ -757,16 +843,41 @@ fn compute_connector_prefix(entries: &[TreeEntry], idx: usize) -> String {
     prefix
 }
 
-fn build_tree_lines(tree_entries: &[TreeEntry], cursor_entry_idx: usize, width: usize) -> Vec<String> {
+/// Build display lines for visible tree entries, returning both the rendered
+/// lines and a mapping from visible-line index to original `tree_entries` index.
+fn build_tree_lines(
+    tree_entries: &[TreeEntry],
+    cursor_entry_idx: usize,
+    width: usize,
+) -> (Vec<String>, Vec<usize>) {
+    // Build visibility filter: an entry is hidden if any ancestor dir is collapsed
+    let mut visible: Vec<&TreeEntry> = Vec::new();
+    let mut visible_orig: Vec<usize> = Vec::new();
+    let mut collapse_depth: Option<usize> = None; // depth at which a collapse is active
+
+    for (i, entry) in tree_entries.iter().enumerate() {
+        if let Some(cd) = collapse_depth {
+            if entry.depth > cd {
+                continue; // hidden under a collapsed dir
+            }
+            collapse_depth = None; // back to or above collapsed dir's level
+        }
+        visible.push(entry);
+        visible_orig.push(i);
+        if entry.file_idx.is_none() && entry.collapsed {
+            collapse_depth = Some(entry.depth);
+        }
+    }
+
     let mut lines = Vec::new();
 
-    // Tree entries with box-drawing connectors
-    for (i, entry) in tree_entries.iter().enumerate() {
-        let prefix = compute_connector_prefix(tree_entries, i);
+    for (vi, &entry) in visible.iter().enumerate() {
+        let orig_idx = visible_orig[vi];
+        let prefix = compute_connector_prefix(&visible, vi);
         let (icon, icon_color) = if entry.file_idx.is_some() {
             style::file_icon(&entry.label)
         } else {
-            style::dir_icon()
+            style::dir_icon(entry.collapsed)
         };
 
         // prefix is (depth+1)*4 chars, plus icon(1) + space(1) + label
@@ -774,13 +885,13 @@ fn build_tree_lines(tree_entries: &[TreeEntry], cursor_entry_idx: usize, width: 
         let right_pad = width.saturating_sub(vis_len);
         let guide = style::FG_TREE_GUIDE;
 
-        if i == cursor_entry_idx {
+        if orig_idx == cursor_entry_idx {
             let reset = style::RESET;
             let fg = style::FG_FILE_HEADER;
+            let bg = style::BG_TREE_CURSOR;
             let label = &entry.label;
             let rpad = " ".repeat(right_pad);
-            let padded = format!("{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}");
-            lines.push(format!("{reset}{fg}\x1b[7m{padded}\x1b[27m{reset}"));
+            lines.push(format!("{guide}{prefix}{reset}{bg}{icon_color}{icon}{reset} {bg}{fg}{label}{reset}{rpad}"));
         } else if entry.file_idx.is_some() {
             let reset = style::RESET;
             let fg = style::FG_TREE;
@@ -796,11 +907,14 @@ fn build_tree_lines(tree_entries: &[TreeEntry], cursor_entry_idx: usize, width: 
         }
     }
 
-    lines
+    (lines, visible_orig)
 }
 
 fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
-    if !state.tree_visible || state.tree_focused {
+    if (!state.tree_visible && state.active_file.is_none()) || state.tree_focused {
+        return;
+    }
+    if state.tree_entries.is_empty() {
         return;
     }
     let new_cursor = if let Some(fi) = state.active_file {
@@ -817,16 +931,31 @@ fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
             .map(|li| li.file_idx)
             .unwrap_or(0)
     };
-    let new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
+    let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
+    // If the target entry is hidden (collapsed parent), find nearest visible ancestor
+    if !state.tree_visible_to_entry.contains(&new_entry_idx) {
+        let target_depth = state.tree_entries[new_entry_idx].depth;
+        new_entry_idx = state.tree_entries[..new_entry_idx]
+            .iter()
+            .rposition(|e| e.file_idx.is_none() && e.depth < target_depth)
+            .unwrap_or(0);
+    }
     if new_entry_idx != state.tree_cursor {
         state.tree_cursor = new_entry_idx;
-        state.tree_lines = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
         ensure_tree_cursor_visible(state, content_height);
     }
 }
 
 fn ensure_tree_cursor_visible(state: &mut PagerState, content_height: usize) {
-    let offset = state.tree_cursor;
+    // Translate entry index to visible-line offset
+    let offset = state
+        .tree_visible_to_entry
+        .iter()
+        .position(|&ei| ei == state.tree_cursor)
+        .unwrap_or(0);
     if offset < state.tree_scroll {
         state.tree_scroll = offset;
     }
@@ -903,6 +1032,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         tree_scroll: 0,
         tree_lines: vec![],
         tree_entries: Vec::new(),
+        tree_visible_to_entry: Vec::new(),
         active_file: None,
         top_padding: 0,
         full_context: false,
@@ -911,7 +1041,9 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     // Initialize file tree panel
     state.tree_entries = build_tree_entries(&files);
     state.tree_width = compute_tree_width(&state.tree_entries);
-    state.tree_lines = build_tree_lines(&state.tree_entries, 0, state.tree_width);
+    let (tl, tv) = build_tree_lines(&state.tree_entries, 0, state.tree_width);
+    state.tree_lines = tl;
+    state.tree_visible_to_entry = tv;
     state.tree_visible = false;
 
     let mut last_size = get_term_size();
@@ -1048,50 +1180,69 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         if state.tree_focused {
             match key {
                 Key::Char('j') | Key::Down => {
-                    let idx = state.tree_cursor;
-                    if let Some(next) = state.tree_entries[idx + 1..]
-                        .iter()
-                        .position(|e| e.file_idx.is_some())
-                        .map(|p| idx + 1 + p)
-                    {
-                        state.tree_cursor = next;
-                        let fi = state.tree_entries[next].file_idx.unwrap();
-                        state.active_file = Some(fi);
-                        state.top_line = state.file_starts[fi];
-                        state.cursor_line = state.top_line;
-                        state.tree_lines =
-                            build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                        let ch = last_size.1.saturating_sub(1) as usize;
-                        ensure_tree_cursor_visible(&mut state, ch);
+                    // Find the next visible entry after current cursor
+                    let cur_vis = state.tree_visible_to_entry.iter()
+                        .position(|&ei| ei == state.tree_cursor);
+                    if let Some(vi) = cur_vis {
+                        if vi + 1 < state.tree_visible_to_entry.len() {
+                            let next = state.tree_visible_to_entry[vi + 1];
+                            state.tree_cursor = next;
+                            if let Some(fi) = state.tree_entries[next].file_idx {
+                                state.active_file = Some(fi);
+                                state.top_line = state.file_starts[fi];
+                                state.cursor_line = state.top_line;
+                            }
+                            let (tl, tv) =
+                                build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                            state.tree_lines = tl;
+                            state.tree_visible_to_entry = tv;
+                            let ch = last_size.1.saturating_sub(1) as usize;
+                            ensure_tree_cursor_visible(&mut state, ch);
+                        }
                     }
                 }
                 Key::Char('k') | Key::Up => {
-                    let idx = state.tree_cursor;
-                    if let Some(prev) = state.tree_entries[..idx]
-                        .iter()
-                        .rposition(|e| e.file_idx.is_some())
-                    {
-                        state.tree_cursor = prev;
-                        let fi = state.tree_entries[prev].file_idx.unwrap();
-                        state.active_file = Some(fi);
-                        state.top_line = state.file_starts[fi];
-                        state.cursor_line = state.top_line;
-                        state.tree_lines =
-                            build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                        let ch = last_size.1.saturating_sub(1) as usize;
-                        ensure_tree_cursor_visible(&mut state, ch);
+                    // Find the previous visible entry before current cursor
+                    let cur_vis = state.tree_visible_to_entry.iter()
+                        .position(|&ei| ei == state.tree_cursor);
+                    if let Some(vi) = cur_vis {
+                        if vi > 0 {
+                            let prev = state.tree_visible_to_entry[vi - 1];
+                            state.tree_cursor = prev;
+                            if let Some(fi) = state.tree_entries[prev].file_idx {
+                                state.active_file = Some(fi);
+                                state.top_line = state.file_starts[fi];
+                                state.cursor_line = state.top_line;
+                            }
+                            let (tl, tv) =
+                                build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                            state.tree_lines = tl;
+                            state.tree_visible_to_entry = tv;
+                            let ch = last_size.1.saturating_sub(1) as usize;
+                            ensure_tree_cursor_visible(&mut state, ch);
+                        }
                     }
                 }
                 Key::Enter => {
-                    if let Some(file_idx) = state.tree_entries.get(state.tree_cursor).and_then(|e| e.file_idx) {
-                        state.active_file = Some(file_idx);
-                        if let Some(&target) = state.file_starts.get(file_idx) {
+                    let cursor = state.tree_cursor;
+                    if state.tree_entries[cursor].file_idx.is_none() {
+                        // Directory: toggle collapsed
+                        state.tree_entries[cursor].collapsed = !state.tree_entries[cursor].collapsed;
+                        let (tl, tv) =
+                            build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                        state.tree_lines = tl;
+                        state.tree_visible_to_entry = tv;
+                        let ch = last_size.1.saturating_sub(1) as usize;
+                        ensure_tree_cursor_visible(&mut state, ch);
+                    } else if let Some(fi) = state.tree_entries[cursor].file_idx {
+                        state.active_file = Some(fi);
+                        if let Some(&target) = state.file_starts.get(fi) {
                             state.top_line = target;
                             state.cursor_line = state.top_line;
                         }
                     }
                 }
-                Key::CtrlH | Key::Escape | Key::Tab => {
+                Key::CtrlH | Key::Escape | Key::Tab | Key::Char('1') => {
                     state.tree_focused = false;
                 }
                 Key::Char('e') => {
@@ -1146,9 +1297,13 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                             state.active_file = Some(next);
                             state.top_line = state.file_starts[next];
                             state.cursor_line = state.top_line;
-                            state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, next);
-                            state.tree_lines = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                            ensure_tree_cursor_visible(&mut state, content_height);
+                            if !state.tree_entries.is_empty() {
+                                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, next);
+                                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                                state.tree_lines = tl;
+                                state.tree_visible_to_entry = tv;
+                                ensure_tree_cursor_visible(&mut state, content_height);
+                            }
                         }
                     } else if let Some(t) = jump_next(&state.file_starts, anchor) {
                         jump_target = Some(t);
@@ -1161,9 +1316,13 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                             state.active_file = Some(prev);
                             state.top_line = state.file_starts[prev];
                             state.cursor_line = state.top_line;
-                            state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, prev);
-                            state.tree_lines = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                            ensure_tree_cursor_visible(&mut state, content_height);
+                            if !state.tree_entries.is_empty() {
+                                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, prev);
+                                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                                state.tree_lines = tl;
+                                state.tree_visible_to_entry = tv;
+                                ensure_tree_cursor_visible(&mut state, content_height);
+                            }
                         }
                     } else if let Some(t) = jump_prev(&state.file_starts, anchor) {
                         jump_target = Some(t);
@@ -1367,17 +1526,47 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                     state.tree_focused = true;
                     re_render(&mut state, &files, color, last_size.0, content_height);
                 } else if !state.tree_focused {
+                    let anchor = if state.cursor_visible {
+                        state.cursor_line
+                    } else {
+                        state.top_line
+                    };
+                    let file_idx = state
+                        .line_map
+                        .get(anchor)
+                        .map(|li| li.file_idx)
+                        .unwrap_or(0);
+                    state.active_file = Some(file_idx);
+                    state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
+                    ensure_tree_cursor_visible(&mut state, content_height);
                     state.tree_focused = true;
+                    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
                     re_render(&mut state, &files, color, last_size.0, content_height);
                 }
             }
             Key::Tab => {
                 if state.tree_visible {
+                    let anchor = if state.cursor_visible {
+                        state.cursor_line
+                    } else {
+                        state.top_line
+                    };
+                    let file_idx = state
+                        .line_map
+                        .get(anchor)
+                        .map(|li| li.file_idx)
+                        .unwrap_or(0);
+                    state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
+                    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
                     state.tree_focused = true;
                     ensure_tree_cursor_visible(&mut state, content_height);
                 }
             }
-            Key::CtrlL => {
+            Key::CtrlL | Key::Char('1') => {
                 if !state.tree_visible {
                     state.tree_visible = true;
                     let anchor = if state.cursor_visible {
@@ -1402,6 +1591,39 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             Key::Char('v') => {
                 state.mode = Mode::Visual;
                 state.visual_anchor = state.cursor_line;
+            }
+            Key::Char('i') => {
+                if state.active_file.is_some() {
+                    // Toggle off: return to all-files view
+                    state.active_file = None;
+                    re_render(&mut state, &files, color, last_size.0, content_height);
+                    state.status_message = "All files".into();
+                } else {
+                    // Toggle on: restrict to current file
+                    let anchor = if state.cursor_visible {
+                        state.cursor_line
+                    } else {
+                        state.top_line
+                    };
+                    let file_idx = state
+                        .line_map
+                        .get(anchor)
+                        .map(|li| li.file_idx)
+                        .unwrap_or(0);
+                    if state.tree_entries.is_empty() {
+                        state.tree_entries = build_tree_entries(&files);
+                        state.tree_width = compute_tree_width(&state.tree_entries);
+                    }
+                    state.active_file = Some(file_idx);
+                    state.top_line = state.file_starts[file_idx];
+                    state.cursor_line = state.top_line;
+                    state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
+                    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
+                    re_render(&mut state, &files, color, last_size.0, content_height);
+                    state.status_message = "Single file".into();
+                }
             }
             Key::Char('o') => {
                 state.full_context = !state.full_context;
@@ -1443,6 +1665,7 @@ mod tests {
             depth,
             file_idx,
             status: file_idx.map(|_| FileStatus::Modified),
+            collapsed: false,
         }
     }
 
@@ -1453,9 +1676,10 @@ mod tests {
             entry("b.rs", 0, Some(1)),
             entry("c.rs", 0, Some(2)),
         ];
-        assert_eq!(compute_connector_prefix(&entries, 0), "├── ");
-        assert_eq!(compute_connector_prefix(&entries, 1), "├── ");
-        assert_eq!(compute_connector_prefix(&entries, 2), "└── ");
+        let refs: Vec<&TreeEntry> = entries.iter().collect();
+        assert_eq!(compute_connector_prefix(&refs, 0), "├── ");
+        assert_eq!(compute_connector_prefix(&refs, 1), "├── ");
+        assert_eq!(compute_connector_prefix(&refs, 2), "└── ");
     }
 
     #[test]
@@ -1470,14 +1694,15 @@ mod tests {
             entry("b.rs", 1, Some(1)),
             entry("README.md", 0, Some(2)),
         ];
+        let refs: Vec<&TreeEntry> = entries.iter().collect();
         // src dir: has sibling README.md at depth 0 after it
-        assert_eq!(compute_connector_prefix(&entries, 0), "├── ");
+        assert_eq!(compute_connector_prefix(&refs, 0), "├── ");
         // a.rs: parent (depth 0) continues, sibling b.rs at depth 1 follows
-        assert_eq!(compute_connector_prefix(&entries, 1), "│   ├── ");
+        assert_eq!(compute_connector_prefix(&refs, 1), "│   ├── ");
         // b.rs: parent (depth 0) continues, no more siblings at depth 1
-        assert_eq!(compute_connector_prefix(&entries, 2), "│   └── ");
+        assert_eq!(compute_connector_prefix(&refs, 2), "│   └── ");
         // README.md: last root entry
-        assert_eq!(compute_connector_prefix(&entries, 3), "└── ");
+        assert_eq!(compute_connector_prefix(&refs, 3), "└── ");
     }
 
     #[test]
@@ -1487,7 +1712,7 @@ mod tests {
             entry("b.rs", 0, Some(1)),
         ];
         let width = compute_tree_width(&entries);
-        let lines = build_tree_lines(&entries, 0, width);
+        let (lines, _mapping) = build_tree_lines(&entries, 0, width);
         // First line should be the first tree entry, not a "CHANGED FILES" header
         let first = crate::ansi::strip_ansi(&lines[0]);
         assert!(!first.contains("CHANGED FILES"), "header should be removed");

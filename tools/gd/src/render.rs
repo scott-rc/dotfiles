@@ -16,6 +16,8 @@ pub struct LineInfo {
     pub new_lineno: Option<u32>,
     /// Source line number in the old file (for deleted lines), if applicable.
     pub old_lineno: Option<u32>,
+    /// Diff status of this line (Added/Deleted/Context), if from a hunk.
+    pub line_kind: Option<LineKind>,
 }
 
 pub struct RenderOutput {
@@ -61,6 +63,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             path: path.to_string(),
             new_lineno: None,
             old_lineno: None,
+            line_kind: None,
         });
 
         // Syntax highlighter for this file's extension
@@ -95,6 +98,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
                 path: path.to_string(),
                 new_lineno: None,
                 old_lineno: None,
+                line_kind: None,
             });
 
             // Render diff lines with word-level highlights
@@ -120,6 +124,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
                 path: path.to_string(),
                 new_lineno: None,
                 old_lineno: None,
+                line_kind: None,
             });
         }
     }
@@ -489,6 +494,7 @@ fn render_hunk_lines(
                 path: path.to_string(),
                 new_lineno: diff_line.new_lineno,
                 old_lineno: diff_line.old_lineno,
+                line_kind: Some(diff_line.kind),
             });
         }
     }

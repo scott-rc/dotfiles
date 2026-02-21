@@ -13,6 +13,9 @@ pub const BG_DELETED_WORD: &str = "\x1b[48;2;85;36;36m";
 /// Visual selection background (subtle blue-violet tint)
 pub const BG_VISUAL: &str = "\x1b[48;2;40;50;80m";
 
+/// Tree cursor background (subtle blue-gray tint)
+pub const BG_TREE_CURSOR: &str = "\x1b[48;2;42;53;69m";
+
 /// File header foreground (bold blue)
 pub const FG_FILE_HEADER: &str = "\x1b[1;38;2;121;192;255m";
 /// Hunk header foreground (dim cyan)
@@ -31,6 +34,10 @@ pub const FG_TREE_GUIDE: &str = "\x1b[38;2;72;79;88m";
 pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 /// Deleted line marker foreground
 pub const FG_DELETED_MARKER: &str = "\x1b[38;2;248;81;73m";
+/// Scrollbar track background (very dim gray)
+pub const BG_SCROLLBAR_TRACK: &str = "\x1b[48;2;30;33;38m";
+/// Scrollbar viewport thumb background (brighter gray)
+pub const BG_SCROLLBAR_THUMB: &str = "\x1b[48;2;55;60;68m";
 
 pub const RESET: &str = "\x1b[0m";
 
@@ -113,6 +120,10 @@ pub fn file_icon(path: &str) -> (&'static str, &'static str) {
 }
 
 /// Return (icon, ansi_color) for a directory entry.
-pub fn dir_icon() -> (&'static str, &'static str) {
-    ("\u{f413}", FG_TREE_DIR)
+pub fn dir_icon(collapsed: bool) -> (&'static str, &'static str) {
+    if collapsed {
+        ("\u{f4d8}", FG_TREE_DIR)
+    } else {
+        ("\u{f413}", FG_TREE_DIR)
+    }
 }

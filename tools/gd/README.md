@@ -37,8 +37,9 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 | Key | Action |
 |-----|--------|
 | `]c` / `[c` | Next/prev hunk |
-| `]f` / `[f` | Next/prev file (switches single-file view when tree is visible) |
-| `o` | Toggle full file context |
+| `]f` / `[f` | Next/prev file (switches single-file view when active) |
+| `i` | Toggle single-file view (independent of tree panel) |
+| `o` | Toggle full file context (with scrollbar) |
 
 ### Search
 
@@ -49,16 +50,17 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 ### File Tree
 
-When the file tree is visible, the diff pane shows only the currently selected file. Use `]f`/`[f` or arrow keys in the tree to switch files. Closing the tree returns to the full concatenated diff view.
+When the file tree is visible, the diff pane shows only the currently selected file. Folders are focusable and can be expanded/collapsed with Enter. Use `]f`/`[f` or arrow keys in the tree to switch files. Closing the tree returns to the full concatenated diff view. Single-file view can also be toggled independently with `i` (without the tree panel).
 
 | Key | Action |
 |-----|--------|
 | `e` | Toggle file tree panel (open/focus/close cycle) |
 | `Tab` | Switch focus to tree |
+| `1` | Toggle tree focus |
 | `Ctrl-L` | Show + focus tree |
 | `Ctrl-H` | Return focus to diff |
 | `j` / `k` | Navigate and preview files (when tree focused) |
-| `Enter` | Select file and show its diff (stays in tree) |
+| `Enter` | Select file / toggle folder expand/collapse |
 | `Esc` | Return focus to diff |
 
 ### Visual Mode
@@ -84,7 +86,7 @@ When the file tree is visible, the diff pane shows only the currently selected f
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), and directory collapsing (hidden by default, `e` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus), single-file view when tree is visible (diff pane shows only the selected file, `]f`/`[f` switches files), with auto-sync cursor tracking, centered viewport on hunk/file jumps, full-file context toggle (`o`), an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Supports scrolling, search with reverse-video highlighting, `]c`/`[c` hunk navigation, `]f`/`[f` file navigation, `$EDITOR` delegation with line-number positioning, a toggleable right-side file tree panel with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), directory collapsing (hidden by default, `e` to toggle, scrollable, `Ctrl-H`/`Ctrl-L` directional focus), focusable folder nodes with Enter to expand/collapse, `1` for tree focus toggle, single-file view (`i` toggle independent of tree, or via tree panel; diff pane shows only the selected file, `]f`/`[f` switches files), with auto-sync cursor tracking, centered viewport on hunk/file jumps, full-file context toggle (`o`, disables top padding for full-screen content, shows a scrollbar with colored change markers and viewport thumb), an optional cursor line (`Space` to toggle, underline indicator, scrolloff=8), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 
