@@ -35,7 +35,7 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    - Focus on the first failure -- subsequent failures are often cascading
    - Truncate logs to the most relevant sections; do not dump raw output
 
-5. **Load coding preferences**: MUST read [general-guidelines.md](../code/general-guidelines.md). If fixing TypeScript/JavaScript files, also read [typescript-guidelines.md](../code/typescript-guidelines.md).
+5. **Load coding preferences**: MUST use the Skill tool to load the code skill (`skill: "code"`). From the code skill's References section, read general-guidelines.md and the language-specific guidelines for the files being changed.
 
 6. **Fix the issues**:
    - Read the relevant source files identified in the failure logs

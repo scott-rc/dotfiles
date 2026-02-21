@@ -91,6 +91,7 @@ Use these patterns inside operation files when they fit the task:
 - **Conditional routing pattern**: "If X, go to step N. If Y, go to step M." Use when an operation has meaningfully different paths.
 - **Authority pattern**: Use RFC 2119 keywords (MUST, SHOULD, MAY) to signal instruction priority. Agents comply more reliably with capitalized directive keywords. Reserve MUST for steps where skipping breaks the workflow.
 - **Interview pattern**: When an operation needs user input before proceeding, batch related questions into a single step rather than asking one at a time. Ask only what's needed to unblock the next decision — don't front-load every possible question. Use follow-up rounds to drill into areas the user's answers reveal as complex or ambiguous. End the interview by summarizing your understanding and confirming before proceeding. Use this pattern when requirements are unclear, the domain has many valid options, or the user's initial request is vague.
+- **Cross-skill delegation pattern**: When an operation needs functionality from another skill, use the Skill tool to load it (`skill: "<name>"`) rather than referencing files across skill directories with relative paths. This formally loads the other skill's SKILL.md and makes its references available. For full workflow delegation, include routing args (e.g., `skill: "compose", args: "plan this task"`). For loading references only, invoke without operation-specific args and direct the agent to read specific items from the loaded skill's References section.
 
 ## Task Skill Pattern
 

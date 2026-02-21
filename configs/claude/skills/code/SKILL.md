@@ -26,7 +26,7 @@ Write characterization tests for existing untested code.
 See [add-coverage.md](add-coverage.md) for detailed instructions.
 
 ### Plan
-Design an implementation plan, structuring around TDD when the task involves testable behavior.
+Decompose a coding task into ordered chunks with TDD structure for testable behavior, using the compose skill's plan-task workflow.
 See [plan.md](plan.md) for detailed instructions.
 
 ### Review

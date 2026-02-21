@@ -92,4 +92,5 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content (reference content needs no fork)
+- [ ] **No cross-skill file references**: Operations do not use relative paths to reference files in other skill directories (e.g., `../other-skill/file.md`). Cross-skill needs use the Skill tool instead.
 
