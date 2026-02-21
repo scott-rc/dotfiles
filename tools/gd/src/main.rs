@@ -30,6 +30,10 @@ struct Cli {
     /// Disable ANSI colors
     #[arg(long)]
     no_color: bool,
+
+    /// Hide untracked files (only applies to working tree mode)
+    #[arg(long)]
+    no_untracked: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -95,7 +99,33 @@ fn main() {
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
     let raw = git::run(&repo, &str_args).unwrap_or_default();
 
-    let files = git::diff::parse(&raw);
+    let mut files = git::diff::parse(&raw);
+
+    // Append untracked files in working tree mode
+    if matches!(source, DiffSource::WorkingTree) && !cli.no_untracked {
+        let max_size: u64 = 256 * 1024;
+        for path in git::untracked_files(&repo) {
+            let full = repo.join(&path);
+            let meta = match full.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            if !meta.is_file() || meta.len() > max_size {
+                continue;
+            }
+            let content = match std::fs::read(&full) {
+                Ok(bytes) => bytes,
+                Err(_) => continue,
+            };
+            // Skip binary files (contain null bytes)
+            if content.contains(&0) {
+                continue;
+            }
+            let text = String::from_utf8_lossy(&content);
+            files.push(git::diff::DiffFile::from_content(&path, &text));
+        }
+    }
+
     if files.is_empty() {
         return;
     }

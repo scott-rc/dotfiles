@@ -4,6 +4,7 @@ pub enum FileStatus {
     Added,
     Deleted,
     Renamed,
+    Untracked,
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,47 @@ impl DiffFile {
             .as_deref()
             .or(self.old_path.as_deref())
             .unwrap_or("(unknown)")
+    }
+
+    /// Build a synthetic all-added diff from file content (for untracked files).
+    pub fn from_content(path: &str, content: &str) -> Self {
+        let content_lines: Vec<&str> = if content.is_empty() {
+            Vec::new()
+        } else {
+            let mut lines: Vec<&str> = content.split('\n').collect();
+            // Remove trailing empty element from a trailing newline
+            if lines.last() == Some(&"") {
+                lines.pop();
+            }
+            lines
+        };
+
+        let hunks = if content_lines.is_empty() {
+            Vec::new()
+        } else {
+            let diff_lines: Vec<DiffLine> = content_lines
+                .iter()
+                .enumerate()
+                .map(|(i, line)| DiffLine {
+                    kind: LineKind::Added,
+                    content: (*line).to_string(),
+                    old_lineno: None,
+                    new_lineno: Some(i as u32 + 1),
+                })
+                .collect();
+            vec![DiffHunk {
+                old_start: 0,
+                new_start: 1,
+                lines: diff_lines,
+            }]
+        };
+
+        Self {
+            old_path: None,
+            new_path: Some(path.to_string()),
+            status: FileStatus::Untracked,
+            hunks,
+        }
     }
 }
 
@@ -403,5 +445,38 @@ diff --git a/f.rs b/f.rs
         assert_eq!((lines[2].old_lineno, lines[2].new_lineno), (None, Some(2)));
         // ctx2: old=3, new=3
         assert_eq!((lines[3].old_lineno, lines[3].new_lineno), (Some(3), Some(3)));
+    }
+
+    #[test]
+    fn from_content_builds_all_added_diff() {
+        let file = DiffFile::from_content("new.rs", "line1\nline2\n");
+        assert_eq!(file.status, FileStatus::Untracked);
+        assert_eq!(file.old_path, None);
+        assert_eq!(file.new_path, Some("new.rs".into()));
+        assert_eq!(file.hunks.len(), 1);
+        let lines = &file.hunks[0].lines;
+        assert_eq!(lines.len(), 2);
+        assert!(lines.iter().all(|l| l.kind == LineKind::Added));
+        assert_eq!(lines[0].new_lineno, Some(1));
+        assert_eq!(lines[0].content, "line1");
+        assert_eq!(lines[1].new_lineno, Some(2));
+        assert_eq!(lines[1].content, "line2");
+    }
+
+    #[test]
+    fn from_content_empty_file() {
+        let file = DiffFile::from_content("empty.txt", "");
+        assert_eq!(file.status, FileStatus::Untracked);
+        assert!(file.hunks.is_empty());
+    }
+
+    #[test]
+    fn from_content_no_trailing_newline() {
+        let file = DiffFile::from_content("f.txt", "no newline");
+        assert_eq!(file.hunks.len(), 1);
+        let lines = &file.hunks[0].lines;
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].kind, LineKind::Added);
+        assert_eq!(lines[0].content, "no newline");
     }
 }

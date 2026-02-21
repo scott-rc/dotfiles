@@ -7,15 +7,16 @@ Built by the parent `apply.sh` and symlinked to `~/.cargo/bin/gd`.
 ## Usage
 
 ```
-gd                  # working tree changes (unstaged)
+gd                  # working tree changes (unstaged + untracked)
 gd --staged         # staged changes
 gd HEAD~1           # last commit's changes
 gd main..HEAD       # range diff
+gd --no-untracked   # hide untracked files
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
 ```
 
-No changes exits cleanly (like `git diff`). Pager auto-activates when output exceeds terminal height.
+No changes exits cleanly (like `git diff`). Pager auto-activates when output exceeds terminal height. In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them.
 
 ## Keybindings
 
@@ -73,7 +74,7 @@ No changes exits cleanly (like `git diff`). Pager auto-activates when output exc
 
 ## Architecture
 
-**Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), renders all files as a single ANSI-colored document with dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
+**Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then renders all files as a single ANSI-colored document with dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, and file/hunk header separators.
 

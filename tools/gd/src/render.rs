@@ -44,6 +44,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             FileStatus::Added => "Added",
             FileStatus::Deleted => "Deleted",
             FileStatus::Renamed => "Renamed",
+            FileStatus::Untracked => "Untracked",
         };
 
         // File header
@@ -719,6 +720,17 @@ diff --git a/foo.txt b/foo.txt
                 "continuation line should have gutter separators: {cont:?}"
             );
         }
+    }
+
+    #[test]
+    fn render_untracked_file_shows_status_label() {
+        let file = diff::DiffFile::from_content("new.rs", "hello\n");
+        let output = render(&[file], 80, false);
+        let header = &output.lines[0];
+        assert!(
+            header.contains("Untracked"),
+            "file header should contain 'Untracked': {header:?}"
+        );
     }
 
     #[test]

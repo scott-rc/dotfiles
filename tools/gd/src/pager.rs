@@ -704,6 +704,7 @@ fn file_status_icon(status: &FileStatus) -> &'static str {
         FileStatus::Deleted => "-",
         FileStatus::Modified => "~",
         FileStatus::Renamed => "→",
+        FileStatus::Untracked => "?",
     }
 }
 
@@ -1102,4 +1103,14 @@ pub fn run_pager(output: RenderOutput, files: &[DiffFile], color: bool) {
     let _ = crossterm::terminal::disable_raw_mode();
     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
     let _ = stdout.flush();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_status_icon_untracked() {
+        assert_eq!(file_status_icon(&FileStatus::Untracked), "?");
+    }
 }

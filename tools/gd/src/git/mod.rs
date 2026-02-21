@@ -21,3 +21,13 @@ pub fn repo_root(from: &Path) -> Option<PathBuf> {
     let out = run(from, &["rev-parse", "--show-toplevel"])?;
     Some(PathBuf::from(out.trim()))
 }
+
+/// List untracked files (respecting .gitignore).
+pub fn untracked_files(repo: &Path) -> Vec<String> {
+    run(repo, &["ls-files", "--others", "--exclude-standard"])
+        .unwrap_or_default()
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect()
+}
