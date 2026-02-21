@@ -68,7 +68,9 @@ configs/fish/
 │   └── ...
 └── functions/       # One function per file (auto-loaded on first call)
     ├── gsw.fish     # Git switch helper
+    ├── gwc.fish     # Clean merged/orphaned worktrees
     ├── gwip.fish    # WIP commit
+    ├── gwt.fish     # Create git worktree for a task
     ├── zrepo.fish   # Zellij repo session chooser
     └── ...
 ```
