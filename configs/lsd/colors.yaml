@@ -1,0 +1,48 @@
+# GitHub Dark Default color theme for lsd
+# Palette sourced from Ghostty's "GitHub Dark Default" theme
+
+user: "#b1bac4"
+group: "#6e7681"
+
+permission:
+  read: "#3fb950"
+  write: "#d29922"
+  exec: "#ff7b72"
+  exec-sticky: "#bc8cff"
+  no-access: "#484f58"
+  octal: "#39c5cf"
+  acl: "#56d4dd"
+  context: "#39c5cf"
+
+date:
+  hour-old: "#56d364"
+  day-old: "#3fb950"
+  older: "#6e7681"
+
+size:
+  none: "#484f58"
+  small: "#56d364"
+  medium: "#d29922"
+  large: "#e3b341"
+
+inode:
+  valid: "#d2a8ff"
+  invalid: "#484f58"
+
+links:
+  valid: "#d2a8ff"
+  invalid: "#484f58"
+
+tree-edge: "#484f58"
+
+git-status:
+  default: "#6e7681"
+  unmodified: "#6e7681"
+  ignored: "#484f58"
+  new-in-index: "#3fb950"
+  new-in-workdir: "#3fb950"
+  typechange: "#d29922"
+  deleted: "#ff7b72"
+  renamed: "#79c0ff"
+  modified: "#d29922"
+  conflicted: "#ffa198"

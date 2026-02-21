@@ -142,6 +142,10 @@ ensure_symlink "$CONFIGS/ghostty/config" "$HOME/Library/Application Support/com.
 ensure_symlink "$CONFIGS/gitui/github-dark.ron" "$HOME/.config/gitui/theme.ron"
 ensure_symlink "$CONFIGS/gitui/github-dark-dimmed.ron" "$HOME/.config/gitui/github-dark-dimmed.ron"
 
+# --- lsd ---
+
+ensure_symlink "$CONFIGS/lsd" "$HOME/.config/lsd"
+
 # --- Lazygit ---
 
 ensure_symlink "$CONFIGS/lazygit/config.yml" "$HOME/Library/Application Support/lazygit/config.yml"
