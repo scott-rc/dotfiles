@@ -43,7 +43,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **"plan this"** / **"design this"** / **"how should I implement this"** (enters plan mode) → Plan
+- **"plan this"** / **"design this"** / **"how should I implement this"** → Plan (delegates to compose)
 - **"implement this"** / **"add this feature"** / **"write this"** (new functionality) → New Feature
 - **"fix this bug"** / **"debug this"** → Fix Bug
 - **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
