@@ -188,6 +188,47 @@ fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
     blocks
 }
 
+/// Tokenize text into words, whitespace runs, and individual punctuation characters.
+/// Finer than `from_words` (which groups by whitespace only), so punctuation like
+/// a trailing comma doesn't cause an entire word to be treated as changed.
+fn tokenize(s: &str) -> Vec<&str> {
+    let mut tokens = Vec::new();
+    let mut chars = s.char_indices().peekable();
+
+    while let Some(&(start, ch)) = chars.peek() {
+        if ch.is_alphanumeric() || ch == '_' {
+            let mut end = start + ch.len_utf8();
+            chars.next();
+            while let Some(&(_, c)) = chars.peek() {
+                if c.is_alphanumeric() || c == '_' {
+                    end += c.len_utf8();
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            tokens.push(&s[start..end]);
+        } else if ch.is_whitespace() {
+            let mut end = start + ch.len_utf8();
+            chars.next();
+            while let Some(&(_, c)) = chars.peek() {
+                if c.is_whitespace() {
+                    end += c.len_utf8();
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            tokens.push(&s[start..end]);
+        } else {
+            chars.next();
+            tokens.push(&s[start..start + ch.len_utf8()]);
+        }
+    }
+
+    tokens
+}
+
 /// For a change block, compute per-line word highlight ranges.
 /// Returns (deleted_highlights, added_highlights) — each a Vec<Vec<(start, end)>> per line.
 fn word_highlights(
@@ -214,7 +255,9 @@ fn word_highlights(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let diff = TextDiff::from_words(&old_text, &new_text);
+    let old_tokens = tokenize(&old_text);
+    let new_tokens = tokenize(&new_text);
+    let diff = TextDiff::from_slices(&old_tokens, &new_tokens);
 
     let mut del_highlights: Vec<Vec<(usize, usize)>> = vec![Vec::new(); block.deleted.len()];
     let mut add_highlights: Vec<Vec<(usize, usize)>> = vec![Vec::new(); block.added.len()];
@@ -253,7 +296,32 @@ fn word_highlights(
         }
     }
 
+    // Merge contiguous ranges produced by individual token changes
+    for ranges in del_highlights.iter_mut().chain(add_highlights.iter_mut()) {
+        merge_ranges(ranges);
+    }
+
     (del_highlights, add_highlights)
+}
+
+/// Merge contiguous or overlapping highlight ranges in-place.
+fn merge_ranges(ranges: &mut Vec<(usize, usize)>) {
+    if ranges.len() <= 1 {
+        return;
+    }
+    ranges.sort_unstable_by_key(|&(start, _)| start);
+    let mut merged = Vec::with_capacity(ranges.len());
+    let mut current = ranges[0];
+    for &(start, end) in &ranges[1..] {
+        if start <= current.1 {
+            current.1 = current.1.max(end);
+        } else {
+            merged.push(current);
+            current = (start, end);
+        }
+    }
+    merged.push(current);
+    *ranges = merged;
 }
 
 /// Map a range in a concatenated multi-line string back to per-line highlight ranges.
@@ -720,6 +788,56 @@ diff --git a/foo.txt b/foo.txt
                 "continuation line should have gutter separators: {cont:?}"
             );
         }
+    }
+
+    #[test]
+    fn word_highlights_punctuation_boundary() {
+        // Regression: from_words treats "application"]  vs "application"], as entirely
+        // different tokens, highlighting the whole word instead of just the insertion.
+        use crate::git::diff::{DiffHunk, DiffLine, LineKind};
+
+        let hunk = DiffHunk {
+            old_start: 1,
+            new_start: 1,
+            lines: vec![
+                DiffLine {
+                    kind: LineKind::Deleted,
+                    content: r#"  "--app": { type: AppArg, alias: ["-a", "--application"] },"#.into(),
+                    old_lineno: Some(1),
+                    new_lineno: None,
+                },
+                DiffLine {
+                    kind: LineKind::Added,
+                    content: r#"  "--app": { type: AppArg, alias: ["-a", "--application"], description: "Select the application" },"#.into(),
+                    old_lineno: None,
+                    new_lineno: Some(1),
+                },
+            ],
+        };
+        let block = ChangeBlock {
+            deleted: vec![0],
+            added: vec![1],
+        };
+        let (del_hl, add_hl) = word_highlights(&hunk, &block);
+
+        // Nothing was deleted — the old line should have no highlights
+        assert!(
+            del_hl[0].is_empty(),
+            "deleted line should have no highlights, got: {:?}",
+            del_hl[0]
+        );
+
+        // The insertion is `, description: "Select the application"`
+        // which starts right after the `]` in the added line
+        assert_eq!(add_hl[0].len(), 1, "added line should have exactly one highlight range, got: {:?}", add_hl[0]);
+        let (start, end) = add_hl[0][0];
+        let added = &hunk.lines[1].content;
+        let highlighted = &added[start..end];
+        assert_eq!(
+            highlighted,
+            r#", description: "Select the application""#,
+            "should highlight only the inserted portion"
+        );
     }
 
     #[test]
