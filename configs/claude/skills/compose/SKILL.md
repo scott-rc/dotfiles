@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files, and crafts session task prompts, when users ask to scaffold, build, review, improve, or fix skills, write, update, or review CLAUDE.md rules files, or craft prompts for new sessions.
+description: Creates and reviews Claude Code agent skills and CLAUDE.md rules files, crafts session task prompts, and plans large tasks into chunked execution plans, when users ask to scaffold, build, review, improve, or fix skills, write, update, or review CLAUDE.md rules files, craft prompts for new sessions, or plan, decompose, chunk, or break down a task.
 ---
 
 # Instructing Agents
@@ -29,6 +29,10 @@ See [review-rules.md](review-rules.md) for detailed instructions.
 Craft a session task prompt interactively, producing a polished prompt ready to paste into a new Claude Code session.
 See [create-prompt.md](create-prompt.md) for detailed instructions.
 
+### Plan Task
+Decompose a large task into ordered chunks with orchestrated subagent execution.
+See [plan-task.md](plan-task.md) for detailed instructions.
+
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:
@@ -38,6 +42,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
+- **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
 - **"review"** (ambiguous) → Ask the user whether they mean a skill or a rules file
 
 **Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
@@ -50,3 +55,4 @@ These files are referenced by the operation instructions. Operations that link t
 - [quality-checklist.md](quality-checklist.md) - Pass/fail evaluation criteria for skills and rules files
 - [skill-template.md](skill-template.md) - Annotated templates for SKILL.md and operation files
 - [rules-template.md](rules-template.md) - Templates for CLAUDE.md and scoped rules files
+- [plan-template.md](plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt, and chunking guidelines

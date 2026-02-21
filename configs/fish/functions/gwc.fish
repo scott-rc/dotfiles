@@ -114,16 +114,21 @@ function gwc --description "Clean up merged and orphaned worktrees"
     echo ""
     read -l --prompt-str '(y/n) ' answer
 
+    function _gwc_rm
+        chmod -R u+w $argv[1] 2>/dev/null
+        rm -rf $argv[1]
+    end
+
     switch "$answer"
         case y yes
             for i in (seq (count $stale_dirs))
                 set -l dir $stale_dirs[$i]
                 set -l full_path $wt_root/$dir
                 if test "$stale_labels[$i]" = orphaned
-                    rm -rf $full_path
+                    _gwc_rm $full_path
                 else
                     command git -C $repo_root worktree remove --force $full_path 2>/dev/null
-                    or rm -rf $full_path
+                    or _gwc_rm $full_path
                     # Delete the branch if it still exists
                     command git -C $repo_root branch -D $stale_branches[$i] 2>/dev/null
                 end
