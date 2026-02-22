@@ -36,7 +36,7 @@ No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with st
 
 | Key | Action |
 |-----|--------|
-| `d` / `u` | Next/prev hunk (change group in full-context mode) |
+| `d` / `u` | Next/prev hunk (change group in full-context mode), always global across files |
 | `D` / `U` | Next/prev file (shows file position) |
 | `a` | Toggle single-file view (independent of tree panel) |
 | `Space` | Toggle full file context |

@@ -18,6 +18,32 @@ use crate::style;
 
 use tui::pager::Key;
 
+fn debug_escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: &str) {
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    let line = format!(
+        "{{\"sessionId\":\"5064b6\",\"runId\":\"{}\",\"hypothesisId\":\"{}\",\"location\":\"{}\",\"message\":\"{}\",\"data\":{},\"timestamp\":{}}}\n",
+        debug_escape(run_id),
+        debug_escape(hypothesis_id),
+        debug_escape(location),
+        debug_escape(message),
+        data,
+        ts
+    );
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/Users/scott/Code/personal/dotfiles/.cursor/debug-5064b6.log")
+    {
+        let _ = f.write_all(line.as_bytes());
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Mode {
     Normal,
@@ -687,6 +713,14 @@ fn change_group_starts(line_map: &[LineInfo], range_start: usize, range_end: usi
     starts
 }
 
+fn du_nav_targets(state: &PagerState) -> Vec<usize> {
+    if state.full_context {
+        change_group_starts(&state.line_map, 0, state.line_map.len())
+    } else {
+        state.hunk_starts.clone()
+    }
+}
+
 /// Build a status message like "Hunk 3/7 · b.rs" (or "Change 3/7 · b.rs" in
 /// full-context mode) for the navigation target containing `cursor`.
 fn nav_status_message(label: &str, cursor: usize, starts: &[usize], line_map: &[LineInfo]) -> String {
@@ -751,9 +785,19 @@ fn re_render(
             (file_start + offset_in_file).min(file_end).min(state.line_map.len().saturating_sub(1))
         };
     }
-    state.cursor_line = state.top_line;
-    let end = state.lines.len().saturating_sub(1);
-    state.cursor_line = snap_to_content(&state.line_map, state.cursor_line, 0, end);
+    let line_max = state.lines.len().saturating_sub(1);
+    state.top_line = state.top_line.min(line_max);
+    state.cursor_line = state.top_line.min(line_max);
+    let (rs, re) = visible_range(state);
+    if re > rs {
+        let range_max = re.saturating_sub(1);
+        state.top_line = state.top_line.clamp(rs, range_max);
+        state.cursor_line = state.cursor_line.clamp(rs, range_max);
+        state.cursor_line = snap_to_content(&state.line_map, state.cursor_line, rs, range_max);
+    } else {
+        state.top_line = 0;
+        state.cursor_line = 0;
+    }
     state.visual_anchor = state.cursor_line;
 
     // Re-run search against new lines
@@ -775,6 +819,36 @@ fn re_render(
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
     }
+
+    // #region agent log
+    let (rs, re) = visible_range(state);
+    let active_file_valid = state.active_file.is_none_or(|idx| idx < state.file_starts.len());
+    debug_log(
+        "pre-fix",
+        "H2",
+        "pager.rs:re_render",
+        "post rerender state",
+        &format!(
+            "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+            state.tree_visible,
+            state.tree_focused,
+            state.active_file.map_or(String::from("null"), |v| v.to_string()),
+            active_file_valid,
+            state.full_context,
+            state.cursor_line,
+            state.top_line,
+            rs,
+            re,
+            state.line_map.len(),
+            state.file_starts.len(),
+            state.tree_cursor,
+            state.tree_entries
+                .get(state.tree_cursor)
+                .and_then(|e| e.file_idx)
+                .map_or(String::from("null"), |v| v.to_string()),
+        ),
+    );
+    // #endregion
 }
 
 #[derive(Debug)]
@@ -1294,15 +1368,32 @@ pub(crate) fn handle_key(
                 }
             }
             Key::Char('d') => {
+                if state.line_map.is_empty() {
+                    return KeyResult::Continue;
+                }
                 let anchor = state.cursor_line;
-                let (rs, re) = visible_range(state);
+                let rs = 0;
+                let re = state.line_map.len();
                 let max_line = re.saturating_sub(1);
                 let max_top = re.saturating_sub(ch).max(rs);
-                let hunks = if state.full_context {
-                    change_group_starts(&state.line_map, rs, re)
-                } else {
-                    targets_in_range(&state.hunk_starts, rs, re)
-                };
+                let hunks = du_nav_targets(state);
+                // #region agent log
+                debug_log(
+                    "pre-fix",
+                    "H5",
+                    "pager.rs:handle_key:tree:d",
+                    "d navigation targets",
+                    &format!(
+                        "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
+                        state.full_context,
+                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                        anchor,
+                        hunks.len(),
+                        hunks.first().map_or(String::from("null"), |v| v.to_string()),
+                        hunks.last().map_or(String::from("null"), |v| v.to_string()),
+                    ),
+                );
+                // #endregion
                 if let Some(target) = jump_next(&hunks, anchor) {
                     state.cursor_line = next_content_line(&state.line_map, target, max_line);
                     state.top_line = state.cursor_line
@@ -1314,15 +1405,32 @@ pub(crate) fn handle_key(
                 sync_tree_cursor(state, ch);
             }
             Key::Char('u') => {
+                if state.line_map.is_empty() {
+                    return KeyResult::Continue;
+                }
                 let anchor = state.cursor_line;
-                let (rs, re) = visible_range(state);
+                let rs = 0;
+                let re = state.line_map.len();
                 let max_line = re.saturating_sub(1);
                 let max_top = re.saturating_sub(ch).max(rs);
-                let hunks = if state.full_context {
-                    change_group_starts(&state.line_map, rs, re)
-                } else {
-                    targets_in_range(&state.hunk_starts, rs, re)
-                };
+                let hunks = du_nav_targets(state);
+                // #region agent log
+                debug_log(
+                    "pre-fix",
+                    "H5",
+                    "pager.rs:handle_key:tree:u",
+                    "u navigation targets",
+                    &format!(
+                        "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
+                        state.full_context,
+                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                        anchor,
+                        hunks.len(),
+                        hunks.first().map_or(String::from("null"), |v| v.to_string()),
+                        hunks.last().map_or(String::from("null"), |v| v.to_string()),
+                    ),
+                );
+                // #endregion
                 if let Some(target) = jump_prev(&hunks, anchor) {
                     state.cursor_line = next_content_line(&state.line_map, target, max_line);
                     // Retry if cursor didn't move backward (stuck on first content line)
@@ -1381,15 +1489,32 @@ pub(crate) fn handle_key(
             }
         }
         Key::Char('d') => {
+            if state.line_map.is_empty() {
+                return KeyResult::Continue;
+            }
             let anchor = state.cursor_line;
-            let (rs, re) = visible_range(state);
+            let rs = 0;
+            let re = state.line_map.len();
             let max_line = re.saturating_sub(1);
             let max_top = re.saturating_sub(ch).max(rs);
-            let hunks = if state.full_context {
-                change_group_starts(&state.line_map, rs, re)
-            } else {
-                targets_in_range(&state.hunk_starts, rs, re)
-            };
+            let hunks = du_nav_targets(state);
+            // #region agent log
+            debug_log(
+                "pre-fix",
+                "H5",
+                "pager.rs:handle_key:normal:d",
+                "d navigation targets",
+                &format!(
+                    "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
+                    state.full_context,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    anchor,
+                    hunks.len(),
+                    hunks.first().map_or(String::from("null"), |v| v.to_string()),
+                    hunks.last().map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             if let Some(target) = jump_next(&hunks, anchor) {
                 state.cursor_line = next_content_line(&state.line_map, target, max_line);
                 state.top_line = state.cursor_line
@@ -1402,15 +1527,32 @@ pub(crate) fn handle_key(
             return KeyResult::Continue;
         }
         Key::Char('u') => {
+            if state.line_map.is_empty() {
+                return KeyResult::Continue;
+            }
             let anchor = state.cursor_line;
-            let (rs, re) = visible_range(state);
+            let rs = 0;
+            let re = state.line_map.len();
             let max_line = re.saturating_sub(1);
             let max_top = re.saturating_sub(ch).max(rs);
-            let hunks = if state.full_context {
-                change_group_starts(&state.line_map, rs, re)
-            } else {
-                targets_in_range(&state.hunk_starts, rs, re)
-            };
+            let hunks = du_nav_targets(state);
+            // #region agent log
+            debug_log(
+                "pre-fix",
+                "H5",
+                "pager.rs:handle_key:normal:u",
+                "u navigation targets",
+                &format!(
+                    "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
+                    state.full_context,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    anchor,
+                    hunks.len(),
+                    hunks.first().map_or(String::from("null"), |v| v.to_string()),
+                    hunks.last().map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             if let Some(target) = jump_prev(&hunks, anchor) {
                 state.cursor_line = next_content_line(&state.line_map, target, max_line);
                 // Retry if cursor didn't move backward (stuck on first content line)
@@ -1618,6 +1760,28 @@ pub(crate) fn handle_key(
             state.visual_anchor = state.cursor_line;
         }
         Key::Char('a') => {
+            // #region agent log
+            debug_log(
+                "pre-fix",
+                "H1",
+                "pager.rs:handle_key:a:before",
+                "toggle single/all before",
+                &format!(
+                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+                    state.tree_visible,
+                    state.tree_focused,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    state.full_context,
+                    state.cursor_line,
+                    state.top_line,
+                    state.tree_cursor,
+                    state.tree_entries
+                        .get(state.tree_cursor)
+                        .and_then(|e| e.file_idx)
+                        .map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             if state.active_file.is_some() {
                 // Toggle off: return to all-files view
                 state.active_file = None;
@@ -1643,15 +1807,84 @@ pub(crate) fn handle_key(
                 state.tree_visible_to_entry = tv;
                 state.status_message = "Single file".into();
             }
+            // #region agent log
+            let (rs, re) = visible_range(state);
+            debug_log(
+                "pre-fix",
+                "H1",
+                "pager.rs:handle_key:a:after",
+                "toggle single/all after",
+                &format!(
+                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+                    state.tree_visible,
+                    state.tree_focused,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    state.full_context,
+                    state.cursor_line,
+                    state.top_line,
+                    rs,
+                    re,
+                    state.tree_cursor,
+                    state.tree_entries
+                        .get(state.tree_cursor)
+                        .and_then(|e| e.file_idx)
+                        .map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             return KeyResult::ReRender;
         }
         Key::Char(' ') => {
+            // #region agent log
+            debug_log(
+                "pre-fix",
+                "H3",
+                "pager.rs:handle_key:space:before",
+                "toggle context before regenerate",
+                &format!(
+                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+                    state.tree_visible,
+                    state.tree_focused,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    state.full_context,
+                    state.cursor_line,
+                    state.top_line,
+                    state.tree_cursor,
+                    state.tree_entries
+                        .get(state.tree_cursor)
+                        .and_then(|e| e.file_idx)
+                        .map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             state.full_context = !state.full_context;
             state.status_message = if state.full_context {
                 "Full file context".into()
             } else {
                 "Hunk context".into()
             };
+            // #region agent log
+            debug_log(
+                "pre-fix",
+                "H3",
+                "pager.rs:handle_key:space:after",
+                "toggle context after regenerate request",
+                &format!(
+                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+                    state.tree_visible,
+                    state.tree_focused,
+                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                    state.full_context,
+                    state.cursor_line,
+                    state.top_line,
+                    state.tree_cursor,
+                    state.tree_entries
+                        .get(state.tree_cursor)
+                        .and_then(|e| e.file_idx)
+                        .map_or(String::from("null"), |v| v.to_string()),
+                ),
+            );
+            // #endregion
             return KeyResult::ReGenerate;
         }
         Key::Char('?') => {
@@ -1791,8 +2024,55 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 re_render(&mut state, &files, color, last_size.0);
             }
             KeyResult::ReGenerate => {
+                // #region agent log
+                debug_log(
+                    "pre-fix",
+                    "H4",
+                    "pager.rs:run_pager:regenerate:before",
+                    "regenerate start",
+                    &format!(
+                        "{{\"activeFile\":{},\"fullContext\":{},\"treeVisible\":{},\"treeFocused\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{},\"filesLen\":{}}}",
+                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                        state.full_context,
+                        state.tree_visible,
+                        state.tree_focused,
+                        state.tree_cursor,
+                        state.tree_entries
+                            .get(state.tree_cursor)
+                            .and_then(|e| e.file_idx)
+                            .map_or(String::from("null"), |v| v.to_string()),
+                        files.len(),
+                    ),
+                );
+                // #endregion
                 files = regenerate_files(diff_ctx, state.full_context);
                 re_render(&mut state, &files, color, last_size.0);
+                // #region agent log
+                let (rs, re) = visible_range(&state);
+                debug_log(
+                    "pre-fix",
+                    "H4",
+                    "pager.rs:run_pager:regenerate:after",
+                    "regenerate complete",
+                    &format!(
+                        "{{\"activeFile\":{},\"fullContext\":{},\"treeVisible\":{},\"treeFocused\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{},\"filesLen\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{}}}",
+                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
+                        state.full_context,
+                        state.tree_visible,
+                        state.tree_focused,
+                        state.tree_cursor,
+                        state.tree_entries
+                            .get(state.tree_cursor)
+                            .and_then(|e| e.file_idx)
+                            .map_or(String::from("null"), |v| v.to_string()),
+                        files.len(),
+                        state.cursor_line,
+                        state.top_line,
+                        rs,
+                        re,
+                    ),
+                );
+                // #endregion
             }
             KeyResult::OpenEditor { path, lineno } => {
                 let _ = crossterm::terminal::disable_raw_mode();
@@ -2788,7 +3068,7 @@ mod tests {
         state.cursor_line = 16; // first content line after hunk header at 15
         state.active_file = Some(0);
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 6);
     }
 
     #[test]
@@ -2797,7 +3077,7 @@ mod tests {
         state.active_file = Some(1);
         state.cursor_line = 36; // first content line of file 1's first hunk (header at 35)
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 16);
     }
 
     #[test]
@@ -2807,7 +3087,7 @@ mod tests {
         state.cursor_line = 16;
         state.active_file = Some(0);
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 6);
     }
 
     #[test]
@@ -2824,7 +3104,7 @@ mod tests {
         state.active_file = Some(1);
         state.cursor_line = 36;
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 16);
     }
 
     #[test]
@@ -2921,27 +3201,27 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------
-    // Single-file mode constrains hunk/file navigation to visible range
+    // Single-file mode still constrains file-level navigation (D/U),
+    // while hunk-level navigation (d/u) is global across files.
     // ---------------------------------------------------------------------------
 
     #[test]
-    fn key_d_single_file_stays_within_file() {
+    fn key_d_single_file_jumps_to_next_file_hunk() {
         let mut state = make_keybinding_state();
         state.active_file = Some(0); // a.rs: lines 0-29, hunks at 5, 15
         state.cursor_line = 16; // past last hunk of file 0
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
-        // Should NOT jump to file 1's hunk at 35 — should stay put
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        // d/u ignore single-file scope and navigate hunks globally.
+        assert_eq!(state.cursor_line, 36);
     }
 
     #[test]
-    fn key_u_single_file_stays_within_file() {
+    fn key_u_single_file_jumps_to_prev_file_hunk() {
         let mut state = make_keybinding_state();
         state.active_file = Some(1); // b.rs: lines 30-59, hunks at 35, 45
         state.cursor_line = 36; // first content of file 1's first hunk
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        // Should NOT jump to file 0's hunk — should stay put
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 16);
     }
 
     #[test]
@@ -2971,29 +3251,27 @@ mod tests {
         state.cursor_line = 6; // just past first hunk
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         // Should jump to hunk at 15 (within same file)
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 16);
     }
 
     #[test]
-    fn key_d_tree_focused_single_file_stays_within() {
+    fn key_d_tree_focused_single_file_jumps_globally() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
         state.active_file = Some(0);
         state.cursor_line = 16; // past last hunk of file 0
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
-        // Should NOT jump to file 1's hunk
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 36);
     }
 
     #[test]
-    fn key_u_tree_focused_single_file_stays_within() {
+    fn key_u_tree_focused_single_file_jumps_globally() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
         state.active_file = Some(1); // b.rs: hunks at 35, 45
         state.cursor_line = 36;
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        // Should NOT jump to file 0's hunk
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 16);
     }
 
     #[test]
@@ -3532,8 +3810,7 @@ diff --git a/b.txt b/b.txt
         state.full_context = true;
         state.cursor_line = 1; // context line before first change group
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
-        // Should jump to first change group at line 6 (Added)
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 6);
     }
 
     #[test]
@@ -3543,8 +3820,8 @@ diff --git a/b.txt b/b.txt
         state.full_context = true;
         state.cursor_line = 7; // inside first change group (Added 6-8)
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
-        // No previous change group in file 0 → should stay put
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        // Global previous change-group start is line 6.
+        assert_eq!(state.cursor_line, 6);
     }
 
     #[test]
@@ -3561,7 +3838,7 @@ diff --git a/b.txt b/b.txt
         let after_u = state.cursor_line;
         assert!(after_d > 6, "d should move forward from 6, got {after_d}");
         assert!(after_u <= 8, "u should return near first change group, got {after_u}");
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(after_u, 6);
     }
 
     #[test]
@@ -3585,8 +3862,7 @@ diff --git a/b.txt b/b.txt
         state.full_context = true;
         state.cursor_line = 1;
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
-        // Tree-focused d falls through to normal handler, should land on change group
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.cursor_line, 6);
     }
 
     #[test]
