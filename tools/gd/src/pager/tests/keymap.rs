@@ -25,6 +25,146 @@ fn help_includes_full_context_toggle_z() {
 }
 
 #[test]
+fn keymap_normal_navigation_keys() {
+    use tui::pager::Key;
+    let cases = [
+        (Key::Char('j'), ActionId::ScrollDown),
+        (Key::Char('k'), ActionId::ScrollUp),
+        (Key::Char('d'), ActionId::NextHunk),
+        (Key::Char('u'), ActionId::PrevHunk),
+        (Key::Char('D'), ActionId::NextFile),
+        (Key::Char('U'), ActionId::PrevFile),
+        (Key::Char('a'), ActionId::ToggleSingleFile),
+        (Key::Char('z'), ActionId::ToggleFullContext),
+    ];
+    for (key, expected) in cases {
+        assert_eq!(
+            keymap_lookup(key, KeyContext::Normal),
+            Some(expected),
+            "Normal context: {key:?} should map to {expected:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_normal_other_keys() {
+    use tui::pager::Key;
+    let cases = [
+        (Key::Char('/'), ActionId::Search),
+        (Key::Char('n'), ActionId::NextMatch),
+        (Key::Char('N'), ActionId::PrevMatch),
+        (Key::Char('e'), ActionId::ToggleTree),
+        (Key::Char('v'), ActionId::EnterVisual),
+        (Key::Char('E'), ActionId::OpenEditor),
+        (Key::Char('q'), ActionId::Quit),
+        (Key::Char('?'), ActionId::Help),
+    ];
+    for (key, expected) in cases {
+        assert_eq!(
+            keymap_lookup(key, KeyContext::Normal),
+            Some(expected),
+            "Normal context: {key:?} should map to {expected:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_tree_keys() {
+    use tui::pager::Key;
+    let cases = [
+        (Key::Char('h'), ActionId::ReturnToDiff),
+        (Key::Char('e'), ActionId::TreeClose),
+        (Key::Char('j'), ActionId::TreeNavDown),
+        (Key::Char('k'), ActionId::TreeNavUp),
+        (Key::Char('g'), ActionId::TreeFirst),
+        (Key::Char('G'), ActionId::TreeLast),
+        (Key::Enter, ActionId::TreeSelect),
+        (Key::Char('a'), ActionId::ToggleSingleFile),
+        (Key::Char('d'), ActionId::NextHunk),
+        (Key::Char('u'), ActionId::PrevHunk),
+        (Key::Char('q'), ActionId::Quit),
+    ];
+    for (key, expected) in cases {
+        assert_eq!(
+            keymap_lookup(key, KeyContext::Tree),
+            Some(expected),
+            "Tree context: {key:?} should map to {expected:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_visual_keys() {
+    use tui::pager::Key;
+    let cases = [
+        (Key::Char('j'), ActionId::VisualExtendDown),
+        (Key::Char('k'), ActionId::VisualExtendUp),
+        (Key::Char('y'), ActionId::VisualCopy),
+        (Key::Escape, ActionId::VisualCancel),
+        (Key::Char('q'), ActionId::Quit),
+    ];
+    for (key, expected) in cases {
+        assert_eq!(
+            keymap_lookup(key, KeyContext::Visual),
+            Some(expected),
+            "Visual context: {key:?} should map to {expected:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_search_keys() {
+    use tui::pager::Key;
+    let cases = [
+        (Key::Enter, ActionId::SearchSubmit),
+        (Key::Escape, ActionId::SearchCancel),
+        (Key::CtrlC, ActionId::SearchCancel),
+    ];
+    for (key, expected) in cases {
+        assert_eq!(
+            keymap_lookup(key, KeyContext::Search),
+            Some(expected),
+            "Search context: {key:?} should map to {expected:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_tree_only_keys_not_in_normal() {
+    use tui::pager::Key;
+    assert_eq!(
+        keymap_lookup(Key::Char('h'), KeyContext::Normal),
+        None,
+        "h is ReturnToDiff in Tree only — should be None in Normal"
+    );
+}
+
+#[test]
+fn keymap_visual_only_keys_not_in_normal() {
+    use tui::pager::Key;
+    assert_eq!(
+        keymap_lookup(Key::Char('y'), KeyContext::Normal),
+        None,
+        "y is VisualCopy in Visual only — should be None in Normal"
+    );
+}
+
+#[test]
+fn keymap_normal_keys_not_in_search() {
+    use tui::pager::Key;
+    assert_eq!(
+        keymap_lookup(Key::Char('j'), KeyContext::Search),
+        None,
+        "j (ScrollDown) should not fire in Search context"
+    );
+    assert_eq!(
+        keymap_lookup(Key::Char('n'), KeyContext::Search),
+        None,
+        "n (NextMatch) should not fire in Search context"
+    );
+}
+
+#[test]
 fn help_includes_all_primary_runtime_actions() {
     let help_text = keymap_help_lines().join(" ");
     let required = [

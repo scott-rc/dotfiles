@@ -15,6 +15,80 @@ use super::common::{
 use crate::git::diff::LineKind;
 
 #[test]
+fn test_change_group_starts_empty_line_map() {
+    assert_eq!(change_group_starts(&[], 0, 0), Vec::<usize>::new());
+    assert_eq!(change_group_starts(&[], 0, 10), Vec::<usize>::new());
+}
+
+#[test]
+fn test_change_group_starts_no_changes() {
+    let line_map = make_line_map(&[
+        None,
+        Some(LineKind::Context),
+        Some(LineKind::Context),
+        None,
+        Some(LineKind::Context),
+    ]);
+    assert_eq!(change_group_starts(&line_map, 0, line_map.len()), Vec::<usize>::new());
+}
+
+#[test]
+fn test_change_group_starts_single_group() {
+    let line_map = make_line_map(&[
+        Some(LineKind::Context),
+        Some(LineKind::Added),
+        Some(LineKind::Added),
+        Some(LineKind::Context),
+    ]);
+    assert_eq!(change_group_starts(&line_map, 0, line_map.len()), vec![1]);
+}
+
+#[test]
+fn test_change_group_starts_adjacent_added_deleted_one_group() {
+    let line_map = make_line_map(&[
+        Some(LineKind::Context),
+        Some(LineKind::Added),
+        Some(LineKind::Deleted),
+        Some(LineKind::Added),
+        Some(LineKind::Context),
+    ]);
+    assert_eq!(change_group_starts(&line_map, 0, line_map.len()), vec![1]);
+}
+
+#[test]
+fn test_change_group_starts_range_boundaries() {
+    let line_map = make_line_map(&[
+        Some(LineKind::Added),    // 0: change group at 0
+        Some(LineKind::Context),  // 1
+        Some(LineKind::Context),  // 2
+        Some(LineKind::Context),  // 3
+        Some(LineKind::Context),  // 4
+        Some(LineKind::Deleted),  // 5: change group at 5
+        Some(LineKind::Context),  // 6
+        Some(LineKind::Context),  // 7
+        Some(LineKind::Context),  // 8
+        Some(LineKind::Context),  // 9
+        Some(LineKind::Added),    // 10: change group at 10
+        Some(LineKind::Context),  // 11
+    ]);
+    assert_eq!(change_group_starts(&line_map, 2, 8), vec![5]);
+    assert_eq!(change_group_starts(&line_map, 6, 12), vec![10]);
+    assert_eq!(change_group_starts(&line_map, 0, 3), vec![0]);
+}
+
+#[test]
+fn test_change_group_starts_range_end_beyond_len() {
+    let line_map = make_line_map(&[
+        Some(LineKind::Context),  // 0
+        Some(LineKind::Context),  // 1
+        Some(LineKind::Added),    // 2
+        Some(LineKind::Context),  // 3
+        Some(LineKind::Deleted),  // 4
+    ]);
+    assert_eq!(change_group_starts(&line_map, 0, 100), vec![2, 4]);
+}
+
+#[test]
 fn change_group_starts_finds_change_boundaries() {
     let line_map: Vec<LineInfo> = [
         Some(LineKind::Context),

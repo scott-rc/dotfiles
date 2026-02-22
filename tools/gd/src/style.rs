@@ -134,3 +134,113 @@ pub fn dir_icon(collapsed: bool) -> (&'static str, &'static str) {
         ("\u{f413}", FG_TREE_DIR)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ansi::strip_ansi;
+
+    #[test]
+    fn test_file_header_basic() {
+        let out = strip_ansi(&file_header("foo.rs", "M", 40));
+        assert!(out.starts_with("──"), "should start with ──: {out:?}");
+        assert!(out.contains("foo.rs (M)"), "should contain path and status: {out:?}");
+        assert!(out.ends_with("──"), "should end with ──: {out:?}");
+    }
+
+    #[test]
+    fn test_file_header_narrow_width() {
+        let out = file_header("path", "A", 5);
+        let visible = strip_ansi(&out);
+        assert!(visible.contains("path (A)"), "label still present: {visible:?}");
+    }
+
+    #[test]
+    fn test_file_header_wide() {
+        let out = strip_ansi(&file_header("short", "D", 80));
+        let bar_chars: usize = out.chars().filter(|&c| c == '─').count();
+        let label = " short (D) ";
+        assert_eq!(
+            bar_chars,
+            80 - label.len(),
+            "bar chars should fill remaining width"
+        );
+    }
+
+    #[test]
+    fn test_gutter_both_some() {
+        let out = strip_ansi(&gutter(Some(1), Some(2)));
+        assert!(out.contains('1'), "should contain old line number: {out:?}");
+        assert!(out.contains('2'), "should contain new line number: {out:?}");
+        assert!(out.contains('│'), "should contain separator: {out:?}");
+        assert_eq!(out.chars().count(), GUTTER_WIDTH, "visible width should be {GUTTER_WIDTH}");
+    }
+
+    #[test]
+    fn test_gutter_both_none() {
+        let out = strip_ansi(&gutter(None, None));
+        assert_eq!(out, "     │     │", "blank gutter with separators");
+    }
+
+    #[test]
+    fn test_gutter_large_numbers() {
+        let out = strip_ansi(&gutter(Some(9999), Some(100)));
+        assert!(out.contains("9999"), "should contain 9999: {out:?}");
+        assert!(out.contains("100"), "should contain 100: {out:?}");
+    }
+
+    #[test]
+    fn test_file_icon_rust() {
+        assert_eq!(file_icon("src/main.rs").0, "\u{e7a8}");
+    }
+
+    #[test]
+    fn test_file_icon_all_extensions() {
+        let default_icon = "\u{f15b}";
+        let exts = [
+            "rs", "ts", "tsx", "js", "jsx", "go", "py", "md", "json", "toml",
+            "yaml", "yml", "sh", "fish", "bash", "zsh", "lua", "html", "css", "lock",
+        ];
+        for ext in exts {
+            let path = format!("x.{ext}");
+            let (icon, _) = file_icon(&path);
+            assert_ne!(icon, default_icon, "extension {ext:?} should have a specific icon");
+        }
+    }
+
+    #[test]
+    fn test_file_icon_fallback() {
+        let default_icon = "\u{f15b}";
+        for path in ["noext", ".gitignore", "a.b.c"] {
+            let (icon, _) = file_icon(path);
+            assert_eq!(icon, default_icon, "{path:?} should return the default icon");
+        }
+    }
+
+    #[test]
+    fn test_dir_icon_collapsed_expanded() {
+        assert_eq!(dir_icon(true).0, "\u{f4d8}", "collapsed icon");
+        assert_eq!(dir_icon(false).0, "\u{f413}", "expanded icon");
+        assert_eq!(dir_icon(true).1, FG_TREE_DIR, "collapsed color");
+        assert_eq!(dir_icon(false).1, FG_TREE_DIR, "expanded color");
+    }
+
+    #[test]
+    fn test_wrap_marker() {
+        let colored = wrap_marker(true);
+        assert!(colored.contains("\u{21aa}"), "colored marker contains arrow");
+        assert!(colored.contains(RESET), "colored marker contains RESET");
+        let plain = wrap_marker(false);
+        assert_eq!(plain, "\u{21aa}", "plain marker is just the arrow");
+        assert_eq!(strip_ansi(&colored), plain, "stripping ANSI yields plain marker");
+    }
+
+    #[test]
+    fn test_continuation_gutter() {
+        let plain = continuation_gutter(false);
+        assert_eq!(plain, "     |     |", "plain continuation gutter");
+        let colored = continuation_gutter(true);
+        let stripped = strip_ansi(&colored);
+        assert_eq!(stripped, "     │     │", "colored gutter stripped matches expected layout");
+    }
+}

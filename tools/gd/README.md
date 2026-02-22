@@ -117,6 +117,28 @@ The file tree is a navigation aid that does not affect the diff pane's content. 
 cargo build --release   # from tools/gd/
 ```
 
+## Coverage
+
+Requires [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov`).
+
+```bash
+./coverage.sh           # HTML report, opens in browser
+./coverage.sh lcov      # write lcov.info (for Coverage Gutters / IDE integration)
+./coverage.sh text      # terminal summary table
+./coverage.sh json      # LLVM JSON export to coverage.json
+./coverage.sh agent     # lcov.info + machine-parseable summary (see below)
+```
+
+### Agent workflow
+
+`./coverage.sh agent` produces three sections on stdout, designed for AI agents to parse:
+
+- **COVERAGE SUMMARY** — per-file line/function coverage percentages
+- **UNCOVERED FUNCTIONS** — `file:line function_name` for every function with 0 hits (test files excluded)
+- **UNCOVERED LINES BY FILE** — `file (uncovered: 10-15,22,30-35)` with collapsed ranges (test files excluded)
+
+It also writes `lcov.info`, which agents can read directly for line-granular data. The lcov format uses `SF:` for source file, `DA:line,count` for line hits (0 = uncovered), and `FNDA:count,name` for function hits.
+
 ## Debug tracing
 
 Set `GD_DEBUG=1` to emit structured debug output to stderr for rerender and regenerate paths (e.g. `GD_DEBUG=1 gd`). Default: no debug I/O. Useful for diagnosing view state after document swaps.
