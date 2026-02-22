@@ -713,11 +713,35 @@ fn change_group_starts(line_map: &[LineInfo], range_start: usize, range_end: usi
     starts
 }
 
+/// Compute one navigation target per hunk by finding the first change line
+/// (Added/Deleted) within each hunk span. Falls back to the raw hunk start
+/// when a hunk has no change lines.
+fn hunk_change_starts(line_map: &[LineInfo], hunk_starts: &[usize]) -> Vec<usize> {
+    if hunk_starts.is_empty() {
+        return Vec::new();
+    }
+
+    let mut targets = Vec::with_capacity(hunk_starts.len());
+    for (idx, &start) in hunk_starts.iter().enumerate() {
+        let end = hunk_starts
+            .get(idx + 1)
+            .copied()
+            .unwrap_or(line_map.len())
+            .min(line_map.len());
+
+        let target = (start..end)
+            .find(|&i| matches!(line_map[i].line_kind, Some(LineKind::Added | LineKind::Deleted)))
+            .unwrap_or(start);
+        targets.push(target);
+    }
+    targets
+}
+
 fn du_nav_targets(state: &PagerState) -> Vec<usize> {
     if state.full_context {
         change_group_starts(&state.line_map, 0, state.line_map.len())
     } else {
-        state.hunk_starts.clone()
+        hunk_change_starts(&state.line_map, &state.hunk_starts)
     }
 }
 
@@ -3799,9 +3823,51 @@ diff --git a/b.txt b/b.txt
         }
     }
 
+    fn add_leading_context_before_hunk_changes(state: &mut PagerState) {
+        // Keep hunk_starts anchored on hunk headers, but move first changes deeper
+        // into each hunk so d/u must target the first Added/Deleted line.
+        state.line_map[6].line_kind = Some(LineKind::Context);
+        state.line_map[7].line_kind = Some(LineKind::Context);
+        state.line_map[8].line_kind = Some(LineKind::Added);
+
+        state.line_map[16].line_kind = Some(LineKind::Context);
+        state.line_map[17].line_kind = Some(LineKind::Deleted);
+    }
+
     // ---------------------------------------------------------------------------
     // Navigation edge cases with mixed content and full_context
     // ---------------------------------------------------------------------------
+
+    #[test]
+    fn key_d_hunk_context_skips_leading_context_to_first_change() {
+        let mut state = make_mixed_content_state();
+        add_leading_context_before_hunk_changes(&mut state);
+        state.full_context = false;
+        state.cursor_line = 1;
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        assert_eq!(state.cursor_line, 8);
+    }
+
+    #[test]
+    fn key_u_hunk_context_skips_leading_context_to_prev_first_change() {
+        let mut state = make_mixed_content_state();
+        add_leading_context_before_hunk_changes(&mut state);
+        state.full_context = false;
+        state.cursor_line = 17; // first change line in second hunk
+        handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
+        assert_eq!(state.cursor_line, 8);
+    }
+
+    #[test]
+    fn key_d_tree_focused_hunk_context_skips_leading_context() {
+        let mut state = make_mixed_content_state();
+        add_leading_context_before_hunk_changes(&mut state);
+        state.full_context = false;
+        state.tree_focused = true;
+        state.cursor_line = 1;
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        assert_eq!(state.cursor_line, 8);
+    }
 
     #[test]
     fn key_d_full_context_single_file_lands_on_change_group() {
