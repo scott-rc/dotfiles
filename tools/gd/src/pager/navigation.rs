@@ -2,7 +2,7 @@ use crate::render::LineInfo;
 
 use super::content::next_content_line;
 use super::state::{visible_range, PagerState};
-use super::tree::{build_tree_lines, file_idx_to_entry_idx};
+use super::tree::file_idx_to_entry_idx;
 
 pub(crate) fn jump_next(targets: &[usize], top_line: usize) -> Option<usize> {
     targets.iter().find(|&&t| t > top_line).copied()
@@ -133,7 +133,7 @@ pub(crate) fn recenter_top_line(
         .min(max_top)
 }
 
-pub(crate) fn nav_du_down(state: &PagerState, _content_height: usize) -> NavDuResult {
+pub(crate) fn nav_du_down(state: &PagerState) -> NavDuResult {
     if state.doc.line_map.is_empty() {
         return NavDuResult {
             cursor_line: state.cursor_line,
@@ -166,7 +166,7 @@ pub(crate) fn nav_du_down(state: &PagerState, _content_height: usize) -> NavDuRe
     }
 }
 
-pub(crate) fn nav_du_up(state: &PagerState, _content_height: usize) -> NavDuResult {
+pub(crate) fn nav_du_up(state: &PagerState) -> NavDuResult {
     if state.doc.line_map.is_empty() {
         return NavDuResult {
             cursor_line: state.cursor_line,
@@ -311,9 +311,7 @@ pub(crate) fn sync_tree_cursor_force(state: &mut PagerState, content_height: usi
     }
     if new_entry_idx != state.tree_cursor() {
         state.set_tree_cursor(new_entry_idx);
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-        state.tree_lines = tl;
-        state.tree_visible_to_entry = tv;
+        state.rebuild_tree_lines();
         ensure_tree_cursor_visible(state, content_height);
     }
 }
@@ -358,10 +356,7 @@ pub(crate) fn move_tree_selection(
         return false;
     }
     state.set_tree_cursor(state.tree_visible_to_entry[next_visible_idx as usize]);
-    let (tree_lines, tree_visible_to_entry) =
-        build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-    state.tree_lines = tree_lines;
-    state.tree_visible_to_entry = tree_visible_to_entry;
+    state.rebuild_tree_lines();
     ensure_tree_cursor_visible(state, content_height);
     true
 }

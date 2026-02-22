@@ -23,7 +23,11 @@ fn gd_debug_enabled() -> bool {
 }
 
 fn debug_escape(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 fn debug_trace(location: &str, message: &str, data: &str) {
@@ -114,28 +118,12 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
     let raw = crate::git::run_diff(&diff_ctx.repo, &str_args);
     let mut files = crate::git::diff::parse(&raw);
 
-    if !diff_ctx.no_untracked
-        && matches!(diff_ctx.source, crate::git::DiffSource::WorkingTree)
-    {
-        let max_size: u64 = 256 * 1024;
-        for path in crate::git::untracked_files(&diff_ctx.repo) {
-            let full = diff_ctx.repo.join(&path);
-            let Ok(meta) = full.metadata() else {
-                continue;
-            };
-            if !meta.is_file() || meta.len() > max_size {
-                continue;
-            }
-            let Ok(content) = std::fs::read(&full) else {
-                continue;
-            };
-            if content.contains(&0) {
-                continue;
-            }
-            let text = String::from_utf8_lossy(&content);
-            files.push(DiffFile::from_content(&path, &text));
-        }
-    }
+    crate::git::append_untracked(
+        &diff_ctx.repo,
+        &diff_ctx.source,
+        diff_ctx.no_untracked,
+        &mut files,
+    );
 
     files
 }
@@ -163,7 +151,6 @@ pub fn run_pager(
     );
 
     let mut last_size = get_term_size();
-    files = regenerate_files(diff_ctx, state.full_context);
     re_render(&mut state, &files, color, last_size.0);
     let ch = content_height(last_size.1, &state);
     ensure_tree_cursor_visible(&mut state, ch);

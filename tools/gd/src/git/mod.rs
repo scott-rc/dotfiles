@@ -169,6 +169,37 @@ pub fn untracked_files(repo: &Path) -> Vec<String> {
         .collect()
 }
 
+/// Append untracked files as synthetic DiffFile entries when in working tree mode.
+/// Skips non-files, files over 256KB, and binary files (contain null bytes).
+pub fn append_untracked(
+    repo: &Path,
+    source: &DiffSource,
+    no_untracked: bool,
+    files: &mut Vec<diff::DiffFile>,
+) {
+    if !matches!(source, DiffSource::WorkingTree) || no_untracked {
+        return;
+    }
+    let max_size: u64 = 256 * 1024;
+    for path in untracked_files(repo) {
+        let full = repo.join(&path);
+        let Ok(meta) = full.metadata() else {
+            continue;
+        };
+        if !meta.is_file() || meta.len() > max_size {
+            continue;
+        }
+        let Ok(content) = std::fs::read(&full) else {
+            continue;
+        };
+        if content.contains(&0) {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&content);
+        files.push(diff::DiffFile::from_content(&path, &text));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

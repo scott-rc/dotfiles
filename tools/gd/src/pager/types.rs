@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 /// Valid file index into `file_starts`. Construct via `FileIx::new(idx, file_count)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FileIx(pub(crate) usize);

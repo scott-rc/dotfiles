@@ -102,6 +102,77 @@ pub(crate) fn handle_search_key(state: &mut PagerState, key: Key) {
     }
 }
 
+/// Find the next match in [range_start, range_end) after current_match.
+/// When current_match is before first or at end, wraps to first in range.
+/// Returns the global index into matches, or None if no matches in range.
+pub(crate) fn next_match_in_range(
+    matches: &[usize],
+    current_match: isize,
+    range_start: usize,
+    range_end: usize,
+) -> Option<isize> {
+    let filtered: Vec<usize> = matches
+        .iter()
+        .copied()
+        .filter(|&m| m >= range_start && m < range_end)
+        .collect();
+    if filtered.is_empty() {
+        return None;
+    }
+    let cur_line = if current_match >= 0 && (current_match as usize) < matches.len() {
+        matches[current_match as usize]
+    } else {
+        range_start.saturating_sub(1)
+    };
+    let next_line = filtered
+        .iter()
+        .find(|&&m| m > cur_line)
+        .copied()
+        .or_else(|| Some(filtered[0]));
+    next_line.and_then(|line| {
+        matches
+            .iter()
+            .position(|&m| m == line)
+            .map(|idx| idx as isize)
+    })
+}
+
+/// Find the previous match in [range_start, range_end) before current_match.
+/// When current_match is after last or at start, wraps to last in range.
+/// Returns the global index into matches, or None if no matches in range.
+pub(crate) fn prev_match_in_range(
+    matches: &[usize],
+    current_match: isize,
+    range_start: usize,
+    range_end: usize,
+) -> Option<isize> {
+    let filtered: Vec<usize> = matches
+        .iter()
+        .copied()
+        .filter(|&m| m >= range_start && m < range_end)
+        .collect();
+    if filtered.is_empty() {
+        return None;
+    }
+    let cur_line = if current_match >= 0 && (current_match as usize) < matches.len() {
+        matches[current_match as usize]
+    } else {
+        range_end
+    };
+    let prev_line = filtered
+        .iter()
+        .rev()
+        .find(|&&m| m < cur_line)
+        .copied()
+        .or_else(|| filtered.last().copied());
+    prev_line.and_then(|line| {
+        matches
+            .iter()
+            .position(|&m| m == line)
+            .map(|idx| idx as isize)
+    })
+}
+
 pub(crate) fn scroll_to_match(
     state: &mut PagerState,
     content_height: usize,

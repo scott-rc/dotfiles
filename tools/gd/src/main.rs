@@ -68,29 +68,7 @@ fn main() {
     let raw = git::run_diff(&repo, &str_args);
 
     let mut files = git::diff::parse(&raw);
-
-    // Append untracked files in working tree mode
-    if matches!(source, DiffSource::WorkingTree) && !cli.no_untracked {
-        let max_size: u64 = 256 * 1024;
-        for path in git::untracked_files(&repo) {
-            let full = repo.join(&path);
-            let Ok(meta) = full.metadata() else {
-                continue;
-            };
-            if !meta.is_file() || meta.len() > max_size {
-                continue;
-            }
-            let Ok(content) = std::fs::read(&full) else {
-                continue;
-            };
-            // Skip binary files (contain null bytes)
-            if content.contains(&0) {
-                continue;
-            }
-            let text = String::from_utf8_lossy(&content);
-            files.push(git::diff::DiffFile::from_content(&path, &text));
-        }
-    }
+    git::append_untracked(&repo, &source, cli.no_untracked, &mut files);
 
     if files.is_empty() {
         return;

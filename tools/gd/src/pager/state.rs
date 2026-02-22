@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::git::diff::DiffFile;
 use crate::render::{LineInfo, RenderOutput};
 
@@ -11,6 +9,7 @@ use super::types::{FileIx, Focus, KeyResult, Mode, TreeEntryIx, ViewScope};
 #[derive(Debug)]
 pub(crate) struct ReducerCtx<'a> {
     pub content_height: usize,
+    #[allow(dead_code)]
     pub rows: u16,
     pub files: &'a [DiffFile],
 }
@@ -127,6 +126,7 @@ pub(crate) struct PagerState {
 }
 
 impl PagerState {
+    #[allow(dead_code)]
     pub(crate) fn file_count(&self) -> usize {
         self.doc.file_count()
     }
@@ -226,6 +226,12 @@ impl PagerState {
         if self.tree_selection.is_none() && self.focus == Focus::Tree {
             self.focus = Focus::Diff;
         }
+    }
+
+    pub(crate) fn rebuild_tree_lines(&mut self) {
+        let (tl, tv) = build_tree_lines(&self.tree_entries, self.tree_cursor(), self.tree_width);
+        self.tree_lines = tl;
+        self.tree_visible_to_entry = tv;
     }
 
     /// Build a valid initial state. Tree starts visible, focused; scope all-files.

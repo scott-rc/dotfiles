@@ -18,10 +18,10 @@ use super::navigation::{
     viewport_bounds,
 };
 use super::rendering::enforce_scrolloff;
-use super::search::{handle_search_key, scroll_to_match, submit_search, cancel_search};
+use super::search::{handle_search_key, next_match_in_range, prev_match_in_range, scroll_to_match, submit_search, cancel_search};
 use super::state::{debug_assert_valid_state, clamp_cursor_and_top, visible_range};
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
-use super::tree::{build_tree_entries, build_tree_lines, compute_tree_width, file_idx_to_entry_idx};
+use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx};
 use super::types::{ActionId, KeyContext, KeyResult, Mode};
 
 #[derive(Debug, Clone)]
@@ -78,7 +78,7 @@ fn dispatch_normal_action(
             None
         }
         NextHunk => {
-            let res = nav_du_down(state, ch);
+            let res = nav_du_down(state);
             state.cursor_line = res.cursor_line;
             state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
@@ -90,7 +90,7 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         PrevHunk => {
-            let res = nav_du_up(state, ch);
+            let res = nav_du_up(state);
             state.cursor_line = res.cursor_line;
             state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
@@ -136,10 +136,7 @@ fn dispatch_normal_action(
                         snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                 }
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                let (tl, tv) =
-                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 state.status_message = "Single file".into();
             }
             Some(ReducerEffect::ReRender)
@@ -161,33 +158,8 @@ fn dispatch_normal_action(
             if !state.search_matches.is_empty() {
                 if state.active_file().is_some() {
                     let (rs, re) = visible_range(state);
-                    let filtered: Vec<usize> = state
-                        .search_matches
-                        .iter()
-                        .copied()
-                        .filter(|&m| m >= rs && m < re)
-                        .collect();
-                    if !filtered.is_empty() {
-                        let cur_line = if state.current_match >= 0 {
-                            state.search_matches[state.current_match as usize]
-                        } else {
-                            0
-                        };
-                        if let Some(pos) = filtered.iter().position(|&m| m > cur_line) {
-                            let global = state
-                                .search_matches
-                                .iter()
-                                .position(|&m| m == filtered[pos])
-                                .unwrap();
-                            state.current_match = global as isize;
-                        } else {
-                            let global = state
-                                .search_matches
-                                .iter()
-                                .position(|&m| m == filtered[0])
-                                .unwrap();
-                            state.current_match = global as isize;
-                        }
+                    if let Some(idx) = next_match_in_range(&state.search_matches, state.current_match, rs, re) {
+                        state.current_match = idx;
                         scroll_to_match(state, ch);
                     }
                 } else {
@@ -202,34 +174,8 @@ fn dispatch_normal_action(
             if !state.search_matches.is_empty() {
                 if state.active_file().is_some() {
                     let (rs, re) = visible_range(state);
-                    let filtered: Vec<usize> = state
-                        .search_matches
-                        .iter()
-                        .copied()
-                        .filter(|&m| m >= rs && m < re)
-                        .collect();
-                    if !filtered.is_empty() {
-                        let cur_line = if state.current_match >= 0 {
-                            state.search_matches[state.current_match as usize]
-                        } else {
-                            usize::MAX
-                        };
-                        if let Some(pos) = filtered.iter().rposition(|&m| m < cur_line) {
-                            let global = state
-                                .search_matches
-                                .iter()
-                                .position(|&m| m == filtered[pos])
-                                .unwrap();
-                            state.current_match = global as isize;
-                        } else {
-                            let last = *filtered.last().unwrap();
-                            let global = state
-                                .search_matches
-                                .iter()
-                                .position(|&m| m == last)
-                                .unwrap();
-                            state.current_match = global as isize;
-                        }
+                    if let Some(idx) = prev_match_in_range(&state.search_matches, state.current_match, rs, re) {
+                        state.current_match = idx;
                         scroll_to_match(state, ch);
                     }
                 } else {
@@ -250,10 +196,7 @@ fn dispatch_normal_action(
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                let (tl, tv) =
-                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 ensure_tree_cursor_visible(state, ch);
             } else if !state.tree_visible {
                 state.tree_visible = true;
@@ -272,10 +215,7 @@ fn dispatch_normal_action(
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                let (tl, tv) =
-                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 state.set_tree_focused(true);
                 ensure_tree_cursor_visible(state, ch);
             }
@@ -343,10 +283,7 @@ fn dispatch_tree_action(
                     if let Some(e) = state.tree_entry_mut(cursor) {
                         e.collapsed = !e.collapsed;
                     }
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
+                    state.rebuild_tree_lines();
                     ensure_tree_cursor_visible(state, ch);
                 } else if let Some(fi) = entry.file_idx
                     && let Some(target) = state.file_start(fi) {
@@ -378,10 +315,7 @@ fn dispatch_tree_action(
                         state.cursor_line =
                             snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                     }
-                let (tl, tv) =
-                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 ensure_tree_cursor_visible(state, ch);
             }
         }
@@ -395,10 +329,7 @@ fn dispatch_tree_action(
                         state.cursor_line =
                             snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                     }
-                let (tl, tv) =
-                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 ensure_tree_cursor_visible(state, ch);
             }
         }
@@ -419,19 +350,13 @@ fn dispatch_tree_action(
                         snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                 }
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                let (tl, tv) = build_tree_lines(
-                    &state.tree_entries,
-                    state.tree_cursor(),
-                    state.tree_width,
-                );
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
+                state.rebuild_tree_lines();
                 state.status_message = "Single file".into();
             }
             return ReducerEffect::ReRender;
         }
         NextHunk => {
-            let res = nav_du_down(state, ch);
+            let res = nav_du_down(state);
             state.cursor_line = res.cursor_line;
             state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
@@ -442,7 +367,7 @@ fn dispatch_tree_action(
             sync_tree_cursor_force(state, ch);
         }
         PrevHunk => {
-            let res = nav_du_up(state, ch);
+            let res = nav_du_up(state);
             state.cursor_line = res.cursor_line;
             state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
@@ -644,16 +569,12 @@ fn reduce(
     event: &ReducerEvent,
     ctx: &ReducerCtx<'_>,
 ) -> ReducerEffect {
-    let effect = if state.mode == Mode::Search {
-        reduce_search(state, event, ctx)
-    } else if state.mode == Mode::Help {
-        reduce_help(state, event, ctx)
-    } else if state.mode == Mode::Visual {
-        reduce_visual(state, event, ctx)
-    } else if state.tree_focused() {
-        reduce_tree(state, event, ctx)
-    } else {
-        reduce_normal(state, event, ctx)
+    let effect = match state.mode {
+        Mode::Search => reduce_search(state, event, ctx),
+        Mode::Help => reduce_help(state, event, ctx),
+        Mode::Visual => reduce_visual(state, event, ctx),
+        Mode::Normal if state.tree_focused() => reduce_tree(state, event, ctx),
+        Mode::Normal => reduce_normal(state, event, ctx),
     };
     clamp_cursor_and_top(state);
     debug_assert_valid_state(state);

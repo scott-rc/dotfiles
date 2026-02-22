@@ -1,0 +1,61 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(crlf_diff)
+---
+[
+    DiffFile {
+        old_path: Some(
+            "foo.rs",
+        ),
+        new_path: Some(
+            "foo.rs",
+        ),
+        status: Modified,
+        hunks: [
+            DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "line1",
+                        old_lineno: Some(
+                            1,
+                        ),
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "added",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            2,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line2",
+                        old_lineno: Some(
+                            2,
+                        ),
+                        new_lineno: Some(
+                            3,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line3",
+                        old_lineno: Some(
+                            3,
+                        ),
+                        new_lineno: Some(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+]

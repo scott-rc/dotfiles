@@ -96,37 +96,45 @@ pub fn parse(raw: &str) -> Vec<DiffFile> {
         return Vec::new();
     }
 
-    // Split on file boundaries. The first chunk before any "diff --git" is empty/header.
-    let mut files = Vec::new();
-    let mut chunks: Vec<&str> = Vec::new();
-    let mut current_start = None;
+    let bytes = raw.as_bytes();
+    let mut pos = 0;
+    let mut chunk_starts: Vec<usize> = Vec::new();
 
-    for (i, line) in raw.lines().enumerate() {
-        if line.starts_with("diff --git ") {
-            if let Some(start) = current_start {
-                chunks.push(&raw[start..line_offset(raw, i)]);
+    while pos < bytes.len() {
+        let line_start = pos;
+        let line_end = bytes[pos..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(bytes.len(), |i| pos + i);
+
+        let (line_content_end, sep_len) = if line_end < bytes.len() {
+            if line_end > pos && bytes[line_end - 1] == b'\r' {
+                (line_end - 1, 2)
+            } else {
+                (line_end, 1)
             }
-            current_start = Some(line_offset(raw, i));
+        } else {
+            (line_end, 0)
+        };
+
+        let line = std::str::from_utf8(&bytes[pos..line_content_end]).unwrap();
+        if line.starts_with("diff --git ") {
+            chunk_starts.push(line_start);
         }
-    }
-    if let Some(start) = current_start {
-        chunks.push(&raw[start..]);
+
+        pos = line_content_end + sep_len;
     }
 
-    for chunk in chunks {
+    let mut files = Vec::new();
+    for (i, &start) in chunk_starts.iter().enumerate() {
+        let end = chunk_starts.get(i + 1).copied().unwrap_or(bytes.len());
+        let chunk = std::str::from_utf8(&bytes[start..end]).unwrap();
         if let Some(file) = parse_file(chunk) {
             files.push(file);
         }
     }
 
     files
-}
-
-fn line_offset(raw: &str, line_idx: usize) -> usize {
-    raw.lines()
-        .take(line_idx)
-        .map(|l| l.len() + 1) // +1 for newline
-        .sum()
 }
 
 fn parse_file(chunk: &str) -> Option<DiffFile> {
@@ -525,6 +533,34 @@ index 1234..5678 100644
         assert_eq!(h2.lines.len(), 4);
         assert_eq!(h2.lines[1].kind, LineKind::Added);
         assert_eq!(h2.lines[1].content, "added2");
+    }
+
+    #[test]
+    fn snapshot_crlf_diff() {
+        let crlf_diff = "diff --git a/foo.rs b/foo.rs\r\n--- a/foo.rs\r\n+++ b/foo.rs\r\n@@ -1,3 +1,4 @@\r\n line1\r\n+added\r\n line2\r\n line3\r\n";
+        assert_debug_snapshot!(parse(crlf_diff));
+    }
+
+    #[test]
+    fn parse_crlf_diff() {
+        // CRLF line endings: byte offsets must account for \r\n (2 bytes) when slicing
+        // between multiple "diff --git" boundaries. Use two files to trigger boundary slicing.
+        let diff = "diff --git a/a.txt b/a.txt\r\n--- a/a.txt\r\n+++ b/a.txt\r\n@@ -1,2 +1,3 @@\r\n first\r\n+added\r\n second\r\ndiff --git a/b.txt b/b.txt\r\n--- a/b.txt\r\n+++ b/b.txt\r\n@@ -1,1 +1,1 @@\r\n only\r\n";
+        let files = parse(diff);
+        assert_eq!(files.len(), 2);
+        assert_eq!(files[0].path(), "a.txt");
+        assert_eq!(files[0].hunks.len(), 1);
+        let lines0 = &files[0].hunks[0].lines;
+        assert_eq!(lines0.len(), 3);
+        assert_eq!(lines0[0].kind, LineKind::Context);
+        assert_eq!(lines0[0].content, "first");
+        assert_eq!(lines0[1].kind, LineKind::Added);
+        assert_eq!(lines0[1].content, "added");
+        assert_eq!(lines0[2].kind, LineKind::Context);
+        assert_eq!(lines0[2].content, "second");
+        assert_eq!(files[1].path(), "b.txt");
+        assert_eq!(files[1].hunks[0].lines.len(), 1);
+        assert_eq!(files[1].hunks[0].lines[0].content, "only");
     }
 
     #[test]

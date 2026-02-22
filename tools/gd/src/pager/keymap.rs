@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![allow(private_interfaces)]
 
 use tui::pager::Key;
@@ -6,7 +5,6 @@ use tui::pager::Key;
 use crate::pager::types::{ActionId, HelpGroup, KeyContext};
 
 /// Keymap entry: keys that trigger an action in a context, plus help display.
-#[allow(dead_code)]
 struct KeymapEntry {
     action: ActionId,
     context: KeyContext,
