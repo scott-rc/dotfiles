@@ -39,6 +39,15 @@ Run pending database migrations for $ARGUMENTS.
 5. **Report**: Show applied migrations and any errors
 ```
 
+## Delivery Pattern
+
+When the final output is a prompt or text artifact for the user to paste into another session:
+
+1. Scan for non-ASCII characters and replace with ASCII equivalents ("--" for em dashes, "->" for arrows, straight quotes for smart quotes, "..." for ellipses). Non-ASCII corrupts into mojibake when pasted across sessions.
+2. Print the result inside a markdown code block.
+3. Copy to the clipboard via `pbcopy`.
+4. Tell the user the content is copied and ready to paste.
+
 ## Dynamic Context Pattern
 
 Use `` !`command` `` to inject runtime data into skill content. The command runs before content reaches Claude.

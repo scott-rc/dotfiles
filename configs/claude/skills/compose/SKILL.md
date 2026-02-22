@@ -1,11 +1,11 @@
 ---
 name: compose
-description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts. Plans and decomposes large tasks into chunked execution plans.
+description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts, and decomposes large tasks into chunked execution plans. Use when the user asks to create, review, improve, scaffold, or fix a skill, write or review rules or CLAUDE.md, craft or review a prompt, or plan, chunk, break down, or decompose a task.
 ---
 
 # Composing for Claude Code
 
-Help create and review Claude Code skills and CLAUDE.md rules files based on best practices.
+Help create, review, and improve Claude Code skills, CLAUDE.md rules files, and session task prompts, and decompose large tasks into chunked execution plans.
 
 ## Operations
 
@@ -49,7 +49,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
-- **"review"** (ambiguous) → Ask the user whether they mean a skill or a rules file
+- **"review"** (ambiguous) → Ask the user whether they mean a skill, a rules file, or a prompt
 
 **Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
 

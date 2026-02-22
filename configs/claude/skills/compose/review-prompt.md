@@ -51,8 +51,4 @@ Evaluate a session task prompt against best practices, report findings, and offe
 
 5. **Offer to rewrite**:
    - MUST ask the user before rewriting: "Want me to apply these fixes?"
-   - If approved, apply all fixes and deliver the improved prompt
-   - MUST print the improved prompt inside a markdown code block
-   - MUST copy the improved prompt to the clipboard via `pbcopy`
-   - MUST scan the final prompt for non-ASCII characters and replace with ASCII equivalents before printing or copying
-   - MUST tell the user the prompt is copied and ready to paste into a new session
+   - If approved, apply all fixes and deliver the improved prompt following the delivery pattern from [content-patterns.md](content-patterns.md)

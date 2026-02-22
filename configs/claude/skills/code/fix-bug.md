@@ -8,7 +8,7 @@ Write a regression test that reproduces the bug, then fix it — ensuring the bu
    MUST read [test-environment.md](test-environment.md) and follow its detection steps to determine the test runner, file placement, and naming convention.
 
 2. **Load coding preferences**:
-   MUST read [general-guidelines.md](general-guidelines.md) and the language-specific guidelines if available ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these when writing code and tests.
+   MUST read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these when writing code and tests.
 
 3. **Understand the bug**:
    Identify the expected behavior and the actual (broken) behavior. Read the relevant source code. If the bug is unclear, ask the user to describe the reproduction steps.

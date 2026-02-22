@@ -46,7 +46,4 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    - SHOULD verify that every line adds information Claude would not have without the prompt
 
 6. **Deliver**:
-   - MUST scan the final prompt for non-ASCII characters and replace them with ASCII equivalents before printing or copying: "--" for em dashes, "->" for arrows, straight quotes for smart quotes, "..." for ellipses. Non-ASCII characters corrupt into mojibake when pasted across sessions.
-   - MUST print the final prompt inside a markdown code block
-   - MUST copy the prompt to the clipboard via `pbcopy`
-   - MUST tell the user the prompt is copied and ready to paste into a new session
+   MUST follow the delivery pattern from [content-patterns.md](content-patterns.md). The deliverable is the final prompt.

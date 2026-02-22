@@ -79,5 +79,3 @@ When choosing a skill name, prefer:
 - **Gerund form** when natural: `managing-deploys`, `reviewing-code`, `syncing-data`
 - **Domain noun** when gerund is awkward: `git`, `docker`, `kubernetes`
 - **Hyphenated compound** for specificity: `pr-review`, `test-runner`, `db-migrations`
-
-See [content-patterns.md](content-patterns.md) for content patterns, task skill patterns, and dynamic context patterns.

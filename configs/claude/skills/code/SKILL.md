@@ -31,7 +31,7 @@ Decompose a coding task into ordered chunks with TDD structure for testable beha
 See [plan.md](plan.md) for coding constraints to apply during the compose workflow.
 
 ### Review
-Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues.
+Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
 See [review.md](review.md) for detailed instructions.
 
 ### Benchmark (BDD)
@@ -50,11 +50,12 @@ Users often request multiple operations together. Handle these as follows:
 - **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
 - **"write code"** (ambiguous) → New Feature if it involves behavior; Apply if it's config/glue/scripting
 - **"review code"** / **"review this"** / **"code review"** / **"check for issues"** / **"audit this code"** → Review
+- **"thorough review"** / **"deep review"** → Review (forces large-scope subagent decomposition path)
 - **"backfill tests"** / **"add coverage"** / **"characterize this code"** / **"write tests"** (for existing code) → Add Coverage
 - **"benchmark this"** / **"BDD this"** / **"write a benchmark first"** → Benchmark
 - **"optimize this"** (with a specific performance target) → Benchmark
 - **"optimize this"** (general cleanup, no performance target) → Apply
-- **"review and fix"** / **"review then fix the issues"** → Review, then Apply (or Fix Bug if a specific bug is found)
+- **"review and fix"** / **"review then fix the issues"** → Review, then Apply (or Fix Bug if a specific bug is found). The thorough review path offers a fix plan automatically at step 13.
 - **"fix and add coverage for the rest"** → Fix Bug, then Add Coverage
 - **"implement and benchmark"** → New Feature, then Benchmark
 - **"skip tests"** / **"no tests"** / **"just the code"** → Apply (user explicitly opts out of TDD)
@@ -66,7 +67,9 @@ Users often request multiple operations together. Handle these as follows:
 ## References
 
 - [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, testing, and string conventions
+- [testing-guidelines.md](testing-guidelines.md) — Test design patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
 - [typescript-guidelines.md](typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
 - [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
+- [review-template.md](review-template.md) — Subagent prompt template and consolidated report format for large-scope reviews
