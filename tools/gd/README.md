@@ -39,7 +39,7 @@ No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with st
 | `d` / `u` | Next/prev hunk (change group in full-context mode), always global across files |
 | `D` / `U` | Next/prev file (shows file position) |
 | `a` | Toggle single-file view (independent of tree panel) |
-| `Space` | Toggle full file context |
+| `z` | Toggle full file context |
 
 ### Search
 
@@ -59,10 +59,10 @@ The file tree is a navigation aid that does not affect the diff pane's content. 
 | `1` | Toggle tree focus |
 | `l` / `Ctrl-L` | Show + focus tree |
 | `h` / `Ctrl-H` | Return focus to diff |
-| `j` / `k` | Navigate tree and scroll diff to file (when tree focused) |
+| `j` / `k` | Navigate tree; scroll diff to file when not in single-file mode (when tree focused) |
 | `g` / `G` | Jump to first/last file (when tree focused) |
 | `d` / `u` | Next/prev hunk (global, syncs tree selection) |
-| `Enter` | Scroll to file / toggle folder expand/collapse |
+| `Enter` | Scroll to file (switch active file in single-file mode) / toggle folder expand/collapse |
 | `Esc` | Return focus to diff |
 
 ### Visual Mode
@@ -88,7 +88,7 @@ The file tree is a navigation aid that does not affect the diff pane's content. 
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Opens with the file tree visible and focused, all files shown with hunk context (surrounding diff lines only). Supports scrolling with content-line skipping (cursor skips file headers, hunk headers, and blank separators, landing only on Added/Deleted/Context lines), search highlighting with UTF-8-safe cursor editing, `d`/`u` hunk navigation (change-group navigation in full-context mode), `D`/`U` file navigation (with file position status), `$EDITOR` delegation with line-number positioning (diff paths resolved against repo root, so `E` works from subdirectories), a toggleable right-side file tree panel (navigation sidebar that scrolls diff to selected file without filtering) with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), directory collapsing (`e` to cycle open/focus/close, scrollable, `h`/`l` or `Ctrl-H`/`Ctrl-L` directional focus, `g`/`G`/`d`/`u` tree navigation), focusable folder nodes with Enter to expand/collapse, `1` for tree focus toggle, accent-colored separator when tree is focused, tree-focused key passthrough (search, hunk/file nav, help, editor, visual mode fall through to normal handlers), single-file view (`a` toggle independent of tree; diff pane shows only the selected file), with auto-sync cursor tracking, always-visible cursor line (tinted background bar, scrolloff=8), centered viewport on hunk/file jumps, full-file context toggle (`Space`, shows a scrollbar with colored change markers and viewport thumb), hidden-by-default status bar (appears for search input, transient messages, visual mode, and help overlay), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Opens with the file tree visible and focused, all files shown with hunk context (surrounding diff lines only). Supports scrolling with content-line skipping (cursor skips file headers, hunk headers, and blank separators, landing only on Added/Deleted/Context lines), search highlighting with UTF-8-safe cursor editing, `d`/`u` hunk navigation (change-group navigation in full-context mode), `D`/`U` file navigation (with file position status), `$EDITOR` delegation with line-number positioning (diff paths resolved against repo root, so `E` works from subdirectories), a toggleable right-side file tree panel (navigation sidebar that scrolls diff to selected file without filtering) with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), directory collapsing (`e` to cycle open/focus/close, scrollable, `h`/`l` or `Ctrl-H`/`Ctrl-L` directional focus, `g`/`G`/`d`/`u` tree navigation), focusable folder nodes with Enter to expand/collapse (Enter on a file switches to that file in single-file mode), `1` for tree focus toggle, accent-colored separator when tree is focused, tree-focused key passthrough (search, hunk/file nav, help, editor, visual mode fall through to normal handlers), single-file view (`a` toggle independent of tree; diff pane shows only the selected file), with auto-sync cursor tracking, always-visible cursor line (tinted background bar, scrolloff=8), centered viewport on hunk/file jumps, full-file context toggle (`z`, shows a scrollbar with colored change markers and viewport thumb), hidden-by-default status bar (appears for search input, transient messages, visual mode, and help overlay), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
 
 ## Modules
 

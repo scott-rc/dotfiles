@@ -1113,6 +1113,13 @@ fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
     if !state.tree_visible || state.tree_focused {
         return;
     }
+    sync_tree_cursor_force(state, content_height);
+}
+
+fn sync_tree_cursor_force(state: &mut PagerState, content_height: usize) {
+    if !state.tree_visible {
+        return;
+    }
     if state.tree_entries.is_empty() {
         return;
     }
@@ -1139,6 +1146,15 @@ fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         ensure_tree_cursor_visible(state, content_height);
+    }
+}
+
+fn sync_active_file_to_cursor(state: &mut PagerState) {
+    if state.active_file.is_none() {
+        return;
+    }
+    if let Some(file_idx) = state.line_map.get(state.cursor_line).map(|li| li.file_idx) {
+        state.active_file = Some(file_idx);
     }
 }
 
@@ -1280,7 +1296,9 @@ pub(crate) fn handle_key(
                 {
                     let next = state.tree_visible_to_entry[vi + 1];
                     state.tree_cursor = next;
-                    if let Some(fi) = state.tree_entries[next].file_idx {
+                    if state.active_file.is_none()
+                        && let Some(fi) = state.tree_entries[next].file_idx
+                    {
                         state.top_line = state.file_starts[fi];
                         let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
                         state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
@@ -1301,7 +1319,9 @@ pub(crate) fn handle_key(
                 {
                     let prev = state.tree_visible_to_entry[vi - 1];
                     state.tree_cursor = prev;
-                    if let Some(fi) = state.tree_entries[prev].file_idx {
+                    if state.active_file.is_none()
+                        && let Some(fi) = state.tree_entries[prev].file_idx
+                    {
                         state.top_line = state.file_starts[fi];
                         let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
                         state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
@@ -1326,6 +1346,9 @@ pub(crate) fn handle_key(
                 } else if let Some(fi) = state.tree_entries[cursor].file_idx
                     && let Some(&target) = state.file_starts.get(fi)
                 {
+                    if state.active_file.is_some() {
+                        state.active_file = Some(fi);
+                    }
                     state.top_line = target;
                     let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
                     state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
@@ -1426,7 +1449,8 @@ pub(crate) fn handle_key(
                         .min(max_top);
                     state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
-                sync_tree_cursor(state, ch);
+                sync_active_file_to_cursor(state);
+                sync_tree_cursor_force(state, ch);
             }
             Key::Char('u') => {
                 if state.line_map.is_empty() {
@@ -1471,7 +1495,8 @@ pub(crate) fn handle_key(
                         .min(max_top);
                     state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
-                sync_tree_cursor(state, ch);
+                sync_active_file_to_cursor(state);
+                sync_tree_cursor_force(state, ch);
             }
             Key::Char('q') | Key::CtrlC => return KeyResult::Quit,
             _ => { tree_handled = false; }
@@ -1547,6 +1572,7 @@ pub(crate) fn handle_key(
                     .min(max_top);
                 state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
+            sync_active_file_to_cursor(state);
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
         }
@@ -1593,6 +1619,7 @@ pub(crate) fn handle_key(
                     .min(max_top);
                 state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
+            sync_active_file_to_cursor(state);
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
         }
@@ -1858,12 +1885,12 @@ pub(crate) fn handle_key(
             // #endregion
             return KeyResult::ReRender;
         }
-        Key::Char(' ') => {
+        Key::Char('z') => {
             // #region agent log
             debug_log(
                 "pre-fix",
                 "H3",
-                "pager.rs:handle_key:space:before",
+                "pager.rs:handle_key:z:before",
                 "toggle context before regenerate",
                 &format!(
                     "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
@@ -1891,7 +1918,7 @@ pub(crate) fn handle_key(
             debug_log(
                 "pre-fix",
                 "H3",
-                "pager.rs:handle_key:space:after",
+                "pager.rs:handle_key:z:after",
                 "toggle context after regenerate request",
                 &format!(
                     "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
@@ -3237,6 +3264,7 @@ mod tests {
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         // d/u ignore single-file scope and navigate hunks globally.
         assert_eq!(state.cursor_line, 36);
+        assert_eq!(state.active_file, Some(1));
     }
 
     #[test]
@@ -3246,6 +3274,7 @@ mod tests {
         state.cursor_line = 36; // first content of file 1's first hunk
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
+        assert_eq!(state.active_file, Some(0));
     }
 
     #[test]
@@ -3286,6 +3315,8 @@ mod tests {
         state.cursor_line = 16; // past last hunk of file 0
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 36);
+        assert_eq!(state.active_file, Some(1));
+        assert_eq!(state.tree_cursor, file_idx_to_entry_idx(&state.tree_entries, 1));
     }
 
     #[test]
@@ -3296,6 +3327,8 @@ mod tests {
         state.cursor_line = 36;
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
+        assert_eq!(state.active_file, Some(0));
+        assert_eq!(state.tree_cursor, file_idx_to_entry_idx(&state.tree_entries, 0));
     }
 
     #[test]
@@ -3531,26 +3564,34 @@ mod tests {
     }
 
     #[test]
-    fn key_space_toggles_full_context() {
+    fn key_space_is_noop_for_full_context_toggle() {
         let mut state = make_keybinding_state();
+        state.full_context = false;
         handle_key(&mut state, Key::Char(' '), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert!(!state.full_context);
     }
 
     #[test]
-    fn key_space_toggles_hunk_context() {
+    fn key_space_is_noop_for_context_toggle() {
         let mut state = make_keybinding_state();
         state.full_context = true;
         handle_key(&mut state, Key::Char(' '), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert!(state.full_context);
     }
 
     #[test]
-    fn key_z_is_noop() {
+    fn key_z_toggles_full_context() {
         let mut state = make_keybinding_state();
-        state.full_context = false;
         handle_key(&mut state, Key::Char('z'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert!(state.full_context);
+    }
+
+    #[test]
+    fn key_z_toggles_hunk_context() {
+        let mut state = make_keybinding_state();
+        state.full_context = true;
+        handle_key(&mut state, Key::Char('z'), 40, 40, &[]);
+        assert!(!state.full_context);
     }
 
     #[test]
@@ -3569,6 +3610,20 @@ mod tests {
     }
 
     #[test]
+    fn test_tree_j_single_file_moves_tree_only() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.active_file = Some(0);
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
+        handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
+        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
+        assert_eq!(state.active_file, Some(0));
+    }
+
+    #[test]
     fn test_tree_k_scrolls_without_active_file() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
@@ -3582,6 +3637,29 @@ mod tests {
     }
 
     #[test]
+    fn test_tree_k_single_file_moves_tree_only() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.active_file = Some(1);
+        state.tree_cursor = 1;
+        state.top_line = 30;
+        state.cursor_line = 31;
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
+        handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
+        let (vis_start, vis_end) = visible_range(&state);
+        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
+        assert!(state.cursor_line >= vis_start && state.cursor_line < vis_end);
+        assert!(is_content_line(&state.line_map, state.cursor_line));
+        assert_eq!(state.active_file, Some(1));
+    }
+
+    #[test]
     fn test_tree_enter_scrolls_without_active_file() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
@@ -3592,6 +3670,21 @@ mod tests {
         state.tree_visible_to_entry = tv;
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn test_tree_enter_single_file_switches_active_file() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.active_file = Some(0);
+        state.tree_cursor = 1;
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
+        handle_key(&mut state, Key::Enter, 40, 40, &[]);
+        assert_eq!(state.active_file, Some(1));
+        assert_eq!(state.top_line, 30);
+        assert!(state.cursor_line >= 30 && state.cursor_line < 60);
     }
 
     #[test]
