@@ -1,0 +1,16 @@
+---
+source: gd/src/pager/tests/reducer.rs
+expression: "StateSnapshot::from(&state)"
+---
+StateSnapshot {
+    cursor_line: 16,
+    top_line: 9,
+    active_file: None,
+    tree_visible: true,
+    tree_focused: false,
+    tree_cursor: 0,
+    mode: Normal,
+    status_message: "Hunk 2/6 · a.rs",
+    full_context: false,
+    visual_anchor: 0,
+}

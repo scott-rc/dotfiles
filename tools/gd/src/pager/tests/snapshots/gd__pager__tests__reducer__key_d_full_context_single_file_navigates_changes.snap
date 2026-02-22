@@ -1,0 +1,18 @@
+---
+source: gd/src/pager/tests/reducer.rs
+expression: "StateSnapshot::from(&state)"
+---
+StateSnapshot {
+    cursor_line: 7,
+    top_line: 0,
+    active_file: Some(
+        0,
+    ),
+    tree_visible: true,
+    tree_focused: false,
+    tree_cursor: 0,
+    mode: Normal,
+    status_message: "Change 1/2 · a.rs",
+    full_context: true,
+    visual_anchor: 0,
+}
