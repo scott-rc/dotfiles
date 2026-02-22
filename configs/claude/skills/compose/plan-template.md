@@ -14,12 +14,6 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 1. [chunk-01-<slug>.md](chunk-01-<slug>.md) -- <one-line description>
 2. [chunk-02-<slug>.md](chunk-02-<slug>.md) -- <one-line description>
 ...
-
-## Orchestrator Prompt
-
-\`\`\`
-<Paste the orchestrator prompt here -- see Orchestrator Prompt Template below.>
-\`\`\`
 ```
 
 ## Chunk File Template
@@ -94,7 +88,7 @@ For chunks adding testable behavior, structure step groups as red-green-refactor
 
 ## Orchestrator Prompt Template
 
-This prompt drives sequential execution of all chunks. It goes inside the master plan's "Orchestrator Prompt" code block.
+This prompt drives sequential execution of all chunks. It is written to the Claude Code plan file via plan mode so the user can accept and begin execution immediately.
 
 ```markdown
 # Goal

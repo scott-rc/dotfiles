@@ -1,6 +1,6 @@
 # Plan Task
 
-Decompose a large task into ordered chunks with orchestrated subagent execution, producing a plan directory with a master plan, chunk files, and a ready-to-paste orchestrator prompt.
+Decompose a large task into ordered chunks with orchestrated subagent execution, producing a plan directory with a master plan and chunk files, and delivering the orchestrator prompt via Claude Code plan mode.
 
 ## Instructions
 
@@ -79,8 +79,6 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 7. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](plan-template.md).
 
-   The orchestrator prompt code block MUST use the Orchestrator Prompt Template from plan-template.md, with all `<...>` placeholders filled in using details from the interview and exploration steps.
-
 8. **Validate**:
    - MUST verify all chunk file paths in plan.md resolve to actual files
    - MUST verify dependency links between chunks are correct and acyclic
@@ -88,8 +86,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - MUST verify every chunk has at least one checkbox in both Implementation Steps and Verification
    - MUST scan all files for non-ASCII characters and replace with ASCII equivalents
 
-9. **Deliver**:
-   - MUST print the orchestrator prompt inside a markdown code block
-   - MUST copy the orchestrator prompt to the clipboard via `pbcopy`
-   - MUST list all created files with their paths
-   - MUST tell the user the prompt is copied and ready to paste into a new session
+9. **Deliver via plan mode**:
+   Enter plan mode via `EnterPlanMode` if not already in it. Write the orchestrator prompt to the plan file specified by the plan mode system message, using the Orchestrator Prompt Template from [plan-template.md](plan-template.md) with all `<...>` placeholders filled in. MUST scan the orchestrator prompt content for non-ASCII characters and replace with ASCII equivalents before writing.
+
+   Call `ExitPlanMode` to present the plan for user approval. MUST also list all created chunk files with their paths.
