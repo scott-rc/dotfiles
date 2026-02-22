@@ -2,7 +2,7 @@
 
 Rules for authoring CLAUDE.md and `.claude/rules/` rules files. All operations in this skill validate against these rules.
 
-These rules supplement the shared rules in [shared-rules.md](shared-rules.md).
+These rules supplement the shared authoring rules.
 
 ## Overview
 
