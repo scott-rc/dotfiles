@@ -86,10 +86,10 @@ pub fn find_nearest_match(matches: &[usize], top_line: usize) -> isize {
     }
     for (i, &m) in matches.iter().enumerate() {
         if m >= top_line {
-            return i as isize;
+            return isize::try_from(i).unwrap_or(isize::MAX);
         }
     }
-    matches.len() as isize - 1
+    isize::try_from(matches.len().saturating_sub(1)).unwrap_or(isize::MAX)
 }
 
 /// Move cursor left to the previous word boundary.

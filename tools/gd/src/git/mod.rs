@@ -67,6 +67,23 @@ pub fn run(repo: &Path, args: &[&str]) -> Option<String> {
     Some(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
+/// Run `git diff`; on failure print stderr and exit(1).
+/// Returns stdout (which may be empty) on success.
+pub fn run_diff(repo: &Path, args: &[&str]) -> String {
+    let out = match Command::new("git").args(args).current_dir(repo).output() {
+        Ok(out) => out,
+        Err(e) => {
+            eprintln!("gd: failed to run git: {e}");
+            std::process::exit(1);
+        }
+    };
+    if !out.status.success() {
+        eprint!("{}", String::from_utf8_lossy(&out.stderr));
+        std::process::exit(1);
+    }
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
 /// Get the repo root from any path inside it.
 pub fn repo_root(from: &Path) -> Option<PathBuf> {
     let out = run(from, &["rev-parse", "--show-toplevel"])?;
@@ -99,7 +116,7 @@ pub(crate) fn select_base_branch(
             _ => {}
         }
     }
-    best.map(|(b, _)| b.to_string()).unwrap_or_else(|| default.to_string())
+    best.map_or_else(|| default.to_string(), |(b, _)| b.to_string())
 }
 
 /// Detect the base branch of the current branch by finding the local branch
@@ -156,6 +173,7 @@ pub fn untracked_files(repo: &Path) -> Vec<String> {
 mod tests {
     use super::*;
     use insta::assert_debug_snapshot;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn snapshot_diff_args_working_tree() {
@@ -336,5 +354,31 @@ mod tests {
             }
             other => panic!("expected Range, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_run_diff_returns_empty_on_success_empty_output() {
+        let dir_name = format!(
+            "gd-run-diff-test-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        );
+        let repo = std::env::temp_dir().join(dir_name);
+        std::fs::create_dir_all(&repo).expect("create temp repo");
+
+        let init = Command::new("git")
+            .arg("init")
+            .current_dir(&repo)
+            .output()
+            .expect("run git init");
+        assert!(init.status.success(), "git init should succeed");
+
+        let diff = run_diff(&repo, &["diff"]);
+        assert_eq!(diff, "");
+
+        std::fs::remove_dir_all(&repo).expect("cleanup temp repo");
     }
 }

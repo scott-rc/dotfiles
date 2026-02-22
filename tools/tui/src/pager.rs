@@ -8,7 +8,7 @@ pub const CURSOR_HIDE: &str = "\x1b[?25l";
 pub const CURSOR_SHOW: &str = "\x1b[?25h";
 pub const CLEAR_LINE: &str = "\x1b[2K";
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Key {
     Char(char),
     Tab,

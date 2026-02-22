@@ -27,6 +27,16 @@ pub struct RenderOutput {
     pub hunk_starts: Vec<usize>,
 }
 
+struct HunkRenderContext<'a> {
+    file_idx: usize,
+    path: &'a str,
+    syntax: &'a SyntaxReference,
+    ss: &'a SyntectSyntaxSet,
+    theme: &'a SyntectTheme,
+    color: bool,
+    width: usize,
+}
+
 pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool) -> RenderOutput {
     let mut lines = Vec::new();
     let mut line_map = Vec::new();
@@ -77,23 +87,21 @@ pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool)
                     .unwrap_or(""),
             )
             .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
+        let render_ctx = HunkRenderContext {
+            file_idx,
+            path,
+            syntax,
+            ss: &SYNTAX_SET,
+            theme: &THEME,
+            color,
+            width,
+        };
 
         for hunk in &file.hunks {
             hunk_starts.push(lines.len());
 
             // Render diff lines with word-level highlights
-            render_hunk_lines(
-                hunk,
-                file_idx,
-                path,
-                syntax,
-                &SYNTAX_SET,
-                &THEME,
-                color,
-                width,
-                &mut lines,
-                &mut line_map,
-            );
+            render_hunk_lines(hunk, &render_ctx, &mut lines, &mut line_map);
         }
 
         // Blank line between files
@@ -337,16 +345,9 @@ fn add_ranges_to_lines(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_hunk_lines(
     hunk: &DiffHunk,
-    file_idx: usize,
-    path: &str,
-    syntax: &SyntaxReference,
-    ss: &SyntectSyntaxSet,
-    theme: &SyntectTheme,
-    color: bool,
-    width: usize,
+    ctx: &HunkRenderContext<'_>,
     lines: &mut Vec<String>,
     line_map: &mut Vec<LineInfo>,
 ) {
@@ -367,10 +368,10 @@ fn render_hunk_lines(
     }
 
     // Syntax highlighter state (applied in order for best results)
-    let mut hl_state = HighlightLines::new(syntax, theme);
+    let mut hl_state = HighlightLines::new(ctx.syntax, ctx.theme);
 
     for (i, diff_line) in hunk.lines.iter().enumerate() {
-        let gutter = if color {
+        let gutter = if ctx.color {
             style::gutter(diff_line.old_lineno, diff_line.new_lineno)
         } else {
             let old = diff_line
@@ -398,11 +399,11 @@ fn render_hunk_lines(
         let content = &diff_line.content;
 
         // Build the content portion with syntax + diff coloring
-        let styled_content = if color {
+        let styled_content = if ctx.color {
             let syntax_colored = highlight_line(
                 &format!("{content}\n"),
                 &mut hl_state,
-                ss,
+                ctx.ss,
                 style::SOFT_RESET,
             );
             apply_diff_colors(
@@ -417,24 +418,24 @@ fn render_hunk_lines(
             content.clone()
         };
 
-        let marker_styled = if color && !marker_color.is_empty() {
+        let marker_styled = if ctx.color && !marker_color.is_empty() {
             format!("{}{marker}{}", marker_color, style::SOFT_RESET)
         } else {
             marker.to_string()
         };
 
         let is_changed = diff_line.kind != LineKind::Context;
-        let avail = width.saturating_sub(style::GUTTER_WIDTH + 2); // +1 marker, +1 wrap indicator
+        let avail = ctx.width.saturating_sub(style::GUTTER_WIDTH + 2); // +1 marker, +1 wrap indicator
 
         // Pre-wrap: prepend line_bg so AnsiState tracks it during wrapping
-        let wrappable = if color && is_changed {
+        let wrappable = if ctx.color && is_changed {
             format!("{line_bg}{styled_content}")
         } else {
             styled_content.clone()
         };
         let wrapped = crate::ansi::wrap_line_for_display(&wrappable, avail);
 
-        let cont_gutter = style::continuation_gutter(color);
+        let cont_gutter = style::continuation_gutter(ctx.color);
 
         for (seg_idx, seg) in wrapped.iter().enumerate() {
             // Strip trailing reset from wrapped segment (we add our own)
@@ -443,15 +444,15 @@ fn render_hunk_lines(
             let seg_width = crate::ansi::visible_width(content_part);
             let pad_len = avail.saturating_sub(seg_width);
             // Padding spaces inherit the current bg
-            let padding = if color && is_changed && pad_len > 0 {
+            let padding = if ctx.color && is_changed && pad_len > 0 {
                 " ".repeat(pad_len)
             } else {
                 String::new()
             };
 
-            let wrap = style::wrap_marker(color);
+            let wrap = style::wrap_marker(ctx.color);
             let line = if seg_idx == 0 {
-                if color && is_changed {
+                if ctx.color && is_changed {
                     format!(
                         "{gutter}{line_bg}{marker_styled}{content_part}{padding}{}",
                         style::RESET
@@ -459,7 +460,7 @@ fn render_hunk_lines(
                 } else {
                     format!("{gutter}{marker_styled}{content_part}")
                 }
-            } else if color && is_changed {
+            } else if ctx.color && is_changed {
                 format!(
                     "{cont_gutter}{line_bg}{wrap}{content_part}{padding}{}",
                     style::RESET
@@ -470,8 +471,8 @@ fn render_hunk_lines(
 
             lines.push(line);
             line_map.push(LineInfo {
-                file_idx,
-                path: path.to_string(),
+                file_idx: ctx.file_idx,
+                path: ctx.path.to_string(),
                 new_lineno: diff_line.new_lineno,
                 old_lineno: diff_line.old_lineno,
                 line_kind: Some(diff_line.kind),
@@ -994,7 +995,7 @@ diff --git a/a.rs b/a.rs
         assert!(!content_lines.is_empty(), "should have content lines with Some line_kind");
         for li in &content_lines {
             assert!(
-                matches!(li.line_kind, Some(LineKind::Added) | Some(LineKind::Deleted) | Some(LineKind::Context)),
+                matches!(li.line_kind, Some(LineKind::Added | LineKind::Deleted | LineKind::Context)),
                 "content lines should be Added, Deleted, or Context"
             );
         }
@@ -1053,7 +1054,7 @@ diff --git a/foo.rs b/foo.rs
         let hs = output.hunk_starts[0];
         // Must be past the file header
         assert!(
-            hs >= output.file_starts[0] + 1,
+            hs > output.file_starts[0],
             "hunk_start should be past the file header: hunk_start={hs}, file_start={}",
             output.file_starts[0]
         );
@@ -1147,7 +1148,7 @@ diff --git a/b.txt b/b.txt
         );
         // Blank separator between files still present
         assert!(
-            output.lines.iter().any(|l| l.is_empty()),
+            output.lines.iter().any(std::string::String::is_empty),
             "blank separator between files should still be present"
         );
         // All content from both files

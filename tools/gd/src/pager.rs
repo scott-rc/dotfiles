@@ -102,12 +102,9 @@ pub(crate) fn render_scrollbar_cell(
     // Scan for change markers in the mapped range
     let mut change: Option<LineKind> = None;
     for li in &line_map[line_start..line_end] {
-        match li.line_kind {
-            Some(LineKind::Added | LineKind::Deleted) => {
-                change = li.line_kind;
-                break;
-            }
-            _ => {}
+        if let Some(LineKind::Added | LineKind::Deleted) = li.line_kind {
+            change = li.line_kind;
+            break;
         }
     }
 
@@ -255,57 +252,103 @@ fn format_copy_ref(path: &str, start: Option<u32>, end: Option<u32>) -> String {
     }
 }
 
+fn prev_char_boundary(s: &str, pos: usize) -> usize {
+    let mut pos = pos.min(s.len());
+    if pos == 0 {
+        return 0;
+    }
+    pos -= 1;
+    while pos > 0 && !s.is_char_boundary(pos) {
+        pos -= 1;
+    }
+    pos
+}
+
+fn next_char_boundary(s: &str, pos: usize) -> usize {
+    let mut pos = pos.min(s.len());
+    if pos == s.len() {
+        return pos;
+    }
+    pos += 1;
+    while pos < s.len() && !s.is_char_boundary(pos) {
+        pos += 1;
+    }
+    pos
+}
+
+fn clamp_cursor_to_boundary(s: &str, cursor: usize) -> usize {
+    let mut cursor = cursor.min(s.len());
+    while cursor > 0 && !s.is_char_boundary(cursor) {
+        cursor -= 1;
+    }
+    cursor
+}
+
 fn handle_search_key(state: &mut PagerState, key: &Key) {
     match key {
         Key::Char(c) => {
-            state.search_input.insert(state.search_cursor, *c);
-            state.search_cursor += 1;
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            state.search_input.insert(cursor, *c);
+            state.search_cursor = cursor + c.len_utf8();
         }
         Key::Backspace => {
-            if state.search_cursor > 0 {
-                state.search_cursor -= 1;
-                state.search_input.remove(state.search_cursor);
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            if cursor > 0 {
+                let remove_at = prev_char_boundary(&state.search_input, cursor);
+                state.search_input.remove(remove_at);
+                state.search_cursor = remove_at;
+            } else {
+                state.search_cursor = cursor;
             }
             if state.search_input.is_empty() {
                 state.mode = Mode::Normal;
             }
         }
         Key::AltBackspace => {
-            let new_pos = word_boundary_left(&state.search_input, state.search_cursor);
-            state.search_input = format!(
-                "{}{}",
-                &state.search_input[..new_pos],
-                &state.search_input[state.search_cursor..]
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            let new_pos = clamp_cursor_to_boundary(
+                &state.search_input,
+                word_boundary_left(&state.search_input, cursor),
             );
+            state.search_input.replace_range(new_pos..cursor, "");
             state.search_cursor = new_pos;
             if state.search_input.is_empty() {
                 state.mode = Mode::Normal;
             }
         }
         Key::CtrlU => {
-            if state.search_cursor > 0 {
-                state.search_input = state.search_input[state.search_cursor..].to_string();
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            if cursor > 0 {
+                state.search_input = state.search_input[cursor..].to_string();
                 state.search_cursor = 0;
+            } else {
+                state.search_cursor = cursor;
             }
             if state.search_input.is_empty() {
                 state.mode = Mode::Normal;
             }
         }
         Key::Left => {
-            if state.search_cursor > 0 {
-                state.search_cursor -= 1;
-            }
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            state.search_cursor = prev_char_boundary(&state.search_input, cursor);
         }
         Key::Right => {
-            if state.search_cursor < state.search_input.len() {
-                state.search_cursor += 1;
-            }
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            state.search_cursor = next_char_boundary(&state.search_input, cursor);
         }
         Key::AltLeft => {
-            state.search_cursor = word_boundary_left(&state.search_input, state.search_cursor);
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            state.search_cursor = clamp_cursor_to_boundary(
+                &state.search_input,
+                word_boundary_left(&state.search_input, cursor),
+            );
         }
         Key::AltRight => {
-            state.search_cursor = word_boundary_right(&state.search_input, state.search_cursor);
+            let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+            state.search_cursor = clamp_cursor_to_boundary(
+                &state.search_input,
+                word_boundary_right(&state.search_input, cursor),
+            );
         }
         Key::Enter => {
             let query = std::mem::take(&mut state.search_input);
@@ -336,6 +379,15 @@ fn handle_search_key(state: &mut PagerState, key: &Key) {
 
 fn open_in_editor(path: &str, line: Option<u32>) {
     tui::pager::open_in_editor(path, line, false);
+}
+
+fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std::path::PathBuf {
+    let file = std::path::Path::new(path);
+    if file.is_absolute() {
+        file.to_path_buf()
+    } else {
+        repo.join(file)
+    }
 }
 
 fn bar_visible(state: &PagerState) -> bool {
@@ -463,9 +515,10 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
     }
 
     if state.mode == Mode::Search {
-        let before = &state.search_input[..state.search_cursor];
-        let after = &state.search_input[state.search_cursor..];
-        let cursor_char = if state.search_cursor < state.search_input.len() {
+        let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
+        let before = &state.search_input[..cursor];
+        let after = &state.search_input[cursor..];
+        let cursor_char = if cursor < state.search_input.len() {
             let c = after.chars().next().unwrap();
             let rest = &after[c.len_utf8()..];
             format!("{}{c}{}{}{rest}", style::RESET, style::STATUS_BG, style::STATUS_FG)
@@ -473,10 +526,10 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
             format!("{}\u{2588}{}{}", style::RESET, style::STATUS_BG, style::STATUS_FG)
         };
         let content = format!("/{before}{cursor_char}");
-        let vis_len = if state.search_cursor < state.search_input.len() {
-            1 + state.search_input.len()
+        let vis_len = if cursor < state.search_input.len() {
+            1 + state.search_input.chars().count()
         } else {
-            1 + state.search_input.len() + 1
+            1 + state.search_input.chars().count() + 1
         };
         let pad = " ".repeat(cols.saturating_sub(vis_len));
         return format!("{content}{pad}");
@@ -548,7 +601,7 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
         }
 
         if state.tree_visible {
-            let tree_col = diff_w + 1 + if show_scrollbar { 1 } else { 0 };
+            let tree_col = diff_w + 1 + usize::from(show_scrollbar);
             let sep_color = if state.tree_focused { style::FG_SEP_ACTIVE } else { style::FG_SEP };
             let _ = write!(
                 out,
@@ -575,9 +628,9 @@ fn render_status_bar(out: &mut impl Write, state: &PagerState, cols: u16, conten
 
 fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
     let ch = content_height(rows, state);
-    render_content_area(out, state, cols, ch as u16);
+    render_content_area(out, state, cols, u16::try_from(ch).unwrap_or(u16::MAX));
     if bar_visible(state) {
-        render_status_bar(out, state, cols, ch as u16);
+        render_status_bar(out, state, cols, u16::try_from(ch).unwrap_or(u16::MAX));
     } else {
         // Clear stale status bar content on the last row
         move_to(out, rows - 1, 0);
@@ -587,10 +640,13 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
 }
 
 fn scroll_to_match(state: &mut PagerState, rows: u16) {
-    if state.current_match < 0 || state.current_match as usize >= state.search_matches.len() {
+    let Ok(match_idx) = usize::try_from(state.current_match) else {
+        return;
+    };
+    if match_idx >= state.search_matches.len() {
         return;
     }
-    let match_line = state.search_matches[state.current_match as usize];
+    let match_line = state.search_matches[match_idx];
     let ch = content_height(rows, state);
     state.cursor_line = match_line;
     enforce_scrolloff(state, ch);
@@ -638,7 +694,7 @@ fn nav_status_message(label: &str, cursor: usize, starts: &[usize], line_map: &[
         return String::new();
     }
     let idx = starts.partition_point(|&s| s <= cursor).saturating_sub(1);
-    let path = line_map.get(cursor).map(|li| li.path.as_str()).unwrap_or("");
+    let path = line_map.get(cursor).map_or("", |li| li.path.as_str());
     format!("{label} {}/{} \u{00b7} {}", idx + 1, starts.len(), path)
 }
 
@@ -656,14 +712,14 @@ fn re_render(
     cols: u16,
 ) {
     // Capture anchor from current top line
-    let anchor = if !state.line_map.is_empty() {
+    let anchor = if state.line_map.is_empty() {
+        None
+    } else {
         let top = state.top_line.min(state.line_map.len() - 1);
         let info = &state.line_map[top];
         let file_start = state.file_starts[info.file_idx];
         let offset_in_file = top - file_start;
         Some((info.file_idx, info.new_lineno, offset_in_file))
-    } else {
-        None
     };
 
     let width = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
@@ -766,7 +822,7 @@ pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
             label: basename.to_string(),
             depth: dir_parts.len(),
             file_idx: Some(*file_idx),
-            status: Some(files[*file_idx].status.clone()),
+            status: Some(files[*file_idx].status),
             collapsed: false,
         });
 
@@ -968,8 +1024,7 @@ fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
         state
             .line_map
             .get(state.cursor_line)
-            .map(|li| li.file_idx)
-            .unwrap_or(0)
+            .map_or(0, |li| li.file_idx)
     };
     let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     // If the target entry is hidden (collapsed parent), find nearest visible ancestor
@@ -1047,13 +1102,11 @@ pub(crate) fn handle_key(
                 let anchor_file = state
                     .line_map
                     .get(state.visual_anchor)
-                    .map(|l| l.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |l| l.file_idx);
                 let next_file = state
                     .line_map
                     .get(next)
-                    .map(|l| l.file_idx)
-                    .unwrap_or(usize::MAX);
+                    .map_or(usize::MAX, |l| l.file_idx);
                 if next < state.lines.len() && next_file == anchor_file {
                     state.cursor_line = next;
                     if state.cursor_line >= state.top_line + ch {
@@ -1068,13 +1121,11 @@ pub(crate) fn handle_key(
                     let anchor_file = state
                         .line_map
                         .get(state.visual_anchor)
-                        .map(|l| l.file_idx)
-                        .unwrap_or(0);
+                        .map_or(0, |l| l.file_idx);
                     let prev_file = state
                         .line_map
                         .get(prev)
-                        .map(|l| l.file_idx)
-                        .unwrap_or(usize::MAX);
+                        .map_or(usize::MAX, |l| l.file_idx);
                     if prev_file == anchor_file {
                         state.cursor_line = prev;
                         if state.cursor_line < state.top_line {
@@ -1126,42 +1177,42 @@ pub(crate) fn handle_key(
                 // Find the next visible entry after current cursor
                 let cur_vis = state.tree_visible_to_entry.iter()
                     .position(|&ei| ei == state.tree_cursor);
-                if let Some(vi) = cur_vis {
-                    if vi + 1 < state.tree_visible_to_entry.len() {
-                        let next = state.tree_visible_to_entry[vi + 1];
-                        state.tree_cursor = next;
-                        if let Some(fi) = state.tree_entries[next].file_idx {
-                            state.top_line = state.file_starts[fi];
-                            let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                            state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                        }
-                        let (tl, tv) =
-                            build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                        state.tree_lines = tl;
-                        state.tree_visible_to_entry = tv;
-                        ensure_tree_cursor_visible(state, ch);
+                if let Some(vi) = cur_vis
+                    && vi + 1 < state.tree_visible_to_entry.len()
+                {
+                    let next = state.tree_visible_to_entry[vi + 1];
+                    state.tree_cursor = next;
+                    if let Some(fi) = state.tree_entries[next].file_idx {
+                        state.top_line = state.file_starts[fi];
+                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                     }
+                    let (tl, tv) =
+                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
+                    ensure_tree_cursor_visible(state, ch);
                 }
             }
             Key::Char('k') | Key::Up => {
                 // Find the previous visible entry before current cursor
                 let cur_vis = state.tree_visible_to_entry.iter()
                     .position(|&ei| ei == state.tree_cursor);
-                if let Some(vi) = cur_vis {
-                    if vi > 0 {
-                        let prev = state.tree_visible_to_entry[vi - 1];
-                        state.tree_cursor = prev;
-                        if let Some(fi) = state.tree_entries[prev].file_idx {
-                            state.top_line = state.file_starts[fi];
-                            let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                            state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                        }
-                        let (tl, tv) =
-                            build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                        state.tree_lines = tl;
-                        state.tree_visible_to_entry = tv;
-                        ensure_tree_cursor_visible(state, ch);
+                if let Some(vi) = cur_vis
+                    && vi > 0
+                {
+                    let prev = state.tree_visible_to_entry[vi - 1];
+                    state.tree_cursor = prev;
+                    if let Some(fi) = state.tree_entries[prev].file_idx {
+                        state.top_line = state.file_starts[fi];
+                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                     }
+                    let (tl, tv) =
+                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
+                    ensure_tree_cursor_visible(state, ch);
                 }
             }
             Key::Enter => {
@@ -1174,15 +1225,15 @@ pub(crate) fn handle_key(
                     state.tree_lines = tl;
                     state.tree_visible_to_entry = tv;
                     ensure_tree_cursor_visible(state, ch);
-                } else if let Some(fi) = state.tree_entries[cursor].file_idx {
-                    if let Some(&target) = state.file_starts.get(fi) {
-                        state.top_line = target;
-                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                    }
+                } else if let Some(fi) = state.tree_entries[cursor].file_idx
+                    && let Some(&target) = state.file_starts.get(fi)
+                {
+                    state.top_line = target;
+                    let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                    state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                 }
             }
-            Key::CtrlH | Key::Escape | Key::Tab | Key::Char('1') | Key::Char('h') => {
+            Key::CtrlH | Key::Escape | Key::Tab | Key::Char('1' | 'h') => {
                 state.tree_focused = false;
             }
             Key::Char('e') => {
@@ -1305,7 +1356,7 @@ pub(crate) fn handle_key(
 
     state.status_message.clear();
 
-    match key {
+        match key {
         Key::Char('q') | Key::CtrlC => return KeyResult::Quit,
         Key::Char('j') | Key::Down | Key::Enter => {
             let next = (state.cursor_line + 1).min(max_cursor);
@@ -1509,8 +1560,7 @@ pub(crate) fn handle_key(
                 let file_idx = state
                     .line_map
                     .get(anchor)
-                    .map(|li| li.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |li| li.file_idx);
                 state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
                 let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                 state.tree_lines = tl;
@@ -1524,8 +1574,7 @@ pub(crate) fn handle_key(
                 let file_idx = state
                     .line_map
                     .get(anchor)
-                    .map(|li| li.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |li| li.file_idx);
                 state.tree_entries = build_tree_entries(files);
                 state.tree_width = compute_tree_width(&state.tree_entries);
                 state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
@@ -1539,8 +1588,7 @@ pub(crate) fn handle_key(
                 let file_idx = state
                     .line_map
                     .get(anchor)
-                    .map(|li| li.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |li| li.file_idx);
                 state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
                 let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                 state.tree_lines = tl;
@@ -1549,15 +1597,14 @@ pub(crate) fn handle_key(
                 ensure_tree_cursor_visible(state, ch);
             }
         }
-        Key::CtrlL | Key::Char('1') | Key::Char('l') => {
+        Key::CtrlL | Key::Char('1' | 'l') => {
             if !state.tree_visible {
                 state.tree_visible = true;
                 let anchor = state.cursor_line;
                 let file_idx = state
                     .line_map
                     .get(anchor)
-                    .map(|li| li.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |li| li.file_idx);
                 state.tree_entries = build_tree_entries(files);
                 state.tree_width = compute_tree_width(&state.tree_entries);
                 state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
@@ -1581,8 +1628,7 @@ pub(crate) fn handle_key(
                 let file_idx = state
                     .line_map
                     .get(anchor)
-                    .map(|li| li.file_idx)
-                    .unwrap_or(0);
+                    .map_or(0, |li| li.file_idx);
                 if state.tree_entries.is_empty() {
                     state.tree_entries = build_tree_entries(files);
                     state.tree_width = compute_tree_width(&state.tree_entries);
@@ -1626,23 +1672,21 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
         diff_ctx.source.diff_args()
     };
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
-    let raw = crate::git::run(&diff_ctx.repo, &str_args).unwrap_or_default();
+    let raw = crate::git::run_diff(&diff_ctx.repo, &str_args);
     let mut files = crate::git::diff::parse(&raw);
 
     if !diff_ctx.no_untracked && matches!(diff_ctx.source, crate::git::DiffSource::WorkingTree) {
         let max_size: u64 = 256 * 1024;
         for path in crate::git::untracked_files(&diff_ctx.repo) {
             let full = diff_ctx.repo.join(&path);
-            let meta = match full.metadata() {
-                Ok(m) => m,
-                Err(_) => continue,
+            let Ok(meta) = full.metadata() else {
+                continue;
             };
             if !meta.is_file() || meta.len() > max_size {
                 continue;
             }
-            let content = match std::fs::read(&full) {
-                Ok(bytes) => bytes,
-                Err(_) => continue,
+            let Ok(content) = std::fs::read(&full) else {
+                continue;
             };
             if content.contains(&0) {
                 continue;
@@ -1655,7 +1699,7 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
     files
 }
 
-pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_ctx: DiffContext) {
+pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
     let mut files = files;
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -1698,7 +1742,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     state.tree_visible_to_entry = tv;
 
     let mut last_size = get_term_size();
-    files = regenerate_files(&diff_ctx, state.full_context);
+    files = regenerate_files(diff_ctx, state.full_context);
     re_render(&mut state, &files, color, last_size.0);
     let ch = content_height(last_size.1, &state);
     ensure_tree_cursor_visible(&mut state, ch);
@@ -1747,7 +1791,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 re_render(&mut state, &files, color, last_size.0);
             }
             KeyResult::ReGenerate => {
-                files = regenerate_files(&diff_ctx, state.full_context);
+                files = regenerate_files(diff_ctx, state.full_context);
                 re_render(&mut state, &files, color, last_size.0);
             }
             KeyResult::OpenEditor { path, lineno } => {
@@ -1755,7 +1799,8 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
                 let _ = stdout.flush();
 
-                open_in_editor(&path, lineno);
+                let resolved = resolve_path_for_editor(&path, &diff_ctx.repo);
+                open_in_editor(resolved.to_string_lossy().as_ref(), lineno);
 
                 let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
                 let _ = stdout.flush();
@@ -1779,6 +1824,7 @@ mod tests {
     use insta::assert_snapshot;
 
     #[derive(Debug)]
+    #[allow(dead_code)]
     struct StateSnapshot {
         cursor_line: usize,
         top_line: usize,
@@ -1875,6 +1921,97 @@ mod tests {
             active_file: None,
             full_context: false,
         }
+    }
+
+    fn make_search_state(input: &str, cursor: usize) -> PagerState {
+        let mut state = make_keybinding_state();
+        state.mode = Mode::Search;
+        state.search_input = input.to_string();
+        state.search_cursor = cursor;
+        state
+    }
+
+    #[test]
+    fn test_search_left_right_accented() {
+        let mut state = make_search_state("cafe\u{301}", "cafe\u{301}".len());
+        handle_search_key(&mut state, &Key::Left);
+        assert_eq!(state.search_cursor, 4);
+        handle_search_key(&mut state, &Key::Left);
+        assert_eq!(state.search_cursor, 3);
+        handle_search_key(&mut state, &Key::Right);
+        assert_eq!(state.search_cursor, 4);
+        handle_search_key(&mut state, &Key::Right);
+        assert_eq!(state.search_cursor, 6);
+    }
+
+    #[test]
+    fn test_search_backspace_accented() {
+        let mut state = make_search_state("nai\u{308}ve", 5);
+        handle_search_key(&mut state, &Key::Backspace);
+        assert_eq!(state.search_input, "naive");
+        assert_eq!(state.search_cursor, 3);
+    }
+
+    #[test]
+    fn test_search_alt_backspace_multibyte() {
+        let mut state = make_search_state("hello \u{4e16}\u{754c}", "hello \u{4e16}\u{754c}".len());
+        handle_search_key(&mut state, &Key::AltBackspace);
+        assert_eq!(state.search_input, "hello ");
+        assert_eq!(state.search_cursor, "hello ".len());
+    }
+
+    #[test]
+    fn test_search_ctrl_u_emoji() {
+        let mut state = make_search_state("a\u{1f600}b", "a\u{1f600}b".len());
+        handle_search_key(&mut state, &Key::CtrlU);
+        assert_eq!(state.search_input, "");
+        assert_eq!(state.search_cursor, 0);
+        assert_eq!(state.mode, Mode::Normal);
+    }
+
+    #[test]
+    fn test_format_status_bar_emoji() {
+        let state = make_search_state("\u{1f50d}test", 4);
+        let status = format_status_bar(&state, 10, 40);
+        let stripped = crate::ansi::strip_ansi(&status);
+        assert!(stripped.contains("/\u{1f50d}test"));
+    }
+
+    #[test]
+    fn test_format_status_bar_mid_char_no_panic() {
+        let state = make_search_state("a\u{1f50d}", 2);
+        let result = std::panic::catch_unwind(|| format_status_bar(&state, 10, 40));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_resolve_path_relative_joins_repo_root() {
+        let repo = std::path::Path::new("/tmp/my_repo");
+        let path = "src/foo.rs";
+        assert_eq!(
+            resolve_path_for_editor(path, repo),
+            std::path::PathBuf::from("/tmp/my_repo/src/foo.rs")
+        );
+    }
+
+    #[test]
+    fn test_resolve_path_absolute_unchanged() {
+        let repo = std::path::Path::new("/tmp/my_repo");
+        let path = "/absolute/path/to/file.rs";
+        assert_eq!(
+            resolve_path_for_editor(path, repo),
+            std::path::PathBuf::from(path)
+        );
+    }
+
+    #[test]
+    fn test_resolve_path_simple_filename() {
+        let repo = std::path::Path::new("/home/user/repo");
+        let path = "README.md";
+        assert_eq!(
+            resolve_path_for_editor(path, repo),
+            std::path::PathBuf::from("/home/user/repo/README.md")
+        );
     }
 
     fn entry(label: &str, depth: usize, file_idx: Option<usize>) -> TreeEntry {
@@ -1975,7 +2112,7 @@ mod tests {
 
     #[test]
     fn test_compute_connector_prefix_flat() {
-        let entries = vec![
+        let entries = [
             entry("a.rs", 0, Some(0)),
             entry("b.rs", 0, Some(1)),
             entry("c.rs", 0, Some(2)),
@@ -1992,7 +2129,7 @@ mod tests {
         //   a.rs
         //   b.rs
         // README.md
-        let entries = vec![
+        let entries = [
             entry("src", 0, None),
             entry("a.rs", 1, Some(0)),
             entry("b.rs", 1, Some(1)),
@@ -3289,8 +3426,7 @@ diff --git a/b.txt b/b.txt
         re_render(&mut state, &files, false, 80);
         assert_eq!(
             state.top_line, target,
-            "re_render should preserve top_line on a header/None-lineno line, not jump to {}",
-            first_none
+            "re_render should preserve top_line on a header/None-lineno line, not jump to {first_none}",
         );
     }
 

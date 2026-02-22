@@ -58,15 +58,14 @@ fn main() {
     let source = if cli.base {
         let base = git::find_base_branch(&repo);
         let merge_base = git::run(&repo, &["merge-base", &base, "HEAD"])
-            .map(|s| s.trim().to_string())
-            .unwrap_or_else(|| base.clone());
+            .map_or_else(|| base.clone(), |s| s.trim().to_string());
         DiffSource::Range(merge_base, "HEAD".into())
     } else {
         resolve_source(staged, &cli.source)
     };
     let diff_args = source.diff_args();
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
-    let raw = git::run(&repo, &str_args).unwrap_or_default();
+    let raw = git::run_diff(&repo, &str_args);
 
     let mut files = git::diff::parse(&raw);
 
@@ -75,16 +74,14 @@ fn main() {
         let max_size: u64 = 256 * 1024;
         for path in git::untracked_files(&repo) {
             let full = repo.join(&path);
-            let meta = match full.metadata() {
-                Ok(m) => m,
-                Err(_) => continue,
+            let Ok(meta) = full.metadata() else {
+                continue;
             };
             if !meta.is_file() || meta.len() > max_size {
                 continue;
             }
-            let content = match std::fs::read(&full) {
-                Ok(bytes) => bytes,
-                Err(_) => continue,
+            let Ok(content) = std::fs::read(&full) else {
+                continue;
             };
             // Skip binary files (contain null bytes)
             if content.contains(&0) {
@@ -112,7 +109,7 @@ fn main() {
             source: source.clone(),
             no_untracked: cli.no_untracked,
         };
-        pager::run_pager(output, files, color, diff_ctx);
+        pager::run_pager(output, files, color, &diff_ctx);
     } else {
         let mut stdout = io::BufWriter::new(io::stdout().lock());
         for line in &output.lines {

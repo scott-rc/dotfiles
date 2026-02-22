@@ -10,15 +10,45 @@ pub static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]
 /// Supports bold, dim, italic, underline, 24-bit foreground, and 24-bit background.
 #[derive(Clone, Default)]
 pub struct AnsiState {
-    pub bold: bool,
-    pub italic: bool,
-    pub underline: bool,
-    pub dim: bool,
+    attrs: u8,
     pub fg: Option<String>,
     pub bg: Option<String>,
 }
 
+const ATTR_BOLD: u8 = 1 << 0;
+const ATTR_DIM: u8 = 1 << 1;
+const ATTR_ITALIC: u8 = 1 << 2;
+const ATTR_UNDERLINE: u8 = 1 << 3;
+
 impl AnsiState {
+    fn set_attr(&mut self, attr: u8, enabled: bool) {
+        if enabled {
+            self.attrs |= attr;
+        } else {
+            self.attrs &= !attr;
+        }
+    }
+
+    fn has_attr(&self, attr: u8) -> bool {
+        self.attrs & attr != 0
+    }
+
+    pub fn is_bold(&self) -> bool {
+        self.has_attr(ATTR_BOLD)
+    }
+
+    pub fn is_dim(&self) -> bool {
+        self.has_attr(ATTR_DIM)
+    }
+
+    pub fn is_italic(&self) -> bool {
+        self.has_attr(ATTR_ITALIC)
+    }
+
+    pub fn is_underline(&self) -> bool {
+        self.has_attr(ATTR_UNDERLINE)
+    }
+
     /// Update state from a single ANSI escape sequence (e.g., `\x1b[1m`).
     pub fn update(&mut self, code: &str) {
         let inner = &code[2..code.len() - 1];
@@ -30,16 +60,16 @@ impl AnsiState {
         while i < params.len() {
             match params[i] {
                 "0" => *self = Self::default(),
-                "1" => self.bold = true,
-                "2" => self.dim = true,
-                "3" => self.italic = true,
-                "4" => self.underline = true,
+                "1" => self.set_attr(ATTR_BOLD, true),
+                "2" => self.set_attr(ATTR_DIM, true),
+                "3" => self.set_attr(ATTR_ITALIC, true),
+                "4" => self.set_attr(ATTR_UNDERLINE, true),
                 "22" => {
-                    self.bold = false;
-                    self.dim = false;
+                    self.set_attr(ATTR_BOLD, false);
+                    self.set_attr(ATTR_DIM, false);
                 }
-                "23" => self.italic = false,
-                "24" => self.underline = false,
+                "23" => self.set_attr(ATTR_ITALIC, false),
+                "24" => self.set_attr(ATTR_UNDERLINE, false),
                 "38" if i + 4 < params.len() && params[i + 1] == "2" => {
                     self.fg = Some(format!(
                         "\x1b[38;2;{};{};{}m",
@@ -68,7 +98,7 @@ impl AnsiState {
 
     /// Returns `true` if any styling is currently active.
     pub fn is_active(&self) -> bool {
-        self.bold || self.italic || self.underline || self.dim || self.fg.is_some() || self.bg.is_some()
+        self.attrs != 0 || self.fg.is_some() || self.bg.is_some()
     }
 
     /// Emit ANSI codes to reproduce the current state.
@@ -76,16 +106,16 @@ impl AnsiState {
     /// Order: bold(1), dim(2), italic(3), underline(4), fg, bg.
     pub fn to_codes(&self) -> String {
         let mut s = String::new();
-        if self.bold {
+        if self.has_attr(ATTR_BOLD) {
             s.push_str("\x1b[1m");
         }
-        if self.dim {
+        if self.has_attr(ATTR_DIM) {
             s.push_str("\x1b[2m");
         }
-        if self.italic {
+        if self.has_attr(ATTR_ITALIC) {
             s.push_str("\x1b[3m");
         }
-        if self.underline {
+        if self.has_attr(ATTR_UNDERLINE) {
             s.push_str("\x1b[4m");
         }
         if let Some(ref fg) = self.fg {
@@ -269,8 +299,8 @@ mod tests {
         // Apply SOFT_RESET (22;23;39 = no-bold/dim, no-italic, default-fg)
         state.update("\x1b[22;23;39m");
         assert!(state.bg.is_some(), "SOFT_RESET must preserve bg");
-        assert!(!state.bold);
-        assert!(!state.italic);
+        assert!(!state.is_bold());
+        assert!(!state.is_italic());
         assert!(state.fg.is_none());
     }
 
@@ -303,12 +333,12 @@ mod tests {
         let mut state = AnsiState::default();
         // Set underline
         state.update("\x1b[4m");
-        assert!(state.underline, "underline should be set after code 4");
+        assert!(state.is_underline(), "underline should be set after code 4");
         assert!(state.to_codes().contains("\x1b[4m"), "to_codes should include underline");
 
         // Reset underline
         state.update("\x1b[24m");
-        assert!(!state.underline, "underline should be cleared after code 24");
+        assert!(!state.is_underline(), "underline should be cleared after code 24");
         assert!(!state.to_codes().contains("\x1b[4m"), "to_codes should not include underline after reset");
     }
 }
