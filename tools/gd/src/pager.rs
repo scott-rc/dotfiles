@@ -175,6 +175,20 @@ fn enforce_scrolloff(state: &mut PagerState, content_height: usize) {
     state.top_line = state.top_line.clamp(range_start, max_top);
 }
 
+fn viewport_bounds(state: &PagerState, content_height: usize) -> (usize, usize, usize, usize) {
+    let (range_start, range_end) = visible_range(state);
+    let max_line = range_end.saturating_sub(1);
+    let max_top = range_end.saturating_sub(content_height).max(range_start);
+    (range_start, range_end, max_line, max_top)
+}
+
+fn recenter_top_line(cursor_line: usize, content_height: usize, range_start: usize, max_top: usize) -> usize {
+    cursor_line
+        .saturating_sub(content_height / 2)
+        .max(range_start)
+        .min(max_top)
+}
+
 /// Returns true if the line at `idx` is a content line (Added, Deleted, or Context).
 pub(crate) fn is_content_line(line_map: &[LineInfo], idx: usize) -> bool {
     line_map.get(idx).is_some_and(|li| li.line_kind.is_some())
@@ -573,9 +587,8 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
 
 fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, content_rows: u16) {
     let content_height = content_rows as usize;
-    let max_top = max_scroll(state.lines.len(), content_height);
-    let top = state.top_line.min(max_top);
-    let (vis_start, vis_end) = visible_range(state);
+    let (vis_start, vis_end, _, max_top) = viewport_bounds(state, content_height);
+    let top = state.top_line.clamp(vis_start, max_top);
 
     if state.mode == Mode::Help {
         let help_lines = format_help_lines(cols as usize, content_height);
@@ -1173,6 +1186,27 @@ fn ensure_tree_cursor_visible(state: &mut PagerState, content_height: usize) {
     }
 }
 
+fn move_tree_selection(state: &mut PagerState, delta: isize, content_height: usize) -> bool {
+    let Some(current_visible_idx) = state
+        .tree_visible_to_entry
+        .iter()
+        .position(|&entry_idx| entry_idx == state.tree_cursor)
+    else {
+        return false;
+    };
+    let next_visible_idx = current_visible_idx as isize + delta;
+    if next_visible_idx < 0 || next_visible_idx >= state.tree_visible_to_entry.len() as isize {
+        return false;
+    }
+    state.tree_cursor = state.tree_visible_to_entry[next_visible_idx as usize];
+    let (tree_lines, tree_visible_to_entry) =
+        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+    state.tree_lines = tree_lines;
+    state.tree_visible_to_entry = tree_visible_to_entry;
+    ensure_tree_cursor_visible(state, content_height);
+    true
+}
+
 pub(crate) fn handle_key(
     state: &mut PagerState,
     key: Key,
@@ -1288,50 +1322,10 @@ pub(crate) fn handle_key(
         let mut tree_handled = true;
         match key {
             Key::Char('j') | Key::Down => {
-                // Find the next visible entry after current cursor
-                let cur_vis = state.tree_visible_to_entry.iter()
-                    .position(|&ei| ei == state.tree_cursor);
-                if let Some(vi) = cur_vis
-                    && vi + 1 < state.tree_visible_to_entry.len()
-                {
-                    let next = state.tree_visible_to_entry[vi + 1];
-                    state.tree_cursor = next;
-                    if state.active_file.is_none()
-                        && let Some(fi) = state.tree_entries[next].file_idx
-                    {
-                        state.top_line = state.file_starts[fi];
-                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                    }
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    ensure_tree_cursor_visible(state, ch);
-                }
+                let _ = move_tree_selection(state, 1, ch);
             }
             Key::Char('k') | Key::Up => {
-                // Find the previous visible entry before current cursor
-                let cur_vis = state.tree_visible_to_entry.iter()
-                    .position(|&ei| ei == state.tree_cursor);
-                if let Some(vi) = cur_vis
-                    && vi > 0
-                {
-                    let prev = state.tree_visible_to_entry[vi - 1];
-                    state.tree_cursor = prev;
-                    if state.active_file.is_none()
-                        && let Some(fi) = state.tree_entries[prev].file_idx
-                    {
-                        state.top_line = state.file_starts[fi];
-                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                    }
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    ensure_tree_cursor_visible(state, ch);
-                }
+                let _ = move_tree_selection(state, -1, ch);
             }
             Key::Enter => {
                 let cursor = state.tree_cursor;
@@ -1419,11 +1413,9 @@ pub(crate) fn handle_key(
                     return KeyResult::Continue;
                 }
                 let anchor = state.cursor_line;
-                let rs = 0;
-                let re = state.line_map.len();
-                let max_line = re.saturating_sub(1);
-                let max_top = re.saturating_sub(ch).max(rs);
+                let max_line = state.line_map.len().saturating_sub(1);
                 let hunks = du_nav_targets(state);
+                let mut moved = false;
                 // #region agent log
                 debug_log(
                     "pre-fix",
@@ -1442,14 +1434,15 @@ pub(crate) fn handle_key(
                 );
                 // #endregion
                 if let Some(target) = jump_next(&hunks, anchor) {
+                    moved = true;
                     state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                    state.top_line = state.cursor_line
-                        .saturating_sub(ch / 2)
-                        .max(rs)
-                        .min(max_top);
                     state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
                 sync_active_file_to_cursor(state);
+                if moved {
+                    let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                    state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+                }
                 sync_tree_cursor_force(state, ch);
             }
             Key::Char('u') => {
@@ -1457,11 +1450,9 @@ pub(crate) fn handle_key(
                     return KeyResult::Continue;
                 }
                 let anchor = state.cursor_line;
-                let rs = 0;
-                let re = state.line_map.len();
-                let max_line = re.saturating_sub(1);
-                let max_top = re.saturating_sub(ch).max(rs);
+                let max_line = state.line_map.len().saturating_sub(1);
                 let hunks = du_nav_targets(state);
+                let mut moved = false;
                 // #region agent log
                 debug_log(
                     "pre-fix",
@@ -1480,6 +1471,7 @@ pub(crate) fn handle_key(
                 );
                 // #endregion
                 if let Some(target) = jump_prev(&hunks, anchor) {
+                    moved = true;
                     state.cursor_line = next_content_line(&state.line_map, target, max_line);
                     // Retry if cursor didn't move backward (stuck on first content line)
                     if state.cursor_line >= anchor {
@@ -1489,13 +1481,13 @@ pub(crate) fn handle_key(
                             state.cursor_line = anchor; // no previous hunk, stay put
                         }
                     }
-                    state.top_line = state.cursor_line
-                        .saturating_sub(ch / 2)
-                        .max(rs)
-                        .min(max_top);
                     state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
                 sync_active_file_to_cursor(state);
+                if moved {
+                    let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                    state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+                }
                 sync_tree_cursor_force(state, ch);
             }
             Key::Char('q') | Key::CtrlC => return KeyResult::Quit,
@@ -1542,11 +1534,9 @@ pub(crate) fn handle_key(
                 return KeyResult::Continue;
             }
             let anchor = state.cursor_line;
-            let rs = 0;
-            let re = state.line_map.len();
-            let max_line = re.saturating_sub(1);
-            let max_top = re.saturating_sub(ch).max(rs);
+            let max_line = state.line_map.len().saturating_sub(1);
             let hunks = du_nav_targets(state);
+            let mut moved = false;
             // #region agent log
             debug_log(
                 "pre-fix",
@@ -1565,14 +1555,15 @@ pub(crate) fn handle_key(
             );
             // #endregion
             if let Some(target) = jump_next(&hunks, anchor) {
+                moved = true;
                 state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                state.top_line = state.cursor_line
-                    .saturating_sub(ch / 2)
-                    .max(rs)
-                    .min(max_top);
                 state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
             sync_active_file_to_cursor(state);
+            if moved {
+                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+            }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
         }
@@ -1581,11 +1572,9 @@ pub(crate) fn handle_key(
                 return KeyResult::Continue;
             }
             let anchor = state.cursor_line;
-            let rs = 0;
-            let re = state.line_map.len();
-            let max_line = re.saturating_sub(1);
-            let max_top = re.saturating_sub(ch).max(rs);
+            let max_line = state.line_map.len().saturating_sub(1);
             let hunks = du_nav_targets(state);
+            let mut moved = false;
             // #region agent log
             debug_log(
                 "pre-fix",
@@ -1604,6 +1593,7 @@ pub(crate) fn handle_key(
             );
             // #endregion
             if let Some(target) = jump_prev(&hunks, anchor) {
+                moved = true;
                 state.cursor_line = next_content_line(&state.line_map, target, max_line);
                 // Retry if cursor didn't move backward (stuck on first content line)
                 if state.cursor_line >= anchor {
@@ -1613,13 +1603,13 @@ pub(crate) fn handle_key(
                         state.cursor_line = anchor; // no previous hunk, stay put
                     }
                 }
-                state.top_line = state.cursor_line
-                    .saturating_sub(ch / 2)
-                    .max(rs)
-                    .min(max_top);
                 state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
             sync_active_file_to_cursor(state);
+            if moved {
+                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+            }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
         }
@@ -2651,6 +2641,15 @@ mod tests {
         assert_eq!(visible_range(&state), (5, 10));
     }
 
+    #[test]
+    fn test_viewport_bounds_active_file() {
+        let state = make_pager_state_for_range(vec![0, 30, 60], 90, Some(1));
+        let (range_start, range_end, max_line, max_top) = viewport_bounds(&state, 40);
+        assert_eq!((range_start, range_end), (30, 60));
+        assert_eq!(max_line, 59);
+        assert_eq!(max_top, 30);
+    }
+
     fn make_line_map(kinds: &[Option<LineKind>]) -> Vec<LineInfo> {
         kinds.iter().map(|&kind| LineInfo {
             file_idx: 0,
@@ -3332,6 +3331,31 @@ mod tests {
     }
 
     #[test]
+    fn key_d_single_file_clamps_top_line_to_active_file_range() {
+        let mut state = make_keybinding_state();
+        state.active_file = Some(0);
+        state.cursor_line = 16; // next global hunk lands in file 1
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        let (range_start, range_end) = visible_range(&state);
+        let max_top = range_end.saturating_sub(40).max(range_start);
+        assert!(state.top_line >= range_start);
+        assert!(state.top_line <= max_top);
+    }
+
+    #[test]
+    fn key_u_tree_focused_single_file_clamps_top_line_to_active_file_range() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.active_file = Some(1);
+        state.cursor_line = 36; // previous global hunk lands in file 0
+        handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
+        let (range_start, range_end) = visible_range(&state);
+        let max_top = range_end.saturating_sub(40).max(range_start);
+        assert!(state.top_line >= range_start);
+        assert!(state.top_line <= max_top);
+    }
+
+    #[test]
     fn key_slash_enters_search() {
         let mut state = make_keybinding_state();
         handle_key(&mut state, Key::Char('/'), 40, 40, &[]);
@@ -3402,8 +3426,12 @@ mod tests {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
         state.tree_cursor = 0;
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
     }
 
     #[test]
@@ -3412,8 +3440,12 @@ mod tests {
         state.tree_focused = true;
         // Move to the second entry first
         state.tree_cursor = state.tree_visible_to_entry[1];
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
     }
 
     #[test]
@@ -3601,12 +3633,15 @@ mod tests {
     }
 
     #[test]
-    fn test_tree_j_scrolls_without_active_file() {
+    fn test_tree_j_without_active_file_moves_tree_only() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
-        // Start at first file entry (tree_cursor = 0, which is a.rs / file 0)
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
     }
 
     #[test]
@@ -3624,7 +3659,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tree_k_scrolls_without_active_file() {
+    fn test_tree_k_without_active_file_moves_tree_only() {
         let mut state = make_keybinding_state();
         state.tree_focused = true;
         // Start at second file entry (tree_cursor = 1, which is b.rs / file 1)
@@ -3632,8 +3667,12 @@ mod tests {
         let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
+        let initial_top = state.top_line;
+        let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
-        assert_debug_snapshot!(StateSnapshot::from(&state));
+        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.top_line, initial_top);
+        assert_eq!(state.cursor_line, initial_cursor);
     }
 
     #[test]
