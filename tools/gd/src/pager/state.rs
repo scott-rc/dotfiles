@@ -201,8 +201,7 @@ impl PagerState {
         self.view_scope = match v {
             None => ViewScope::AllFiles,
             Some(idx) => FileIx::new(idx, self.doc.file_count())
-                .map(ViewScope::SingleFile)
-                .unwrap_or(ViewScope::AllFiles),
+                .map_or(ViewScope::AllFiles, ViewScope::SingleFile),
         };
     }
 
@@ -219,7 +218,7 @@ impl PagerState {
     }
 
     pub(crate) fn tree_cursor(&self) -> usize {
-        self.tree_selection.map(|s| s.get()).unwrap_or(0)
+        self.tree_selection.map_or(0, super::types::TreeEntryIx::get)
     }
 
     pub(crate) fn set_tree_cursor(&mut self, idx: usize) {
@@ -459,8 +458,7 @@ pub(crate) fn remap_after_document_swap(
             .doc
             .line_map
             .get(state.cursor_line)
-            .map(|li| li.file_idx)
-            .unwrap_or(0);
+            .map_or(0, |li| li.file_idx);
         let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
         state.set_tree_cursor(cursor_entry_idx);
         let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);

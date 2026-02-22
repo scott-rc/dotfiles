@@ -19,7 +19,7 @@ use super::tree::build_tree_entries;
 use super::types::KeyResult;
 
 fn gd_debug_enabled() -> bool {
-    std::env::var_os("GD_DEBUG").map_or(false, |v| v == "1")
+    std::env::var_os("GD_DEBUG").is_some_and(|v| v == "1")
 }
 
 fn debug_escape(s: &str) -> String {

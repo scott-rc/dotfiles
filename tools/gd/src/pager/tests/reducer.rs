@@ -1146,7 +1146,7 @@ fn property_bounded_random_transitions() {
     for step in 0..72 {
         let key_idx = (rng as usize) % keys.len();
         let key = keys[key_idx];
-        rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+        rng = rng.wrapping_mul(1_103_515_245).wrapping_add(12_345);
 
         let ch = 24 + ((rng >> 16) as usize % 20);
         let rows = 40;

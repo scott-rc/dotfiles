@@ -303,8 +303,7 @@ pub(crate) fn sync_tree_cursor_force(state: &mut PagerState, content_height: usi
     if !state.tree_visible_to_entry.contains(&new_entry_idx) {
         let target_depth = state
             .tree_entry(new_entry_idx)
-            .map(|e| e.depth)
-            .unwrap_or(0);
+            .map_or(0, |e| e.depth);
         new_entry_idx = state.tree_entries[..new_entry_idx]
             .iter()
             .rposition(|e| e.file_idx.is_none() && e.depth < target_depth)

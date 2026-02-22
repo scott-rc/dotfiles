@@ -30,13 +30,13 @@ pub(crate) fn cancel_search(state: &mut PagerState) {
     state.mode = Mode::Normal;
 }
 
-pub(crate) fn handle_search_key(state: &mut PagerState, key: &Key) {
+pub(crate) fn handle_search_key(state: &mut PagerState, key: Key) {
     use tui::search::{word_boundary_left, word_boundary_right};
 
     match key {
         Key::Char(c) => {
             let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
-            state.search_input.insert(cursor, *c);
+            state.search_input.insert(cursor, c);
             state.search_cursor = cursor + c.len_utf8();
         }
         Key::Backspace => {
@@ -67,7 +67,7 @@ pub(crate) fn handle_search_key(state: &mut PagerState, key: &Key) {
         Key::CtrlU => {
             let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
             if cursor > 0 {
-                state.search_input = state.search_input[cursor..].to_string();
+                state.search_input = String::from(&state.search_input[cursor..]);
                 state.search_cursor = 0;
             } else {
                 state.search_cursor = cursor;

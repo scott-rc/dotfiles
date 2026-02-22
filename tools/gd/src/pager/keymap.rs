@@ -17,9 +17,9 @@ struct KeymapEntry {
 }
 
 fn keymap_entries() -> &'static [KeymapEntry] {
-    use ActionId::*;
-    use HelpGroup::*;
-    use KeyContext::*;
+    use ActionId::{ScrollDown, ScrollUp, HalfPageDown, HalfPageUp, Top, Bottom, NextHunk, PrevHunk, NextFile, PrevFile, ToggleSingleFile, ToggleFullContext, SearchSubmit, SearchCancel, NextMatch, PrevMatch, ToggleTree, FocusTree, FocusTreeOrShow, ReturnToDiff, TreeClose, TreeFirst, TreeLast, TreeNavDown, TreeNavUp, TreeSelect, Quit, EnterVisual, VisualExtendDown, VisualExtendUp, VisualCopy, VisualCancel, OpenEditor, Help};
+    use HelpGroup::{Navigation, DiffNav, FileTree, VisualMode, Other};
+    use KeyContext::{Normal, Tree, Visual};
     static ENTRIES: &[KeymapEntry] = &[
         KeymapEntry { action: ScrollDown, context: Normal, keys: &[Key::Char('j'), Key::Down, Key::Enter], group: Navigation, key_display: "j/\u{2193}/Enter", label: "Scroll down" },
         KeymapEntry { action: ScrollUp, context: Normal, keys: &[Key::Char('k'), Key::Up], group: Navigation, key_display: "k/\u{2191}", label: "Scroll up" },
@@ -78,7 +78,7 @@ pub(crate) fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
 /// Build help lines from keymap. Preserves grouping (Navigation, Diff Nav, Search, File Tree, Visual, Other).
 /// Returns raw lines for format_help_lines to pad/center.
 pub(crate) fn keymap_help_lines() -> Vec<String> {
-    use HelpGroup::*;
+    use HelpGroup::{Navigation, DiffNav, Search, FileTree, VisualMode, Other};
     use std::collections::HashSet;
     let order = [Navigation, DiffNav, Search, FileTree, VisualMode, Other];
     let mut lines: Vec<String> = Vec::new();

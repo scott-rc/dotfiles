@@ -120,9 +120,7 @@ pub fn assert_state_invariants(state: &PagerState) {
     for &idx in &state.search_matches {
         assert!(
             idx < line_count,
-            "search_match index {} out of doc bounds (line_count={})",
-            idx,
-            line_count
+            "search_match index {idx} out of doc bounds (line_count={line_count})"
         );
     }
     assert!(

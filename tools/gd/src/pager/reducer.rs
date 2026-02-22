@@ -34,25 +34,24 @@ fn dispatch_normal_action(
     action: ActionId,
     ctx: &ReducerCtx<'_>,
 ) -> Option<ReducerEffect> {
-    use ActionId::*;
+    use ActionId::{Quit, ScrollDown, ScrollUp, HalfPageDown, HalfPageUp, Top, Bottom, NextHunk, PrevHunk, NextFile, PrevFile, ToggleSingleFile, ToggleFullContext, NextMatch, PrevMatch, ToggleTree, FocusTree, FocusTreeOrShow, EnterVisual, OpenEditor, Help, ReturnToDiff, TreeClose, TreeFirst, TreeLast, TreeNavDown, TreeNavUp, TreeSelect, VisualExtendDown, VisualExtendUp, VisualCopy, VisualCancel, SearchSubmit, SearchCancel};
     let ch = ctx.content_height;
-    let _rows = ctx.rows;
     let files = ctx.files;
     let half_page = ch / 2;
     let (range_start, range_end) = visible_range(state);
     let max_cursor = range_end.saturating_sub(1);
 
     match action {
-        Quit => return Some(ReducerEffect::Quit),
+        Quit => Some(ReducerEffect::Quit),
         ScrollDown => {
             let next = (state.cursor_line + 1).min(max_cursor);
             state.cursor_line = next_content_line(&state.doc.line_map, next, max_cursor);
-            return None;
+            None
         }
         ScrollUp => {
             let prev = state.cursor_line.saturating_sub(1).max(range_start);
             state.cursor_line = prev_content_line(&state.doc.line_map, prev, range_start);
-            return None;
+            None
         }
         HalfPageDown => {
             let target = (state.cursor_line + half_page).min(max_cursor);
@@ -60,7 +59,7 @@ fn dispatch_normal_action(
             if !is_content_line(&state.doc.line_map, state.cursor_line) {
                 state.cursor_line = prev_content_line(&state.doc.line_map, target, range_start);
             }
-            return None;
+            None
         }
         HalfPageUp => {
             let target = state.cursor_line.saturating_sub(half_page).max(range_start);
@@ -68,55 +67,55 @@ fn dispatch_normal_action(
             if !is_content_line(&state.doc.line_map, state.cursor_line) {
                 state.cursor_line = next_content_line(&state.doc.line_map, target, max_cursor);
             }
-            return None;
+            None
         }
         Top => {
             state.cursor_line = next_content_line(&state.doc.line_map, range_start, max_cursor);
-            return None;
+            None
         }
         Bottom => {
             state.cursor_line = prev_content_line(&state.doc.line_map, max_cursor, range_start);
-            return None;
+            None
         }
         NextHunk => {
             let res = nav_du_down(state, ch);
             state.cursor_line = res.cursor_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
             if res.moved {
                 let (rs, _, _, max_top) = viewport_bounds(state, ch);
                 state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
             }
             sync_tree_cursor(state, ch);
-            return Some(ReducerEffect::Continue);
+            Some(ReducerEffect::Continue)
         }
         PrevHunk => {
             let res = nav_du_up(state, ch);
             state.cursor_line = res.cursor_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
             if res.moved {
                 let (rs, _, _, max_top) = viewport_bounds(state, ch);
                 state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
             }
             sync_tree_cursor(state, ch);
-            return Some(ReducerEffect::Continue);
+            Some(ReducerEffect::Continue)
         }
         NextFile => {
             let res = nav_D_down(state, ch);
             state.cursor_line = res.cursor_line;
             state.top_line = res.top_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_tree_cursor(state, ch);
-            return Some(ReducerEffect::Continue);
+            Some(ReducerEffect::Continue)
         }
         PrevFile => {
             let res = nav_U_up(state, ch);
             state.cursor_line = res.cursor_line;
             state.top_line = res.top_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_tree_cursor(state, ch);
-            return Some(ReducerEffect::Continue);
+            Some(ReducerEffect::Continue)
         }
         ToggleSingleFile => {
             if state.active_file().is_some() {
@@ -143,7 +142,7 @@ fn dispatch_normal_action(
                 state.tree_visible_to_entry = tv;
                 state.status_message = "Single file".into();
             }
-            return Some(ReducerEffect::ReRender);
+            Some(ReducerEffect::ReRender)
         }
         ToggleFullContext => {
             state.full_context = !state.full_context;
@@ -152,11 +151,11 @@ fn dispatch_normal_action(
             } else {
                 "Hunk context".into()
             };
-            return Some(ReducerEffect::ReGenerate);
+            Some(ReducerEffect::ReGenerate)
         }
         ActionId::Search => {
             state.mode = Mode::Search;
-            return None;
+            None
         }
         NextMatch => {
             if !state.search_matches.is_empty() {
@@ -197,7 +196,7 @@ fn dispatch_normal_action(
                     scroll_to_match(state, ch);
                 }
             }
-            return None;
+            None
         }
         PrevMatch => {
             if !state.search_matches.is_empty() {
@@ -240,7 +239,7 @@ fn dispatch_normal_action(
                     scroll_to_match(state, ch);
                 }
             }
-            return None;
+            None
         }
         ToggleTree => {
             if state.tree_visible && state.tree_focused() {
@@ -266,7 +265,7 @@ fn dispatch_normal_action(
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 ensure_tree_cursor_visible(state, ch);
             }
-            return Some(ReducerEffect::ReRender);
+            Some(ReducerEffect::ReRender)
         }
         FocusTree => {
             if state.tree_visible {
@@ -280,7 +279,7 @@ fn dispatch_normal_action(
                 state.set_tree_focused(true);
                 ensure_tree_cursor_visible(state, ch);
             }
-            return None;
+            None
         }
         FocusTreeOrShow => {
             if !state.tree_visible {
@@ -293,12 +292,12 @@ fn dispatch_normal_action(
             }
             state.set_tree_focused(true);
             ensure_tree_cursor_visible(state, ch);
-            return Some(ReducerEffect::ReRender);
+            Some(ReducerEffect::ReRender)
         }
         EnterVisual => {
             state.mode = Mode::Visual;
             state.visual_anchor = state.cursor_line;
-            return None;
+            None
         }
         OpenEditor => {
             let pos = state.cursor_line.min(state.doc.line_map.len().saturating_sub(1));
@@ -308,16 +307,16 @@ fn dispatch_normal_action(
                 let lineno = info.new_lineno;
                 return Some(ReducerEffect::OpenEditor { path, lineno });
             }
-            return None;
+            None
         }
         Help => {
             state.mode = Mode::Help;
-            return None;
+            None
         }
         ReturnToDiff | TreeClose | TreeFirst | TreeLast | TreeNavDown | TreeNavUp
         | TreeSelect | VisualExtendDown | VisualExtendUp | VisualCopy
         | VisualCancel | SearchSubmit | SearchCancel => {
-            return None;
+            None
         }
     }
 }
@@ -327,7 +326,7 @@ fn dispatch_tree_action(
     action: ActionId,
     ctx: &ReducerCtx<'_>,
 ) -> ReducerEffect {
-    use ActionId::*;
+    use ActionId::{TreeNavDown, TreeNavUp, TreeSelect, ReturnToDiff, TreeClose, TreeFirst, TreeLast, ToggleSingleFile, NextHunk, PrevHunk, Quit};
     let ch = ctx.content_height;
 
     match action {
@@ -349,8 +348,8 @@ fn dispatch_tree_action(
                     state.tree_lines = tl;
                     state.tree_visible_to_entry = tv;
                     ensure_tree_cursor_visible(state, ch);
-                } else if let Some(fi) = entry.file_idx {
-                    if let Some(target) = state.file_start(fi) {
+                } else if let Some(fi) = entry.file_idx
+                    && let Some(target) = state.file_start(fi) {
                         if state.active_file().is_some() {
                             state.set_active_file(Some(fi));
                         }
@@ -359,7 +358,6 @@ fn dispatch_tree_action(
                         state.cursor_line =
                             snap_to_content(&state.doc.line_map, state.top_line, target, file_end);
                     }
-                }
             }
         }
         ReturnToDiff => {
@@ -373,14 +371,13 @@ fn dispatch_tree_action(
         TreeFirst => {
             if let Some(&first) = state.tree_visible_to_entry.first() {
                 state.set_tree_cursor(first);
-                if let Some(fi) = state.tree_entry(first).and_then(|e| e.file_idx) {
-                    if let Some(start) = state.file_start(fi) {
+                if let Some(fi) = state.tree_entry(first).and_then(|e| e.file_idx)
+                    && let Some(start) = state.file_start(fi) {
                         let file_end = state.file_end(fi).saturating_sub(1);
                         state.top_line = start;
                         state.cursor_line =
                             snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                     }
-                }
                 let (tl, tv) =
                     build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
                 state.tree_lines = tl;
@@ -391,14 +388,13 @@ fn dispatch_tree_action(
         TreeLast => {
             if let Some(&last) = state.tree_visible_to_entry.last() {
                 state.set_tree_cursor(last);
-                if let Some(fi) = state.tree_entry(last).and_then(|e| e.file_idx) {
-                    if let Some(start) = state.file_start(fi) {
+                if let Some(fi) = state.tree_entry(last).and_then(|e| e.file_idx)
+                    && let Some(start) = state.file_start(fi) {
                         let file_end = state.file_end(fi).saturating_sub(1);
                         state.top_line = start;
                         state.cursor_line =
                             snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
                     }
-                }
                 let (tl, tv) =
                     build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
                 state.tree_lines = tl;
@@ -437,7 +433,7 @@ fn dispatch_tree_action(
         NextHunk => {
             let res = nav_du_down(state, ch);
             state.cursor_line = res.cursor_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
             if res.moved {
                 let (range_start, _, _, max_top) = viewport_bounds(state, ch);
@@ -448,7 +444,7 @@ fn dispatch_tree_action(
         PrevHunk => {
             let res = nav_du_up(state, ch);
             state.cursor_line = res.cursor_line;
-            state.status_message = res.status_message.clone();
+            state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
             if res.moved {
                 let (range_start, _, _, max_top) = viewport_bounds(state, ch);
@@ -467,7 +463,7 @@ fn dispatch_visual_action(
     action: ActionId,
     ctx: &ReducerCtx<'_>,
 ) -> ReducerEffect {
-    use ActionId::*;
+    use ActionId::{VisualExtendDown, VisualExtendUp, VisualCopy, VisualCancel, Quit};
     use tui::pager::copy_to_clipboard;
 
     let ch = ctx.content_height;
@@ -582,7 +578,7 @@ fn reduce_search(
     if let Some(action) = keymap_lookup(*key, KeyContext::Search) {
         return dispatch_search_action(state, action);
     }
-    handle_search_key(state, key);
+    handle_search_key(state, *key);
     if state.mode == Mode::Normal && state.current_match >= 0 {
         scroll_to_match(state, ctx.content_height);
         sync_tree_cursor(state, ctx.content_height);
@@ -633,11 +629,10 @@ fn reduce_normal(
 
     state.status_message.clear();
 
-    if let Some(action) = keymap_lookup(*key, KeyContext::Normal) {
-        if let Some(effect) = dispatch_normal_action(state, action, ctx) {
+    if let Some(action) = keymap_lookup(*key, KeyContext::Normal)
+        && let Some(effect) = dispatch_normal_action(state, action, ctx) {
             return effect;
         }
-    }
 
     enforce_scrolloff(state, ch);
     sync_tree_cursor(state, ch);
@@ -646,19 +641,19 @@ fn reduce_normal(
 
 fn reduce(
     state: &mut PagerState,
-    event: ReducerEvent,
+    event: &ReducerEvent,
     ctx: &ReducerCtx<'_>,
 ) -> ReducerEffect {
     let effect = if state.mode == Mode::Search {
-        reduce_search(state, &event, ctx)
+        reduce_search(state, event, ctx)
     } else if state.mode == Mode::Help {
-        reduce_help(state, &event, ctx)
+        reduce_help(state, event, ctx)
     } else if state.mode == Mode::Visual {
-        reduce_visual(state, &event, ctx)
+        reduce_visual(state, event, ctx)
     } else if state.tree_focused() {
-        reduce_tree(state, &event, ctx)
+        reduce_tree(state, event, ctx)
     } else {
-        reduce_normal(state, &event, ctx)
+        reduce_normal(state, event, ctx)
     };
     clamp_cursor_and_top(state);
     debug_assert_valid_state(state);
@@ -678,5 +673,5 @@ pub(crate) fn handle_key(
         rows,
         files,
     };
-    KeyResult::from(reduce(state, event, &ctx))
+    KeyResult::from(reduce(state, &event, &ctx))
 }
