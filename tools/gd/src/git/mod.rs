@@ -73,6 +73,75 @@ pub fn repo_root(from: &Path) -> Option<PathBuf> {
     Some(PathBuf::from(out.trim()))
 }
 
+/// Pure helper: given the current branch name, default branch name, and a list of
+/// (branch, commits-ahead-of-merge-base) pairs, return the best base branch.
+///
+/// Returns `default` when `current` is empty (detached HEAD), equals `default`
+/// (already on the default branch), or no valid candidates remain after filtering.
+/// Among candidates, the one with the fewest commits ahead wins; ties go to the
+/// first entry seen (strict `<` comparison).
+pub(crate) fn select_base_branch(
+    current: &str,
+    default: &str,
+    candidates: &[(String, u64)],
+) -> String {
+    if current.is_empty() || current == default {
+        return default.to_string();
+    }
+    let mut best: Option<(&str, u64)> = None;
+    for (branch, count) in candidates {
+        if branch == current {
+            continue;
+        }
+        match best {
+            None => best = Some((branch, *count)),
+            Some((_, best_count)) if *count < best_count => best = Some((branch, *count)),
+            _ => {}
+        }
+    }
+    best.map(|(b, _)| b.to_string()).unwrap_or_else(|| default.to_string())
+}
+
+/// Detect the base branch of the current branch by finding the local branch
+/// with the fewest commits between its merge-base and HEAD.
+pub fn find_base_branch(repo: &Path) -> String {
+    let current = run(repo, &["branch", "--show-current"])
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    let default = run(repo, &["rev-parse", "--abbrev-ref", "origin/HEAD"])
+        .map(|s| {
+            s.trim()
+                .trim_start_matches("origin/")
+                .to_string()
+        })
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "main".to_string());
+
+    let branches_raw = run(repo, &["for-each-ref", "--format=%(refname:short)", "refs/heads/"])
+        .unwrap_or_default();
+
+    let mut candidates: Vec<(String, u64)> = Vec::new();
+    for branch in branches_raw.lines().filter(|l| !l.is_empty()) {
+        if branch == current {
+            continue;
+        }
+        let mb = match run(repo, &["merge-base", &current, branch]) {
+            Some(s) => s.trim().to_string(),
+            None => continue,
+        };
+        let count_str = match run(repo, &["rev-list", "--count", &format!("{mb}..{current}")]) {
+            Some(s) => s.trim().to_string(),
+            None => continue,
+        };
+        if let Ok(count) = count_str.parse::<u64>() {
+            candidates.push((branch.to_string(), count));
+        }
+    }
+
+    select_base_branch(&current, &default, &candidates)
+}
+
 /// List untracked files (respecting .gitignore).
 pub fn untracked_files(repo: &Path) -> Vec<String> {
     run(repo, &["ls-files", "--others", "--exclude-standard"])
@@ -86,6 +155,125 @@ pub fn untracked_files(repo: &Path) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use insta::assert_debug_snapshot;
+
+    #[test]
+    fn snapshot_diff_args_working_tree() {
+        assert_debug_snapshot!(DiffSource::WorkingTree.diff_args());
+    }
+
+    #[test]
+    fn snapshot_diff_args_staged() {
+        assert_debug_snapshot!(DiffSource::Staged.diff_args());
+    }
+
+    #[test]
+    fn snapshot_diff_args_commit() {
+        assert_debug_snapshot!(DiffSource::Commit("abc123".into()).diff_args());
+    }
+
+    #[test]
+    fn snapshot_diff_args_range() {
+        assert_debug_snapshot!(DiffSource::Range("main".into(), "HEAD".into()).diff_args());
+    }
+
+    #[test]
+    fn snapshot_full_context_args_working_tree() {
+        assert_debug_snapshot!(DiffSource::WorkingTree.diff_args_full_context());
+    }
+
+    #[test]
+    fn snapshot_full_context_args_staged() {
+        assert_debug_snapshot!(DiffSource::Staged.diff_args_full_context());
+    }
+
+    #[test]
+    fn snapshot_full_context_args_commit() {
+        assert_debug_snapshot!(DiffSource::Commit("abc123".into()).diff_args_full_context());
+    }
+
+    #[test]
+    fn snapshot_full_context_args_range() {
+        assert_debug_snapshot!(DiffSource::Range("main".into(), "HEAD".into()).diff_args_full_context());
+    }
+
+    #[test]
+    fn snapshot_resolve_source_working_tree() {
+        assert_debug_snapshot!(resolve_source(false, &[]));
+    }
+
+    #[test]
+    fn snapshot_resolve_source_staged() {
+        assert_debug_snapshot!(resolve_source(true, &[]));
+    }
+
+    #[test]
+    fn snapshot_resolve_source_commit() {
+        assert_debug_snapshot!(resolve_source(false, &["abc123".into()]));
+    }
+
+    #[test]
+    fn snapshot_resolve_source_range_dotdot() {
+        assert_debug_snapshot!(resolve_source(false, &["main..HEAD".into()]));
+    }
+
+    #[test]
+    fn snapshot_resolve_source_range_two_args() {
+        assert_debug_snapshot!(resolve_source(false, &["main".into(), "HEAD".into()]));
+    }
+
+    #[test]
+    fn snapshot_resolve_source_staged_overrides() {
+        assert_debug_snapshot!(resolve_source(true, &["HEAD".into()]));
+    }
+
+    #[test]
+    fn test_select_base_branch_prefers_fewest_commits_ahead() {
+        let result = select_base_branch(
+            "feature",
+            "main",
+            &[("main".into(), 3u64), ("other".into(), 10u64)],
+        );
+        assert_eq!(result, "main");
+    }
+
+    #[test]
+    fn test_select_base_branch_returns_default_when_no_branches() {
+        let result = select_base_branch("feature", "main", &[]);
+        assert_eq!(result, "main");
+    }
+
+    #[test]
+    fn test_select_base_branch_skips_current_branch() {
+        let result = select_base_branch(
+            "feature",
+            "main",
+            &[("feature".into(), 0u64), ("main".into(), 5u64)],
+        );
+        assert_eq!(result, "main");
+    }
+
+    #[test]
+    fn test_select_base_branch_returns_default_when_on_default_branch() {
+        let result = select_base_branch("main", "main", &[("other".into(), 2u64)]);
+        assert_eq!(result, "main");
+    }
+
+    #[test]
+    fn test_select_base_branch_empty_current_returns_default() {
+        let result = select_base_branch("", "main", &[("other".into(), 1u64)]);
+        assert_eq!(result, "main");
+    }
+
+    #[test]
+    fn test_select_base_branch_ties_pick_first_seen() {
+        let result = select_base_branch(
+            "feature",
+            "main",
+            &[("branchA".into(), 4u64), ("branchB".into(), 4u64)],
+        );
+        assert_eq!(result, "branchA");
+    }
 
     #[test]
     fn test_diff_source_full_context_args() {
@@ -114,6 +302,36 @@ mod tests {
         match resolve_source(false, &["main..HEAD".into()]) {
             DiffSource::Range(l, r) => {
                 assert_eq!(l, "main");
+                assert_eq!(r, "HEAD");
+            }
+            other => panic!("expected Range, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_resolve_source_two_args_range() {
+        match resolve_source(false, &["main".into(), "HEAD".into()]) {
+            DiffSource::Range(l, r) => {
+                assert_eq!(l, "main");
+                assert_eq!(r, "HEAD");
+            }
+            other => panic!("expected Range, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_resolve_source_staged_overrides_args() {
+        assert!(matches!(
+            resolve_source(true, &["HEAD".into()]),
+            DiffSource::Staged
+        ));
+    }
+
+    #[test]
+    fn test_resolve_source_dotdot_range_with_ref() {
+        match resolve_source(false, &["HEAD~3..HEAD".into()]) {
+            DiffSource::Range(l, r) => {
+                assert_eq!(l, "HEAD~3");
                 assert_eq!(r, "HEAD");
             }
             other => panic!("expected Range, got {other:?}"),

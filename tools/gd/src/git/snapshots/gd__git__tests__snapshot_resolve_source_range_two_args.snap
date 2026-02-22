@@ -1,0 +1,8 @@
+---
+source: gd/src/git/mod.rs
+expression: "resolve_source(false, &[\"main\".into(), \"HEAD\".into()])"
+---
+Range(
+    "main",
+    "HEAD",
+)

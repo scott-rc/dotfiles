@@ -1,0 +1,10 @@
+---
+source: gd/src/git/mod.rs
+expression: "DiffSource::Commit(\"abc123\".into()).diff_args_full_context()"
+---
+[
+    "diff",
+    "-U999999",
+    "abc123~1",
+    "abc123",
+]

@@ -1,0 +1,9 @@
+---
+source: gd/src/render.rs
+expression: strip(&output.lines)
+---
+── foo.rs (Modified) ───────────────────────────────────────────────────────────
+   1 |   1 | line1
+     |   2 |+added
+   2 |   3 | line2
+   3 |   4 | line3

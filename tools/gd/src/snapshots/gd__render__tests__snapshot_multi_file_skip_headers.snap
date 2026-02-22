@@ -1,0 +1,9 @@
+---
+source: gd/src/render.rs
+expression: stripped
+---
+   1 |   1 | first
+     |   2 |+second
+
+   1 |   1 | keep
+   2 |     |-remove

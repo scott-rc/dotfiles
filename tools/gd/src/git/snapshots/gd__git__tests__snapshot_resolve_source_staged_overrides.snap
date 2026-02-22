@@ -1,0 +1,5 @@
+---
+source: gd/src/git/mod.rs
+expression: "resolve_source(true, &[\"HEAD\".into()])"
+---
+Staged

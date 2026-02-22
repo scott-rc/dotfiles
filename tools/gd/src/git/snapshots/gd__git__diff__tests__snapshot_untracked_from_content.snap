@@ -1,0 +1,43 @@
+---
+source: gd/src/git/diff.rs
+expression: "DiffFile::from_content(\"new.rs\", \"fn main() {\\n    println!(\\\"hello\\\");\\n}\\n\")"
+---
+DiffFile {
+    old_path: None,
+    new_path: Some(
+        "new.rs",
+    ),
+    status: Untracked,
+    hunks: [
+        DiffHunk {
+            old_start: 0,
+            new_start: 1,
+            lines: [
+                DiffLine {
+                    kind: Added,
+                    content: "fn main() {",
+                    old_lineno: None,
+                    new_lineno: Some(
+                        1,
+                    ),
+                },
+                DiffLine {
+                    kind: Added,
+                    content: "    println!(\"hello\");",
+                    old_lineno: None,
+                    new_lineno: Some(
+                        2,
+                    ),
+                },
+                DiffLine {
+                    kind: Added,
+                    content: "}",
+                    old_lineno: None,
+                    new_lineno: Some(
+                        3,
+                    ),
+                },
+            ],
+        },
+    ],
+}

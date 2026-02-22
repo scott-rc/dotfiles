@@ -1,0 +1,37 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(diff)
+---
+[
+    DiffFile {
+        old_path: None,
+        new_path: Some(
+            "new.txt",
+        ),
+        status: Added,
+        hunks: [
+            DiffHunk {
+                old_start: 0,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Added,
+                        content: "hello",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "world",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+]

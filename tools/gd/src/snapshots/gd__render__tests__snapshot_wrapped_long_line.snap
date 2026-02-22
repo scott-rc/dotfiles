@@ -1,0 +1,10 @@
+---
+source: gd/src/render.rs
+expression: strip(&output.lines)
+---
+── foo.txt (Modified) ──────────────────
+   1 |   1 | ctx
+     |   2 |+xxxxxxxxxxxxxxxxxxxxxxxxxx
+     |     |↪xxxxxxxxxxxxxxxxxxxxxxxxxx
+     |     |↪xxxxxxxxxxxxxxxxxxxxxxxxxx
+     |     |↪xxxxxxxxxxxxxxxxxxxxxx

@@ -1,0 +1,11 @@
+---
+source: gd/src/render.rs
+expression: strip(&output.lines)
+---
+── a.txt (Modified) ────────────────────────────────────────────────────────────
+   1 |   1 | first
+     |   2 |+second
+
+── b.txt (Modified) ────────────────────────────────────────────────────────────
+   1 |   1 | keep
+   2 |     |-remove

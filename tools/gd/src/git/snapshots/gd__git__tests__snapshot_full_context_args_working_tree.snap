@@ -1,0 +1,8 @@
+---
+source: gd/src/git/mod.rs
+expression: "DiffSource::WorkingTree.diff_args_full_context()"
+---
+[
+    "diff",
+    "-U999999",
+]

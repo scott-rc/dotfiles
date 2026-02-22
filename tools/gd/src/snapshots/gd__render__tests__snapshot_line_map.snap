@@ -1,0 +1,50 @@
+---
+source: gd/src/render.rs
+expression: output.line_map
+---
+[
+    LineInfo {
+        file_idx: 0,
+        path: "f.rs",
+        new_lineno: None,
+        old_lineno: None,
+        line_kind: None,
+    },
+    LineInfo {
+        file_idx: 0,
+        path: "f.rs",
+        new_lineno: Some(
+            1,
+        ),
+        old_lineno: Some(
+            1,
+        ),
+        line_kind: Some(
+            Context,
+        ),
+    },
+    LineInfo {
+        file_idx: 0,
+        path: "f.rs",
+        new_lineno: Some(
+            2,
+        ),
+        old_lineno: None,
+        line_kind: Some(
+            Added,
+        ),
+    },
+    LineInfo {
+        file_idx: 0,
+        path: "f.rs",
+        new_lineno: Some(
+            3,
+        ),
+        old_lineno: Some(
+            2,
+        ),
+        line_kind: Some(
+            Context,
+        ),
+    },
+]

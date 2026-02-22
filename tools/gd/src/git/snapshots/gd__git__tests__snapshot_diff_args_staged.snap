@@ -1,0 +1,8 @@
+---
+source: gd/src/git/mod.rs
+expression: "DiffSource::Staged.diff_args()"
+---
+[
+    "diff",
+    "--staged",
+]

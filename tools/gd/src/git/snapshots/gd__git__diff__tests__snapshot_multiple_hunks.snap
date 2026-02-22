@@ -1,0 +1,105 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(diff)
+---
+[
+    DiffFile {
+        old_path: Some(
+            "foo.rs",
+        ),
+        new_path: Some(
+            "foo.rs",
+        ),
+        status: Modified,
+        hunks: [
+            DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "line1",
+                        old_lineno: Some(
+                            1,
+                        ),
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "added1",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            2,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line2",
+                        old_lineno: Some(
+                            2,
+                        ),
+                        new_lineno: Some(
+                            3,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line3",
+                        old_lineno: Some(
+                            3,
+                        ),
+                        new_lineno: Some(
+                            4,
+                        ),
+                    },
+                ],
+            },
+            DiffHunk {
+                old_start: 10,
+                new_start: 11,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "line10",
+                        old_lineno: Some(
+                            10,
+                        ),
+                        new_lineno: Some(
+                            11,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "added2",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            12,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line11",
+                        old_lineno: Some(
+                            11,
+                        ),
+                        new_lineno: Some(
+                            13,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "line12",
+                        old_lineno: Some(
+                            12,
+                        ),
+                        new_lineno: Some(
+                            14,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+]

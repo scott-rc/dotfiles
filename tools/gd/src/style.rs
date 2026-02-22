@@ -20,8 +20,6 @@ pub const BG_CURSOR: &str = "\x1b[48;2;36;46;62m";
 
 /// File header foreground (bold blue)
 pub const FG_FILE_HEADER: &str = "\x1b[1;38;2;121;192;255m";
-/// Hunk header foreground (dim cyan)
-pub const FG_HUNK_HEADER: &str = "\x1b[2;38;2;121;192;255m";
 /// Line number gutter (dim gray)
 pub const FG_GUTTER: &str = "\x1b[2;38;2;110;118;129m";
 /// Separator character (dim gray)
@@ -38,6 +36,16 @@ pub const FG_TREE_GUIDE: &str = "\x1b[38;2;72;79;88m";
 pub const FG_ADDED_MARKER: &str = "\x1b[38;2;63;185;80m";
 /// Deleted line marker foreground
 pub const FG_DELETED_MARKER: &str = "\x1b[38;2;248;81;73m";
+/// Tree status: modified (yellow/orange)
+pub const FG_STATUS_MODIFIED: &str = "\x1b[38;2;210;153;34m";
+/// Tree status: added (green, matches FG_ADDED_MARKER)
+pub const FG_STATUS_ADDED: &str = "\x1b[38;2;63;185;80m";
+/// Tree status: deleted (red, matches FG_DELETED_MARKER)
+pub const FG_STATUS_DELETED: &str = "\x1b[38;2;248;81;73m";
+/// Tree status: renamed (blue/cyan)
+pub const FG_STATUS_RENAMED: &str = "\x1b[38;2;121;192;255m";
+/// Tree status: untracked (dim gray)
+pub const FG_STATUS_UNTRACKED: &str = "\x1b[38;2;110;118;129m";
 /// Scrollbar track background (very dim gray)
 pub const BG_SCROLLBAR_TRACK: &str = "\x1b[48;2;30;33;38m";
 /// Scrollbar viewport thumb background (brighter gray)
@@ -61,10 +69,6 @@ pub fn wrap_marker(color: bool) -> String {
 pub const SOFT_RESET: &str = "\x1b[22;23;39m";
 pub const DIM: &str = "\x1b[2m";
 pub const NO_DIM: &str = "\x1b[22m";
-pub const REVERSE: &str = "\x1b[7m";
-pub const NO_REVERSE: &str = "\x1b[27m";
-pub const UNDERLINE: &str = "\x1b[4m";
-pub const NO_UNDERLINE: &str = "\x1b[24m";
 
 /// Format a file header separator line.
 pub fn file_header(path: &str, status: &str, width: usize) -> String {
@@ -77,11 +81,6 @@ pub fn file_header(path: &str, status: &str, width: usize) -> String {
         "\u{2500}".repeat(left),
         "\u{2500}".repeat(right),
     )
-}
-
-/// Format a hunk header line.
-pub fn hunk_header(text: &str) -> String {
-    format!("{FG_HUNK_HEADER}{text}{RESET}")
 }
 
 /// Format the dual line-number gutter.

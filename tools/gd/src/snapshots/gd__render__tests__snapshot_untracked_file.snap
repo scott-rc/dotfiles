@@ -1,0 +1,7 @@
+---
+source: gd/src/render.rs
+expression: strip(&output.lines)
+---
+── new.rs (Untracked) ──────────────────────────────────────────────────────────
+     |   1 |+hello
+     |   2 |+world

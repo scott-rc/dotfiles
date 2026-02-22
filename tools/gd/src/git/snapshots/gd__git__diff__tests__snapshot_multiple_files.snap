@@ -1,0 +1,76 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(diff)
+---
+[
+    DiffFile {
+        old_path: Some(
+            "a.txt",
+        ),
+        new_path: Some(
+            "a.txt",
+        ),
+        status: Modified,
+        hunks: [
+            DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "first",
+                        old_lineno: Some(
+                            1,
+                        ),
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "second",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+    DiffFile {
+        old_path: Some(
+            "b.txt",
+        ),
+        new_path: Some(
+            "b.txt",
+        ),
+        status: Modified,
+        hunks: [
+            DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "keep",
+                        old_lineno: Some(
+                            1,
+                        ),
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Deleted,
+                        content: "remove",
+                        old_lineno: Some(
+                            2,
+                        ),
+                        new_lineno: None,
+                    },
+                ],
+            },
+        ],
+    },
+]

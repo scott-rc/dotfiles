@@ -9,6 +9,9 @@ crossterm = "0.28"
 similar = "2"
 tui = { path = "../tui" }
 
+[dev-dependencies]
+insta = "1"
+
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 cast_possible_truncation = "allow"

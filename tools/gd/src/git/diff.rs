@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileStatus {
     Modified,
     Added,
@@ -291,6 +291,116 @@ fn parse_hunk_header(line: &str) -> Option<(u32, u32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use insta::assert_debug_snapshot;
+
+    #[test]
+    fn snapshot_simple_modification() {
+        let diff = "\
+diff --git a/foo.rs b/foo.rs
+index 1234..5678 100644
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added
+ line2
+ line3
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_new_file() {
+        let diff = "\
+diff --git a/new.txt b/new.txt
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/new.txt
+@@ -0,0 +1,2 @@
++hello
++world
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_deleted_file() {
+        let diff = "\
+diff --git a/old.txt b/old.txt
+deleted file mode 100644
+index 1234567..0000000
+--- a/old.txt
++++ /dev/null
+@@ -1,2 +0,0 @@
+-goodbye
+-world
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_multiple_files() {
+        let diff = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_multiple_hunks() {
+        let diff = "\
+diff --git a/foo.rs b/foo.rs
+index 1234..5678 100644
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_renamed_file() {
+        let diff = "\
+diff --git a/old_name.rs b/new_name.rs
+similarity index 90%
+rename from old_name.rs
+rename to new_name.rs
+--- a/old_name.rs
++++ b/new_name.rs
+@@ -1,2 +1,2 @@
+ fn main() {
+-    println!(\"hello\");
++    println!(\"world\");
+ }
+";
+        assert_debug_snapshot!(parse(diff));
+    }
+
+    #[test]
+    fn snapshot_untracked_from_content() {
+        assert_debug_snapshot!(DiffFile::from_content("new.rs", "fn main() {\n    println!(\"hello\");\n}\n"));
+    }
 
     #[test]
     fn parse_simple_modification() {

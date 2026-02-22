@@ -1,0 +1,10 @@
+---
+source: gd/src/git/mod.rs
+expression: "DiffSource::Range(\"main\".into(), \"HEAD\".into()).diff_args_full_context()"
+---
+[
+    "diff",
+    "-U999999",
+    "main",
+    "HEAD",
+]

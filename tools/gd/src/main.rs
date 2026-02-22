@@ -36,6 +36,10 @@ struct Cli {
     /// Hide untracked files (only applies to working tree mode)
     #[arg(long)]
     no_untracked: bool,
+
+    /// Diff against auto-detected base branch
+    #[arg(long, short = 'b')]
+    base: bool,
 }
 
 fn main() {
@@ -51,7 +55,15 @@ fn main() {
         std::process::exit(1);
     });
 
-    let source = resolve_source(staged, &cli.source);
+    let source = if cli.base {
+        let base = git::find_base_branch(&repo);
+        let merge_base = git::run(&repo, &["merge-base", &base, "HEAD"])
+            .map(|s| s.trim().to_string())
+            .unwrap_or_else(|| base.clone());
+        DiffSource::Range(merge_base, "HEAD".into())
+    } else {
+        resolve_source(staged, &cli.source)
+    };
     let diff_args = source.diff_args();
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
     let raw = git::run(&repo, &str_args).unwrap_or_default();
@@ -91,7 +103,7 @@ fn main() {
     let color = !cli.no_color && is_tty;
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
 
-    let output = render::render(&files, cols as usize, color);
+    let output = render::render(&files, cols as usize, color, false);
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
     if is_tty && !cli.no_pager && output.lines.len() > rows as usize {

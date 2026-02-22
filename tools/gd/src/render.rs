@@ -27,7 +27,7 @@ pub struct RenderOutput {
     pub hunk_starts: Vec<usize>,
 }
 
-pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
+pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool) -> RenderOutput {
     let mut lines = Vec::new();
     let mut line_map = Vec::new();
     let mut file_starts = Vec::new();
@@ -44,27 +44,29 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             FileStatus::Untracked => "Untracked",
         };
 
-        // File header
-        let header = if color {
-            style::file_header(path, status_label, width)
-        } else {
-            let label = format!(" {path} ({status_label}) ");
-            let bar_len = width.saturating_sub(2 + label.len());
-            format!(
-                "{}{}{}",
-                "\u{2500}".repeat(2),
-                label,
-                "\u{2500}".repeat(bar_len)
-            )
-        };
-        lines.push(header);
-        line_map.push(LineInfo {
-            file_idx,
-            path: path.to_string(),
-            new_lineno: None,
-            old_lineno: None,
-            line_kind: None,
-        });
+        // File header (omitted when tree panel serves as file index)
+        if !skip_headers {
+            let header = if color {
+                style::file_header(path, status_label, width)
+            } else {
+                let label = format!(" {path} ({status_label}) ");
+                let bar_len = width.saturating_sub(2 + label.len());
+                format!(
+                    "{}{}{}",
+                    "\u{2500}".repeat(2),
+                    label,
+                    "\u{2500}".repeat(bar_len)
+                )
+            };
+            lines.push(header);
+            line_map.push(LineInfo {
+                file_idx,
+                path: path.to_string(),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            });
+        }
 
         // Syntax highlighter for this file's extension
         let syntax = SYNTAX_SET
@@ -78,28 +80,6 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
 
         for hunk in &file.hunks {
             hunk_starts.push(lines.len());
-
-            // Hunk header (@@ ... @@)
-            let hunk_text = format!(
-                "@@ -{},{} +{},{} @@",
-                hunk.old_start,
-                hunk.lines.iter().filter(|l| l.kind != LineKind::Added).count(),
-                hunk.new_start,
-                hunk.lines.iter().filter(|l| l.kind != LineKind::Deleted).count(),
-            );
-            let hunk_line = if color {
-                style::hunk_header(&hunk_text)
-            } else {
-                hunk_text
-            };
-            lines.push(hunk_line);
-            line_map.push(LineInfo {
-                file_idx,
-                path: path.to_string(),
-                new_lineno: None,
-                old_lineno: None,
-                line_kind: None,
-            });
 
             // Render diff lines with word-level highlights
             render_hunk_lines(
@@ -571,6 +551,117 @@ fn apply_diff_colors(
 mod tests {
     use super::*;
     use crate::git::diff;
+    use insta::assert_debug_snapshot;
+    use insta::assert_snapshot;
+
+    fn strip(lines: &[String]) -> String {
+        lines
+            .iter()
+            .map(|l| crate::ansi::strip_ansi(l))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn snapshot_single_file() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added
+ line2
+ line3
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_snapshot!(strip(&output.lines));
+    }
+
+    #[test]
+    fn snapshot_multi_file() {
+        let raw = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_snapshot!(strip(&output.lines));
+    }
+
+    #[test]
+    fn snapshot_multi_hunk() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_snapshot!(strip(&output.lines));
+    }
+
+    #[test]
+    fn snapshot_wrapped_long_line() {
+        let long_content = "x".repeat(100);
+        let raw = format!(
+            "\
+diff --git a/foo.txt b/foo.txt
+--- a/foo.txt
++++ b/foo.txt
+@@ -1,1 +1,2 @@
+ ctx
++{long_content}
+"
+        );
+        let files = diff::parse(&raw);
+        let output = render(&files, 40, false, false);
+        assert_snapshot!(strip(&output.lines));
+    }
+
+    #[test]
+    fn snapshot_untracked_file() {
+        let file = diff::DiffFile::from_content("new.rs", "hello\nworld\n");
+        let output = render(&[file], 80, false, false);
+        assert_snapshot!(strip(&output.lines));
+    }
+
+    #[test]
+    fn snapshot_line_map() {
+        let raw = "\
+diff --git a/f.rs b/f.rs
+--- a/f.rs
++++ b/f.rs
+@@ -1,2 +1,3 @@
+ ctx
++added
+ more
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_debug_snapshot!(output.line_map);
+    }
 
     #[test]
     fn render_produces_lines_for_simple_diff() {
@@ -585,17 +676,17 @@ diff --git a/foo.rs b/foo.rs
  line3
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false);
+        let output = render(&files, 80, false, false);
 
-        // File header + hunk header + 4 diff lines
-        assert_eq!(output.lines.len(), 6);
+        // File header + 4 diff lines (no hunk header)
+        assert_eq!(output.lines.len(), 5);
         assert_eq!(output.file_starts.len(), 1);
         assert_eq!(output.hunk_starts.len(), 1);
         assert_eq!(output.file_starts[0], 0);
-        assert_eq!(output.hunk_starts[0], 1); // after file header
+        assert_eq!(output.hunk_starts[0], 1); // after file header, at first content line
 
         // Check the added line has a + marker
-        let added_line = &output.lines[3]; // header, hunk header, ctx, added
+        let added_line = &output.lines[2]; // header, ctx, added
         assert!(added_line.contains('+'));
         assert!(added_line.contains("added"));
     }
@@ -617,7 +708,7 @@ diff --git a/b.txt b/b.txt
 -remove
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false);
+        let output = render(&files, 80, false, false);
 
         assert_eq!(output.file_starts.len(), 2);
         assert_eq!(output.hunk_starts.len(), 2);
@@ -647,7 +738,7 @@ diff --git a/foo.rs b/foo.rs
  line12
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false);
+        let output = render(&files, 80, false, false);
 
         assert_eq!(output.hunk_starts.len(), 2);
     }
@@ -664,7 +755,7 @@ diff --git a/f.rs b/f.rs
  more
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false);
+        let output = render(&files, 80, false, false);
 
         // Find the added line's info
         let added_info = output
@@ -686,10 +777,10 @@ diff --git a/foo.txt b/foo.txt
 +added line
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, true);
+        let output = render(&files, 80, true, false);
 
-        // Find the added line (after file header, hunk header, context)
-        let added = &output.lines[3];
+        // Find the added line (after file header, context)
+        let added = &output.lines[2];
         let stripped = crate::ansi::strip_ansi(added);
         assert!(stripped.contains('+'), "should have + marker");
 
@@ -736,17 +827,17 @@ diff --git a/foo.txt b/foo.txt
         let files = diff::parse(&raw);
         // Narrow width forces wrapping: gutter(12) + marker(1) + avail
         let width = 40;
-        let output = render(&files, width, false);
+        let output = render(&files, width, false, false);
 
-        // Should produce more lines than the 4 logical lines (header, hunk, ctx, added)
+        // Should produce more lines than the 3 logical lines (header, ctx, added)
         assert!(
-            output.lines.len() > 4,
+            output.lines.len() > 3,
             "long line should wrap into multiple output lines, got {}",
             output.lines.len()
         );
 
         // Continuation lines should have blank gutter with separators
-        let cont_lines: Vec<_> = output.lines.iter().skip(4).collect();
+        let cont_lines: Vec<_> = output.lines.iter().skip(3).collect();
         assert!(!cont_lines.is_empty(), "should have continuation lines");
         for cont in &cont_lines {
             assert!(
@@ -807,14 +898,322 @@ diff --git a/foo.txt b/foo.txt
     }
 
     #[test]
+    fn test_render_single_file_populates_file_starts() {
+        let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,1 +1,2 @@
+ ctx
++added
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_eq!(output.file_starts.len(), 1);
+        assert_eq!(output.file_starts[0], 0);
+    }
+
+    #[test]
+    fn test_render_two_files_file_starts_ordered() {
+        let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,1 +1,2 @@
+ ctx
++added
+diff --git a/b.rs b/b.rs
+--- a/b.rs
++++ b/b.rs
+@@ -1,1 +1,2 @@
+ ctx
++added2
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_eq!(output.file_starts.len(), 2);
+        assert!(output.file_starts[1] > 0, "second file should start after line 0");
+    }
+
+    #[test]
+    fn test_render_hunk_starts_present() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_eq!(output.hunk_starts.len(), 2);
+        assert!(output.hunk_starts[0] < output.hunk_starts[1], "hunk starts should be ordered");
+    }
+
+    #[test]
+    fn test_render_line_map_length_matches_lines() {
+        let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,2 +1,3 @@
+ ctx
++added
+ more
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        assert_eq!(output.lines.len(), output.line_map.len());
+    }
+
+    #[test]
+    fn test_render_content_lines_have_line_kind() {
+        let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,2 +1,3 @@
+ ctx
++added
+-old
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+        // File header (index 0) should have None line_kind
+        assert!(output.line_map[0].line_kind.is_none(), "file header should have None line_kind");
+        // Content lines should have Some(_)
+        let content_lines: Vec<_> = output.line_map.iter().filter(|li| li.line_kind.is_some()).collect();
+        assert!(!content_lines.is_empty(), "should have content lines with Some line_kind");
+        for li in &content_lines {
+            assert!(
+                matches!(li.line_kind, Some(LineKind::Added) | Some(LineKind::Deleted) | Some(LineKind::Context)),
+                "content lines should be Added, Deleted, or Context"
+            );
+        }
+    }
+
+    #[test]
     fn render_untracked_file_shows_status_label() {
         let file = diff::DiffFile::from_content("new.rs", "hello\n");
-        let output = render(&[file], 80, false);
+        let output = render(&[file], 80, false, false);
         let header = &output.lines[0];
         assert!(
             header.contains("Untracked"),
             "file header should contain 'Untracked': {header:?}"
         );
+    }
+
+    #[test]
+    fn test_no_hunk_header_in_output() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added
+ line2
+ line3
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+
+        for line in &output.lines {
+            assert!(
+                !line.contains("@@"),
+                "rendered output should not contain '@@' hunk headers, but found: {line:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_hunk_starts_points_at_content_line() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added
+ line2
+ line3
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+
+        assert!(!output.hunk_starts.is_empty(), "should have at least one hunk_start");
+        let hs = output.hunk_starts[0];
+        // Must be past the file header
+        assert!(
+            hs >= output.file_starts[0] + 1,
+            "hunk_start should be past the file header: hunk_start={hs}, file_start={}",
+            output.file_starts[0]
+        );
+        // Must point at a content line (line_kind is Some)
+        assert!(
+            output.line_map[hs].line_kind.is_some(),
+            "hunk_starts[0]={hs} should point at a content line with Some(line_kind), got {:?}",
+            output.line_map[hs].line_kind
+        );
+    }
+
+    #[test]
+    fn test_multi_hunk_starts_all_point_at_content() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, false);
+
+        assert_eq!(output.hunk_starts.len(), 2, "should have two hunks");
+        for (i, &hs) in output.hunk_starts.iter().enumerate() {
+            assert!(
+                output.line_map[hs].line_kind.is_some(),
+                "hunk_starts[{i}]={hs} should point at a content line with Some(line_kind), got {:?}",
+                output.line_map[hs].line_kind
+            );
+        }
+    }
+
+    #[test]
+    fn snapshot_single_file_skip_headers() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added
+ line2
+ line3
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, true);
+        let stripped = strip(&output.lines);
+        // No box-drawing characters (file headers use \u{2500})
+        assert!(
+            !stripped.contains('\u{2500}'),
+            "skip_headers output should contain no box-drawing header characters"
+        );
+        // Content lines still present
+        assert!(stripped.contains("added"), "content lines should still be present");
+        assert!(stripped.contains("line1"), "context lines should still be present");
+        assert_snapshot!(stripped);
+    }
+
+    #[test]
+    fn snapshot_multi_file_skip_headers() {
+        let raw = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, true);
+        let stripped = strip(&output.lines);
+        // No file header lines
+        assert!(
+            !stripped.contains('\u{2500}'),
+            "skip_headers output should contain no file header characters"
+        );
+        // Blank separator between files still present
+        assert!(
+            output.lines.iter().any(|l| l.is_empty()),
+            "blank separator between files should still be present"
+        );
+        // All content from both files
+        assert!(stripped.contains("first"), "first file content present");
+        assert!(stripped.contains("second"), "first file added line present");
+        assert!(stripped.contains("keep"), "second file content present");
+        assert!(stripped.contains("remove"), "second file deleted line present");
+        assert_snapshot!(stripped);
+    }
+
+    #[test]
+    fn file_starts_with_skip_headers() {
+        let raw = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, true);
+        assert_eq!(output.file_starts.len(), 2);
+        // Both file_starts should point at content lines (line_kind is Some)
+        for (i, &fs) in output.file_starts.iter().enumerate() {
+            assert!(
+                output.line_map[fs].line_kind.is_some(),
+                "file_starts[{i}]={fs} should point at a content line, got {:?}",
+                output.line_map[fs].line_kind
+            );
+        }
+    }
+
+    #[test]
+    fn hunk_starts_unchanged_with_skip_headers() {
+        let raw = "\
+diff --git a/foo.rs b/foo.rs
+--- a/foo.rs
++++ b/foo.rs
+@@ -1,3 +1,4 @@
+ line1
++added1
+ line2
+ line3
+@@ -10,3 +11,4 @@
+ line10
++added2
+ line11
+ line12
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false, true);
+        assert_eq!(output.hunk_starts.len(), 2, "should have two hunks");
+        for (i, &hs) in output.hunk_starts.iter().enumerate() {
+            assert!(
+                output.line_map[hs].line_kind.is_some(),
+                "hunk_starts[{i}]={hs} should point at a content line, got {:?}",
+                output.line_map[hs].line_kind
+            );
+        }
     }
 
     #[test]
@@ -832,7 +1231,7 @@ diff --git a/foo.txt b/foo.txt
         );
         let files = diff::parse(&raw);
         let width = 40;
-        let output = render(&files, width, true);
+        let output = render(&files, width, true, false);
 
         // Find continuation lines — they have blank gutter (no line numbers)
         // and contain 'x' from the long content

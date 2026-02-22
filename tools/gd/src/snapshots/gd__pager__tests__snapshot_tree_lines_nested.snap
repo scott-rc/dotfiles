@@ -1,0 +1,8 @@
+---
+source: gd/src/pager.rs
+expression: "stripped.join(\"\\n\")"
+---
+├──  M README.md    
+└──  src            
+    ├──  M lib.rs   
+    └──  M main.rs

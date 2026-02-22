@@ -1,0 +1,39 @@
+---
+source: gd/src/pager.rs
+expression: build_tree_entries(&files)
+---
+[
+    TreeEntry {
+        label: "a.rs",
+        depth: 0,
+        file_idx: Some(
+            0,
+        ),
+        status: Some(
+            Modified,
+        ),
+        collapsed: false,
+    },
+    TreeEntry {
+        label: "b.rs",
+        depth: 0,
+        file_idx: Some(
+            1,
+        ),
+        status: Some(
+            Modified,
+        ),
+        collapsed: false,
+    },
+    TreeEntry {
+        label: "c.rs",
+        depth: 0,
+        file_idx: Some(
+            2,
+        ),
+        status: Some(
+            Modified,
+        ),
+        collapsed: false,
+    },
+]

@@ -1,0 +1,16 @@
+---
+source: gd/src/pager.rs
+expression: "StateSnapshot::from(&state)"
+---
+StateSnapshot {
+    cursor_line: 1,
+    top_line: 0,
+    active_file: None,
+    tree_visible: true,
+    tree_focused: false,
+    tree_cursor: 0,
+    mode: Visual,
+    status_message: "",
+    full_context: false,
+    visual_anchor: 1,
+}

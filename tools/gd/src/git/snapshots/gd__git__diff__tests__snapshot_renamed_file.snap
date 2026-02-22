@@ -1,0 +1,59 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(diff)
+---
+[
+    DiffFile {
+        old_path: Some(
+            "old_name.rs",
+        ),
+        new_path: Some(
+            "new_name.rs",
+        ),
+        status: Renamed,
+        hunks: [
+            DiffHunk {
+                old_start: 1,
+                new_start: 1,
+                lines: [
+                    DiffLine {
+                        kind: Context,
+                        content: "fn main() {",
+                        old_lineno: Some(
+                            1,
+                        ),
+                        new_lineno: Some(
+                            1,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Deleted,
+                        content: "    println!(\"hello\");",
+                        old_lineno: Some(
+                            2,
+                        ),
+                        new_lineno: None,
+                    },
+                    DiffLine {
+                        kind: Added,
+                        content: "    println!(\"world\");",
+                        old_lineno: None,
+                        new_lineno: Some(
+                            2,
+                        ),
+                    },
+                    DiffLine {
+                        kind: Context,
+                        content: "}",
+                        old_lineno: Some(
+                            3,
+                        ),
+                        new_lineno: Some(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+]
