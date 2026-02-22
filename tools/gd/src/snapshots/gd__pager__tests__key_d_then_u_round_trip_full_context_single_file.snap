@@ -3,16 +3,16 @@ source: gd/src/pager.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 31,
-    top_line: 30,
+    cursor_line: 6,
+    top_line: 0,
     active_file: Some(
-        1,
+        0,
     ),
     tree_visible: true,
     tree_focused: false,
-    tree_cursor: 1,
+    tree_cursor: 0,
     mode: Normal,
-    status_message: "File 1/1 · b.rs",
-    full_context: false,
+    status_message: "Change 1/2 · a.rs",
+    full_context: true,
     visual_anchor: 0,
 }

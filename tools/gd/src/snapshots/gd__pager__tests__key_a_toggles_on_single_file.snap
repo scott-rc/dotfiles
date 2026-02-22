@@ -3,7 +3,7 @@ source: gd/src/pager.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 0,
+    cursor_line: 1,
     top_line: 0,
     active_file: Some(
         0,

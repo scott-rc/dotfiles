@@ -12,7 +12,7 @@ StateSnapshot {
     tree_focused: false,
     tree_cursor: 0,
     mode: Normal,
-    status_message: "Hunk 1/2 · a.rs",
+    status_message: "Change 1/2 · a.rs",
     full_context: true,
     visual_anchor: 0,
 }

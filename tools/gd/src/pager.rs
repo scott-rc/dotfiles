@@ -103,7 +103,7 @@ pub(crate) fn render_scrollbar_cell(
     let mut change: Option<LineKind> = None;
     for li in &line_map[line_start..line_end] {
         match li.line_kind {
-            Some(LineKind::Added) | Some(LineKind::Deleted) => {
+            Some(LineKind::Added | LineKind::Deleted) => {
                 change = li.line_kind;
                 break;
             }
@@ -154,7 +154,7 @@ fn enforce_scrolloff(state: &mut PagerState, content_height: usize) {
 
 /// Returns true if the line at `idx` is a content line (Added, Deleted, or Context).
 pub(crate) fn is_content_line(line_map: &[LineInfo], idx: usize) -> bool {
-    line_map.get(idx).map_or(false, |li| li.line_kind.is_some())
+    line_map.get(idx).is_some_and(|li| li.line_kind.is_some())
 }
 
 /// Scan forward from `from` to find the next content line, clamped to `max`.
@@ -182,6 +182,21 @@ pub(crate) fn prev_content_line(line_map: &[LineInfo], from: usize, min: usize) 
         i -= 1;
     }
     from
+}
+
+/// Snap `pos` to the nearest content line within `[range_start, range_end]`.
+/// Tries forward first, then falls back to backward.
+pub(crate) fn snap_to_content(
+    line_map: &[LineInfo],
+    pos: usize,
+    range_start: usize,
+    range_end: usize,
+) -> usize {
+    let fwd = next_content_line(line_map, pos, range_end);
+    if is_content_line(line_map, fwd) {
+        return fwd;
+    }
+    prev_content_line(line_map, pos, range_start)
 }
 
 /// Return the `(start, end)` line range for the active file, or the full
@@ -217,12 +232,18 @@ fn highlight_visual_line(line: &str, width: usize) -> String {
 }
 
 /// Resolve start/end line numbers from a visual selection range.
-/// Prefers new_lineno, falls back to old_lineno for deleted lines.
+/// Uses new_lineno only; falls back to old_lineno only when the entire
+/// selection lacks new_lineno (pure deletions).
 fn resolve_lineno(line_map: &[LineInfo], lo: usize, hi: usize) -> (Option<u32>, Option<u32>) {
-    let pick = |info: &LineInfo| info.new_lineno.or(info.old_lineno);
-    let start = (lo..=hi).find_map(|i| line_map.get(i).and_then(pick));
-    let end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(pick));
-    (start, end)
+    let new_start = (lo..=hi).find_map(|i| line_map.get(i).and_then(|li| li.new_lineno));
+    let new_end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(|li| li.new_lineno));
+    if new_start.is_some() && new_end.is_some() {
+        return (new_start, new_end);
+    }
+    // Pure deletion selection: fall back to old_lineno
+    let old_start = (lo..=hi).find_map(|i| line_map.get(i).and_then(|li| li.old_lineno));
+    let old_end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(|li| li.old_lineno));
+    (old_start, old_end)
 }
 
 fn format_copy_ref(path: &str, start: Option<u32>, end: Option<u32>) -> String {
@@ -600,9 +621,9 @@ fn change_group_starts(line_map: &[LineInfo], range_start: usize, range_end: usi
     let end = range_end.min(line_map.len());
     let mut starts = Vec::new();
     for i in range_start..end {
-        let is_change = matches!(line_map[i].line_kind, Some(LineKind::Added) | Some(LineKind::Deleted));
+        let is_change = matches!(line_map[i].line_kind, Some(LineKind::Added | LineKind::Deleted));
         let prev_is_change = i > range_start
-            && matches!(line_map[i - 1].line_kind, Some(LineKind::Added) | Some(LineKind::Deleted));
+            && matches!(line_map[i - 1].line_kind, Some(LineKind::Added | LineKind::Deleted));
         if is_change && !prev_is_change {
             starts.push(i);
         }
@@ -610,14 +631,20 @@ fn change_group_starts(line_map: &[LineInfo], range_start: usize, range_end: usi
     starts
 }
 
-/// Build a status message like "Hunk 3/7 · b.rs" for the hunk containing `cursor`.
-fn hunk_status_message(cursor: usize, hunk_starts: &[usize], line_map: &[LineInfo]) -> String {
-    if hunk_starts.is_empty() {
+/// Build a status message like "Hunk 3/7 · b.rs" (or "Change 3/7 · b.rs" in
+/// full-context mode) for the navigation target containing `cursor`.
+fn nav_status_message(label: &str, cursor: usize, starts: &[usize], line_map: &[LineInfo]) -> String {
+    if starts.is_empty() {
         return String::new();
     }
-    let idx = hunk_starts.partition_point(|&s| s <= cursor).saturating_sub(1);
+    let idx = starts.partition_point(|&s| s <= cursor).saturating_sub(1);
     let path = line_map.get(cursor).map(|li| li.path.as_str()).unwrap_or("");
-    format!("Hunk {}/{} \u{00b7} {}", idx + 1, hunk_starts.len(), path)
+    format!("{label} {}/{} \u{00b7} {}", idx + 1, starts.len(), path)
+}
+
+/// Build a status message like "File 2/5 · src/main.rs" for file navigation.
+fn file_status_message(cursor: usize, file_starts: &[usize], line_map: &[LineInfo]) -> String {
+    nav_status_message("File", cursor, file_starts, line_map)
 }
 
 /// Re-render the diff at a new width, preserving scroll position by anchoring
@@ -632,7 +659,9 @@ fn re_render(
     let anchor = if !state.line_map.is_empty() {
         let top = state.top_line.min(state.line_map.len() - 1);
         let info = &state.line_map[top];
-        Some((info.file_idx, info.new_lineno))
+        let file_start = state.file_starts[info.file_idx];
+        let offset_in_file = top - file_start;
+        Some((info.file_idx, info.new_lineno, offset_in_file))
     } else {
         None
     };
@@ -644,15 +673,31 @@ fn re_render(
     state.file_starts = output.file_starts;
     state.hunk_starts = output.hunk_starts;
 
-    // Restore scroll position by finding the anchored line
-    if let Some((file_idx, new_lineno)) = anchor {
-        state.top_line = state
-            .line_map
-            .iter()
-            .position(|li| li.file_idx == file_idx && li.new_lineno == new_lineno)
-            .unwrap_or(0);
+    // Restore scroll position by finding the anchored line.
+    // When new_lineno is Some, use the unique (file_idx, lineno) lookup.
+    // When new_lineno is None (header/separator lines), fall back to the
+    // offset within the file to avoid matching the wrong None-lineno line.
+    if let Some((file_idx, new_lineno, offset_in_file)) = anchor {
+        state.top_line = if let Some(lineno) = new_lineno {
+            state
+                .line_map
+                .iter()
+                .position(|li| li.file_idx == file_idx && li.new_lineno == Some(lineno))
+                .unwrap_or(0)
+        } else {
+            let file_start = state.file_starts.get(file_idx).copied().unwrap_or(0);
+            let file_end = state
+                .file_starts
+                .get(file_idx + 1)
+                .copied()
+                .unwrap_or(state.line_map.len())
+                .saturating_sub(1);
+            (file_start + offset_in_file).min(file_end).min(state.line_map.len().saturating_sub(1))
+        };
     }
     state.cursor_line = state.top_line;
+    let end = state.lines.len().saturating_sub(1);
+    state.cursor_line = snap_to_content(&state.line_map, state.cursor_line, 0, end);
     state.visual_anchor = state.cursor_line;
 
     // Re-run search against new lines
@@ -988,6 +1033,14 @@ pub(crate) fn handle_key(
             Key::Escape | Key::CtrlC => {
                 state.mode = Mode::Normal;
                 state.cursor_line = state.top_line;
+                let (rs, re) = visible_range(state);
+                state.cursor_line = snap_to_content(
+                    &state.line_map,
+                    state.cursor_line,
+                    rs,
+                    re.saturating_sub(1),
+                );
+                return KeyResult::Continue;
             }
             Key::Char('j') | Key::Down => {
                 let next = state.cursor_line + 1;
@@ -1007,6 +1060,7 @@ pub(crate) fn handle_key(
                         state.top_line = state.cursor_line - ch + 1;
                     }
                 }
+                return KeyResult::Continue;
             }
             Key::Char('k') | Key::Up => {
                 if state.cursor_line > 0 {
@@ -1028,6 +1082,7 @@ pub(crate) fn handle_key(
                         }
                     }
                 }
+                return KeyResult::Continue;
             }
             Key::Char('y') => {
                 let lo = state.visual_anchor.min(state.cursor_line);
@@ -1047,11 +1102,20 @@ pub(crate) fn handle_key(
                 };
                 state.mode = Mode::Normal;
                 state.cursor_line = state.top_line;
+                let (rs, re) = visible_range(state);
+                state.cursor_line = snap_to_content(
+                    &state.line_map,
+                    state.cursor_line,
+                    rs,
+                    re.saturating_sub(1),
+                );
+                // Fall through to enforce_scrolloff
             }
             Key::Char('q') => return KeyResult::Quit,
-            _ => {}
+            _ => {
+                return KeyResult::Continue;
+            }
         }
-        return KeyResult::Continue;
     }
 
     // Tree focus mode
@@ -1068,7 +1132,8 @@ pub(crate) fn handle_key(
                         state.tree_cursor = next;
                         if let Some(fi) = state.tree_entries[next].file_idx {
                             state.top_line = state.file_starts[fi];
-                            state.cursor_line = state.top_line;
+                            let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                            state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                         }
                         let (tl, tv) =
                             build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
@@ -1088,7 +1153,8 @@ pub(crate) fn handle_key(
                         state.tree_cursor = prev;
                         if let Some(fi) = state.tree_entries[prev].file_idx {
                             state.top_line = state.file_starts[fi];
-                            state.cursor_line = state.top_line;
+                            let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                            state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                         }
                         let (tl, tv) =
                             build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
@@ -1111,7 +1177,8 @@ pub(crate) fn handle_key(
                 } else if let Some(fi) = state.tree_entries[cursor].file_idx {
                     if let Some(&target) = state.file_starts.get(fi) {
                         state.top_line = target;
-                        state.cursor_line = state.top_line;
+                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                     }
                 }
             }
@@ -1119,7 +1186,6 @@ pub(crate) fn handle_key(
                 state.tree_focused = false;
             }
             Key::Char('e') => {
-                state.active_file = None;
                 state.tree_visible = false;
                 state.tree_focused = false;
                 return KeyResult::ReRender;
@@ -1136,7 +1202,8 @@ pub(crate) fn handle_key(
                         .unwrap_or(0);
                     state.active_file = Some(file_idx);
                     state.top_line = state.file_starts[file_idx];
-                    state.cursor_line = state.top_line;
+                    let file_end = state.file_starts.get(file_idx + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                    state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[file_idx], file_end);
                     state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
                     let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                     state.tree_lines = tl;
@@ -1150,7 +1217,8 @@ pub(crate) fn handle_key(
                     state.tree_cursor = first;
                     if let Some(fi) = state.tree_entries[first].file_idx {
                         state.top_line = state.file_starts[fi];
-                        state.cursor_line = state.top_line;
+                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                     }
                     let (tl, tv) =
                         build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
@@ -1164,7 +1232,8 @@ pub(crate) fn handle_key(
                     state.tree_cursor = last;
                     if let Some(fi) = state.tree_entries[last].file_idx {
                         state.top_line = state.file_starts[fi];
-                        state.cursor_line = state.top_line;
+                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
                     }
                     let (tl, tv) =
                         build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
@@ -1189,7 +1258,7 @@ pub(crate) fn handle_key(
                         .saturating_sub(ch / 2)
                         .max(rs)
                         .min(max_top);
-                    state.status_message = hunk_status_message(state.cursor_line, &hunks, &state.line_map);
+                    state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
                 sync_tree_cursor(state, ch);
             }
@@ -1217,7 +1286,7 @@ pub(crate) fn handle_key(
                         .saturating_sub(ch / 2)
                         .max(rs)
                         .min(max_top);
-                    state.status_message = hunk_status_message(state.cursor_line, &hunks, &state.line_map);
+                    state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
                 }
                 sync_tree_cursor(state, ch);
             }
@@ -1276,7 +1345,7 @@ pub(crate) fn handle_key(
                     .saturating_sub(ch / 2)
                     .max(rs)
                     .min(max_top);
-                state.status_message = hunk_status_message(state.cursor_line, &hunks, &state.line_map);
+                state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
@@ -1305,7 +1374,7 @@ pub(crate) fn handle_key(
                     .saturating_sub(ch / 2)
                     .max(rs)
                     .min(max_top);
-                state.status_message = hunk_status_message(state.cursor_line, &hunks, &state.line_map);
+                state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
             }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
@@ -1322,6 +1391,7 @@ pub(crate) fn handle_key(
                     .saturating_sub(ch / 2)
                     .max(rs)
                     .min(max_top);
+                state.status_message = file_status_message(state.cursor_line, &files, &state.line_map);
             }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
@@ -1346,6 +1416,7 @@ pub(crate) fn handle_key(
                     .saturating_sub(ch / 2)
                     .max(rs)
                     .min(max_top);
+                state.status_message = file_status_message(state.cursor_line, &files, &state.line_map);
             }
             sync_tree_cursor(state, ch);
             return KeyResult::Continue;
@@ -1431,7 +1502,6 @@ pub(crate) fn handle_key(
                 // Close tree
                 state.tree_visible = false;
                 state.tree_focused = false;
-                state.active_file = None;
             } else if state.tree_visible && !state.tree_focused {
                 // Focus tree
                 state.tree_focused = true;
@@ -1519,7 +1589,8 @@ pub(crate) fn handle_key(
                 }
                 state.active_file = Some(file_idx);
                 state.top_line = state.file_starts[file_idx];
-                state.cursor_line = state.top_line;
+                let file_end = state.file_starts.get(file_idx + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
+                state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[file_idx], file_end);
                 state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
                 let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
                 state.tree_lines = tl;
@@ -1877,27 +1948,27 @@ mod tests {
     }
 
     #[test]
-    fn hunk_status_message_positions() {
+    fn nav_status_message_positions() {
         let state = make_keybinding_state();
         // hunk_starts: [5, 15, 35, 45, 65, 75]
         // Cursor on first content line after hunk_start 5 → Hunk 1/6 · a.rs
         assert_eq!(
-            hunk_status_message(6, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 6, &state.hunk_starts, &state.line_map),
             "Hunk 1/6 · a.rs"
         );
         // Cursor on first content line after hunk_start 35 → Hunk 3/6 · b.rs
         assert_eq!(
-            hunk_status_message(36, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 36, &state.hunk_starts, &state.line_map),
             "Hunk 3/6 · b.rs"
         );
         // Cursor on last hunk → Hunk 6/6 · c.rs
         assert_eq!(
-            hunk_status_message(76, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 76, &state.hunk_starts, &state.line_map),
             "Hunk 6/6 · c.rs"
         );
         // Cursor exactly on a hunk_start (header line) → still correct index
         assert_eq!(
-            hunk_status_message(45, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 45, &state.hunk_starts, &state.line_map),
             "Hunk 4/6 · b.rs"
         );
     }
@@ -2964,6 +3035,28 @@ mod tests {
     }
 
     #[test]
+    fn e_close_tree_preserves_active_file() {
+        let mut state = make_keybinding_state();
+        state.active_file = Some(1);
+        state.tree_visible = true;
+        state.tree_focused = true;
+        handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
+        assert_eq!(state.active_file, Some(1), "single-file view must be preserved");
+        assert!(!state.tree_visible);
+        assert!(!state.tree_focused);
+    }
+
+    #[test]
+    fn e_close_tree_preserves_active_file_none() {
+        let mut state = make_keybinding_state();
+        state.active_file = None;
+        state.tree_visible = true;
+        state.tree_focused = true;
+        handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
+        assert_eq!(state.active_file, None, "active_file must stay None");
+    }
+
+    #[test]
     fn key_tab_focuses_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = true;
@@ -3158,6 +3251,471 @@ diff --git a/b.txt b/b.txt
         assert!(
             stripped.contains('\u{2500}'),
             "with tree_visible=false, re_render should include file headers (box-drawing chars)"
+        );
+    }
+
+    #[test]
+    fn re_render_preserves_position_on_header_line() {
+        let files = make_two_file_diff();
+        // Use tree_visible=false so file headers are emitted, giving us
+        // multiple new_lineno=None lines per file_idx to trigger the bug.
+        let mut state = make_pager_state_from_files(&files, false);
+
+        // Find a line in file b.txt (file_idx > 0) with new_lineno == None.
+        // With tree_visible=false there should be a file header for b.txt and
+        // also a deleted line -- the bug is that .position() matches the first
+        // None-lineno entry (the file header) even when top_line was on a later one.
+        let target = state
+            .line_map
+            .iter()
+            .enumerate()
+            .rev() // pick the LAST None-lineno line for file_idx>0
+            .find(|(_, li)| li.file_idx > 0 && li.new_lineno.is_none())
+            .map(|(i, _)| i)
+            .expect("should have a new_lineno=None line with file_idx > 0");
+
+        // Sanity: the first None-lineno line for the same file should be different
+        let first_none = state
+            .line_map
+            .iter()
+            .position(|li| li.file_idx == state.line_map[target].file_idx && li.new_lineno.is_none())
+            .unwrap();
+        assert_ne!(
+            first_none, target,
+            "need at least two None-lineno lines for the same file to trigger the bug"
+        );
+
+        state.top_line = target;
+        re_render(&mut state, &files, false, 80);
+        assert_eq!(
+            state.top_line, target,
+            "re_render should preserve top_line on a header/None-lineno line, not jump to {}",
+            first_none
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Mixed-content state builder and navigation tests
+    // ---------------------------------------------------------------------------
+
+    /// Build a 90-line PagerState with mixed content (Added/Deleted/Context).
+    ///
+    /// Same structure as `make_keybinding_state` (3 files, same file_starts and
+    /// hunk_starts), but with realistic change groups instead of all-Context.
+    ///
+    /// File 0 (a.rs, 0-29): headers at 0,5,15. Lines 6-8 Added, 10-11 Deleted.
+    /// File 1 (b.rs, 30-59): headers at 30,35,45. Lines 36-37 Added, 46-48 Deleted.
+    /// File 2 (c.rs, 60-89): headers at 60,65,75. Lines 66-67 Deleted, 76-78 Added.
+    fn make_mixed_content_state() -> PagerState {
+        let header_indices: &[usize] = &[0, 5, 15, 30, 35, 45, 60, 65, 75];
+        let mut line_map = Vec::with_capacity(90);
+        for i in 0..90 {
+            let (file_idx, path) = if i < 30 {
+                (0, "a.rs")
+            } else if i < 60 {
+                (1, "b.rs")
+            } else {
+                (2, "c.rs")
+            };
+            let line_kind = if header_indices.contains(&i) {
+                None
+            } else if matches!(i, 6..=8) || matches!(i, 36..=37) || matches!(i, 76..=78) {
+                Some(LineKind::Added)
+            } else if matches!(i, 10..=11) || matches!(i, 46..=48) || matches!(i, 66..=67) {
+                Some(LineKind::Deleted)
+            } else {
+                Some(LineKind::Context)
+            };
+            let lineno = if matches!(line_kind, Some(LineKind::Deleted)) {
+                // Deleted lines have old_lineno only
+                None
+            } else if line_kind.is_some() {
+                Some(i as u32 + 1)
+            } else {
+                None
+            };
+            let old_lineno = if matches!(line_kind, Some(LineKind::Deleted)) {
+                Some(i as u32 + 1)
+            } else {
+                None
+            };
+            line_map.push(LineInfo {
+                file_idx,
+                path: path.into(),
+                new_lineno: lineno,
+                old_lineno,
+                line_kind,
+            });
+        }
+
+        let tree_entries = vec![
+            entry("a.rs", 0, Some(0)),
+            entry("b.rs", 0, Some(1)),
+            entry("c.rs", 0, Some(2)),
+        ];
+        let width = compute_tree_width(&tree_entries);
+        let (tree_lines, tree_visible_to_entry) =
+            build_tree_lines(&tree_entries, 0, width);
+
+        PagerState {
+            lines: vec!["line".into(); 90],
+            line_map,
+            file_starts: vec![0, 30, 60],
+            hunk_starts: vec![5, 15, 35, 45, 65, 75],
+            top_line: 0,
+            cursor_line: 1,
+            visual_anchor: 0,
+            search_query: String::new(),
+            search_matches: Vec::new(),
+            current_match: -1,
+            mode: Mode::Normal,
+            search_input: String::new(),
+            search_cursor: 0,
+            status_message: String::new(),
+            tree_visible: true,
+            tree_focused: false,
+            tree_cursor: 0,
+            tree_width: width,
+            tree_scroll: 0,
+            tree_lines,
+            tree_entries,
+            tree_visible_to_entry,
+            active_file: None,
+            full_context: false,
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Navigation edge cases with mixed content and full_context
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn key_d_full_context_single_file_lands_on_change_group() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0);
+        state.full_context = true;
+        state.cursor_line = 1; // context line before first change group
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        // Should jump to first change group at line 6 (Added)
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_u_full_context_single_file_at_first_change_is_noop() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0);
+        state.full_context = true;
+        state.cursor_line = 7; // inside first change group (Added 6-8)
+        handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
+        // No previous change group in file 0 → should stay put
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_d_then_u_round_trip_full_context_single_file() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0);
+        state.full_context = true;
+        state.cursor_line = 6; // on first change group
+        // d should jump to second change group (Deleted at 10)
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        let after_d = state.cursor_line;
+        // u should jump back to first change group
+        handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
+        let after_u = state.cursor_line;
+        assert!(after_d > 6, "d should move forward from 6, got {after_d}");
+        assert!(after_u <= 8, "u should return near first change group, got {after_u}");
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_d_full_context_all_context_file_is_noop() {
+        // Create a state where file 0 has no changes (all Context)
+        let mut state = make_keybinding_state();
+        state.active_file = Some(0);
+        state.full_context = true;
+        state.cursor_line = 1;
+        // make_keybinding_state has all Context lines → no change groups
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        // Should stay put — no change_group_starts in range
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_d_tree_focused_full_context_single_file() {
+        let mut state = make_mixed_content_state();
+        state.tree_focused = true;
+        state.active_file = Some(0);
+        state.full_context = true;
+        state.cursor_line = 1;
+        handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
+        // Tree-focused d falls through to normal handler, should land on change group
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_g_single_file_lands_on_file_start() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(1); // b.rs: lines 30-59
+        state.cursor_line = 50;
+        handle_key(&mut state, Key::Char('g'), 40, 40, &[]);
+        // Should land on first content line of file 1 (31), not global line 1
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn key_G_single_file_lands_on_file_end() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0); // a.rs: lines 0-29
+        state.cursor_line = 1;
+        handle_key(&mut state, Key::Char('G'), 40, 40, &[]);
+        // Should land on last content line of file 0 (29), not line 89
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_ctrl_d_single_file_clamps_to_file_end() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0); // a.rs: lines 0-29
+        state.cursor_line = 25;
+        handle_key(&mut state, Key::CtrlD, 20, 40, &[]); // half page = 10
+        // cursor + 10 = 35, but file 0 ends at 29 → clamped
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_ctrl_u_single_file_clamps_to_file_start() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(1); // b.rs: lines 30-59
+        state.cursor_line = 32;
+        handle_key(&mut state, Key::CtrlU, 20, 40, &[]); // half page = 10
+        // cursor - 10 = 22, but file 1 starts at 30 → clamped
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_j_at_last_content_line_of_single_file_is_noop() {
+        let mut state = make_mixed_content_state();
+        state.active_file = Some(0); // a.rs: lines 0-29
+        state.cursor_line = 29; // last line of file 0
+        handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
+        // Should stay at 29, not cross to file 1
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn key_U_no_active_file_at_file_boundary() {
+        let mut state = make_mixed_content_state();
+        state.active_file = None;
+        state.cursor_line = 31; // first content line of file 1
+        handle_key(&mut state, Key::Char('U'), 50, 40, &[]);
+        // Should jump to file 0 start, not get stuck
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Search navigation in single-file mode
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn key_n_wraps_within_single_file() {
+        let mut state = make_mixed_content_state();
+        state.search_matches = vec![6, 36, 66]; // one match per file
+        state.current_match = 0; // at match line 6 (in file 0)
+        state.active_file = Some(0); // only file 0 visible
+        handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
+        // Only match in file 0 is at 6, should wrap back to 6
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn key_N_wraps_within_single_file() {
+        let mut state = make_mixed_content_state();
+        state.search_matches = vec![6, 36, 66];
+        state.current_match = 0; // at match line 6 (in file 0)
+        state.active_file = Some(0);
+        handle_key(&mut state, Key::Char('N'), 40, 40, &[]);
+        // Only match in file 0 is at 6, should wrap back to 6
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_n_no_matches_in_active_file() {
+        let mut state = make_mixed_content_state();
+        state.search_matches = vec![36, 66]; // no matches in file 0
+        state.current_match = -1;
+        state.active_file = Some(0);
+        handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
+        // No matches in range 0-29 → no change
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn key_n_after_toggling_single_file_off_cycles_globally() {
+        let mut state = make_mixed_content_state();
+        state.search_matches = vec![6, 36, 66];
+        state.current_match = 0; // at match 6
+        state.active_file = None; // all files visible
+        handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
+        // Should advance to next global match at 36
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Visual mode boundary and yank tests
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn visual_j_clamps_at_file_boundary() {
+        let mut state = make_mixed_content_state();
+        state.mode = Mode::Visual;
+        state.visual_anchor = 28;
+        state.cursor_line = 28; // near end of file 0 (file 1 starts at 30)
+        // Move j twice: 28→29 should work, 29→30 should be clamped
+        handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
+        assert_eq!(state.cursor_line, 29, "first j should move to 29");
+        handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
+        // Line 30 is file 1 (different file_idx) → clamped
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn visual_k_clamps_at_file_boundary() {
+        let mut state = make_mixed_content_state();
+        state.mode = Mode::Visual;
+        state.visual_anchor = 31;
+        state.cursor_line = 31; // first content line of file 1
+        // Move k: 31→30 should be clamped (30 is file 1's header, same file_idx)
+        // but 30→29 would be file 0 (different file_idx) → clamped there
+        handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
+        let after_first_k = state.cursor_line;
+        handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
+        // Can't go below file_start of anchor's file
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+        // Verify we didn't cross into file 0
+        let file_idx = state.line_map[state.cursor_line].file_idx;
+        assert_eq!(file_idx, 1, "cursor must remain in file 1, at line {}", state.cursor_line);
+        let _ = after_first_k;
+    }
+
+    #[test]
+    fn visual_y_with_mixed_content_lines() {
+        let mut state = make_mixed_content_state();
+        state.mode = Mode::Visual;
+        state.visual_anchor = 6; // Added line (new_lineno=7)
+        state.cursor_line = 11; // Deleted line (old_lineno=12, no new_lineno)
+        handle_key(&mut state, Key::Char('y'), 40, 40, &[]);
+        // Should produce new_lineno-only references (a.rs:7-9); Deleted lines
+        // are skipped for line number resolution since the selection contains Added lines
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn visual_escape_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.mode = Mode::Visual;
+        state.visual_anchor = 1;
+        state.cursor_line = 3;
+        state.top_line = 0; // a header line (line_kind None)
+        handle_key(&mut state, Key::Escape, 40, 40, &[]);
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
+        );
+    }
+
+    #[test]
+    fn visual_yank_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.mode = Mode::Visual;
+        state.visual_anchor = 1;
+        state.cursor_line = 3;
+        state.top_line = 0; // a header line (line_kind None)
+        handle_key(&mut state, Key::Char('y'), 40, 40, &[]);
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
+        );
+    }
+
+    #[test]
+    fn tree_j_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.tree_cursor = 0; // a.rs
+        handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
+        // j moves to b.rs; file_starts[1] = 30, which is a header
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
+        );
+    }
+
+    #[test]
+    fn tree_enter_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.tree_cursor = 1; // b.rs entry
+        handle_key(&mut state, Key::Enter, 40, 40, &[]);
+        // Enter scrolls to b.rs; file_starts[1] = 30, which is a header
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
+        );
+    }
+
+    #[test]
+    fn tree_g_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.tree_focused = true;
+        state.cursor_line = 31;
+        state.tree_cursor = 1;
+        handle_key(&mut state, Key::Char('g'), 40, 40, &[]);
+        // g jumps to first file; file_starts[0] = 0, which is a header
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
+        );
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn key_D_shows_file_status_message() {
+        let mut state = make_mixed_content_state();
+        state.cursor_line = 1; // inside file 0 (a.rs)
+        handle_key(&mut state, Key::Char('D'), 40, 40, &[]);
+        // D navigates to next file; status message should say "File" and "b.rs"
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn key_U_shows_file_status_message() {
+        let mut state = make_mixed_content_state();
+        state.cursor_line = 31; // inside file 1 (b.rs)
+        handle_key(&mut state, Key::Char('U'), 50, 40, &[]);
+        // U navigates to previous file; status message should say "File" and "a.rs"
+        assert_debug_snapshot!(StateSnapshot::from(&state));
+    }
+
+    #[test]
+    fn normal_a_toggle_on_snaps_cursor_to_content() {
+        let mut state = make_keybinding_state();
+        state.cursor_line = 31; // inside b.rs
+        handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
+        // 'a' activates single-file view; file_starts[1] = 30, which is a header
+        assert!(
+            is_content_line(&state.line_map, state.cursor_line),
+            "cursor_line {} is not a content line",
+            state.cursor_line
         );
     }
 }

@@ -12,7 +12,7 @@ StateSnapshot {
     tree_focused: false,
     tree_cursor: 1,
     mode: Normal,
-    status_message: "File 1/1 · b.rs",
+    status_message: "",
     full_context: false,
     visual_anchor: 0,
 }
