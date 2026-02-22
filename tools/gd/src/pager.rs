@@ -18,30 +18,134 @@ use crate::style;
 
 use tui::pager::Key;
 
+/// Returns true when GD_DEBUG=1. Debug output is disabled by default.
+fn gd_debug_enabled() -> bool {
+    std::env::var_os("GD_DEBUG").map_or(false, |v| v == "1")
+}
+
 fn debug_escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-fn debug_log(run_id: &str, hypothesis_id: &str, location: &str, message: &str, data: &str) {
+/// Writes a structured debug line to stderr only when GD_DEBUG=1. No-op otherwise.
+/// Does not mutate state.
+fn debug_trace(location: &str, message: &str, data: &str) {
+    if !gd_debug_enabled() {
+        return;
+    }
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as u64);
     let line = format!(
-        "{{\"sessionId\":\"5064b6\",\"runId\":\"{}\",\"hypothesisId\":\"{}\",\"location\":\"{}\",\"message\":\"{}\",\"data\":{},\"timestamp\":{}}}\n",
-        debug_escape(run_id),
-        debug_escape(hypothesis_id),
+        "[gd] {{\"location\":\"{}\",\"message\":\"{}\",\"data\":{},\"timestamp\":{}}}\n",
         debug_escape(location),
         debug_escape(message),
         data,
         ts
     );
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("/Users/scott/Code/personal/dotfiles/.cursor/debug-5064b6.log")
-    {
-        let _ = f.write_all(line.as_bytes());
+    let _ = std::io::stderr().write_all(line.as_bytes());
+}
+
+// -------- Typed index newtypes (checked constructors, invalid-state prevention) --------
+
+/// Valid file index into `file_starts`. Construct via `FileIx::new(idx, file_count)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct FileIx(usize);
+
+impl FileIx {
+    /// Returns `Some(FileIx)` if `idx < file_count`, else `None`.
+    pub fn new(idx: usize, file_count: usize) -> Option<Self> {
+        if idx < file_count {
+            Some(FileIx(idx))
+        } else {
+            None
+        }
     }
+    pub fn get(self) -> usize {
+        self.0
+    }
+}
+
+/// Valid line index into `lines` / `line_map`. Construct via `LineIx::new(idx, line_count)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(crate) struct LineIx(usize);
+
+#[allow(dead_code)]
+impl LineIx {
+    /// Returns `Some(LineIx)` if `idx < line_count`, else `None`.
+    pub fn new(idx: usize, line_count: usize) -> Option<Self> {
+        if idx < line_count {
+            Some(LineIx(idx))
+        } else {
+            None
+        }
+    }
+    pub fn get(self) -> usize {
+        self.0
+    }
+}
+
+/// Valid tree entry index into `tree_entries`. Construct via `TreeEntryIx::new(idx, entry_count)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct TreeEntryIx(usize);
+
+impl TreeEntryIx {
+    /// Returns `Some(TreeEntryIx)` if `idx < entry_count`, else `None`.
+    pub fn new(idx: usize, entry_count: usize) -> Option<Self> {
+        if idx < entry_count {
+            Some(TreeEntryIx(idx))
+        } else {
+            None
+        }
+    }
+    pub fn get(self) -> usize {
+        self.0
+    }
+}
+
+// -------- Typed state enums (replace boolean meshes) --------
+
+/// Which panel has keyboard focus.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Focus {
+    Diff,
+    Tree,
+}
+
+/// Overlay mode with typed payloads. Used in later chunks.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+pub(crate) enum Overlay {
+    None,
+    Search(SearchState),
+    Help,
+    Visual(VisualState),
+}
+
+/// Search overlay state. Used in later chunks.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[allow(dead_code)]
+pub(crate) struct SearchState {
+    pub query: String,
+    pub matches: Vec<usize>,
+    pub current_match: isize,
+    pub input: String,
+    pub cursor: usize,
+}
+
+/// Visual mode overlay state. Used in later chunks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(crate) struct VisualState {
+    pub anchor: usize,
+}
+
+/// View scope: all files or single file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ViewScope {
+    AllFiles,
+    SingleFile(FileIx),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -61,18 +165,844 @@ pub(crate) enum KeyResult {
     OpenEditor { path: String, lineno: Option<u32> },
 }
 
+// -------- Keymap single source (chunk-04) --------
+
+/// Context in which a keybinding applies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum KeyContext {
+    Normal,
+    Tree,
+    Search,
+    Visual,
+}
+
+/// Action identifiers. Single source of truth for key→action mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ActionId {
+    Quit,
+    ScrollDown,
+    ScrollUp,
+    HalfPageDown,
+    HalfPageUp,
+    Top,
+    Bottom,
+    NextHunk,
+    PrevHunk,
+    NextFile,
+    PrevFile,
+    ToggleSingleFile,
+    ToggleFullContext,
+    Search,
+    SearchSubmit,
+    SearchCancel,
+    NextMatch,
+    PrevMatch,
+    ToggleTree,
+    FocusTree,
+    FocusTreeOrShow,
+    ReturnToDiff,
+    TreeClose,
+    TreeFirst,
+    TreeLast,
+    TreeNavDown,
+    TreeNavUp,
+    TreeSelect,
+    EnterVisual,
+    VisualExtendDown,
+    VisualExtendUp,
+    VisualCopy,
+    VisualCancel,
+    OpenEditor,
+    Help,
+}
+
+/// Help group for overlay layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum HelpGroup {
+    Navigation,
+    DiffNav,
+    Search,
+    FileTree,
+    VisualMode,
+    Other,
+}
+
+/// Keymap entry: keys that trigger an action in a context, plus help display.
+#[allow(dead_code)]
+struct KeymapEntry {
+    action: ActionId,
+    context: KeyContext,
+    keys: &'static [Key],
+    group: HelpGroup,
+    key_display: &'static str,
+    label: &'static str,
+}
+
+fn keymap_entries() -> &'static [KeymapEntry] {
+    use ActionId::*;
+    use HelpGroup::*;
+    use KeyContext::*;
+    static ENTRIES: &[KeymapEntry] = &[
+        KeymapEntry { action: ScrollDown, context: Normal, keys: &[Key::Char('j'), Key::Down, Key::Enter], group: Navigation, key_display: "j/\u{2193}/Enter", label: "Scroll down" },
+        KeymapEntry { action: ScrollUp, context: Normal, keys: &[Key::Char('k'), Key::Up], group: Navigation, key_display: "k/\u{2191}", label: "Scroll up" },
+        KeymapEntry { action: HalfPageDown, context: Normal, keys: &[Key::CtrlD, Key::PageDown], group: Navigation, key_display: "Ctrl-D", label: "Half page down" },
+        KeymapEntry { action: HalfPageUp, context: Normal, keys: &[Key::CtrlU, Key::PageUp], group: Navigation, key_display: "Ctrl-U", label: "Half page up" },
+        KeymapEntry { action: Top, context: Normal, keys: &[Key::Char('g'), Key::Home], group: Navigation, key_display: "g/Home", label: "Top" },
+        KeymapEntry { action: Bottom, context: Normal, keys: &[Key::Char('G'), Key::End], group: Navigation, key_display: "G/End", label: "Bottom" },
+        KeymapEntry { action: NextHunk, context: Normal, keys: &[Key::Char('d')], group: DiffNav, key_display: "d", label: "Next hunk" },
+        KeymapEntry { action: PrevHunk, context: Normal, keys: &[Key::Char('u')], group: DiffNav, key_display: "u", label: "Previous hunk" },
+        KeymapEntry { action: NextFile, context: Normal, keys: &[Key::Char('D')], group: DiffNav, key_display: "D", label: "Next file" },
+        KeymapEntry { action: PrevFile, context: Normal, keys: &[Key::Char('U')], group: DiffNav, key_display: "U", label: "Previous file" },
+        KeymapEntry { action: ToggleSingleFile, context: Normal, keys: &[Key::Char('a')], group: DiffNav, key_display: "a", label: "Toggle single file" },
+        KeymapEntry { action: ToggleFullContext, context: Normal, keys: &[Key::Char('z')], group: DiffNav, key_display: "z", label: "Toggle full file context" },
+        KeymapEntry { action: ActionId::Search, context: Normal, keys: &[Key::Char('/')], group: HelpGroup::Search, key_display: "/", label: "Search" },
+        KeymapEntry { action: SearchSubmit, context: KeyContext::Search, keys: &[Key::Enter], group: HelpGroup::Search, key_display: "Enter", label: "Apply search" },
+        KeymapEntry { action: SearchCancel, context: KeyContext::Search, keys: &[Key::Escape, Key::CtrlC], group: HelpGroup::Search, key_display: "Esc", label: "Cancel search" },
+        KeymapEntry { action: NextMatch, context: Normal, keys: &[Key::Char('n')], group: HelpGroup::Search, key_display: "n", label: "Next match" },
+        KeymapEntry { action: PrevMatch, context: Normal, keys: &[Key::Char('N')], group: HelpGroup::Search, key_display: "N", label: "Previous match" },
+        KeymapEntry { action: ToggleTree, context: Normal, keys: &[Key::Char('e')], group: FileTree, key_display: "e", label: "Toggle tree panel" },
+        KeymapEntry { action: FocusTree, context: Normal, keys: &[Key::Tab], group: FileTree, key_display: "Tab", label: "Focus panel" },
+        KeymapEntry { action: FocusTreeOrShow, context: Normal, keys: &[Key::Char('1')], group: FileTree, key_display: "1", label: "Toggle tree focus" },
+        KeymapEntry { action: FocusTreeOrShow, context: Normal, keys: &[Key::CtrlL, Key::Char('l')], group: FileTree, key_display: "l/Ctrl-L", label: "Show + focus tree" },
+        KeymapEntry { action: ReturnToDiff, context: Tree, keys: &[Key::CtrlH, Key::Escape, Key::Tab, Key::Char('1'), Key::Char('h')], group: FileTree, key_display: "h/Ctrl-H", label: "Return to diff" },
+        KeymapEntry { action: TreeClose, context: Tree, keys: &[Key::Char('e')], group: FileTree, key_display: "e", label: "Close tree" },
+        KeymapEntry { action: TreeFirst, context: Tree, keys: &[Key::Char('g'), Key::Home], group: FileTree, key_display: "g/Home", label: "First file" },
+        KeymapEntry { action: TreeLast, context: Tree, keys: &[Key::Char('G'), Key::End], group: FileTree, key_display: "G/End", label: "Last file" },
+        KeymapEntry { action: TreeNavDown, context: Tree, keys: &[Key::Char('j'), Key::Down], group: FileTree, key_display: "j/k", label: "(tree) Navigate" },
+        KeymapEntry { action: TreeNavUp, context: Tree, keys: &[Key::Char('k'), Key::Up], group: FileTree, key_display: "j/k", label: "(tree) Navigate" },
+        KeymapEntry { action: TreeSelect, context: Tree, keys: &[Key::Enter], group: FileTree, key_display: "Enter", label: "Select / toggle folder" },
+        KeymapEntry { action: ToggleSingleFile, context: Tree, keys: &[Key::Char('a')], group: FileTree, key_display: "a", label: "Toggle single file" },
+        KeymapEntry { action: NextHunk, context: Tree, keys: &[Key::Char('d')], group: FileTree, key_display: "d", label: "Next hunk" },
+        KeymapEntry { action: PrevHunk, context: Tree, keys: &[Key::Char('u')], group: FileTree, key_display: "u", label: "Previous hunk" },
+        KeymapEntry { action: Quit, context: Tree, keys: &[Key::Char('q'), Key::CtrlC], group: FileTree, key_display: "q", label: "Quit" },
+        KeymapEntry { action: EnterVisual, context: Normal, keys: &[Key::Char('v')], group: VisualMode, key_display: "v", label: "Enter visual mode" },
+        KeymapEntry { action: VisualExtendDown, context: Visual, keys: &[Key::Char('j'), Key::Down], group: VisualMode, key_display: "j/k", label: "Extend selection" },
+        KeymapEntry { action: VisualExtendUp, context: Visual, keys: &[Key::Char('k'), Key::Up], group: VisualMode, key_display: "j/k", label: "Extend selection" },
+        KeymapEntry { action: VisualCopy, context: Visual, keys: &[Key::Char('y')], group: VisualMode, key_display: "y", label: "Copy path:lines" },
+        KeymapEntry { action: VisualCancel, context: Visual, keys: &[Key::Escape, Key::CtrlC], group: VisualMode, key_display: "Esc", label: "Cancel" },
+        KeymapEntry { action: Quit, context: Visual, keys: &[Key::Char('q')], group: VisualMode, key_display: "q", label: "Quit" },
+        KeymapEntry { action: OpenEditor, context: Normal, keys: &[Key::Char('E')], group: Other, key_display: "E", label: "Open in editor" },
+        KeymapEntry { action: Quit, context: Normal, keys: &[Key::Char('q'), Key::CtrlC], group: Other, key_display: "q", label: "Quit" },
+        KeymapEntry { action: Help, context: Normal, keys: &[Key::Char('?')], group: Other, key_display: "? / Esc", label: "Close help" },
+    ];
+    ENTRIES
+}
+
+fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
+    for e in keymap_entries() {
+        if e.context == context && e.keys.contains(&key) {
+            return Some(e.action);
+        }
+    }
+    None
+}
+
+/// Build help lines from keymap. Preserves grouping (Navigation, Diff Nav, Search, File Tree, Visual, Other).
+/// Returns raw lines for format_help_lines to pad/center.
+fn keymap_help_lines() -> Vec<String> {
+    use HelpGroup::*;
+    use std::collections::HashSet;
+    let order = [Navigation, DiffNav, Search, FileTree, VisualMode, Other];
+    let mut lines: Vec<String> = Vec::new();
+    for group in order {
+        let mut seen: HashSet<(&'static str, &'static str)> = HashSet::new();
+        let mut group_lines: Vec<(&'static str, &'static str)> = Vec::new();
+        for e in keymap_entries() {
+            if e.group == group && !e.keys.is_empty() && !e.key_display.is_empty() {
+                let k = (e.key_display, e.label);
+                if !seen.contains(&k) {
+                    seen.insert(k);
+                    group_lines.push((e.key_display, e.label));
+                }
+            }
+        }
+        if !group_lines.is_empty() {
+            if !lines.is_empty() {
+                lines.push(String::new());
+            }
+            let group_name = match group {
+                Navigation => "Navigation",
+                DiffNav => "Diff Navigation",
+                Search => "Search",
+                FileTree => "File Tree",
+                VisualMode => "Visual Mode",
+                Other => "Other",
+            };
+            lines.push(group_name.to_string());
+            for (k, l) in group_lines {
+                let pad = 12usize.saturating_sub(k.chars().count());
+                lines.push(format!("{}{}  {}", k, " ".repeat(pad), l));
+            }
+        }
+    }
+    lines
+}
+
+/// Dispatch by action id. Returns Some(effect) to return immediately, None to fall through to
+/// enforce_scrolloff/sync (for scroll-like actions that don't early-return).
+fn dispatch_normal_action(
+    state: &mut PagerState,
+    action: ActionId,
+    ctx: &ReducerCtx<'_>,
+) -> Option<ReducerEffect> {
+    use ActionId::*;
+    let ch = ctx.content_height;
+    let rows = ctx.rows;
+    let files = ctx.files;
+    let half_page = ch / 2;
+    let (range_start, range_end) = visible_range(state);
+    let max_cursor = range_end.saturating_sub(1);
+
+    match action {
+        Quit => return Some(ReducerEffect::Quit),
+        ScrollDown => {
+            let next = (state.cursor_line + 1).min(max_cursor);
+            state.cursor_line = next_content_line(&state.doc.line_map, next, max_cursor);
+            return None; // fall through
+        }
+        ScrollUp => {
+            let prev = state.cursor_line.saturating_sub(1).max(range_start);
+            state.cursor_line = prev_content_line(&state.doc.line_map, prev, range_start);
+            return None;
+        }
+        HalfPageDown => {
+            let target = (state.cursor_line + half_page).min(max_cursor);
+            state.cursor_line = next_content_line(&state.doc.line_map, target, max_cursor);
+            if !is_content_line(&state.doc.line_map, state.cursor_line) {
+                state.cursor_line = prev_content_line(&state.doc.line_map, target, range_start);
+            }
+            return None;
+        }
+        HalfPageUp => {
+            let target = state.cursor_line.saturating_sub(half_page).max(range_start);
+            state.cursor_line = prev_content_line(&state.doc.line_map, target, range_start);
+            if !is_content_line(&state.doc.line_map, state.cursor_line) {
+                state.cursor_line = next_content_line(&state.doc.line_map, target, max_cursor);
+            }
+            return None;
+        }
+        Top => {
+            state.cursor_line = next_content_line(&state.doc.line_map, range_start, max_cursor);
+            return None;
+        }
+        Bottom => {
+            state.cursor_line = prev_content_line(&state.doc.line_map, max_cursor, range_start);
+            return None;
+        }
+        NextHunk => {
+            let res = nav_du_down(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.status_message = res.status_message.clone();
+            sync_active_file_to_cursor(state);
+            if res.moved {
+                let (rs, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+            }
+            sync_tree_cursor(state, ch);
+            return Some(ReducerEffect::Continue);
+        }
+        PrevHunk => {
+            let res = nav_du_up(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.status_message = res.status_message.clone();
+            sync_active_file_to_cursor(state);
+            if res.moved {
+                let (rs, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+            }
+            sync_tree_cursor(state, ch);
+            return Some(ReducerEffect::Continue);
+        }
+        NextFile => {
+            let res = nav_D_down(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.top_line = res.top_line;
+            state.status_message = res.status_message;
+            sync_tree_cursor(state, ch);
+            return Some(ReducerEffect::Continue);
+        }
+        PrevFile => {
+            let res = nav_U_up(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.top_line = res.top_line;
+            state.status_message = res.status_message;
+            sync_tree_cursor(state, ch);
+            return Some(ReducerEffect::Continue);
+        }
+        ToggleSingleFile => {
+            if state.active_file().is_some() {
+                state.set_active_file(None);
+                state.status_message = "All files".into();
+            } else {
+                let anchor = state.cursor_line;
+                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                if state.tree_entries.is_empty() {
+                    state.tree_entries = build_tree_entries(files);
+                    state.tree_width = compute_tree_width(&state.tree_entries);
+                }
+                state.set_active_file(Some(file_idx));
+                if let Some(start) = state.file_start(file_idx) {
+                    let file_end = state.file_end(file_idx).saturating_sub(1);
+                    state.top_line = start;
+                    state.cursor_line =
+                        snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
+                }
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                let (tl, tv) =
+                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                state.status_message = "Single file".into();
+            }
+            return Some(ReducerEffect::ReRender);
+        }
+        ToggleFullContext => {
+            state.full_context = !state.full_context;
+            state.status_message = if state.full_context {
+                "Full file context".into()
+            } else {
+                "Hunk context".into()
+            };
+            return Some(ReducerEffect::ReGenerate);
+        }
+        ActionId::Search => {
+            state.mode = Mode::Search;
+            return None;
+        }
+        NextMatch => {
+            if !state.search_matches.is_empty() {
+                if state.active_file().is_some() {
+                    let (rs, re) = visible_range(state);
+                    let filtered: Vec<usize> = state
+                        .search_matches
+                        .iter()
+                        .copied()
+                        .filter(|&m| m >= rs && m < re)
+                        .collect();
+                    if !filtered.is_empty() {
+                        let cur_line = if state.current_match >= 0 {
+                            state.search_matches[state.current_match as usize]
+                        } else {
+                            0
+                        };
+                        if let Some(pos) = filtered.iter().position(|&m| m > cur_line) {
+                            let global = state
+                                .search_matches
+                                .iter()
+                                .position(|&m| m == filtered[pos])
+                                .unwrap();
+                            state.current_match = global as isize;
+                        } else {
+                            let global = state
+                                .search_matches
+                                .iter()
+                                .position(|&m| m == filtered[0])
+                                .unwrap();
+                            state.current_match = global as isize;
+                        }
+                        scroll_to_match(state, rows);
+                    }
+                } else {
+                    state.current_match =
+                        (state.current_match + 1) % state.search_matches.len() as isize;
+                    scroll_to_match(state, rows);
+                }
+            }
+            return None;
+        }
+        PrevMatch => {
+            if !state.search_matches.is_empty() {
+                if state.active_file().is_some() {
+                    let (rs, re) = visible_range(state);
+                    let filtered: Vec<usize> = state
+                        .search_matches
+                        .iter()
+                        .copied()
+                        .filter(|&m| m >= rs && m < re)
+                        .collect();
+                    if !filtered.is_empty() {
+                        let cur_line = if state.current_match >= 0 {
+                            state.search_matches[state.current_match as usize]
+                        } else {
+                            usize::MAX
+                        };
+                        if let Some(pos) = filtered.iter().rposition(|&m| m < cur_line) {
+                            let global = state
+                                .search_matches
+                                .iter()
+                                .position(|&m| m == filtered[pos])
+                                .unwrap();
+                            state.current_match = global as isize;
+                        } else {
+                            let last = *filtered.last().unwrap();
+                            let global = state
+                                .search_matches
+                                .iter()
+                                .position(|&m| m == last)
+                                .unwrap();
+                            state.current_match = global as isize;
+                        }
+                        scroll_to_match(state, rows);
+                    }
+                } else {
+                    state.current_match = (state.current_match - 1
+                        + state.search_matches.len() as isize)
+                        % state.search_matches.len() as isize;
+                    scroll_to_match(state, rows);
+                }
+            }
+            return None;
+        }
+        ToggleTree => {
+            if state.tree_visible && state.tree_focused() {
+                state.tree_visible = false;
+                state.set_tree_focused(false);
+            } else if state.tree_visible && !state.tree_focused() {
+                state.set_tree_focused(true);
+                let anchor = state.cursor_line;
+                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                let (tl, tv) =
+                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                ensure_tree_cursor_visible(state, ch);
+            } else if !state.tree_visible {
+                state.tree_visible = true;
+                state.set_tree_focused(true);
+                let anchor = state.cursor_line;
+                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                state.tree_entries = build_tree_entries(files);
+                state.tree_width = compute_tree_width(&state.tree_entries);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                ensure_tree_cursor_visible(state, ch);
+            }
+            return Some(ReducerEffect::ReRender);
+        }
+        FocusTree => {
+            if state.tree_visible {
+                let anchor = state.cursor_line;
+                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                let (tl, tv) =
+                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                state.set_tree_focused(true);
+                ensure_tree_cursor_visible(state, ch);
+            }
+            return None;
+        }
+        FocusTreeOrShow => {
+            if !state.tree_visible {
+                state.tree_visible = true;
+                let anchor = state.cursor_line;
+                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                state.tree_entries = build_tree_entries(files);
+                state.tree_width = compute_tree_width(&state.tree_entries);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+            }
+            state.set_tree_focused(true);
+            ensure_tree_cursor_visible(state, ch);
+            return Some(ReducerEffect::ReRender);
+        }
+        EnterVisual => {
+            state.mode = Mode::Visual;
+            state.visual_anchor = state.cursor_line;
+            return None;
+        }
+        OpenEditor => {
+            let pos = state.cursor_line.min(state.doc.line_map.len().saturating_sub(1));
+            if !state.doc.line_map.is_empty() {
+                let info = &state.doc.line_map[pos];
+                let path = info.path.clone();
+                let lineno = info.new_lineno;
+                return Some(ReducerEffect::OpenEditor { path, lineno });
+            }
+            return None;
+        }
+        Help => {
+            state.mode = Mode::Help;
+            return None;
+        }
+        ReturnToDiff | TreeClose | TreeFirst | TreeLast | TreeNavDown | TreeNavUp
+        | TreeSelect | VisualExtendDown | VisualExtendUp | VisualCopy
+        | VisualCancel | SearchSubmit | SearchCancel => {
+            // Not valid in Normal context; keymap lookup should not return these for Normal
+            return None;
+        }
+    }
+}
+
+fn dispatch_tree_action(
+    state: &mut PagerState,
+    action: ActionId,
+    ctx: &ReducerCtx<'_>,
+) -> ReducerEffect {
+    use ActionId::*;
+    let ch = ctx.content_height;
+
+    match action {
+        TreeNavDown => {
+            let _ = move_tree_selection(state, 1, ch);
+        }
+        TreeNavUp => {
+            let _ = move_tree_selection(state, -1, ch);
+        }
+        TreeSelect => {
+            let cursor = state.tree_cursor();
+            if let Some(entry) = state.tree_entry(cursor) {
+                if entry.file_idx.is_none() {
+                    if let Some(e) = state.tree_entry_mut(cursor) {
+                        e.collapsed = !e.collapsed;
+                    }
+                    let (tl, tv) =
+                        build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                    state.tree_lines = tl;
+                    state.tree_visible_to_entry = tv;
+                    ensure_tree_cursor_visible(state, ch);
+                } else if let Some(fi) = entry.file_idx {
+                    if let Some(target) = state.file_start(fi) {
+                        if state.active_file().is_some() {
+                            state.set_active_file(Some(fi));
+                        }
+                        state.top_line = target;
+                        let file_end = state.file_end(fi).saturating_sub(1);
+                        state.cursor_line =
+                            snap_to_content(&state.doc.line_map, state.top_line, target, file_end);
+                    }
+                }
+            }
+        }
+        ReturnToDiff => {
+            state.set_tree_focused(false);
+        }
+        TreeClose => {
+            state.tree_visible = false;
+            state.set_tree_focused(false);
+            return ReducerEffect::ReRender;
+        }
+        TreeFirst => {
+            if let Some(&first) = state.tree_visible_to_entry.first() {
+                state.set_tree_cursor(first);
+                if let Some(fi) = state.tree_entry(first).and_then(|e| e.file_idx) {
+                    if let Some(start) = state.file_start(fi) {
+                        let file_end = state.file_end(fi).saturating_sub(1);
+                        state.top_line = start;
+                        state.cursor_line =
+                            snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
+                    }
+                }
+                let (tl, tv) =
+                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                ensure_tree_cursor_visible(state, ch);
+            }
+        }
+        TreeLast => {
+            if let Some(&last) = state.tree_visible_to_entry.last() {
+                state.set_tree_cursor(last);
+                if let Some(fi) = state.tree_entry(last).and_then(|e| e.file_idx) {
+                    if let Some(start) = state.file_start(fi) {
+                        let file_end = state.file_end(fi).saturating_sub(1);
+                        state.top_line = start;
+                        state.cursor_line =
+                            snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
+                    }
+                }
+                let (tl, tv) =
+                    build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                ensure_tree_cursor_visible(state, ch);
+            }
+        }
+        ToggleSingleFile => {
+            if state.active_file().is_some() {
+                state.set_active_file(None);
+                state.status_message = "All files".into();
+            } else {
+                let file_idx = state
+                    .visible_tree_entry()
+                    .and_then(|e| e.file_idx)
+                    .unwrap_or(0);
+                state.set_active_file(Some(file_idx));
+                if let Some(start) = state.file_start(file_idx) {
+                    let file_end = state.file_end(file_idx).saturating_sub(1);
+                    state.top_line = start;
+                    state.cursor_line =
+                        snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
+                }
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+                state.tree_lines = tl;
+                state.tree_visible_to_entry = tv;
+                state.status_message = "Single file".into();
+            }
+            return ReducerEffect::ReRender;
+        }
+        NextHunk => {
+            let res = nav_du_down(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.status_message = res.status_message.clone();
+            sync_active_file_to_cursor(state);
+            if res.moved {
+                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+            }
+            sync_tree_cursor_force(state, ch);
+        }
+        PrevHunk => {
+            let res = nav_du_up(state, ch);
+            state.cursor_line = res.cursor_line;
+            state.status_message = res.status_message.clone();
+            sync_active_file_to_cursor(state);
+            if res.moved {
+                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+            }
+            sync_tree_cursor_force(state, ch);
+        }
+        Quit => return ReducerEffect::Quit,
+        _ => {}
+    }
+    ReducerEffect::Continue
+}
+
+fn dispatch_visual_action(
+    state: &mut PagerState,
+    action: ActionId,
+    ctx: &ReducerCtx<'_>,
+) -> ReducerEffect {
+    use ActionId::*;
+    let ch = ctx.content_height;
+
+    match action {
+        VisualExtendDown => {
+            let next = state.cursor_line + 1;
+            let anchor_file = state
+                .doc.line_map
+                .get(state.visual_anchor)
+                .map_or(0, |l| l.file_idx);
+            let next_file = state
+                .doc.line_map
+                .get(next)
+                .map_or(usize::MAX, |l| l.file_idx);
+            if next < state.doc.lines.len() && next_file == anchor_file {
+                state.cursor_line = next;
+                if state.cursor_line >= state.top_line + ch {
+                    state.top_line = state.cursor_line - ch + 1;
+                }
+            }
+        }
+        VisualExtendUp => {
+            if state.cursor_line > 0 {
+                let prev = state.cursor_line - 1;
+                let anchor_file = state
+                    .doc.line_map
+                    .get(state.visual_anchor)
+                    .map_or(0, |l| l.file_idx);
+                let prev_file = state
+                    .doc.line_map
+                    .get(prev)
+                    .map_or(usize::MAX, |l| l.file_idx);
+                if prev_file == anchor_file {
+                    state.cursor_line = prev;
+                    if state.cursor_line < state.top_line {
+                        state.top_line = state.cursor_line;
+                    }
+                }
+            }
+        }
+        VisualCopy => {
+            let lo = state.visual_anchor.min(state.cursor_line);
+            let hi = state.visual_anchor.max(state.cursor_line);
+            let path = state
+                .doc.line_map
+                .get(lo)
+                .map(|l| l.path.clone())
+                .unwrap_or_default();
+            let (start, end) = resolve_lineno(&state.doc.line_map, lo, hi);
+            let text = format_copy_ref(&path, start, end);
+            let ok = copy_to_clipboard(&text);
+            state.status_message = if ok {
+                format!("Copied: {text}")
+            } else {
+                "Copy failed (pbcopy not available)".to_string()
+            };
+            state.mode = Mode::Normal;
+            state.cursor_line = state.top_line;
+            let (rs, re) = visible_range(state);
+            state.cursor_line = snap_to_content(
+                &state.doc.line_map,
+                state.cursor_line,
+                rs,
+                re.saturating_sub(1),
+            );
+            enforce_scrolloff(state, ch);
+            sync_tree_cursor(state, ch);
+        }
+        VisualCancel => {
+            state.mode = Mode::Normal;
+            state.cursor_line = state.top_line;
+            let (rs, re) = visible_range(state);
+            state.cursor_line = snap_to_content(
+                &state.doc.line_map,
+                state.cursor_line,
+                rs,
+                re.saturating_sub(1),
+            );
+        }
+        Quit => return ReducerEffect::Quit,
+        _ => {}
+    }
+    ReducerEffect::Continue
+}
+
+// -------- Reducer boundary (chunk-02) --------
+
+/// Input event for the reducer. Keys map to events; mode-specific handlers process them.
+#[derive(Debug, Clone)]
+pub(crate) enum ReducerEvent {
+    Key(Key),
+}
+
+/// Effect emitted by the reducer. Mirrors KeyResult.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum ReducerEffect {
+    Continue,
+    ReRender,
+    ReGenerate,
+    Quit,
+    OpenEditor { path: String, lineno: Option<u32> },
+}
+
+impl From<ReducerEffect> for KeyResult {
+    fn from(e: ReducerEffect) -> Self {
+        match e {
+            ReducerEffect::Continue => KeyResult::Continue,
+            ReducerEffect::ReRender => KeyResult::ReRender,
+            ReducerEffect::ReGenerate => KeyResult::ReGenerate,
+            ReducerEffect::Quit => KeyResult::Quit,
+            ReducerEffect::OpenEditor { path, lineno } => KeyResult::OpenEditor { path, lineno },
+        }
+    }
+}
+
+/// Context passed into the reducer (content height, total rows, files for tree/editor).
+#[derive(Debug)]
+pub(crate) struct ReducerCtx<'a> {
+    pub content_height: usize,
+    pub rows: u16,
+    pub files: &'a [DiffFile],
+}
+
+/// Invariant guard: cursor/top in range, tree focus valid, single-file scope valid.
+#[cfg(debug_assertions)]
+fn debug_assert_valid_state(state: &PagerState) {
+    let (rs, re) = visible_range(state);
+    let max_cursor = re.saturating_sub(1);
+    assert!(
+        state.cursor_line >= rs && state.cursor_line <= max_cursor,
+        "cursor_line {} out of visible range [{}, {}]",
+        state.cursor_line,
+        rs,
+        max_cursor
+    );
+    assert!(
+        state.top_line >= rs && state.top_line <= re.saturating_sub(1).min(state.doc.line_count().saturating_sub(1)),
+        "top_line {} out of range",
+        state.top_line
+    );
+    if state.tree_focused() {
+        assert!(!state.tree_entries.is_empty(), "tree focus invalid when tree empty");
+        assert!(
+            state.tree_selection.is_some() && state.tree_selection.unwrap().get() < state.tree_entry_count(),
+            "tree_selection invalid"
+        );
+    }
+    if let ViewScope::SingleFile(ix) = state.view_scope {
+        assert!(ix.get() < state.file_count(), "SingleFile index {} out of bounds", ix.get());
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn debug_assert_valid_state(_state: &PagerState) {}
+
+/// Clamp cursor and top_line to visible range. Call before debug_assert_valid_state.
+fn clamp_cursor_and_top(state: &mut PagerState) {
+    let (rs, re) = visible_range(state);
+    let range_max = re.saturating_sub(1);
+    let max_top = range_max.saturating_sub(1).min(state.doc.line_count().saturating_sub(1));
+    state.cursor_line = state.cursor_line.clamp(rs, range_max);
+    state.top_line = state.top_line.clamp(rs, max_top.min(range_max));
+}
+
 pub struct DiffContext {
     pub repo: std::path::PathBuf,
     pub source: crate::git::DiffSource,
     pub no_untracked: bool,
 }
 
-#[derive(Debug)]
-pub(crate) struct PagerState {
+// -------- Immutable document model (chunk-03) --------
+
+/// Immutable document encapsulating all rendered diff content. Swapped atomically
+/// on regenerate/rerender/resize; view state (cursor, top, scope) is remapped via remap_after_document_swap.
+#[derive(Debug, Clone)]
+pub(crate) struct Document {
     pub(crate) lines: Vec<String>,
     pub(crate) line_map: Vec<LineInfo>,
     pub(crate) file_starts: Vec<usize>,
     pub(crate) hunk_starts: Vec<usize>,
+}
+
+impl Document {
+    pub(crate) fn from_render_output(output: RenderOutput) -> Self {
+        Document {
+            lines: output.lines,
+            line_map: output.line_map,
+            file_starts: output.file_starts,
+            hunk_starts: output.hunk_starts,
+        }
+    }
+
+    pub(crate) fn line_count(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub(crate) fn file_count(&self) -> usize {
+        self.file_starts.len()
+    }
+
+    pub(crate) fn file_start(&self, idx: usize) -> Option<usize> {
+        self.file_starts.get(idx).copied()
+    }
+
+    pub(crate) fn file_end(&self, idx: usize) -> usize {
+        self.file_starts
+            .get(idx + 1)
+            .copied()
+            .unwrap_or(self.lines.len())
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.line_map.is_empty()
+    }
+}
+
+/// Anchor for preserving view position across document swaps. Captured before swap,
+/// used to remap cursor/top to nearest valid content in the new document.
+#[derive(Debug, Clone)]
+struct ViewAnchor {
+    file_idx: usize,
+    new_lineno: Option<u32>,
+    offset_in_file: usize,
+}
+
+#[derive(Debug)]
+pub(crate) struct PagerState {
+    pub(crate) doc: Document,
     pub(crate) top_line: usize,
     pub(crate) cursor_line: usize,
     pub(crate) visual_anchor: usize,
@@ -84,17 +1014,189 @@ pub(crate) struct PagerState {
     pub(crate) search_cursor: usize,
     pub(crate) status_message: String,
     pub(crate) tree_visible: bool,
-    pub(crate) tree_focused: bool,
-    pub(crate) tree_cursor: usize,
+    /// Typed focus: Diff = diff panel focused, Tree = tree panel focused.
+    /// Invariant: when tree has no entries, focus must be Diff.
+    focus: Focus,
+    /// Valid tree selection when tree has entries. None when tree empty.
+    tree_selection: Option<TreeEntryIx>,
     pub(crate) tree_width: usize,
     pub(crate) tree_scroll: usize,
     pub(crate) tree_lines: Vec<String>,
     pub(crate) tree_entries: Vec<TreeEntry>,
     /// Maps visible tree line index to original `tree_entries` index
     pub(crate) tree_visible_to_entry: Vec<usize>,
-    /// When `Some(idx)`, diff panel shows only file `idx`; `None` = all-files view
-    pub(crate) active_file: Option<usize>,
+    /// Typed view scope. Invariant: SingleFile(ix) implies ix is valid for file_starts.
+    view_scope: ViewScope,
     pub(crate) full_context: bool,
+}
+
+impl PagerState {
+    pub(crate) fn file_count(&self) -> usize {
+        self.doc.file_count()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn line_count(&self) -> usize {
+        self.doc.line_count()
+    }
+
+    pub(crate) fn tree_entry_count(&self) -> usize {
+        self.tree_entries.len()
+    }
+
+    /// Checked accessor for file start line. Returns None if idx is out of bounds.
+    pub(crate) fn file_start(&self, idx: usize) -> Option<usize> {
+        self.doc.file_start(idx)
+    }
+
+    /// Checked accessor for file end line (exclusive). Returns line_count for last file.
+    pub(crate) fn file_end(&self, idx: usize) -> usize {
+        self.doc.file_end(idx)
+    }
+
+    /// Checked accessor for tree entry. Returns None if idx is out of bounds.
+    pub(crate) fn tree_entry(&self, idx: usize) -> Option<&TreeEntry> {
+        self.tree_entries.get(idx)
+    }
+
+    /// Checked mutable accessor for tree entry.
+    pub(crate) fn tree_entry_mut(&mut self, idx: usize) -> Option<&mut TreeEntry> {
+        self.tree_entries.get_mut(idx)
+    }
+
+    /// Start line of the active file, or 0 if all-files view.
+    #[allow(dead_code)]
+    pub(crate) fn active_file_start(&self) -> usize {
+        match self.view_scope {
+            ViewScope::AllFiles => 0,
+            ViewScope::SingleFile(ix) => self.file_start(ix.get()).unwrap_or(0),
+        }
+    }
+
+    /// End line (exclusive) of the active file, or line_count if all-files view.
+    #[allow(dead_code)]
+    pub(crate) fn active_file_end(&self) -> usize {
+        match self.view_scope {
+            ViewScope::AllFiles => self.doc.line_count(),
+            ViewScope::SingleFile(ix) => self.file_end(ix.get()),
+        }
+    }
+
+    /// Visible tree entry at cursor, if tree has entries and cursor is valid.
+    pub(crate) fn visible_tree_entry(&self) -> Option<&TreeEntry> {
+        self.tree_selection
+            .and_then(|ix| self.tree_entry(ix.get()))
+    }
+
+    /// LineInfo at cursor, if in range.
+    #[allow(dead_code)]
+    pub(crate) fn cursor_line_info(&self) -> Option<&LineInfo> {
+        self.doc.line_map.get(self.cursor_line)
+    }
+
+    // Compatibility adapters (for migration in later chunks)
+    pub(crate) fn active_file(&self) -> Option<usize> {
+        match self.view_scope {
+            ViewScope::AllFiles => None,
+            ViewScope::SingleFile(ix) => Some(ix.get()),
+        }
+    }
+
+    pub(crate) fn set_active_file(&mut self, v: Option<usize>) {
+        self.view_scope = match v {
+            None => ViewScope::AllFiles,
+            Some(idx) => FileIx::new(idx, self.doc.file_count())
+                .map(ViewScope::SingleFile)
+                .unwrap_or(ViewScope::AllFiles),
+        };
+    }
+
+    pub(crate) fn tree_focused(&self) -> bool {
+        matches!(self.focus, Focus::Tree)
+    }
+
+    pub(crate) fn set_tree_focused(&mut self, focused: bool) {
+        self.focus = if focused { Focus::Tree } else { Focus::Diff };
+        // Invariant: tree focus invalid when tree empty
+        if focused && self.tree_entries.is_empty() {
+            self.focus = Focus::Diff;
+        }
+    }
+
+    pub(crate) fn tree_cursor(&self) -> usize {
+        self.tree_selection.map(|s| s.get()).unwrap_or(0)
+    }
+
+    pub(crate) fn set_tree_cursor(&mut self, idx: usize) {
+        self.tree_selection = TreeEntryIx::new(idx, self.tree_entry_count());
+        if self.tree_selection.is_none() && self.focus == Focus::Tree {
+            self.focus = Focus::Diff;
+        }
+    }
+
+    /// Build a valid initial state. Tree starts visible, focused; scope all-files.
+    /// Tree panel falls back to hidden when no entries.
+    pub(crate) fn new(
+        lines: Vec<String>,
+        line_map: Vec<LineInfo>,
+        file_starts: Vec<usize>,
+        hunk_starts: Vec<usize>,
+        tree_entries: Vec<TreeEntry>,
+    ) -> Self {
+        let doc = Document {
+            lines,
+            line_map,
+            file_starts,
+            hunk_starts,
+        };
+        Self::from_doc(doc, tree_entries)
+    }
+
+    /// Build state from a Document and tree entries. Used by new() and after document swaps.
+    pub(crate) fn from_doc(doc: Document, tree_entries: Vec<TreeEntry>) -> Self {
+        let entry_count = tree_entries.len();
+        let tree_width = compute_tree_width(&tree_entries);
+
+        let (tree_selection, focus, tree_visible) = if entry_count > 0 {
+            let sel = TreeEntryIx::new(0, entry_count).unwrap();
+            let (_tl, _tv) = build_tree_lines(&tree_entries, 0, tree_width);
+            (Some(sel), Focus::Tree, true)
+        } else {
+            (None, Focus::Diff, false)
+        };
+
+        let (tree_lines, tree_visible_to_entry) = if tree_visible {
+            let (tl, tv) = build_tree_lines(&tree_entries, 0, tree_width);
+            (tl, tv)
+        } else {
+            (Vec::new(), Vec::new())
+        };
+
+        PagerState {
+            doc,
+            top_line: 0,
+            cursor_line: 0,
+            visual_anchor: 0,
+            search_query: String::new(),
+            search_matches: Vec::new(),
+            current_match: -1,
+            mode: Mode::Normal,
+            search_input: String::new(),
+            search_cursor: 0,
+            status_message: String::new(),
+            tree_visible,
+            focus,
+            tree_selection,
+            tree_width: if tree_visible { tree_width } else { 0 },
+            tree_scroll: 0,
+            tree_lines,
+            tree_entries,
+            tree_visible_to_entry,
+            view_scope: ViewScope::AllFiles,
+            full_context: false,
+        }
+    }
+
 }
 
 use tui::pager::crossterm_to_key;
@@ -236,20 +1338,140 @@ pub(crate) fn snap_to_content(
     prev_content_line(line_map, pos, range_start)
 }
 
+/// Capture view anchor from current state for remap after document swap.
+/// Returns None when document is empty.
+fn capture_view_anchor(state: &PagerState) -> Option<ViewAnchor> {
+    if state.doc.is_empty() {
+        return None;
+    }
+    let top = state.top_line.min(state.doc.line_map.len().saturating_sub(1));
+    let info = &state.doc.line_map[top];
+    let file_start = state.file_start(info.file_idx).unwrap_or(0);
+    let offset_in_file = top - file_start;
+    Some(ViewAnchor {
+        file_idx: info.file_idx,
+        new_lineno: info.new_lineno,
+        offset_in_file,
+    })
+}
+
+/// Remap cursor/top/scope/tree/overlay after swapping in a new document.
+/// Handles file removal and collapsed ranges by falling back to nearest valid content.
+fn remap_after_document_swap(
+    state: &mut PagerState,
+    anchor: Option<ViewAnchor>,
+    new_doc: Document,
+    files: &[DiffFile],
+) {
+    state.doc = new_doc;
+
+    // 1. Normalize scope: downgrade single-file to all-files if target file gone
+    let file_count = state.doc.file_count();
+    state.view_scope = match state.view_scope {
+        ViewScope::AllFiles => ViewScope::AllFiles,
+        ViewScope::SingleFile(ix) => {
+            if ix.get() < file_count {
+                ViewScope::SingleFile(ix)
+            } else {
+                ViewScope::AllFiles
+            }
+        }
+    };
+
+    // 2. Normalize tree selection when tree has entries
+    let entry_count = state.tree_entry_count();
+    if entry_count > 0 {
+        let current = state.tree_cursor();
+        let clamped = current.min(entry_count.saturating_sub(1));
+        state.set_tree_cursor(clamped);
+    } else {
+        state.tree_selection = None;
+        state.focus = Focus::Diff;
+        state.tree_visible_to_entry.clear();
+        state.tree_lines.clear();
+    }
+
+    // 3. Remap cursor and top from anchor
+    let line_count = state.doc.line_count();
+    let (rs, re) = visible_range(state);
+    let range_max = re.saturating_sub(1);
+
+    if state.doc.is_empty() {
+        state.top_line = 0;
+        state.cursor_line = 0;
+        state.visual_anchor = 0;
+    } else if let Some(a) = anchor {
+        // Resolve anchor to line index; fall back to nearest valid on file removal/collapsed
+        let target_line = if a.file_idx >= file_count {
+            // Target file no longer exists: use first content line of doc
+            next_content_line(&state.doc.line_map, 0, line_count.saturating_sub(1))
+        } else if let Some(lineno) = a.new_lineno {
+            state.doc.line_map
+                .iter()
+                .position(|li| li.file_idx == a.file_idx && li.new_lineno == Some(lineno))
+                .unwrap_or_else(|| {
+                    let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
+                    let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
+                    (file_start + a.offset_in_file).min(file_end).min(line_count.saturating_sub(1))
+                })
+        } else {
+            let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
+            let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
+            (file_start + a.offset_in_file).min(file_end).min(line_count.saturating_sub(1))
+        };
+        state.top_line = target_line.min(range_max);
+        state.cursor_line = state.top_line.min(range_max);
+        state.top_line = state.top_line.clamp(rs, range_max);
+        state.cursor_line = state.cursor_line.clamp(rs, range_max);
+        state.cursor_line = snap_to_content(&state.doc.line_map, state.cursor_line, rs, range_max);
+        state.visual_anchor = state.cursor_line;
+    } else {
+        state.top_line = 0;
+        state.cursor_line = 0;
+        state.visual_anchor = 0;
+    }
+
+    // 4. Rebuild tree entries and sync tree selection from cursor
+    if state.tree_visible && !files.is_empty() {
+        state.tree_entries = build_tree_entries(files);
+        state.tree_width = compute_tree_width(&state.tree_entries);
+        let cursor_file_idx = state
+            .doc
+            .line_map
+            .get(state.cursor_line)
+            .map(|li| li.file_idx)
+            .unwrap_or(0);
+        let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
+        state.set_tree_cursor(cursor_entry_idx);
+        let (tl, tv) = build_tree_lines(
+            &state.tree_entries,
+            state.tree_cursor(),
+            state.tree_width,
+        );
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
+    }
+
+    // 5. Re-run search against new lines
+    if !state.search_query.is_empty() {
+        state.search_matches = find_matches(&state.doc.lines, &state.search_query);
+        state.current_match = find_nearest_match(&state.search_matches, state.top_line);
+    }
+
+    // 6. Remap/reset overlay payloads: visual anchor already set; search matches updated above.
+    // Invalid visual ranges (anchor/cursor out of doc) handled by clamp above.
+}
+
 /// Return the `(start, end)` line range for the active file, or the full
 /// document range when no file is selected.
 pub(crate) fn visible_range(state: &PagerState) -> (usize, usize) {
-    match state.active_file {
+    match state.active_file() {
         Some(idx) => {
-            let start = state.file_starts[idx];
-            let end = state
-                .file_starts
-                .get(idx + 1)
-                .copied()
-                .unwrap_or(state.lines.len());
+            let start = state.file_start(idx).unwrap_or(0);
+            let end = state.file_end(idx);
             (start, end)
         }
-        None => (0, state.lines.len()),
+        None => (0, state.doc.line_count()),
     }
 }
 
@@ -324,6 +1546,31 @@ fn clamp_cursor_to_boundary(s: &str, cursor: usize) -> usize {
     cursor
 }
 
+fn submit_search(state: &mut PagerState) {
+    let query = std::mem::take(&mut state.search_input);
+    state.search_cursor = 0;
+    state.mode = Mode::Normal;
+
+    let matches = find_matches(&state.doc.lines, &query);
+    if matches.is_empty() {
+        state.status_message = format!("Pattern not found: {query}");
+        state.search_query = query;
+        state.search_matches = Vec::new();
+        state.current_match = -1;
+    } else {
+        let nearest = find_nearest_match(&matches, state.top_line);
+        state.search_query = query;
+        state.search_matches = matches;
+        state.current_match = nearest;
+    }
+}
+
+fn cancel_search(state: &mut PagerState) {
+    state.search_input.clear();
+    state.search_cursor = 0;
+    state.mode = Mode::Normal;
+}
+
 fn handle_search_key(state: &mut PagerState, key: &Key) {
     match key {
         Key::Char(c) => {
@@ -390,29 +1637,6 @@ fn handle_search_key(state: &mut PagerState, key: &Key) {
                 word_boundary_right(&state.search_input, cursor),
             );
         }
-        Key::Enter => {
-            let query = std::mem::take(&mut state.search_input);
-            state.search_cursor = 0;
-            state.mode = Mode::Normal;
-
-            let matches = find_matches(&state.lines, &query);
-            if matches.is_empty() {
-                state.status_message = format!("Pattern not found: {query}");
-                state.search_query = query;
-                state.search_matches = Vec::new();
-                state.current_match = -1;
-            } else {
-                let nearest = find_nearest_match(&matches, state.top_line);
-                state.search_query = query;
-                state.search_matches = matches;
-                state.current_match = nearest;
-            }
-        }
-        Key::Escape | Key::CtrlC => {
-            state.search_input.clear();
-            state.search_cursor = 0;
-            state.mode = Mode::Normal;
-        }
         _ => {}
     }
 }
@@ -443,46 +1667,7 @@ fn content_height(rows: u16, state: &PagerState) -> usize {
 }
 
 fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
-    let help = [
-        "Navigation",
-        "j/\u{2193}/Enter  Scroll down",
-        "k/\u{2191}        Scroll up",
-        "Ctrl-D     Half page down",
-        "Ctrl-U     Half page up",
-        "g/Home     Top",
-        "G/End      Bottom",
-        "",
-        "Diff Navigation",
-        "d          Next hunk",
-        "u          Previous hunk",
-        "D          Next file",
-        "U          Previous file",
-        "a          Toggle single file",
-        "Space      Toggle full file context",
-        "",
-        "Search",
-        "/          Search",
-        "n          Next match",
-        "N          Previous match",
-        "",
-        "File Tree",
-        "e          Toggle tree panel",
-        "Tab        Focus panel",
-        "1          Toggle tree focus",
-        "Ctrl-L     Show + focus tree",
-        "Ctrl-H     Return to diff",
-        "Enter      Select / toggle folder",
-        "",
-        "Visual Mode",
-        "v          Enter visual mode",
-        "j/k        Extend selection",
-        "y          Copy path:lines",
-        "Esc        Cancel",
-        "",
-        "E          Open in editor",
-        "q          Quit",
-        "? / Esc    Close help",
-    ];
+    let help = keymap_help_lines();
 
     let mut lines = Vec::with_capacity(content_height);
     let top_pad = content_height.saturating_sub(help.len()) / 2;
@@ -493,7 +1678,7 @@ fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
     let max_w = help.iter().map(|h| h.chars().count()).max().unwrap_or(0);
     let left_pad = cols.saturating_sub(max_w) / 2;
 
-    for &h in &help {
+    for h in &help {
         if lines.len() >= content_height {
             break;
         }
@@ -531,7 +1716,7 @@ fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> 
 
     if state.mode == Mode::Help {
         let left = "? to close";
-        let line_count = state.lines.len();
+        let line_count = state.doc.line_count();
         let max_top = max_scroll(line_count, content_height);
         let top = state.top_line.min(max_top);
         let end = (top + content_height).min(line_count);
@@ -606,7 +1791,7 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
         move_to(out, row as u16, 0);
         let idx = top + row;
         if idx >= vis_start && idx < vis_end {
-            let mut line = state.lines[idx].clone();
+            let mut line = state.doc.lines[idx].clone();
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }
@@ -634,14 +1819,14 @@ fn render_content_area(out: &mut impl Write, state: &PagerState, cols: u16, cont
                 vis_start,
                 vis_end,
                 top,
-                &state.line_map,
+                &state.doc.line_map,
             );
             let _ = write!(out, "{}\x1b[{}G{cell}", style::RESET, diff_w + 1);
         }
 
         if state.tree_visible {
             let tree_col = diff_w + 1 + usize::from(show_scrollbar);
-            let sep_color = if state.tree_focused { style::FG_SEP_ACTIVE } else { style::FG_SEP };
+            let sep_color = if state.tree_focused() { style::FG_SEP_ACTIVE } else { style::FG_SEP };
             let _ = write!(
                 out,
                 "{}\x1b[{}G\x1b[K{sep_color}│{}",
@@ -752,9 +1937,161 @@ fn hunk_change_starts(line_map: &[LineInfo], hunk_starts: &[usize]) -> Vec<usize
 
 fn du_nav_targets(state: &PagerState) -> Vec<usize> {
     if state.full_context {
-        change_group_starts(&state.line_map, 0, state.line_map.len())
+        change_group_starts(&state.doc.line_map, 0, state.doc.line_map.len())
     } else {
-        hunk_change_starts(&state.line_map, &state.hunk_starts)
+        hunk_change_starts(&state.doc.line_map, &state.doc.hunk_starts)
+    }
+}
+
+/// Result of d/u navigation. Caller must sync_active_file_to_cursor before computing top_line.
+struct NavDuResult {
+    cursor_line: usize,
+    status_message: String,
+    moved: bool,
+}
+
+/// Shared d/u navigation: next hunk or change group. Caller applies cursor, syncs active_file, then sets top_line.
+fn nav_du_down(state: &PagerState, _content_height: usize) -> NavDuResult {
+    if state.doc.line_map.is_empty() {
+        return NavDuResult {
+            cursor_line: state.cursor_line,
+            status_message: String::new(),
+            moved: false,
+        };
+    }
+    let anchor = state.cursor_line;
+    let max_line = state.doc.line_map.len().saturating_sub(1);
+    let hunks = du_nav_targets(state);
+    if let Some(target) = jump_next(&hunks, anchor) {
+        let cursor = next_content_line(&state.doc.line_map, target, max_line);
+        let status = nav_status_message(
+            if state.full_context { "Change" } else { "Hunk" },
+            cursor,
+            &hunks,
+            &state.doc.line_map,
+        );
+        NavDuResult { cursor_line: cursor, status_message: status, moved: true }
+    } else {
+        NavDuResult {
+            cursor_line: state.cursor_line,
+            status_message: String::new(),
+            moved: false,
+        }
+    }
+}
+
+/// Shared u navigation: previous hunk or change group. Caller applies cursor, syncs active_file, then sets top_line.
+fn nav_du_up(state: &PagerState, _content_height: usize) -> NavDuResult {
+    if state.doc.line_map.is_empty() {
+        return NavDuResult {
+            cursor_line: state.cursor_line,
+            status_message: String::new(),
+            moved: false,
+        };
+    }
+    let anchor = state.cursor_line;
+    let max_line = state.doc.line_map.len().saturating_sub(1);
+    let hunks = du_nav_targets(state);
+    if let Some(target) = jump_prev(&hunks, anchor) {
+        let mut cursor = next_content_line(&state.doc.line_map, target, max_line);
+        if cursor >= anchor {
+            if let Some(target2) = jump_prev(&hunks, target) {
+                cursor = next_content_line(&state.doc.line_map, target2, max_line);
+            } else {
+                cursor = anchor;
+            }
+        }
+        let status = nav_status_message(
+            if state.full_context { "Change" } else { "Hunk" },
+            cursor,
+            &hunks,
+            &state.doc.line_map,
+        );
+        NavDuResult { cursor_line: cursor, status_message: status, moved: true }
+    } else {
+        NavDuResult {
+            cursor_line: state.cursor_line,
+            status_message: String::new(),
+            moved: false,
+        }
+    }
+}
+
+/// Result of D/U navigation: new cursor/top and status.
+#[allow(dead_code)]
+struct NavDUResult {
+    cursor_line: usize,
+    top_line: usize,
+    status_message: String,
+    moved: bool,
+}
+
+/// Shared D navigation: next file in visible range.
+#[allow(non_snake_case)]
+fn nav_D_down(state: &PagerState, content_height: usize) -> NavDUResult {
+    let anchor = state.cursor_line;
+    let (rs, re) = visible_range(state);
+    let max_line = re.saturating_sub(1);
+    let max_top = re.saturating_sub(content_height).max(rs);
+    let files = targets_in_range(&state.doc.file_starts, rs, re);
+    if let Some(target) = jump_next(&files, anchor) {
+        let cursor = next_content_line(&state.doc.line_map, target, max_line);
+        let top = cursor
+            .saturating_sub(content_height / 2)
+            .max(rs)
+            .min(max_top);
+        let status = file_status_message(cursor, &files, &state.doc.line_map);
+        NavDUResult {
+            cursor_line: cursor,
+            top_line: top,
+            status_message: status,
+            moved: true,
+        }
+    } else {
+        NavDUResult {
+            cursor_line: state.cursor_line,
+            top_line: state.top_line,
+            status_message: String::new(),
+            moved: false,
+        }
+    }
+}
+
+/// Shared U navigation: previous file in visible range.
+#[allow(non_snake_case)]
+fn nav_U_up(state: &PagerState, content_height: usize) -> NavDUResult {
+    let anchor = state.cursor_line;
+    let (rs, re) = visible_range(state);
+    let max_line = re.saturating_sub(1);
+    let max_top = re.saturating_sub(content_height).max(rs);
+    let files = targets_in_range(&state.doc.file_starts, rs, re);
+    if let Some(target) = jump_prev(&files, anchor) {
+        let mut cursor = next_content_line(&state.doc.line_map, target, max_line);
+        if cursor >= anchor {
+            if let Some(target2) = jump_prev(&files, target) {
+                cursor = next_content_line(&state.doc.line_map, target2, max_line);
+            } else {
+                cursor = anchor;
+            }
+        }
+        let top = cursor
+            .saturating_sub(content_height / 2)
+            .max(rs)
+            .min(max_top);
+        let status = file_status_message(cursor, &files, &state.doc.line_map);
+        NavDUResult {
+            cursor_line: cursor,
+            top_line: top,
+            status_message: status,
+            moved: true,
+        }
+    } else {
+        NavDUResult {
+            cursor_line: state.cursor_line,
+            top_line: state.top_line,
+            status_message: String::new(),
+            moved: false,
+        }
     }
 }
 
@@ -774,118 +2111,48 @@ fn file_status_message(cursor: usize, file_starts: &[usize], line_map: &[LineInf
     nav_status_message("File", cursor, file_starts, line_map)
 }
 
-/// Re-render the diff at a new width, preserving scroll position by anchoring
-/// to the file_idx/new_lineno of the current top line.
+/// Builds a JSON object string of common reducer/document-swap instrumentation fields.
+/// Used only when GD_DEBUG=1; does not mutate state.
+fn format_debug_state(state: &PagerState) -> String {
+    let (rs, re) = visible_range(state);
+    let active_file_valid = state.active_file().is_none_or(|idx| idx < state.doc.file_starts.len());
+    let tree_cursor_file_idx = state
+        .tree_entries
+        .get(state.tree_cursor())
+        .and_then(|e| e.file_idx)
+        .map_or(String::from("null"), |v| v.to_string());
+    format!(
+        "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+        state.tree_visible,
+        state.tree_focused(),
+        state.active_file().map_or(String::from("null"), |v| v.to_string()),
+        active_file_valid,
+        state.full_context,
+        state.cursor_line,
+        state.top_line,
+        rs,
+        re,
+        state.doc.line_map.len(),
+        state.doc.file_starts.len(),
+        state.tree_cursor(),
+        tree_cursor_file_idx
+    )
+}
+
+/// Re-render the diff at a new width. Captures anchor, builds fresh Document, swaps, and remaps.
 fn re_render(
     state: &mut PagerState,
     files: &[DiffFile],
     color: bool,
     cols: u16,
 ) {
-    // Capture anchor from current top line
-    let anchor = if state.line_map.is_empty() {
-        None
-    } else {
-        let top = state.top_line.min(state.line_map.len() - 1);
-        let info = &state.line_map[top];
-        let file_start = state.file_starts[info.file_idx];
-        let offset_in_file = top - file_start;
-        Some((info.file_idx, info.new_lineno, offset_in_file))
-    };
-
+    let anchor = capture_view_anchor(state);
     let width = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
     let output = render::render(files, width, color, state.tree_visible);
-    state.lines = output.lines;
-    state.line_map = output.line_map;
-    state.file_starts = output.file_starts;
-    state.hunk_starts = output.hunk_starts;
+    let new_doc = Document::from_render_output(output);
+    remap_after_document_swap(state, anchor, new_doc, files);
 
-    // Restore scroll position by finding the anchored line.
-    // When new_lineno is Some, use the unique (file_idx, lineno) lookup.
-    // When new_lineno is None (header/separator lines), fall back to the
-    // offset within the file to avoid matching the wrong None-lineno line.
-    if let Some((file_idx, new_lineno, offset_in_file)) = anchor {
-        state.top_line = if let Some(lineno) = new_lineno {
-            state
-                .line_map
-                .iter()
-                .position(|li| li.file_idx == file_idx && li.new_lineno == Some(lineno))
-                .unwrap_or(0)
-        } else {
-            let file_start = state.file_starts.get(file_idx).copied().unwrap_or(0);
-            let file_end = state
-                .file_starts
-                .get(file_idx + 1)
-                .copied()
-                .unwrap_or(state.line_map.len())
-                .saturating_sub(1);
-            (file_start + offset_in_file).min(file_end).min(state.line_map.len().saturating_sub(1))
-        };
-    }
-    let line_max = state.lines.len().saturating_sub(1);
-    state.top_line = state.top_line.min(line_max);
-    state.cursor_line = state.top_line.min(line_max);
-    let (rs, re) = visible_range(state);
-    if re > rs {
-        let range_max = re.saturating_sub(1);
-        state.top_line = state.top_line.clamp(rs, range_max);
-        state.cursor_line = state.cursor_line.clamp(rs, range_max);
-        state.cursor_line = snap_to_content(&state.line_map, state.cursor_line, rs, range_max);
-    } else {
-        state.top_line = 0;
-        state.cursor_line = 0;
-    }
-    state.visual_anchor = state.cursor_line;
-
-    // Re-run search against new lines
-    if !state.search_query.is_empty() {
-        state.search_matches = find_matches(&state.lines, &state.search_query);
-        state.current_match = find_nearest_match(&state.search_matches, state.top_line);
-    }
-
-    // Rebuild tree entries and lines at current cursor
-    if state.tree_visible {
-        let cursor_file_idx = state.tree_entries.get(state.tree_cursor)
-            .and_then(|e| e.file_idx)
-            .unwrap_or(0);
-        state.tree_entries = build_tree_entries(files);
-        state.tree_width = compute_tree_width(&state.tree_entries);
-        let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
-        state.tree_cursor = cursor_entry_idx;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, cursor_entry_idx, state.tree_width);
-        state.tree_lines = tl;
-        state.tree_visible_to_entry = tv;
-    }
-
-    // #region agent log
-    let (rs, re) = visible_range(state);
-    let active_file_valid = state.active_file.is_none_or(|idx| idx < state.file_starts.len());
-    debug_log(
-        "pre-fix",
-        "H2",
-        "pager.rs:re_render",
-        "post rerender state",
-        &format!(
-            "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
-            state.tree_visible,
-            state.tree_focused,
-            state.active_file.map_or(String::from("null"), |v| v.to_string()),
-            active_file_valid,
-            state.full_context,
-            state.cursor_line,
-            state.top_line,
-            rs,
-            re,
-            state.line_map.len(),
-            state.file_starts.len(),
-            state.tree_cursor,
-            state.tree_entries
-                .get(state.tree_cursor)
-                .and_then(|e| e.file_idx)
-                .map_or(String::from("null"), |v| v.to_string()),
-        ),
-    );
-    // #endregion
+    debug_trace("pager.rs:re_render", "post rerender state", &format_debug_state(state));
 }
 
 #[derive(Debug)]
@@ -1123,7 +2390,7 @@ fn build_tree_lines(
 }
 
 fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
-    if !state.tree_visible || state.tree_focused {
+    if !state.tree_visible || state.tree_focused() {
         return;
     }
     sync_tree_cursor_force(state, content_height);
@@ -1136,26 +2403,29 @@ fn sync_tree_cursor_force(state: &mut PagerState, content_height: usize) {
     if state.tree_entries.is_empty() {
         return;
     }
-    let new_cursor = if let Some(fi) = state.active_file {
+    let new_cursor = if let Some(fi) = state.active_file() {
         fi
     } else {
         state
-            .line_map
+            .doc.line_map
             .get(state.cursor_line)
             .map_or(0, |li| li.file_idx)
     };
     let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     // If the target entry is hidden (collapsed parent), find nearest visible ancestor
     if !state.tree_visible_to_entry.contains(&new_entry_idx) {
-        let target_depth = state.tree_entries[new_entry_idx].depth;
+        let target_depth = state
+            .tree_entry(new_entry_idx)
+            .map(|e| e.depth)
+            .unwrap_or(0);
         new_entry_idx = state.tree_entries[..new_entry_idx]
             .iter()
             .rposition(|e| e.file_idx.is_none() && e.depth < target_depth)
             .unwrap_or(0);
     }
-    if new_entry_idx != state.tree_cursor {
-        state.tree_cursor = new_entry_idx;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+    if new_entry_idx != state.tree_cursor() {
+        state.set_tree_cursor(new_entry_idx);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         ensure_tree_cursor_visible(state, content_height);
@@ -1163,11 +2433,11 @@ fn sync_tree_cursor_force(state: &mut PagerState, content_height: usize) {
 }
 
 fn sync_active_file_to_cursor(state: &mut PagerState) {
-    if state.active_file.is_none() {
+    if state.active_file().is_none() {
         return;
     }
-    if let Some(file_idx) = state.line_map.get(state.cursor_line).map(|li| li.file_idx) {
-        state.active_file = Some(file_idx);
+    if let Some(file_idx) = state.doc.line_map.get(state.cursor_line).map(|li| li.file_idx) {
+        state.set_active_file(Some(file_idx));
     }
 }
 
@@ -1176,7 +2446,7 @@ fn ensure_tree_cursor_visible(state: &mut PagerState, content_height: usize) {
     let offset = state
         .tree_visible_to_entry
         .iter()
-        .position(|&ei| ei == state.tree_cursor)
+        .position(|&ei| ei == state.tree_cursor())
         .unwrap_or(0);
     if offset < state.tree_scroll {
         state.tree_scroll = offset;
@@ -1190,7 +2460,7 @@ fn move_tree_selection(state: &mut PagerState, delta: isize, content_height: usi
     let Some(current_visible_idx) = state
         .tree_visible_to_entry
         .iter()
-        .position(|&entry_idx| entry_idx == state.tree_cursor)
+        .position(|&entry_idx| entry_idx == state.tree_cursor())
     else {
         return false;
     };
@@ -1198,15 +2468,104 @@ fn move_tree_selection(state: &mut PagerState, delta: isize, content_height: usi
     if next_visible_idx < 0 || next_visible_idx >= state.tree_visible_to_entry.len() as isize {
         return false;
     }
-    state.tree_cursor = state.tree_visible_to_entry[next_visible_idx as usize];
+    state.set_tree_cursor(state.tree_visible_to_entry[next_visible_idx as usize]);
     let (tree_lines, tree_visible_to_entry) =
-        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
     state.tree_lines = tree_lines;
     state.tree_visible_to_entry = tree_visible_to_entry;
     ensure_tree_cursor_visible(state, content_height);
     true
 }
 
+// -------- Reducer and mode-specific handlers (chunk-02) --------
+
+fn dispatch_search_action(state: &mut PagerState, action: ActionId) -> ReducerEffect {
+    match action {
+        ActionId::SearchSubmit => {
+            submit_search(state);
+            ReducerEffect::Continue
+        }
+        ActionId::SearchCancel => {
+            cancel_search(state);
+            ReducerEffect::Continue
+        }
+        _ => ReducerEffect::Continue,
+    }
+}
+
+fn reduce_search(state: &mut PagerState, event: &ReducerEvent, ctx: &ReducerCtx<'_>) -> ReducerEffect {
+    let ReducerEvent::Key(key) = event;
+    if let Some(action) = keymap_lookup(*key, KeyContext::Search) {
+        return dispatch_search_action(state, action);
+    }
+    handle_search_key(state, key);
+    if state.mode == Mode::Normal && state.current_match >= 0 {
+        scroll_to_match(state, ctx.rows);
+        sync_tree_cursor(state, ctx.content_height);
+    }
+    ReducerEffect::Continue
+}
+
+fn reduce_help(state: &mut PagerState, _event: &ReducerEvent, _ctx: &ReducerCtx<'_>) -> ReducerEffect {
+    state.mode = Mode::Normal;
+    ReducerEffect::Continue
+}
+
+fn reduce_visual(state: &mut PagerState, event: &ReducerEvent, ctx: &ReducerCtx<'_>) -> ReducerEffect {
+    let ReducerEvent::Key(key) = event;
+    if let Some(action) = keymap_lookup(*key, KeyContext::Visual) {
+        return dispatch_visual_action(state, action, ctx);
+    }
+    ReducerEffect::Continue
+}
+
+fn reduce_tree(state: &mut PagerState, event: &ReducerEvent, ctx: &ReducerCtx<'_>) -> ReducerEffect {
+    let ReducerEvent::Key(key) = event;
+    if let Some(action) = keymap_lookup(*key, KeyContext::Tree) {
+        return dispatch_tree_action(state, action, ctx);
+    }
+    reduce_normal(state, event, ctx)
+}
+
+fn reduce_normal(
+    state: &mut PagerState,
+    event: &ReducerEvent,
+    ctx: &ReducerCtx<'_>,
+) -> ReducerEffect {
+    let ReducerEvent::Key(key) = event;
+    let ch = ctx.content_height;
+
+    state.status_message.clear();
+
+    if let Some(action) = keymap_lookup(*key, KeyContext::Normal) {
+        if let Some(effect) = dispatch_normal_action(state, action, ctx) {
+            return effect;
+        }
+    }
+
+    enforce_scrolloff(state, ch);
+    sync_tree_cursor(state, ch);
+    ReducerEffect::Continue
+}
+
+fn reduce(state: &mut PagerState, event: ReducerEvent, ctx: &ReducerCtx<'_>) -> ReducerEffect {
+    let effect = if state.mode == Mode::Search {
+        reduce_search(state, &event, ctx)
+    } else if state.mode == Mode::Help {
+        reduce_help(state, &event, ctx)
+    } else if state.mode == Mode::Visual {
+        reduce_visual(state, &event, ctx)
+    } else if state.tree_focused() {
+        reduce_tree(state, &event, ctx)
+    } else {
+        reduce_normal(state, &event, ctx)
+    };
+    clamp_cursor_and_top(state);
+    debug_assert_valid_state(state);
+    effect
+}
+
+/// Thin adapter: map Key to ReducerEvent, run reducer, return KeyResult.
 pub(crate) fn handle_key(
     state: &mut PagerState,
     key: Key,
@@ -1214,729 +2573,13 @@ pub(crate) fn handle_key(
     rows: u16,
     files: &[DiffFile],
 ) -> KeyResult {
-    // Search mode: delegate to search handler, return early
-    if state.mode == Mode::Search {
-        handle_search_key(state, &key);
-        if state.mode == Mode::Normal && state.current_match >= 0 {
-            scroll_to_match(state, rows);
-            sync_tree_cursor(state, ch);
-        }
-        return KeyResult::Continue;
-    }
-
-    // Help mode: any key returns to normal
-    if state.mode == Mode::Help {
-        state.mode = Mode::Normal;
-        return KeyResult::Continue;
-    }
-
-    // Visual mode
-    if state.mode == Mode::Visual {
-        match key {
-            Key::Escape | Key::CtrlC => {
-                state.mode = Mode::Normal;
-                state.cursor_line = state.top_line;
-                let (rs, re) = visible_range(state);
-                state.cursor_line = snap_to_content(
-                    &state.line_map,
-                    state.cursor_line,
-                    rs,
-                    re.saturating_sub(1),
-                );
-                return KeyResult::Continue;
-            }
-            Key::Char('j') | Key::Down => {
-                let next = state.cursor_line + 1;
-                let anchor_file = state
-                    .line_map
-                    .get(state.visual_anchor)
-                    .map_or(0, |l| l.file_idx);
-                let next_file = state
-                    .line_map
-                    .get(next)
-                    .map_or(usize::MAX, |l| l.file_idx);
-                if next < state.lines.len() && next_file == anchor_file {
-                    state.cursor_line = next;
-                    if state.cursor_line >= state.top_line + ch {
-                        state.top_line = state.cursor_line - ch + 1;
-                    }
-                }
-                return KeyResult::Continue;
-            }
-            Key::Char('k') | Key::Up => {
-                if state.cursor_line > 0 {
-                    let prev = state.cursor_line - 1;
-                    let anchor_file = state
-                        .line_map
-                        .get(state.visual_anchor)
-                        .map_or(0, |l| l.file_idx);
-                    let prev_file = state
-                        .line_map
-                        .get(prev)
-                        .map_or(usize::MAX, |l| l.file_idx);
-                    if prev_file == anchor_file {
-                        state.cursor_line = prev;
-                        if state.cursor_line < state.top_line {
-                            state.top_line = state.cursor_line;
-                        }
-                    }
-                }
-                return KeyResult::Continue;
-            }
-            Key::Char('y') => {
-                let lo = state.visual_anchor.min(state.cursor_line);
-                let hi = state.visual_anchor.max(state.cursor_line);
-                let path = state
-                    .line_map
-                    .get(lo)
-                    .map(|l| l.path.clone())
-                    .unwrap_or_default();
-                let (start, end) = resolve_lineno(&state.line_map, lo, hi);
-                let text = format_copy_ref(&path, start, end);
-                let ok = copy_to_clipboard(&text);
-                state.status_message = if ok {
-                    format!("Copied: {text}")
-                } else {
-                    "Copy failed (pbcopy not available)".to_string()
-                };
-                state.mode = Mode::Normal;
-                state.cursor_line = state.top_line;
-                let (rs, re) = visible_range(state);
-                state.cursor_line = snap_to_content(
-                    &state.line_map,
-                    state.cursor_line,
-                    rs,
-                    re.saturating_sub(1),
-                );
-                // Fall through to enforce_scrolloff
-            }
-            Key::Char('q') => return KeyResult::Quit,
-            _ => {
-                return KeyResult::Continue;
-            }
-        }
-    }
-
-    // Tree focus mode
-    if state.tree_focused {
-        let mut tree_handled = true;
-        match key {
-            Key::Char('j') | Key::Down => {
-                let _ = move_tree_selection(state, 1, ch);
-            }
-            Key::Char('k') | Key::Up => {
-                let _ = move_tree_selection(state, -1, ch);
-            }
-            Key::Enter => {
-                let cursor = state.tree_cursor;
-                if state.tree_entries[cursor].file_idx.is_none() {
-                    // Directory: toggle collapsed
-                    state.tree_entries[cursor].collapsed = !state.tree_entries[cursor].collapsed;
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    ensure_tree_cursor_visible(state, ch);
-                } else if let Some(fi) = state.tree_entries[cursor].file_idx
-                    && let Some(&target) = state.file_starts.get(fi)
-                {
-                    if state.active_file.is_some() {
-                        state.active_file = Some(fi);
-                    }
-                    state.top_line = target;
-                    let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                    state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                }
-            }
-            Key::CtrlH | Key::Escape | Key::Tab | Key::Char('1' | 'h') => {
-                state.tree_focused = false;
-            }
-            Key::Char('e') => {
-                state.tree_visible = false;
-                state.tree_focused = false;
-                return KeyResult::ReRender;
-            }
-            Key::Char('a') => {
-                if state.active_file.is_some() {
-                    // Toggle off: return to all-files view
-                    state.active_file = None;
-                    state.status_message = "All files".into();
-                } else {
-                    // Toggle on: restrict to the file at tree_cursor
-                    let file_idx = state.tree_entries[state.tree_cursor]
-                        .file_idx
-                        .unwrap_or(0);
-                    state.active_file = Some(file_idx);
-                    state.top_line = state.file_starts[file_idx];
-                    let file_end = state.file_starts.get(file_idx + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                    state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[file_idx], file_end);
-                    state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-                    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    state.status_message = "Single file".into();
-                }
-                return KeyResult::ReRender;
-            }
-            Key::Char('g') | Key::Home => {
-                if let Some(&first) = state.tree_visible_to_entry.first() {
-                    state.tree_cursor = first;
-                    if let Some(fi) = state.tree_entries[first].file_idx {
-                        state.top_line = state.file_starts[fi];
-                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                    }
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    ensure_tree_cursor_visible(state, ch);
-                }
-            }
-            Key::Char('G') | Key::End => {
-                if let Some(&last) = state.tree_visible_to_entry.last() {
-                    state.tree_cursor = last;
-                    if let Some(fi) = state.tree_entries[last].file_idx {
-                        state.top_line = state.file_starts[fi];
-                        let file_end = state.file_starts.get(fi + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                        state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[fi], file_end);
-                    }
-                    let (tl, tv) =
-                        build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                    state.tree_lines = tl;
-                    state.tree_visible_to_entry = tv;
-                    ensure_tree_cursor_visible(state, ch);
-                }
-            }
-            Key::Char('d') => {
-                if state.line_map.is_empty() {
-                    return KeyResult::Continue;
-                }
-                let anchor = state.cursor_line;
-                let max_line = state.line_map.len().saturating_sub(1);
-                let hunks = du_nav_targets(state);
-                let mut moved = false;
-                // #region agent log
-                debug_log(
-                    "pre-fix",
-                    "H5",
-                    "pager.rs:handle_key:tree:d",
-                    "d navigation targets",
-                    &format!(
-                        "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
-                        state.full_context,
-                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                        anchor,
-                        hunks.len(),
-                        hunks.first().map_or(String::from("null"), |v| v.to_string()),
-                        hunks.last().map_or(String::from("null"), |v| v.to_string()),
-                    ),
-                );
-                // #endregion
-                if let Some(target) = jump_next(&hunks, anchor) {
-                    moved = true;
-                    state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                    state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
-                }
-                sync_active_file_to_cursor(state);
-                if moved {
-                    let (range_start, _, _, max_top) = viewport_bounds(state, ch);
-                    state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
-                }
-                sync_tree_cursor_force(state, ch);
-            }
-            Key::Char('u') => {
-                if state.line_map.is_empty() {
-                    return KeyResult::Continue;
-                }
-                let anchor = state.cursor_line;
-                let max_line = state.line_map.len().saturating_sub(1);
-                let hunks = du_nav_targets(state);
-                let mut moved = false;
-                // #region agent log
-                debug_log(
-                    "pre-fix",
-                    "H5",
-                    "pager.rs:handle_key:tree:u",
-                    "u navigation targets",
-                    &format!(
-                        "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
-                        state.full_context,
-                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                        anchor,
-                        hunks.len(),
-                        hunks.first().map_or(String::from("null"), |v| v.to_string()),
-                        hunks.last().map_or(String::from("null"), |v| v.to_string()),
-                    ),
-                );
-                // #endregion
-                if let Some(target) = jump_prev(&hunks, anchor) {
-                    moved = true;
-                    state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                    // Retry if cursor didn't move backward (stuck on first content line)
-                    if state.cursor_line >= anchor {
-                        if let Some(target2) = jump_prev(&hunks, target) {
-                            state.cursor_line = next_content_line(&state.line_map, target2, max_line);
-                        } else {
-                            state.cursor_line = anchor; // no previous hunk, stay put
-                        }
-                    }
-                    state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
-                }
-                sync_active_file_to_cursor(state);
-                if moved {
-                    let (range_start, _, _, max_top) = viewport_bounds(state, ch);
-                    state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
-                }
-                sync_tree_cursor_force(state, ch);
-            }
-            Key::Char('q') | Key::CtrlC => return KeyResult::Quit,
-            _ => { tree_handled = false; }
-        }
-        if tree_handled {
-            return KeyResult::Continue;
-        }
-    }
-
-    // Normal mode
-    let half_page = ch / 2;
-    let (range_start, range_end) = visible_range(state);
-    let max_cursor = range_end.saturating_sub(1);
-
-    state.status_message.clear();
-
-        match key {
-        Key::Char('q') | Key::CtrlC => return KeyResult::Quit,
-        Key::Char('j') | Key::Down | Key::Enter => {
-            let next = (state.cursor_line + 1).min(max_cursor);
-            state.cursor_line = next_content_line(&state.line_map, next, max_cursor);
-        }
-        Key::Char('k') | Key::Up => {
-            let prev = state.cursor_line.saturating_sub(1).max(range_start);
-            state.cursor_line = prev_content_line(&state.line_map, prev, range_start);
-        }
-        Key::CtrlD | Key::PageDown => {
-            let target = (state.cursor_line + half_page).min(max_cursor);
-            state.cursor_line = next_content_line(&state.line_map, target, max_cursor);
-            if !is_content_line(&state.line_map, state.cursor_line) {
-                state.cursor_line = prev_content_line(&state.line_map, target, range_start);
-            }
-        }
-        Key::CtrlU | Key::PageUp => {
-            let target = state.cursor_line.saturating_sub(half_page).max(range_start);
-            state.cursor_line = prev_content_line(&state.line_map, target, range_start);
-            if !is_content_line(&state.line_map, state.cursor_line) {
-                state.cursor_line = next_content_line(&state.line_map, target, max_cursor);
-            }
-        }
-        Key::Char('d') => {
-            if state.line_map.is_empty() {
-                return KeyResult::Continue;
-            }
-            let anchor = state.cursor_line;
-            let max_line = state.line_map.len().saturating_sub(1);
-            let hunks = du_nav_targets(state);
-            let mut moved = false;
-            // #region agent log
-            debug_log(
-                "pre-fix",
-                "H5",
-                "pager.rs:handle_key:normal:d",
-                "d navigation targets",
-                &format!(
-                    "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
-                    state.full_context,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    anchor,
-                    hunks.len(),
-                    hunks.first().map_or(String::from("null"), |v| v.to_string()),
-                    hunks.last().map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            if let Some(target) = jump_next(&hunks, anchor) {
-                moved = true;
-                state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
-            }
-            sync_active_file_to_cursor(state);
-            if moved {
-                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
-                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
-            }
-            sync_tree_cursor(state, ch);
-            return KeyResult::Continue;
-        }
-        Key::Char('u') => {
-            if state.line_map.is_empty() {
-                return KeyResult::Continue;
-            }
-            let anchor = state.cursor_line;
-            let max_line = state.line_map.len().saturating_sub(1);
-            let hunks = du_nav_targets(state);
-            let mut moved = false;
-            // #region agent log
-            debug_log(
-                "pre-fix",
-                "H5",
-                "pager.rs:handle_key:normal:u",
-                "u navigation targets",
-                &format!(
-                    "{{\"fullContext\":{},\"activeFile\":{},\"anchor\":{},\"targets\":{},\"firstTarget\":{},\"lastTarget\":{}}}",
-                    state.full_context,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    anchor,
-                    hunks.len(),
-                    hunks.first().map_or(String::from("null"), |v| v.to_string()),
-                    hunks.last().map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            if let Some(target) = jump_prev(&hunks, anchor) {
-                moved = true;
-                state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                // Retry if cursor didn't move backward (stuck on first content line)
-                if state.cursor_line >= anchor {
-                    if let Some(target2) = jump_prev(&hunks, target) {
-                        state.cursor_line = next_content_line(&state.line_map, target2, max_line);
-                    } else {
-                        state.cursor_line = anchor; // no previous hunk, stay put
-                    }
-                }
-                state.status_message = nav_status_message(if state.full_context { "Change" } else { "Hunk" }, state.cursor_line, &hunks, &state.line_map);
-            }
-            sync_active_file_to_cursor(state);
-            if moved {
-                let (range_start, _, _, max_top) = viewport_bounds(state, ch);
-                state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
-            }
-            sync_tree_cursor(state, ch);
-            return KeyResult::Continue;
-        }
-        Key::Char('D') => {
-            let anchor = state.cursor_line;
-            let (rs, re) = visible_range(state);
-            let max_line = re.saturating_sub(1);
-            let max_top = re.saturating_sub(ch).max(rs);
-            let files = targets_in_range(&state.file_starts, rs, re);
-            if let Some(target) = jump_next(&files, anchor) {
-                state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                state.top_line = state.cursor_line
-                    .saturating_sub(ch / 2)
-                    .max(rs)
-                    .min(max_top);
-                state.status_message = file_status_message(state.cursor_line, &files, &state.line_map);
-            }
-            sync_tree_cursor(state, ch);
-            return KeyResult::Continue;
-        }
-        Key::Char('U') => {
-            let anchor = state.cursor_line;
-            let (rs, re) = visible_range(state);
-            let max_line = re.saturating_sub(1);
-            let max_top = re.saturating_sub(ch).max(rs);
-            let files = targets_in_range(&state.file_starts, rs, re);
-            if let Some(target) = jump_prev(&files, anchor) {
-                state.cursor_line = next_content_line(&state.line_map, target, max_line);
-                // Retry if cursor didn't move backward (stuck on first content line)
-                if state.cursor_line >= anchor {
-                    if let Some(target2) = jump_prev(&files, target) {
-                        state.cursor_line = next_content_line(&state.line_map, target2, max_line);
-                    } else {
-                        state.cursor_line = anchor; // no previous file, stay put
-                    }
-                }
-                state.top_line = state.cursor_line
-                    .saturating_sub(ch / 2)
-                    .max(rs)
-                    .min(max_top);
-                state.status_message = file_status_message(state.cursor_line, &files, &state.line_map);
-            }
-            sync_tree_cursor(state, ch);
-            return KeyResult::Continue;
-        }
-        Key::Char('g') | Key::Home => {
-            state.cursor_line = next_content_line(&state.line_map, range_start, max_cursor);
-        }
-        Key::Char('G') | Key::End => {
-            state.cursor_line = prev_content_line(&state.line_map, max_cursor, range_start);
-        }
-        Key::Char('/') => {
-            state.mode = Mode::Search;
-        }
-        Key::Char('n') => {
-            if !state.search_matches.is_empty() {
-                if state.active_file.is_some() {
-                    let (rs, re) = visible_range(state);
-                    let filtered: Vec<usize> = state.search_matches.iter().copied()
-                        .filter(|&m| m >= rs && m < re).collect();
-                    if !filtered.is_empty() {
-                        let cur_line = if state.current_match >= 0 {
-                            state.search_matches[state.current_match as usize]
-                        } else {
-                            0
-                        };
-                        if let Some(pos) = filtered.iter().position(|&m| m > cur_line) {
-                            let global = state.search_matches.iter().position(|&m| m == filtered[pos]).unwrap();
-                            state.current_match = global as isize;
-                        } else {
-                            let global = state.search_matches.iter().position(|&m| m == filtered[0]).unwrap();
-                            state.current_match = global as isize;
-                        }
-                        scroll_to_match(state, rows);
-                    }
-                } else {
-                    state.current_match =
-                        (state.current_match + 1) % state.search_matches.len() as isize;
-                    scroll_to_match(state, rows);
-                }
-            }
-        }
-        Key::Char('N') => {
-            if !state.search_matches.is_empty() {
-                if state.active_file.is_some() {
-                    let (rs, re) = visible_range(state);
-                    let filtered: Vec<usize> = state.search_matches.iter().copied()
-                        .filter(|&m| m >= rs && m < re).collect();
-                    if !filtered.is_empty() {
-                        let cur_line = if state.current_match >= 0 {
-                            state.search_matches[state.current_match as usize]
-                        } else {
-                            usize::MAX
-                        };
-                        if let Some(pos) = filtered.iter().rposition(|&m| m < cur_line) {
-                            let global = state.search_matches.iter().position(|&m| m == filtered[pos]).unwrap();
-                            state.current_match = global as isize;
-                        } else {
-                            let last = *filtered.last().unwrap();
-                            let global = state.search_matches.iter().position(|&m| m == last).unwrap();
-                            state.current_match = global as isize;
-                        }
-                        scroll_to_match(state, rows);
-                    }
-                } else {
-                    state.current_match = (state.current_match - 1
-                        + state.search_matches.len() as isize)
-                        % state.search_matches.len() as isize;
-                    scroll_to_match(state, rows);
-                }
-            }
-        }
-        Key::Char('E') => {
-            let pos = state.cursor_line.min(state.line_map.len().saturating_sub(1));
-            if !state.line_map.is_empty() {
-                let info = &state.line_map[pos];
-                let path = info.path.clone();
-                let lineno = info.new_lineno;
-                return KeyResult::OpenEditor { path, lineno };
-            }
-        }
-        Key::Char('e') => {
-            if state.tree_visible && state.tree_focused {
-                // Close tree
-                state.tree_visible = false;
-                state.tree_focused = false;
-            } else if state.tree_visible && !state.tree_focused {
-                // Focus tree
-                state.tree_focused = true;
-                let anchor = state.cursor_line;
-                let file_idx = state
-                    .line_map
-                    .get(anchor)
-                    .map_or(0, |li| li.file_idx);
-                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
-                ensure_tree_cursor_visible(state, ch);
-            } else if !state.tree_visible {
-                // Open and focus tree
-                state.tree_visible = true;
-                state.tree_focused = true;
-                let anchor = state.cursor_line;
-                let file_idx = state
-                    .line_map
-                    .get(anchor)
-                    .map_or(0, |li| li.file_idx);
-                state.tree_entries = build_tree_entries(files);
-                state.tree_width = compute_tree_width(&state.tree_entries);
-                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-                ensure_tree_cursor_visible(state, ch);
-            }
-            return KeyResult::ReRender;
-        }
-        Key::Tab => {
-            if state.tree_visible {
-                let anchor = state.cursor_line;
-                let file_idx = state
-                    .line_map
-                    .get(anchor)
-                    .map_or(0, |li| li.file_idx);
-                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
-                state.tree_focused = true;
-                ensure_tree_cursor_visible(state, ch);
-            }
-        }
-        Key::CtrlL | Key::Char('1' | 'l') => {
-            if !state.tree_visible {
-                state.tree_visible = true;
-                let anchor = state.cursor_line;
-                let file_idx = state
-                    .line_map
-                    .get(anchor)
-                    .map_or(0, |li| li.file_idx);
-                state.tree_entries = build_tree_entries(files);
-                state.tree_width = compute_tree_width(&state.tree_entries);
-                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-            }
-            state.tree_focused = true;
-            ensure_tree_cursor_visible(state, ch);
-            return KeyResult::ReRender;
-        }
-        Key::Char('v') => {
-            state.mode = Mode::Visual;
-            state.visual_anchor = state.cursor_line;
-        }
-        Key::Char('a') => {
-            // #region agent log
-            debug_log(
-                "pre-fix",
-                "H1",
-                "pager.rs:handle_key:a:before",
-                "toggle single/all before",
-                &format!(
-                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
-                    state.tree_visible,
-                    state.tree_focused,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    state.full_context,
-                    state.cursor_line,
-                    state.top_line,
-                    state.tree_cursor,
-                    state.tree_entries
-                        .get(state.tree_cursor)
-                        .and_then(|e| e.file_idx)
-                        .map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            if state.active_file.is_some() {
-                // Toggle off: return to all-files view
-                state.active_file = None;
-                state.status_message = "All files".into();
-            } else {
-                // Toggle on: restrict to current file
-                let anchor = state.cursor_line;
-                let file_idx = state
-                    .line_map
-                    .get(anchor)
-                    .map_or(0, |li| li.file_idx);
-                if state.tree_entries.is_empty() {
-                    state.tree_entries = build_tree_entries(files);
-                    state.tree_width = compute_tree_width(&state.tree_entries);
-                }
-                state.active_file = Some(file_idx);
-                state.top_line = state.file_starts[file_idx];
-                let file_end = state.file_starts.get(file_idx + 1).copied().unwrap_or(state.lines.len()).saturating_sub(1);
-                state.cursor_line = snap_to_content(&state.line_map, state.top_line, state.file_starts[file_idx], file_end);
-                state.tree_cursor = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-                let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
-                state.tree_lines = tl;
-                state.tree_visible_to_entry = tv;
-                state.status_message = "Single file".into();
-            }
-            // #region agent log
-            let (rs, re) = visible_range(state);
-            debug_log(
-                "pre-fix",
-                "H1",
-                "pager.rs:handle_key:a:after",
-                "toggle single/all after",
-                &format!(
-                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
-                    state.tree_visible,
-                    state.tree_focused,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    state.full_context,
-                    state.cursor_line,
-                    state.top_line,
-                    rs,
-                    re,
-                    state.tree_cursor,
-                    state.tree_entries
-                        .get(state.tree_cursor)
-                        .and_then(|e| e.file_idx)
-                        .map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            return KeyResult::ReRender;
-        }
-        Key::Char('z') => {
-            // #region agent log
-            debug_log(
-                "pre-fix",
-                "H3",
-                "pager.rs:handle_key:z:before",
-                "toggle context before regenerate",
-                &format!(
-                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
-                    state.tree_visible,
-                    state.tree_focused,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    state.full_context,
-                    state.cursor_line,
-                    state.top_line,
-                    state.tree_cursor,
-                    state.tree_entries
-                        .get(state.tree_cursor)
-                        .and_then(|e| e.file_idx)
-                        .map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            state.full_context = !state.full_context;
-            state.status_message = if state.full_context {
-                "Full file context".into()
-            } else {
-                "Hunk context".into()
-            };
-            // #region agent log
-            debug_log(
-                "pre-fix",
-                "H3",
-                "pager.rs:handle_key:z:after",
-                "toggle context after regenerate request",
-                &format!(
-                    "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
-                    state.tree_visible,
-                    state.tree_focused,
-                    state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                    state.full_context,
-                    state.cursor_line,
-                    state.top_line,
-                    state.tree_cursor,
-                    state.tree_entries
-                        .get(state.tree_cursor)
-                        .and_then(|e| e.file_idx)
-                        .map_or(String::from("null"), |v| v.to_string()),
-                ),
-            );
-            // #endregion
-            return KeyResult::ReGenerate;
-        }
-        Key::Char('?') => {
-            state.mode = Mode::Help;
-        }
-        _ => {}
-    }
-
-    enforce_scrolloff(state, ch);
-    sync_tree_cursor(state, ch);
-    KeyResult::Continue
+    let event = ReducerEvent::Key(key);
+    let ctx = ReducerCtx {
+        content_height: ch,
+        rows,
+        files,
+    };
+    KeyResult::from(reduce(state, event, &ctx))
 }
 
 fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
@@ -1981,39 +2624,14 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     let _ = stdout.flush();
     let _ = crossterm::terminal::enable_raw_mode();
 
-    let mut state = PagerState {
-        lines: output.lines,
-        line_map: output.line_map,
-        file_starts: output.file_starts,
-        hunk_starts: output.hunk_starts,
-        top_line: 0,
-        cursor_line: 0,
-        visual_anchor: 0,
-        search_query: String::new(),
-        search_matches: Vec::new(),
-        current_match: -1,
-        mode: Mode::Normal,
-        search_input: String::new(),
-        search_cursor: 0,
-        status_message: String::new(),
-        tree_visible: true,
-        tree_focused: true,
-        tree_cursor: 0,
-        tree_width: 0,
-        tree_scroll: 0,
-        tree_lines: vec![],
-        tree_entries: Vec::new(),
-        tree_visible_to_entry: Vec::new(),
-        active_file: None,
-        full_context: false,
-    };
-
-    // Initialize file tree panel
-    state.tree_entries = build_tree_entries(&files);
-    state.tree_width = compute_tree_width(&state.tree_entries);
-    let (tl, tv) = build_tree_lines(&state.tree_entries, 0, state.tree_width);
-    state.tree_lines = tl;
-    state.tree_visible_to_entry = tv;
+    let tree_entries = build_tree_entries(&files);
+    let mut state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        tree_entries,
+    );
 
     let mut last_size = get_term_size();
     files = regenerate_files(diff_ctx, state.full_context);
@@ -2065,55 +2683,23 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 re_render(&mut state, &files, color, last_size.0);
             }
             KeyResult::ReGenerate => {
-                // #region agent log
-                debug_log(
-                    "pre-fix",
-                    "H4",
+                let base = format_debug_state(&state);
+                debug_trace(
                     "pager.rs:run_pager:regenerate:before",
                     "regenerate start",
-                    &format!(
-                        "{{\"activeFile\":{},\"fullContext\":{},\"treeVisible\":{},\"treeFocused\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{},\"filesLen\":{}}}",
-                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                        state.full_context,
-                        state.tree_visible,
-                        state.tree_focused,
-                        state.tree_cursor,
-                        state.tree_entries
-                            .get(state.tree_cursor)
-                            .and_then(|e| e.file_idx)
-                            .map_or(String::from("null"), |v| v.to_string()),
-                        files.len(),
-                    ),
+                    &format!("{},\"filesLen\":{}}}", base.trim_end_matches('}'), files.len()),
                 );
-                // #endregion
                 files = regenerate_files(diff_ctx, state.full_context);
+                if files.is_empty() {
+                    break; // No diff: exit pager cleanly
+                }
                 re_render(&mut state, &files, color, last_size.0);
-                // #region agent log
-                let (rs, re) = visible_range(&state);
-                debug_log(
-                    "pre-fix",
-                    "H4",
+                let base = format_debug_state(&state);
+                debug_trace(
                     "pager.rs:run_pager:regenerate:after",
                     "regenerate complete",
-                    &format!(
-                        "{{\"activeFile\":{},\"fullContext\":{},\"treeVisible\":{},\"treeFocused\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{},\"filesLen\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{}}}",
-                        state.active_file.map_or(String::from("null"), |v| v.to_string()),
-                        state.full_context,
-                        state.tree_visible,
-                        state.tree_focused,
-                        state.tree_cursor,
-                        state.tree_entries
-                            .get(state.tree_cursor)
-                            .and_then(|e| e.file_idx)
-                            .map_or(String::from("null"), |v| v.to_string()),
-                        files.len(),
-                        state.cursor_line,
-                        state.top_line,
-                        rs,
-                        re,
-                    ),
+                    &format!("{},\"filesLen\":{}}}", base.trim_end_matches('}'), files.len()),
                 );
-                // #endregion
             }
             KeyResult::OpenEditor { path, lineno } => {
                 let _ = crossterm::terminal::disable_raw_mode();
@@ -2143,8 +2729,40 @@ mod tests {
     use super::*;
     use insta::assert_debug_snapshot;
     use insta::assert_snapshot;
+    use std::sync::{Mutex, OnceLock};
+    use tui::search::{find_matches, find_nearest_match};
 
-    #[derive(Debug)]
+    fn gd_debug_env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct GdDebugRestore(Option<std::ffi::OsString>);
+    #[allow(unsafe_code)]
+    impl Drop for GdDebugRestore {
+        fn drop(&mut self) {
+            // SAFETY: Tests use a global mutex guard to serialize env mutation.
+            match self.0.take() {
+                Some(v) => unsafe { std::env::set_var("GD_DEBUG", v) },
+                None => unsafe { std::env::remove_var("GD_DEBUG") },
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn with_gd_debug_env<T>(value: Option<&str>, f: impl FnOnce() -> T) -> T {
+        let _guard = gd_debug_env_lock()
+            .lock()
+            .expect("failed to lock GD_DEBUG test mutex");
+        let _restore = GdDebugRestore(std::env::var_os("GD_DEBUG"));
+        match value {
+            Some(v) => unsafe { std::env::set_var("GD_DEBUG", v) },
+            None => unsafe { std::env::remove_var("GD_DEBUG") },
+        }
+        f()
+    }
+
+    #[derive(Debug, PartialEq)]
     #[allow(dead_code)]
     struct StateSnapshot {
         cursor_line: usize,
@@ -2164,16 +2782,87 @@ mod tests {
             StateSnapshot {
                 cursor_line: s.cursor_line,
                 top_line: s.top_line,
-                active_file: s.active_file,
+                active_file: s.active_file(),
                 tree_visible: s.tree_visible,
-                tree_focused: s.tree_focused,
-                tree_cursor: s.tree_cursor,
+                tree_focused: s.tree_focused(),
+                tree_cursor: s.tree_cursor(),
                 mode: s.mode.clone(),
                 status_message: s.status_message.clone(),
                 full_context: s.full_context,
                 visual_anchor: s.visual_anchor,
             }
         }
+    }
+
+    /// Invariant test harness: validates PagerState after transitions.
+    /// Run in tests to catch invalid-state regressions.
+    fn assert_state_invariants(state: &PagerState) {
+        let line_count = state.doc.line_count();
+        let (rs, re) = visible_range(state);
+        let range_max = re.saturating_sub(1);
+
+        // cursor and top within visible range
+        assert!(
+            state.cursor_line >= rs && state.cursor_line <= range_max,
+            "cursor_line {} out of visible range [{}, {}]",
+            state.cursor_line,
+            rs,
+            range_max
+        );
+        let max_top = range_max.saturating_sub(1).min(line_count.saturating_sub(1));
+        assert!(
+            state.top_line >= rs && state.top_line <= max_top.min(range_max),
+            "top_line {} out of range [rs={}, max_top={}]",
+            state.top_line,
+            rs,
+            max_top
+        );
+
+        // single-file scope references existing file
+        if let ViewScope::SingleFile(ix) = state.view_scope {
+            assert!(
+                ix.get() < state.file_count(),
+                "SingleFile index {} out of bounds (file_count={})",
+                ix.get(),
+                state.file_count()
+            );
+        }
+
+        // tree focus implies valid tree selection
+        if state.tree_focused() {
+            assert!(
+                !state.tree_entries.is_empty(),
+                "tree focus invalid when tree empty"
+            );
+            assert!(
+                state.tree_selection.is_some(),
+                "tree focus requires valid tree_selection"
+            );
+            if let Some(sel) = state.tree_selection {
+                assert!(
+                    sel.get() < state.tree_entry_count(),
+                    "tree_selection {} out of bounds (entry_count={})",
+                    sel.get(),
+                    state.tree_entry_count()
+                );
+            }
+        }
+
+        // overlay payloads valid for current doc
+        for &idx in &state.search_matches {
+            assert!(
+                idx < line_count,
+                "search_match index {} out of doc bounds (line_count={})",
+                idx,
+                line_count
+            );
+        }
+        assert!(
+            state.visual_anchor < line_count || line_count == 0,
+            "visual_anchor {} out of doc bounds (line_count={})",
+            state.visual_anchor,
+            line_count
+        );
     }
 
     /// Build a 90-line PagerState for keybinding snapshot tests.
@@ -2212,36 +2901,16 @@ mod tests {
             entry("b.rs", 0, Some(1)),
             entry("c.rs", 0, Some(2)),
         ];
-        let width = compute_tree_width(&tree_entries);
-        let (tree_lines, tree_visible_to_entry) =
-            build_tree_lines(&tree_entries, 0, width);
-
-        PagerState {
-            lines: vec!["line".into(); 90],
+        let mut state = PagerState::new(
+            vec!["line".into(); 90],
             line_map,
-            file_starts: vec![0, 30, 60],
-            hunk_starts: vec![5, 15, 35, 45, 65, 75],
-            top_line: 0,
-            cursor_line: 1,
-            visual_anchor: 0,
-            search_query: String::new(),
-            search_matches: Vec::new(),
-            current_match: -1,
-            mode: Mode::Normal,
-            search_input: String::new(),
-            search_cursor: 0,
-            status_message: String::new(),
-            tree_visible: true,
-            tree_focused: false,
-            tree_cursor: 0,
-            tree_width: width,
-            tree_scroll: 0,
-            tree_lines,
+            vec![0, 30, 60],
+            vec![5, 15, 35, 45, 65, 75],
             tree_entries,
-            tree_visible_to_entry,
-            active_file: None,
-            full_context: false,
-        }
+        );
+        state.cursor_line = 1;
+        state.set_tree_focused(false);
+        state
     }
 
     fn make_search_state(input: &str, cursor: usize) -> PagerState {
@@ -2384,12 +3053,12 @@ mod tests {
     #[test]
     fn key_d_full_context_single_file_navigates_changes() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.full_context = true;
         // Override line_map for file 0 (lines 0-29) to have change groups
         // Keep headers at 0, 5, 15 as None; add changes at 7-8 and 20-21
         for i in 0..30 {
-            state.line_map[i].line_kind = if [0, 5, 15].contains(&i) {
+            state.doc.line_map[i].line_kind = if [0, 5, 15].contains(&i) {
                 None
             } else if (7..=8).contains(&i) {
                 Some(LineKind::Added)
@@ -2402,6 +3071,7 @@ mod tests {
         state.cursor_line = 1; // on a context line
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         // Should jump to first change group at 7
+        assert_state_invariants(&state);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
 
@@ -2411,24 +3081,98 @@ mod tests {
         // hunk_starts: [5, 15, 35, 45, 65, 75]
         // Cursor on first content line after hunk_start 5 → Hunk 1/6 · a.rs
         assert_eq!(
-            nav_status_message("Hunk", 6, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 6, &state.doc.hunk_starts, &state.doc.line_map),
             "Hunk 1/6 · a.rs"
         );
         // Cursor on first content line after hunk_start 35 → Hunk 3/6 · b.rs
         assert_eq!(
-            nav_status_message("Hunk", 36, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 36, &state.doc.hunk_starts, &state.doc.line_map),
             "Hunk 3/6 · b.rs"
         );
         // Cursor on last hunk → Hunk 6/6 · c.rs
         assert_eq!(
-            nav_status_message("Hunk", 76, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 76, &state.doc.hunk_starts, &state.doc.line_map),
             "Hunk 6/6 · c.rs"
         );
         // Cursor exactly on a hunk_start (header line) → still correct index
         assert_eq!(
-            nav_status_message("Hunk", 45, &state.hunk_starts, &state.line_map),
+            nav_status_message("Hunk", 45, &state.doc.hunk_starts, &state.doc.line_map),
             "Hunk 4/6 · b.rs"
         );
+    }
+
+    #[test]
+    fn test_file_ix_constructor_boundaries() {
+        assert_eq!(FileIx::new(0, 3), Some(FileIx(0)));
+        assert_eq!(FileIx::new(2, 3), Some(FileIx(2)));
+        assert_eq!(FileIx::new(3, 3), None);
+        assert_eq!(FileIx::new(0, 0), None);
+    }
+
+    #[test]
+    fn test_line_ix_constructor_boundaries() {
+        assert_eq!(LineIx::new(0, 10), Some(LineIx(0)));
+        assert_eq!(LineIx::new(9, 10), Some(LineIx(9)));
+        assert_eq!(LineIx::new(10, 10), None);
+        assert_eq!(LineIx::new(0, 0), None);
+    }
+
+    #[test]
+    fn test_tree_entry_ix_constructor_boundaries() {
+        assert_eq!(TreeEntryIx::new(0, 5), Some(TreeEntryIx(0)));
+        assert_eq!(TreeEntryIx::new(4, 5), Some(TreeEntryIx(4)));
+        assert_eq!(TreeEntryIx::new(5, 5), None);
+        assert_eq!(TreeEntryIx::new(0, 0), None);
+    }
+
+    #[test]
+    fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks() {
+        // Start with 3 files, single-file view on file 2
+        let mut state = make_pager_state_for_range(vec![0, 10, 20], 30, Some(2));
+        assert_eq!(state.active_file(), Some(2));
+        // Simulate document swap: file_starts shrunk to 2 files (remap handles scope normalization)
+        let anchor = capture_view_anchor(&state);
+        let new_doc = Document {
+            lines: vec![String::new(); 20],
+            line_map: vec![
+                LineInfo {
+                    file_idx: 0,
+                    path: String::new(),
+                    new_lineno: None,
+                    old_lineno: None,
+                    line_kind: None,
+                };
+                20
+            ],
+            file_starts: vec![0, 10],
+            hunk_starts: vec![],
+        };
+        remap_after_document_swap(&mut state, anchor, new_doc, &[]);
+        assert_eq!(state.active_file(), None, "view scope should clamp to AllFiles when file 2 no longer exists");
+    }
+
+    #[test]
+    fn test_tree_focus_invalid_when_tree_empty() {
+        let mut state = PagerState::new(
+            vec!["x".into(); 5],
+            vec![
+                LineInfo {
+                    file_idx: 0,
+                    path: "a".into(),
+                    new_lineno: None,
+                    old_lineno: None,
+                    line_kind: None,
+                };
+                5
+            ],
+            vec![0],
+            vec![],
+            vec![], // empty tree
+        );
+        assert!(!state.tree_focused());
+        assert!(!state.tree_visible);
+        state.set_tree_focused(true);
+        assert!(!state.tree_focused(), "tree focus must stay false when no entries");
     }
 
     #[test]
@@ -2586,41 +3330,25 @@ mod tests {
         lines_len: usize,
         active_file: Option<usize>,
     ) -> PagerState {
-        PagerState {
-            lines: vec![String::new(); lines_len],
-            line_map: vec![
-                LineInfo {
-                    file_idx: 0,
-                    path: String::new(),
-                    new_lineno: None,
-                    old_lineno: None,
-                    line_kind: None,
-                };
-                lines_len
-            ],
+        let line_map = vec![
+            LineInfo {
+                file_idx: 0,
+                path: String::new(),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            };
+            lines_len
+        ];
+        let mut state = PagerState::new(
+            vec![String::new(); lines_len],
+            line_map,
             file_starts,
-            hunk_starts: Vec::new(),
-            top_line: 0,
-            cursor_line: 0,
-            visual_anchor: 0,
-            search_query: String::new(),
-            search_matches: Vec::new(),
-            current_match: -1,
-            mode: Mode::Normal,
-            search_input: String::new(),
-            search_cursor: 0,
-            status_message: String::new(),
-            tree_visible: false,
-            tree_focused: false,
-            tree_cursor: 0,
-            tree_width: 0,
-            tree_scroll: 0,
-            tree_lines: Vec::new(),
-            tree_entries: Vec::new(),
-            tree_visible_to_entry: Vec::new(),
-            active_file,
-            full_context: false,
-        }
+            Vec::new(),
+            Vec::new(),
+        );
+        state.set_active_file(active_file);
+        state
     }
 
     #[test]
@@ -3116,7 +3844,7 @@ mod tests {
     fn key_u_prev_hunk_from_first_content_line() {
         let mut state = make_keybinding_state();
         state.cursor_line = 16; // first content line after hunk header at 15
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 6);
     }
@@ -3124,7 +3852,7 @@ mod tests {
     #[test]
     fn key_u_cross_file_from_first_hunk() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(1);
+        state.set_active_file(Some(1));
         state.cursor_line = 36; // first content line of file 1's first hunk (header at 35)
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
@@ -3133,9 +3861,9 @@ mod tests {
     #[test]
     fn key_u_tree_focused_from_first_content_line() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         state.cursor_line = 16;
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 6);
     }
@@ -3151,7 +3879,7 @@ mod tests {
     #[test]
     fn key_u_cross_file_boundary() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(1);
+        state.set_active_file(Some(1));
         state.cursor_line = 36;
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
@@ -3169,7 +3897,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_D_next_file() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('D'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3178,7 +3906,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_U_prev_file() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(1);
+        state.set_active_file(Some(1));
         state.cursor_line = 31;
         handle_key(&mut state, Key::Char('U'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3188,7 +3916,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_U_no_active_file_stuck_cursor() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 31; // first content line after file_start=30
         handle_key(&mut state, Key::Char('U'), 50, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3197,7 +3925,7 @@ mod tests {
     #[test]
     fn key_d_no_active_file_does_not_stick() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 5; // on a hunk header
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3206,7 +3934,7 @@ mod tests {
     #[test]
     fn key_next_file_no_active_file_does_not_stick() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 0; // on a file header
         handle_key(&mut state, Key::Char('D'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3215,7 +3943,7 @@ mod tests {
     #[test]
     fn key_d_at_last_hunk_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 76; // after last hunk_start=75
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3224,7 +3952,7 @@ mod tests {
     #[test]
     fn key_u_at_first_hunk_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 6; // after first hunk_start=5
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3234,7 +3962,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_D_at_last_file_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 66; // in last file
         handle_key(&mut state, Key::Char('D'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3244,7 +3972,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_U_at_first_file_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 1; // in first file
         handle_key(&mut state, Key::Char('U'), 50, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3258,28 +3986,28 @@ mod tests {
     #[test]
     fn key_d_single_file_jumps_to_next_file_hunk() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0); // a.rs: lines 0-29, hunks at 5, 15
+        state.set_active_file(Some(0)); // a.rs: lines 0-29, hunks at 5, 15
         state.cursor_line = 16; // past last hunk of file 0
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         // d/u ignore single-file scope and navigate hunks globally.
         assert_eq!(state.cursor_line, 36);
-        assert_eq!(state.active_file, Some(1));
+        assert_eq!(state.active_file(), Some(1));
     }
 
     #[test]
     fn key_u_single_file_jumps_to_prev_file_hunk() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(1); // b.rs: lines 30-59, hunks at 35, 45
+        state.set_active_file(Some(1)); // b.rs: lines 30-59, hunks at 35, 45
         state.cursor_line = 36; // first content of file 1's first hunk
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
-        assert_eq!(state.active_file, Some(0));
+        assert_eq!(state.active_file(), Some(0));
     }
 
     #[test]
     fn key_next_file_single_file_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0); // only file 0 visible
+        state.set_active_file(Some(0)); // only file 0 visible
         state.cursor_line = 1;
         handle_key(&mut state, Key::Char('D'), 40, 40, &[]);
         // D should not jump to file 1 — no other file_starts in range
@@ -3289,7 +4017,7 @@ mod tests {
     #[test]
     fn key_prev_file_single_file_is_noop() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(2); // only file 2 visible
+        state.set_active_file(Some(2)); // only file 2 visible
         state.cursor_line = 61;
         handle_key(&mut state, Key::Char('U'), 40, 40, &[]);
         // U should not jump to file 1 — no other file_starts in range
@@ -3299,7 +4027,7 @@ mod tests {
     #[test]
     fn key_d_single_file_within_file_works() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0); // a.rs: hunks at 5, 15
+        state.set_active_file(Some(0)); // a.rs: hunks at 5, 15
         state.cursor_line = 6; // just past first hunk
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         // Should jump to hunk at 15 (within same file)
@@ -3309,31 +4037,31 @@ mod tests {
     #[test]
     fn key_d_tree_focused_single_file_jumps_globally() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(0);
+        state.set_tree_focused(true);
+        state.set_active_file(Some(0));
         state.cursor_line = 16; // past last hunk of file 0
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 36);
-        assert_eq!(state.active_file, Some(1));
-        assert_eq!(state.tree_cursor, file_idx_to_entry_idx(&state.tree_entries, 1));
+        assert_eq!(state.active_file(), Some(1));
+        assert_eq!(state.tree_cursor(), file_idx_to_entry_idx(&state.tree_entries, 1));
     }
 
     #[test]
     fn key_u_tree_focused_single_file_jumps_globally() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(1); // b.rs: hunks at 35, 45
+        state.set_tree_focused(true);
+        state.set_active_file(Some(1)); // b.rs: hunks at 35, 45
         state.cursor_line = 36;
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 16);
-        assert_eq!(state.active_file, Some(0));
-        assert_eq!(state.tree_cursor, file_idx_to_entry_idx(&state.tree_entries, 0));
+        assert_eq!(state.active_file(), Some(0));
+        assert_eq!(state.tree_cursor(), file_idx_to_entry_idx(&state.tree_entries, 0));
     }
 
     #[test]
     fn key_d_single_file_clamps_top_line_to_active_file_range() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.cursor_line = 16; // next global hunk lands in file 1
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         let (range_start, range_end) = visible_range(&state);
@@ -3345,8 +4073,8 @@ mod tests {
     #[test]
     fn key_u_tree_focused_single_file_clamps_top_line_to_active_file_range() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(1);
+        state.set_tree_focused(true);
+        state.set_active_file(Some(1));
         state.cursor_line = 36; // previous global hunk lands in file 0
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
         let (range_start, range_end) = visible_range(&state);
@@ -3392,7 +4120,7 @@ mod tests {
     #[test]
     fn key_h_in_tree_defocuses() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Char('h'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3400,7 +4128,7 @@ mod tests {
     #[test]
     fn key_esc_in_tree_defocuses() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Escape, 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3408,7 +4136,7 @@ mod tests {
     #[test]
     fn key_tab_in_tree_defocuses() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Tab, 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3416,7 +4144,7 @@ mod tests {
     #[test]
     fn key_1_in_tree_defocuses() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Char('1'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3424,12 +4152,12 @@ mod tests {
     #[test]
     fn key_j_in_tree_next_entry() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.tree_cursor = 0;
+        state.set_tree_focused(true);
+        state.set_tree_cursor(0);
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
-        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.tree_cursor(), 1);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
     }
@@ -3437,13 +4165,13 @@ mod tests {
     #[test]
     fn key_k_in_tree_prev_entry() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Move to the second entry first
-        state.tree_cursor = state.tree_visible_to_entry[1];
+        state.set_tree_cursor(state.tree_visible_to_entry[1]);
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
-        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.tree_cursor(), 0);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
     }
@@ -3451,9 +4179,9 @@ mod tests {
     #[test]
     fn key_g_in_tree_first_entry() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Start at the last entry
-        state.tree_cursor = *state.tree_visible_to_entry.last().unwrap();
+        state.set_tree_cursor(*state.tree_visible_to_entry.last().unwrap());
         handle_key(&mut state, Key::Char('g'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3462,9 +4190,9 @@ mod tests {
     #[allow(non_snake_case)]
     fn key_G_in_tree_last_entry() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Start at the first entry
-        state.tree_cursor = state.tree_visible_to_entry[0];
+        state.set_tree_cursor(state.tree_visible_to_entry[0]);
         handle_key(&mut state, Key::Char('G'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3472,9 +4200,9 @@ mod tests {
     #[test]
     fn key_enter_on_file_in_tree() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Cursor on the second file entry (b.rs, file_idx=1)
-        state.tree_cursor = state.tree_visible_to_entry[1];
+        state.set_tree_cursor(state.tree_visible_to_entry[1]);
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3498,8 +4226,8 @@ mod tests {
         let (tl, tv) = build_tree_lines(&state.tree_entries, 0, state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
-        state.tree_focused = true;
-        state.tree_cursor = 0; // directory entry
+        state.set_tree_focused(true);
+        state.set_tree_cursor(0); // directory entry
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
         // Verify directory collapsed toggled
         assert!(state.tree_entries[0].collapsed);
@@ -3514,7 +4242,7 @@ mod tests {
     fn key_e_opens_and_focuses_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = false;
-        state.tree_focused = false;
+        state.set_tree_focused(false);
         let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
         handle_key(&mut state, Key::Char('e'), 40, 40, &files);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3524,7 +4252,7 @@ mod tests {
     fn key_e_focuses_open_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = true;
-        state.tree_focused = false;
+        state.set_tree_focused(false);
         handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3533,7 +4261,7 @@ mod tests {
     fn key_e_closes_focused_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = true;
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3541,30 +4269,30 @@ mod tests {
     #[test]
     fn e_close_tree_preserves_active_file() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(1);
+        state.set_active_file(Some(1));
         state.tree_visible = true;
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
-        assert_eq!(state.active_file, Some(1), "single-file view must be preserved");
+        assert_eq!(state.active_file(), Some(1), "single-file view must be preserved");
         assert!(!state.tree_visible);
-        assert!(!state.tree_focused);
+        assert!(!state.tree_focused());
     }
 
     #[test]
     fn e_close_tree_preserves_active_file_none() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.tree_visible = true;
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         handle_key(&mut state, Key::Char('e'), 40, 40, &[]);
-        assert_eq!(state.active_file, None, "active_file must stay None");
+        assert_eq!(state.active_file(), None, "active_file must stay None");
     }
 
     #[test]
     fn key_tab_focuses_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = true;
-        state.tree_focused = false;
+        state.set_tree_focused(false);
         handle_key(&mut state, Key::Tab, 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3573,7 +4301,7 @@ mod tests {
     fn key_l_shows_and_focuses_tree() {
         let mut state = make_keybinding_state();
         state.tree_visible = false;
-        state.tree_focused = false;
+        state.set_tree_focused(false);
         let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
         handle_key(&mut state, Key::Char('l'), 40, 40, &files);
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -3582,7 +4310,7 @@ mod tests {
     #[test]
     fn key_a_toggles_off_single_file() {
         let mut state = make_keybinding_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3590,7 +4318,7 @@ mod tests {
     #[test]
     fn key_a_toggles_on_single_file() {
         let mut state = make_keybinding_state();
-        state.active_file = None;
+        state.set_active_file(None);
         handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
@@ -3626,6 +4354,65 @@ mod tests {
         assert!(!state.full_context);
     }
 
+    // Regression: keymap/help/docs consistency (chunk-04)
+    #[test]
+    fn keymap_full_context_toggle_is_z() {
+        use super::KeyContext;
+        assert_eq!(
+            keymap_lookup(Key::Char('z'), KeyContext::Normal),
+            Some(ActionId::ToggleFullContext)
+        );
+        assert_eq!(keymap_lookup(Key::Char(' '), KeyContext::Normal), None);
+    }
+
+    #[test]
+    fn help_includes_full_context_toggle_z() {
+        let help = keymap_help_lines();
+        let has_z = help.iter().any(|l| l.contains('z'));
+        let has_label = help.iter().any(|l| l.contains("Toggle full file context"));
+        assert!(has_z, "help must show z for full-context toggle");
+        assert!(has_label, "help must describe full file context toggle");
+    }
+
+    #[test]
+    fn help_includes_all_primary_runtime_actions() {
+        let help_text = keymap_help_lines().join(" ");
+        let required = [
+            "d",
+            "Next hunk",
+            "u",
+            "Previous hunk",
+            "D",
+            "Next file",
+            "U",
+            "Previous file",
+            "a",
+            "Toggle single file",
+            "z",
+            "Toggle full file context",
+            "/",
+            "Search",
+            "n",
+            "Next match",
+            "N",
+            "Previous match",
+            "e",
+            "Toggle tree panel",
+            "v",
+            "Enter visual mode",
+            "E",
+            "Open in editor",
+            "q",
+            "Quit",
+        ];
+        for s in required {
+            assert!(
+                help_text.contains(s),
+                "help must include runtime action: {s:?}"
+            );
+        }
+    }
+
     #[test]
     fn test_initial_state_no_active_file() {
         let state = make_keybinding_state();
@@ -3635,11 +4422,11 @@ mod tests {
     #[test]
     fn test_tree_j_without_active_file_moves_tree_only() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
-        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.tree_cursor(), 1);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
     }
@@ -3647,30 +4434,30 @@ mod tests {
     #[test]
     fn test_tree_j_single_file_moves_tree_only() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(0);
+        state.set_tree_focused(true);
+        state.set_active_file(Some(0));
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
-        assert_eq!(state.tree_cursor, 1);
+        assert_eq!(state.tree_cursor(), 1);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
-        assert_eq!(state.active_file, Some(0));
+        assert_eq!(state.active_file(), Some(0));
     }
 
     #[test]
     fn test_tree_k_without_active_file_moves_tree_only() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Start at second file entry (tree_cursor = 1, which is b.rs / file 1)
-        state.tree_cursor = 1;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.set_tree_cursor(1);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
-        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.tree_cursor(), 0);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
     }
@@ -3678,33 +4465,33 @@ mod tests {
     #[test]
     fn test_tree_k_single_file_moves_tree_only() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(1);
-        state.tree_cursor = 1;
+        state.set_tree_focused(true);
+        state.set_active_file(Some(1));
+        state.set_tree_cursor(1);
         state.top_line = 30;
         state.cursor_line = 31;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         let initial_top = state.top_line;
         let initial_cursor = state.cursor_line;
         handle_key(&mut state, Key::Char('k'), 40, 40, &[]);
         let (vis_start, vis_end) = visible_range(&state);
-        assert_eq!(state.tree_cursor, 0);
+        assert_eq!(state.tree_cursor(), 0);
         assert_eq!(state.top_line, initial_top);
         assert_eq!(state.cursor_line, initial_cursor);
         assert!(state.cursor_line >= vis_start && state.cursor_line < vis_end);
-        assert!(is_content_line(&state.line_map, state.cursor_line));
-        assert_eq!(state.active_file, Some(1));
+        assert!(is_content_line(&state.doc.line_map, state.cursor_line));
+        assert_eq!(state.active_file(), Some(1));
     }
 
     #[test]
     fn test_tree_enter_scrolls_without_active_file() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         // Move cursor to second file entry (b.rs / file 1)
-        state.tree_cursor = 1;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.set_tree_cursor(1);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
@@ -3714,14 +4501,14 @@ mod tests {
     #[test]
     fn test_tree_enter_single_file_switches_active_file() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.active_file = Some(0);
-        state.tree_cursor = 1;
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor, state.tree_width);
+        state.set_tree_focused(true);
+        state.set_active_file(Some(0));
+        state.set_tree_cursor(1);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
         state.tree_lines = tl;
         state.tree_visible_to_entry = tv;
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
-        assert_eq!(state.active_file, Some(1));
+        assert_eq!(state.active_file(), Some(1));
         assert_eq!(state.top_line, 30);
         assert!(state.cursor_line >= 30 && state.cursor_line < 60);
     }
@@ -3731,10 +4518,10 @@ mod tests {
         let mut state = make_keybinding_state();
         // Default state has active_file: None; pressing 'a' should set it
         handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
-        assert_eq!(state.active_file, Some(0));
+        assert_eq!(state.active_file(), Some(0));
         // Press 'a' again to toggle off
         handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
-        assert_eq!(state.active_file, None);
+        assert_eq!(state.active_file(), None);
         assert_debug_snapshot!(StateSnapshot::from(&state));
     }
 
@@ -3763,34 +4550,16 @@ diff --git a/b.txt b/b.txt
     fn make_pager_state_from_files(files: &[DiffFile], tree_visible: bool) -> PagerState {
         let output = render::render(files, 80, false, tree_visible);
         let tree_entries = build_tree_entries(files);
-        let width = compute_tree_width(&tree_entries);
-        let (tree_lines, tree_visible_to_entry) = build_tree_lines(&tree_entries, 0, width);
-        PagerState {
-            lines: output.lines,
-            line_map: output.line_map,
-            file_starts: output.file_starts,
-            hunk_starts: output.hunk_starts,
-            top_line: 0,
-            cursor_line: 0,
-            visual_anchor: 0,
-            search_query: String::new(),
-            search_matches: Vec::new(),
-            current_match: -1,
-            mode: Mode::Normal,
-            search_input: String::new(),
-            search_cursor: 0,
-            status_message: String::new(),
-            tree_visible,
-            tree_focused: false,
-            tree_cursor: 0,
-            tree_width: width,
-            tree_scroll: 0,
-            tree_lines,
+        let mut state = PagerState::new(
+            output.lines,
+            output.line_map,
+            output.file_starts,
+            output.hunk_starts,
             tree_entries,
-            tree_visible_to_entry,
-            active_file: None,
-            full_context: false,
-        }
+        );
+        state.tree_visible = tree_visible;
+        state.set_tree_focused(false);
+        state
     }
 
     #[test]
@@ -3799,7 +4568,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_pager_state_from_files(&files, true);
         re_render(&mut state, &files, false, 80);
         // With tree_visible=true, file headers should be skipped
-        let stripped: String = state.lines.iter()
+        let stripped: String = state.doc.lines.iter()
             .map(|l| crate::ansi::strip_ansi(l))
             .collect::<Vec<_>>()
             .join("\n");
@@ -3815,7 +4584,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_pager_state_from_files(&files, false);
         re_render(&mut state, &files, false, 80);
         // With tree_visible=false, file headers should be present
-        let stripped: String = state.lines.iter()
+        let stripped: String = state.doc.lines.iter()
             .map(|l| crate::ansi::strip_ansi(l))
             .collect::<Vec<_>>()
             .join("\n");
@@ -3837,7 +4606,7 @@ diff --git a/b.txt b/b.txt
         // also a deleted line -- the bug is that .position() matches the first
         // None-lineno entry (the file header) even when top_line was on a later one.
         let target = state
-            .line_map
+            .doc.line_map
             .iter()
             .enumerate()
             .rev() // pick the LAST None-lineno line for file_idx>0
@@ -3847,9 +4616,9 @@ diff --git a/b.txt b/b.txt
 
         // Sanity: the first None-lineno line for the same file should be different
         let first_none = state
-            .line_map
+            .doc.line_map
             .iter()
-            .position(|li| li.file_idx == state.line_map[target].file_idx && li.new_lineno.is_none())
+            .position(|li| li.file_idx == state.doc.line_map[target].file_idx && li.new_lineno.is_none())
             .unwrap();
         assert_ne!(
             first_none, target,
@@ -3862,6 +4631,111 @@ diff --git a/b.txt b/b.txt
             state.top_line, target,
             "re_render should preserve top_line on a header/None-lineno line, not jump to {first_none}",
         );
+    }
+
+    /// Debug mode toggle must not alter reducer/output state. GD_DEBUG=1 triggers
+    /// debug_trace in re_render; this test confirms the resulting state is identical.
+    #[test]
+    fn debug_toggle_does_not_change_reducer_output() {
+        let files = make_two_file_diff();
+        let snap_off = with_gd_debug_env(None, || {
+            let mut state_off = make_pager_state_from_files(&files, true);
+            re_render(&mut state_off, &files, false, 80);
+            StateSnapshot::from(&state_off)
+        });
+
+        let snap_on = with_gd_debug_env(Some("1"), || {
+            let mut state_on = make_pager_state_from_files(&files, true);
+            re_render(&mut state_on, &files, false, 80);
+            StateSnapshot::from(&state_on)
+        });
+
+        assert_eq!(
+            snap_off, snap_on,
+            "GD_DEBUG on vs off must produce identical state after re_render"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Chunk-03 regression tests: document swap and remap
+    // ---------------------------------------------------------------------------
+
+    /// Regenerate from multi-file to single-file does not panic and preserves valid cursor.
+    #[test]
+    fn document_swap_multi_to_single_file_preserves_valid_cursor() {
+        let raw3 = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+diff --git a/c.txt b/c.txt
+--- /dev/null
++++ b/c.txt
+@@ -0,0 +1,1 @@
++new
+";
+        let three_files = crate::git::diff::parse(raw3);
+        let mut state = make_pager_state_from_files(&three_files, true);
+        state.set_active_file(Some(1)); // focus file 1
+        state.cursor_line = 35; // somewhere in file 1
+        let single_file = crate::git::diff::parse("\
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+");
+        // Simulate regenerate: document swap from 3 files to 1 file
+        re_render(&mut state, &single_file, false, 80);
+        let (rs, re) = visible_range(&state);
+        assert!(
+            state.cursor_line >= rs && state.cursor_line < re,
+            "cursor {} must be in visible range [{}, {})",
+            state.cursor_line,
+            rs,
+            re
+        );
+        assert!(state.doc.line_map.get(state.cursor_line).is_some());
+    }
+
+    /// Regenerate to empty/no-diff: remap sets cursor/top to 0, no panic.
+    #[test]
+    fn document_swap_to_empty_exits_cleanly() {
+        let files = make_two_file_diff();
+        let mut state = make_pager_state_from_files(&files, false);
+        state.cursor_line = 5;
+        state.top_line = 3;
+        let anchor = capture_view_anchor(&state);
+        let empty_doc = Document::from_render_output(render::render(&[], 80, false, false));
+        remap_after_document_swap(&mut state, anchor, empty_doc, &[]);
+        assert_eq!(state.cursor_line, 0);
+        assert_eq!(state.top_line, 0);
+        assert_eq!(state.visual_anchor, 0);
+    }
+
+    /// Resize (re_render at new width) with tree visible keeps valid tree selection and cursor.
+    #[test]
+    fn resize_with_tree_visible_keeps_valid_selection_and_cursor() {
+        let files = make_two_file_diff();
+        let mut state = make_pager_state_from_files(&files, true);
+        state.set_tree_focused(true);
+        state.set_tree_cursor(1); // b.txt
+        state.set_active_file(Some(1));
+        state.cursor_line = 4; // in b.txt range
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
+        re_render(&mut state, &files, false, 40); // resize to 40 cols
+        assert_state_invariants(&state);
     }
 
     // ---------------------------------------------------------------------------
@@ -3923,47 +4797,27 @@ diff --git a/b.txt b/b.txt
             entry("b.rs", 0, Some(1)),
             entry("c.rs", 0, Some(2)),
         ];
-        let width = compute_tree_width(&tree_entries);
-        let (tree_lines, tree_visible_to_entry) =
-            build_tree_lines(&tree_entries, 0, width);
-
-        PagerState {
-            lines: vec!["line".into(); 90],
+        let mut state = PagerState::new(
+            vec!["line".into(); 90],
             line_map,
-            file_starts: vec![0, 30, 60],
-            hunk_starts: vec![5, 15, 35, 45, 65, 75],
-            top_line: 0,
-            cursor_line: 1,
-            visual_anchor: 0,
-            search_query: String::new(),
-            search_matches: Vec::new(),
-            current_match: -1,
-            mode: Mode::Normal,
-            search_input: String::new(),
-            search_cursor: 0,
-            status_message: String::new(),
-            tree_visible: true,
-            tree_focused: false,
-            tree_cursor: 0,
-            tree_width: width,
-            tree_scroll: 0,
-            tree_lines,
+            vec![0, 30, 60],
+            vec![5, 15, 35, 45, 65, 75],
             tree_entries,
-            tree_visible_to_entry,
-            active_file: None,
-            full_context: false,
-        }
+        );
+        state.cursor_line = 1;
+        state.set_tree_focused(false);
+        state
     }
 
     fn add_leading_context_before_hunk_changes(state: &mut PagerState) {
         // Keep hunk_starts anchored on hunk headers, but move first changes deeper
         // into each hunk so d/u must target the first Added/Deleted line.
-        state.line_map[6].line_kind = Some(LineKind::Context);
-        state.line_map[7].line_kind = Some(LineKind::Context);
-        state.line_map[8].line_kind = Some(LineKind::Added);
+        state.doc.line_map[6].line_kind = Some(LineKind::Context);
+        state.doc.line_map[7].line_kind = Some(LineKind::Context);
+        state.doc.line_map[8].line_kind = Some(LineKind::Added);
 
-        state.line_map[16].line_kind = Some(LineKind::Context);
-        state.line_map[17].line_kind = Some(LineKind::Deleted);
+        state.doc.line_map[16].line_kind = Some(LineKind::Context);
+        state.doc.line_map[17].line_kind = Some(LineKind::Deleted);
     }
 
     // ---------------------------------------------------------------------------
@@ -3995,7 +4849,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_mixed_content_state();
         add_leading_context_before_hunk_changes(&mut state);
         state.full_context = false;
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         state.cursor_line = 1;
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
         assert_eq!(state.cursor_line, 8);
@@ -4004,7 +4858,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_d_full_context_single_file_lands_on_change_group() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.full_context = true;
         state.cursor_line = 1; // context line before first change group
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
@@ -4014,7 +4868,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_u_full_context_single_file_at_first_change_is_noop() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.full_context = true;
         state.cursor_line = 7; // inside first change group (Added 6-8)
         handle_key(&mut state, Key::Char('u'), 40, 40, &[]);
@@ -4025,7 +4879,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_d_then_u_round_trip_full_context_single_file() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.full_context = true;
         state.cursor_line = 6; // on first change group
         // d should jump to second change group (Deleted at 10)
@@ -4043,7 +4897,7 @@ diff --git a/b.txt b/b.txt
     fn key_d_full_context_all_context_file_is_noop() {
         // Create a state where file 0 has no changes (all Context)
         let mut state = make_keybinding_state();
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         state.full_context = true;
         state.cursor_line = 1;
         // make_keybinding_state has all Context lines → no change groups
@@ -4055,8 +4909,8 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_d_tree_focused_full_context_single_file() {
         let mut state = make_mixed_content_state();
-        state.tree_focused = true;
-        state.active_file = Some(0);
+        state.set_tree_focused(true);
+        state.set_active_file(Some(0));
         state.full_context = true;
         state.cursor_line = 1;
         handle_key(&mut state, Key::Char('d'), 40, 40, &[]);
@@ -4066,7 +4920,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_g_single_file_lands_on_file_start() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(1); // b.rs: lines 30-59
+        state.set_active_file(Some(1)); // b.rs: lines 30-59
         state.cursor_line = 50;
         handle_key(&mut state, Key::Char('g'), 40, 40, &[]);
         // Should land on first content line of file 1 (31), not global line 1
@@ -4077,7 +4931,7 @@ diff --git a/b.txt b/b.txt
     #[allow(non_snake_case)]
     fn key_G_single_file_lands_on_file_end() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0); // a.rs: lines 0-29
+        state.set_active_file(Some(0)); // a.rs: lines 0-29
         state.cursor_line = 1;
         handle_key(&mut state, Key::Char('G'), 40, 40, &[]);
         // Should land on last content line of file 0 (29), not line 89
@@ -4087,7 +4941,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_ctrl_d_single_file_clamps_to_file_end() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0); // a.rs: lines 0-29
+        state.set_active_file(Some(0)); // a.rs: lines 0-29
         state.cursor_line = 25;
         handle_key(&mut state, Key::CtrlD, 20, 40, &[]); // half page = 10
         // cursor + 10 = 35, but file 0 ends at 29 → clamped
@@ -4097,7 +4951,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_ctrl_u_single_file_clamps_to_file_start() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(1); // b.rs: lines 30-59
+        state.set_active_file(Some(1)); // b.rs: lines 30-59
         state.cursor_line = 32;
         handle_key(&mut state, Key::CtrlU, 20, 40, &[]); // half page = 10
         // cursor - 10 = 22, but file 1 starts at 30 → clamped
@@ -4107,7 +4961,7 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn key_j_at_last_content_line_of_single_file_is_noop() {
         let mut state = make_mixed_content_state();
-        state.active_file = Some(0); // a.rs: lines 0-29
+        state.set_active_file(Some(0)); // a.rs: lines 0-29
         state.cursor_line = 29; // last line of file 0
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
         // Should stay at 29, not cross to file 1
@@ -4118,7 +4972,7 @@ diff --git a/b.txt b/b.txt
     #[allow(non_snake_case)]
     fn key_U_no_active_file_at_file_boundary() {
         let mut state = make_mixed_content_state();
-        state.active_file = None;
+        state.set_active_file(None);
         state.cursor_line = 31; // first content line of file 1
         handle_key(&mut state, Key::Char('U'), 50, 40, &[]);
         // Should jump to file 0 start, not get stuck
@@ -4134,7 +4988,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_mixed_content_state();
         state.search_matches = vec![6, 36, 66]; // one match per file
         state.current_match = 0; // at match line 6 (in file 0)
-        state.active_file = Some(0); // only file 0 visible
+        state.set_active_file(Some(0)); // only file 0 visible
         handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
         // Only match in file 0 is at 6, should wrap back to 6
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -4146,7 +5000,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_mixed_content_state();
         state.search_matches = vec![6, 36, 66];
         state.current_match = 0; // at match line 6 (in file 0)
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('N'), 40, 40, &[]);
         // Only match in file 0 is at 6, should wrap back to 6
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -4157,7 +5011,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_mixed_content_state();
         state.search_matches = vec![36, 66]; // no matches in file 0
         state.current_match = -1;
-        state.active_file = Some(0);
+        state.set_active_file(Some(0));
         handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
         // No matches in range 0-29 → no change
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -4168,7 +5022,7 @@ diff --git a/b.txt b/b.txt
         let mut state = make_mixed_content_state();
         state.search_matches = vec![6, 36, 66];
         state.current_match = 0; // at match 6
-        state.active_file = None; // all files visible
+        state.set_active_file(None); // all files visible
         handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
         // Should advance to next global match at 36
         assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -4206,7 +5060,7 @@ diff --git a/b.txt b/b.txt
         // Can't go below file_start of anchor's file
         assert_debug_snapshot!(StateSnapshot::from(&state));
         // Verify we didn't cross into file 0
-        let file_idx = state.line_map[state.cursor_line].file_idx;
+        let file_idx = state.doc.line_map[state.cursor_line].file_idx;
         assert_eq!(file_idx, 1, "cursor must remain in file 1, at line {}", state.cursor_line);
         let _ = after_first_k;
     }
@@ -4232,7 +5086,7 @@ diff --git a/b.txt b/b.txt
         state.top_line = 0; // a header line (line_kind None)
         handle_key(&mut state, Key::Escape, 40, 40, &[]);
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
@@ -4247,7 +5101,7 @@ diff --git a/b.txt b/b.txt
         state.top_line = 0; // a header line (line_kind None)
         handle_key(&mut state, Key::Char('y'), 40, 40, &[]);
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
@@ -4256,12 +5110,12 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn tree_j_snaps_cursor_to_content() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.tree_cursor = 0; // a.rs
+        state.set_tree_focused(true);
+        state.set_tree_cursor(0); // a.rs
         handle_key(&mut state, Key::Char('j'), 40, 40, &[]);
         // j moves to b.rs; file_starts[1] = 30, which is a header
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
@@ -4270,12 +5124,12 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn tree_enter_snaps_cursor_to_content() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
-        state.tree_cursor = 1; // b.rs entry
+        state.set_tree_focused(true);
+        state.set_tree_cursor(1); // b.rs entry
         handle_key(&mut state, Key::Enter, 40, 40, &[]);
         // Enter scrolls to b.rs; file_starts[1] = 30, which is a header
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
@@ -4284,13 +5138,13 @@ diff --git a/b.txt b/b.txt
     #[test]
     fn tree_g_snaps_cursor_to_content() {
         let mut state = make_keybinding_state();
-        state.tree_focused = true;
+        state.set_tree_focused(true);
         state.cursor_line = 31;
-        state.tree_cursor = 1;
+        state.set_tree_cursor(1);
         handle_key(&mut state, Key::Char('g'), 40, 40, &[]);
         // g jumps to first file; file_starts[0] = 0, which is a header
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
@@ -4323,9 +5177,192 @@ diff --git a/b.txt b/b.txt
         handle_key(&mut state, Key::Char('a'), 40, 40, &[]);
         // 'a' activates single-file view; file_starts[1] = 30, which is a header
         assert!(
-            is_content_line(&state.line_map, state.cursor_line),
+            is_content_line(&state.doc.line_map, state.cursor_line),
             "cursor_line {} is not a content line",
             state.cursor_line
         );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Deterministic sequence tests (chunk-06): invariant checks after every step
+    // ---------------------------------------------------------------------------
+
+    /// toggle single-file -> tree enter -> context toggle -> regenerate
+    #[test]
+    fn sequence_toggle_single_file_tree_enter_context_regenerate() {
+        let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
+        let mut state = make_keybinding_state();
+
+        handle_key(&mut state, Key::Char('a'), 40, 40, &files);
+        assert_state_invariants(&state);
+
+        handle_key(&mut state, Key::Tab, 40, 40, &files);
+        assert_state_invariants(&state);
+
+        handle_key(&mut state, Key::Enter, 40, 40, &files);
+        assert_state_invariants(&state);
+
+        let result = handle_key(&mut state, Key::Char('z'), 40, 40, &files);
+        assert_state_invariants(&state);
+        if matches!(result, KeyResult::ReGenerate) {
+            re_render(&mut state, &files, false, 80);
+        }
+        assert_state_invariants(&state);
+    }
+
+    /// repeated d/u in both context modes while tree focus changes
+    #[test]
+    fn sequence_du_in_both_context_modes_with_tree_focus_changes() {
+        let mut state = make_mixed_content_state();
+        let files: Vec<DiffFile> = vec![];
+
+        state.full_context = false;
+        handle_key(&mut state, Key::Char('d'), 40, 40, &files);
+        assert_state_invariants(&state);
+        handle_key(&mut state, Key::Char('u'), 40, 40, &files);
+        assert_state_invariants(&state);
+
+        state.set_tree_focused(true);
+        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+        state.tree_lines = tl;
+        state.tree_visible_to_entry = tv;
+
+        handle_key(&mut state, Key::Char('d'), 40, 40, &files);
+        assert_state_invariants(&state);
+        handle_key(&mut state, Key::Char('u'), 40, 40, &files);
+        assert_state_invariants(&state);
+
+        state.full_context = true;
+        handle_key(&mut state, Key::Char('d'), 40, 40, &files);
+        assert_state_invariants(&state);
+        handle_key(&mut state, Key::Char('d'), 40, 40, &files);
+        assert_state_invariants(&state);
+        handle_key(&mut state, Key::Char('u'), 40, 40, &files);
+        assert_state_invariants(&state);
+
+        state.set_tree_focused(false);
+        handle_key(&mut state, Key::Char('d'), 40, 40, &files);
+        assert_state_invariants(&state);
+    }
+
+    /// resize + rerender while in search and visual overlays
+    #[test]
+    fn sequence_resize_rerender_in_search_and_visual_overlays() {
+        let files = make_two_file_diff();
+        let mut state = make_pager_state_from_files(&files, true);
+
+        handle_key(&mut state, Key::Char('/'), 40, 40, &files);
+        state.search_input = "first".to_string();
+        state.search_cursor = 5;
+        state.search_query = "first".to_string();
+        state.search_matches = find_matches(&state.doc.lines, "first");
+        state.current_match = find_nearest_match(&state.search_matches, state.top_line);
+        state.mode = Mode::Search;
+        assert_state_invariants(&state);
+
+        re_render(&mut state, &files, false, 40);
+        assert_state_invariants(&state);
+
+        handle_key(&mut state, Key::Escape, 40, 40, &files);
+        handle_key(&mut state, Key::Char('v'), 40, 40, &files);
+        assert_state_invariants(&state);
+
+        re_render(&mut state, &files, false, 60);
+        assert_state_invariants(&state);
+
+        handle_key(&mut state, Key::Escape, 40, 40, &files);
+        assert_state_invariants(&state);
+    }
+
+    /// Bounded pseudo-random transition test: fixed seed, supported keys,
+    /// occasional resize/regenerate. Asserts invariants after every step.
+    #[test]
+    fn property_bounded_random_transitions() {
+        let files = make_two_file_diff();
+        let mut state = make_pager_state_from_files(&files, true);
+
+        // Deterministic pseudo-random sequence: LCG with seed 12345
+        let mut rng: u64 = 12345;
+        let keys: &[Key] = &[
+            Key::Char('j'),
+            Key::Char('k'),
+            Key::Char('d'),
+            Key::Char('u'),
+            Key::Char('g'),
+            Key::Char('G'),
+            Key::CtrlD,
+            Key::CtrlU,
+            Key::Tab,
+            Key::Escape,
+            Key::Enter,
+            Key::Char('a'),
+            Key::Char('z'),
+            Key::Char('e'),
+            Key::Char('v'),
+            Key::Char('y'),
+            Key::Char('h'),
+            Key::Char('l'),
+            Key::Char('1'),
+            Key::Char('D'),
+            Key::Char('U'),
+        ];
+
+        for step in 0..72 {
+            let key_idx = (rng as usize) % keys.len();
+            let key = keys[key_idx];
+            rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+
+            let ch = 24 + ((rng >> 16) as usize % 20);
+            let rows = 40;
+            let _ = handle_key(&mut state, key, ch, rows, &files);
+            assert_state_invariants(&state);
+
+            // Occasional resize (every ~12 steps) or regenerate (every ~18 steps)
+            if step > 0 && step % 12 == 0 {
+                let cols = 40 + ((rng >> 8) as u16 % 40);
+                re_render(&mut state, &files, false, cols);
+                assert_state_invariants(&state);
+            } else if step > 0 && step % 18 == 0 {
+                re_render(&mut state, &files, false, 80);
+                assert_state_invariants(&state);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Reducer-oriented tests (chunk-02): overlay/focus transitions produce valid state
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn reducer_overlay_focus_transitions_produce_valid_state() {
+        let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
+        let mut state = make_keybinding_state();
+
+        // Tab: diff -> tree focus
+        let _ = handle_key(&mut state, Key::Tab, 40, 40, &files);
+        assert!(state.tree_focused());
+        assert_state_invariants(&state);
+
+        // Esc: tree -> diff focus
+        let _ = handle_key(&mut state, Key::Escape, 40, 40, &files);
+        assert!(!state.tree_focused());
+        assert_state_invariants(&state);
+
+        // v: enter visual
+        let _ = handle_key(&mut state, Key::Char('v'), 40, 40, &files);
+        assert_eq!(state.mode, Mode::Visual);
+        assert_state_invariants(&state);
+
+        // y: visual yank -> normal
+        let _ = handle_key(&mut state, Key::Char('y'), 40, 40, &files);
+        assert_eq!(state.mode, Mode::Normal);
+        assert_state_invariants(&state);
+
+        // e: open tree, then e: close tree
+        let _ = handle_key(&mut state, Key::Char('e'), 40, 40, &files);
+        state.set_active_file(Some(1));
+        let _ = handle_key(&mut state, Key::Char('e'), 40, 40, &files);
+        assert!(!state.tree_visible);
+        assert_state_invariants(&state);
     }
 }

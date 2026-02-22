@@ -10,7 +10,7 @@ StateSnapshot {
     tree_focused: false,
     tree_cursor: 0,
     mode: Normal,
-    status_message: "",
+    status_message: "Copied: a.rs:7-10",
     full_context: false,
     visual_anchor: 6,
 }
