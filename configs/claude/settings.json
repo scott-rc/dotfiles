@@ -17,12 +17,6 @@
       "mcp__claude_ai_Slack__slack_read_thread",
       "mcp__claude_ai_Linear__get_issue"
     ],
-    "ask": [
-      "Bash(git push:*)",
-      "Bash(kubectl :*)",
-      "Bash(rm :*)",
-      "Read(./.envrc.local)"
-    ],
     "defaultMode": "default",
     "additionalDirectories": [
       "./tmp",
