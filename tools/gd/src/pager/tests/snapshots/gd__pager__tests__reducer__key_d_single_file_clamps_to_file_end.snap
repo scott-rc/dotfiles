@@ -3,8 +3,8 @@ source: gd/src/pager/tests/reducer.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 1,
-    top_line: 0,
+    cursor_line: 29,
+    top_line: 10,
     active_file: Some(
         0,
     ),

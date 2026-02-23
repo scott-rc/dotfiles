@@ -4,7 +4,6 @@ use tui::pager::Key;
 
 use crate::pager::types::{ActionId, HelpGroup, KeyContext};
 
-/// Keymap entry: keys that trigger an action in a context, plus help display.
 struct KeymapEntry {
     action: ActionId,
     context: KeyContext,
@@ -15,51 +14,34 @@ struct KeymapEntry {
 }
 
 fn keymap_entries() -> &'static [KeymapEntry] {
-    use ActionId::{ScrollDown, ScrollUp, HalfPageDown, HalfPageUp, Top, Bottom, NextHunk, PrevHunk, NextFile, PrevFile, ToggleSingleFile, ToggleFullContext, SearchSubmit, SearchCancel, NextMatch, PrevMatch, ToggleTree, FocusTree, FocusTreeOrShow, ReturnToDiff, TreeClose, TreeFirst, TreeLast, TreeNavDown, TreeNavUp, TreeSelect, Quit, EnterVisual, VisualExtendDown, VisualExtendUp, VisualCopy, VisualCancel, OpenEditor, Help};
-    use HelpGroup::{Navigation, DiffNav, FileTree, VisualMode, Other};
-    use KeyContext::{Normal, Tree, Visual};
+    use ActionId::*;
+    use HelpGroup::{DiffNav, Navigation, Other, Selection};
+    use KeyContext::Normal;
     static ENTRIES: &[KeymapEntry] = &[
-        KeymapEntry { action: ScrollDown, context: Normal, keys: &[Key::Char('j'), Key::Down, Key::Enter], group: Navigation, key_display: "j/\u{2193}/Enter", label: "Scroll down" },
-        KeymapEntry { action: ScrollUp, context: Normal, keys: &[Key::Char('k'), Key::Up], group: Navigation, key_display: "k/\u{2191}", label: "Scroll up" },
-        KeymapEntry { action: HalfPageDown, context: Normal, keys: &[Key::CtrlD, Key::PageDown], group: Navigation, key_display: "Ctrl-D", label: "Half page down" },
-        KeymapEntry { action: HalfPageUp, context: Normal, keys: &[Key::CtrlU, Key::PageUp], group: Navigation, key_display: "Ctrl-U", label: "Half page up" },
+        KeymapEntry { action: ScrollDown, context: Normal, keys: &[Key::Char('j'), Key::Down, Key::Enter], group: Navigation, key_display: "j/Down/Enter", label: "Scroll down" },
+        KeymapEntry { action: ScrollUp, context: Normal, keys: &[Key::Char('k'), Key::Up], group: Navigation, key_display: "k/Up", label: "Scroll up" },
+        KeymapEntry { action: HalfPageDown, context: Normal, keys: &[Key::Char('d')], group: Navigation, key_display: "d", label: "Half page down" },
+        KeymapEntry { action: HalfPageUp, context: Normal, keys: &[Key::Char('u')], group: Navigation, key_display: "u", label: "Half page up" },
         KeymapEntry { action: Top, context: Normal, keys: &[Key::Char('g'), Key::Home], group: Navigation, key_display: "g/Home", label: "Top" },
         KeymapEntry { action: Bottom, context: Normal, keys: &[Key::Char('G'), Key::End], group: Navigation, key_display: "G/End", label: "Bottom" },
-        KeymapEntry { action: NextHunk, context: Normal, keys: &[Key::Char('d')], group: DiffNav, key_display: "d", label: "Next hunk" },
-        KeymapEntry { action: PrevHunk, context: Normal, keys: &[Key::Char('u')], group: DiffNav, key_display: "u", label: "Previous hunk" },
-        KeymapEntry { action: NextFile, context: Normal, keys: &[Key::Char('D')], group: DiffNav, key_display: "D", label: "Next file" },
-        KeymapEntry { action: PrevFile, context: Normal, keys: &[Key::Char('U')], group: DiffNav, key_display: "U", label: "Previous file" },
-        KeymapEntry { action: ToggleSingleFile, context: Normal, keys: &[Key::Char('a')], group: DiffNav, key_display: "a", label: "Toggle single file" },
-        KeymapEntry { action: ToggleFullContext, context: Normal, keys: &[Key::Char('z')], group: DiffNav, key_display: "z", label: "Toggle full file context" },
+        KeymapEntry { action: CenterViewport, context: Normal, keys: &[Key::Char('z')], group: Navigation, key_display: "z", label: "Center viewport" },
+        KeymapEntry { action: NextHunk, context: Normal, keys: &[Key::Char(']')], group: DiffNav, key_display: "]", label: "Next hunk" },
+        KeymapEntry { action: PrevHunk, context: Normal, keys: &[Key::Char('[')], group: DiffNav, key_display: "[", label: "Previous hunk" },
+        KeymapEntry { action: NextFile, context: Normal, keys: &[Key::Char('}')], group: DiffNav, key_display: "}", label: "Next file" },
+        KeymapEntry { action: PrevFile, context: Normal, keys: &[Key::Char('{')], group: DiffNav, key_display: "{", label: "Previous file" },
+        KeymapEntry { action: ToggleSingleFile, context: Normal, keys: &[Key::Char('s')], group: DiffNav, key_display: "s", label: "Toggle single file" },
+        KeymapEntry { action: ToggleFullContext, context: Normal, keys: &[Key::Char('o')], group: DiffNav, key_display: "o", label: "Toggle full file context" },
         KeymapEntry { action: ActionId::Search, context: Normal, keys: &[Key::Char('/')], group: HelpGroup::Search, key_display: "/", label: "Search" },
         KeymapEntry { action: SearchSubmit, context: KeyContext::Search, keys: &[Key::Enter], group: HelpGroup::Search, key_display: "Enter", label: "Apply search" },
         KeymapEntry { action: SearchCancel, context: KeyContext::Search, keys: &[Key::Escape, Key::CtrlC], group: HelpGroup::Search, key_display: "Esc", label: "Cancel search" },
         KeymapEntry { action: NextMatch, context: Normal, keys: &[Key::Char('n')], group: HelpGroup::Search, key_display: "n", label: "Next match" },
         KeymapEntry { action: PrevMatch, context: Normal, keys: &[Key::Char('N')], group: HelpGroup::Search, key_display: "N", label: "Previous match" },
-        KeymapEntry { action: ToggleTree, context: Normal, keys: &[Key::Char('e')], group: FileTree, key_display: "e", label: "Toggle tree panel" },
-        KeymapEntry { action: FocusTree, context: Normal, keys: &[Key::Tab], group: FileTree, key_display: "Tab", label: "Focus panel" },
-        KeymapEntry { action: FocusTreeOrShow, context: Normal, keys: &[Key::Char('1')], group: FileTree, key_display: "1", label: "Toggle tree focus" },
-        KeymapEntry { action: FocusTreeOrShow, context: Normal, keys: &[Key::CtrlL, Key::Char('l')], group: FileTree, key_display: "l/Ctrl-L", label: "Show + focus tree" },
-        KeymapEntry { action: ReturnToDiff, context: Tree, keys: &[Key::CtrlH, Key::Escape, Key::Tab, Key::Char('1'), Key::Char('h')], group: FileTree, key_display: "h/Ctrl-H", label: "Return to diff" },
-        KeymapEntry { action: TreeClose, context: Tree, keys: &[Key::Char('e')], group: FileTree, key_display: "e", label: "Close tree" },
-        KeymapEntry { action: TreeFirst, context: Tree, keys: &[Key::Char('g'), Key::Home], group: FileTree, key_display: "g/Home", label: "First file" },
-        KeymapEntry { action: TreeLast, context: Tree, keys: &[Key::Char('G'), Key::End], group: FileTree, key_display: "G/End", label: "Last file" },
-        KeymapEntry { action: TreeNavDown, context: Tree, keys: &[Key::Char('j'), Key::Down], group: FileTree, key_display: "j/k", label: "(tree) Navigate" },
-        KeymapEntry { action: TreeNavUp, context: Tree, keys: &[Key::Char('k'), Key::Up], group: FileTree, key_display: "j/k", label: "(tree) Navigate" },
-        KeymapEntry { action: TreeSelect, context: Tree, keys: &[Key::Enter], group: FileTree, key_display: "Enter", label: "Select / toggle folder" },
-        KeymapEntry { action: ToggleSingleFile, context: Tree, keys: &[Key::Char('a')], group: FileTree, key_display: "a", label: "Toggle single file" },
-        KeymapEntry { action: NextHunk, context: Tree, keys: &[Key::Char('d')], group: FileTree, key_display: "d", label: "Next hunk" },
-        KeymapEntry { action: PrevHunk, context: Tree, keys: &[Key::Char('u')], group: FileTree, key_display: "u", label: "Previous hunk" },
-        KeymapEntry { action: Quit, context: Tree, keys: &[Key::Char('q'), Key::CtrlC], group: FileTree, key_display: "q", label: "Quit" },
-        KeymapEntry { action: EnterVisual, context: Normal, keys: &[Key::Char('v')], group: VisualMode, key_display: "v", label: "Enter visual mode" },
-        KeymapEntry { action: VisualExtendDown, context: Visual, keys: &[Key::Char('j'), Key::Down], group: VisualMode, key_display: "j/k", label: "Extend selection" },
-        KeymapEntry { action: VisualExtendUp, context: Visual, keys: &[Key::Char('k'), Key::Up], group: VisualMode, key_display: "j/k", label: "Extend selection" },
-        KeymapEntry { action: VisualCopy, context: Visual, keys: &[Key::Char('y')], group: VisualMode, key_display: "y", label: "Copy path:lines" },
-        KeymapEntry { action: VisualCancel, context: Visual, keys: &[Key::Escape, Key::CtrlC], group: VisualMode, key_display: "Esc", label: "Cancel" },
-        KeymapEntry { action: Quit, context: Visual, keys: &[Key::Char('q')], group: VisualMode, key_display: "q", label: "Quit" },
-        KeymapEntry { action: OpenEditor, context: Normal, keys: &[Key::Char('E')], group: Other, key_display: "E", label: "Open in editor" },
+        KeymapEntry { action: ToggleTree, context: Normal, keys: &[Key::Char('l')], group: Other, key_display: "l", label: "Toggle tree panel" },
+        KeymapEntry { action: SetMark, context: Normal, keys: &[Key::Char('m')], group: Selection, key_display: "m", label: "Set mark" },
+        KeymapEntry { action: YankToMark, context: Normal, keys: &[Key::Char('y')], group: Selection, key_display: "y", label: "Copy mark..cursor" },
+        KeymapEntry { action: OpenEditor, context: Normal, keys: &[Key::Char('e')], group: Other, key_display: "e", label: "Open in editor" },
         KeymapEntry { action: Quit, context: Normal, keys: &[Key::Char('q'), Key::CtrlC], group: Other, key_display: "q", label: "Quit" },
-        KeymapEntry { action: Help, context: Normal, keys: &[Key::Char('?')], group: Other, key_display: "? / Esc", label: "Close help" },
+        KeymapEntry { action: ToggleTooltip, context: Normal, keys: &[Key::Char('?')], group: Other, key_display: "?", label: "Toggle key hints" },
     ];
     ENTRIES
 }
@@ -73,12 +55,10 @@ pub(crate) fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
     None
 }
 
-/// Build help lines from keymap. Preserves grouping (Navigation, Diff Nav, Search, File Tree, Visual, Other).
-/// Returns raw lines for format_help_lines to pad/center.
 pub(crate) fn keymap_help_lines() -> Vec<String> {
-    use HelpGroup::{Navigation, DiffNav, Search, FileTree, VisualMode, Other};
+    use HelpGroup::{DiffNav, Navigation, Other, Search, Selection};
     use std::collections::HashSet;
-    let order = [Navigation, DiffNav, Search, FileTree, VisualMode, Other];
+    let order = [Navigation, DiffNav, Search, Selection, Other];
     let mut lines: Vec<String> = Vec::new();
     for group in order {
         let mut seen: HashSet<(&'static str, &'static str)> = HashSet::new();
@@ -100,8 +80,7 @@ pub(crate) fn keymap_help_lines() -> Vec<String> {
                 Navigation => "Navigation",
                 DiffNav => "Diff Navigation",
                 Search => "Search",
-                FileTree => "File Tree",
-                VisualMode => "Visual Mode",
+                Selection => "Selection",
                 Other => "Other",
             };
             lines.push(group_name.to_string());

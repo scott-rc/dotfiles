@@ -3,15 +3,15 @@ source: gd/src/pager/tests/reducer.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 1,
-    top_line: 0,
+    cursor_line: 31,
+    top_line: 30,
     active_file: Some(
-        0,
+        1,
     ),
     tree_visible: true,
     mark_line: None,
     tooltip_visible: false,
     mode: Normal,
-    status_message: "",
+    status_message: "Next file",
     full_context: false,
 }

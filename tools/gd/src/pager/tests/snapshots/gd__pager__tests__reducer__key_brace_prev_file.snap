@@ -12,6 +12,6 @@ StateSnapshot {
     mark_line: None,
     tooltip_visible: false,
     mode: Normal,
-    status_message: "",
+    status_message: "Previous file",
     full_context: false,
 }

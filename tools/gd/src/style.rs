@@ -24,8 +24,6 @@ pub const FG_FILE_HEADER: &str = "\x1b[1;38;2;121;192;255m";
 pub const FG_GUTTER: &str = "\x1b[2;38;2;110;118;129m";
 /// Separator character (dim gray)
 pub const FG_SEP: &str = "\x1b[2;38;2;68;76;86m";
-/// Separator character when tree is focused (accent blue)
-pub const FG_SEP_ACTIVE: &str = "\x1b[38;2;121;192;255m";
 /// File tree text (muted gray, no DIM to avoid bleed)
 pub const FG_TREE: &str = "\x1b[38;2;139;148;158m";
 /// File tree directory names (folder yellow)

@@ -4,7 +4,7 @@ use crate::render::LineInfo;
 
 use super::super::content::{is_content_line, next_content_line, prev_content_line};
 use super::super::navigation::{
-    change_group_starts, jump_next, jump_prev, nav_status_message, sync_tree_cursor_force,
+    change_group_starts, jump_next, jump_prev, nav_status_message, sync_tree_cursor,
     viewport_bounds,
 };
 use super::super::state::{capture_view_anchor, remap_after_document_swap, visible_range, Document, PagerState};
@@ -203,30 +203,6 @@ fn nav_status_message_positions() {
 }
 
 #[test]
-fn test_tree_focus_invalid_when_tree_empty() {
-    let mut state = PagerState::new(
-        vec!["x".into(); 5],
-        vec![
-            LineInfo {
-                file_idx: 0,
-                path: "a".into(),
-                new_lineno: None,
-                old_lineno: None,
-                line_kind: None,
-            };
-            5
-        ],
-        vec![0],
-        vec![],
-        vec![],
-    );
-    assert!(!state.tree_focused());
-    assert!(!state.tree_visible);
-    state.set_tree_focused(true);
-    assert!(!state.tree_focused(), "tree focus must stay false when no entries");
-}
-
-#[test]
 fn test_jump_next_finds_first_target_after_top() {
     assert_eq!(jump_next(&[2, 5, 9], 3), Some(5));
 }
@@ -394,7 +370,7 @@ fn test_scrollbar_no_crash_on_empty_line_map() {
 }
 
 #[test]
-fn test_sync_tree_cursor_force_collapsed_parent_lands_on_directory() {
+fn test_sync_tree_cursor_collapsed_parent_lands_on_directory() {
     let tree_entries = vec![
         TreeEntry {
             label: "src".into(),
@@ -443,10 +419,9 @@ fn test_sync_tree_cursor_force_collapsed_parent_lands_on_directory() {
         "only collapsed dir should be visible"
     );
 
-    state.set_tree_focused(false);
     state.cursor_line = 2;
 
-    sync_tree_cursor_force(&mut state, 20);
+    sync_tree_cursor(&mut state, 20);
 
     assert_eq!(
         state.tree_cursor(),
@@ -456,12 +431,11 @@ fn test_sync_tree_cursor_force_collapsed_parent_lands_on_directory() {
 }
 
 #[test]
-fn test_sync_tree_cursor_force_all_visible_normal_sync() {
+fn test_sync_tree_cursor_all_visible_normal_sync() {
     let mut state = make_keybinding_state();
-    state.set_tree_focused(false);
     state.cursor_line = 31;
 
-    sync_tree_cursor_force(&mut state, 20);
+    sync_tree_cursor(&mut state, 20);
 
     assert_eq!(
         state.tree_cursor(),
@@ -471,7 +445,7 @@ fn test_sync_tree_cursor_force_all_visible_normal_sync() {
 }
 
 #[test]
-fn test_sync_tree_cursor_force_empty_tree_no_panic() {
+fn test_sync_tree_cursor_empty_tree_no_panic() {
     let mut state = PagerState::new(
         vec!["line".into(); 5],
         vec![
@@ -490,5 +464,5 @@ fn test_sync_tree_cursor_force_empty_tree_no_panic() {
     );
     state.tree_visible = true;
 
-    sync_tree_cursor_force(&mut state, 20);
+    sync_tree_cursor(&mut state, 20);
 }

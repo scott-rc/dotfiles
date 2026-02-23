@@ -3,15 +3,13 @@ source: gd/src/pager/tests/reducer.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 1,
-    top_line: 0,
-    active_file: Some(
-        0,
-    ),
+    cursor_line: 31,
+    top_line: 11,
+    active_file: None,
     tree_visible: true,
     mark_line: None,
     tooltip_visible: false,
     mode: Normal,
-    status_message: "",
+    status_message: "File 2/3 · b.rs",
     full_context: false,
 }

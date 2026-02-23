@@ -6,7 +6,6 @@ use crate::git::diff::LineKind;
 use crate::render::LineInfo;
 use crate::style;
 
-use super::keymap::keymap_help_lines;
 use super::state::{visible_range, PagerState};
 use super::types::Mode;
 use super::text::clamp_cursor_to_boundary;
@@ -22,11 +21,7 @@ pub(crate) fn diff_area_width(
     } else {
         cols as usize
     };
-    if scrollbar {
-        w.saturating_sub(1)
-    } else {
-        w
-    }
+    if scrollbar { w.saturating_sub(1) } else { w }
 }
 
 pub(crate) fn render_scrollbar_cell(
@@ -57,19 +52,11 @@ pub(crate) fn render_scrollbar_cell(
     let thumb_end = (thumb_start + content_height * content_height / range).max(thumb_start + 1);
     let in_thumb = row >= thumb_start && row < thumb_end;
 
-    let bg = if in_thumb {
-        style::BG_SCROLLBAR_THUMB
-    } else {
-        style::BG_SCROLLBAR_TRACK
-    };
+    let bg = if in_thumb { style::BG_SCROLLBAR_THUMB } else { style::BG_SCROLLBAR_TRACK };
 
     match change {
-        Some(LineKind::Added) => {
-            format!("{bg}{}\u{2590}{}", style::FG_ADDED_MARKER, style::RESET)
-        }
-        Some(LineKind::Deleted) => {
-            format!("{bg}{}\u{2590}{}", style::FG_DELETED_MARKER, style::RESET)
-        }
+        Some(LineKind::Added) => format!("{bg}{}\u{2590}{}", style::FG_ADDED_MARKER, style::RESET),
+        Some(LineKind::Deleted) => format!("{bg}{}\u{2590}{}", style::FG_DELETED_MARKER, style::RESET),
         _ => format!("{bg} {}", style::RESET),
     }
 }
@@ -98,94 +85,38 @@ pub(crate) fn viewport_bounds(
     super::navigation::viewport_bounds(state, content_height)
 }
 
+pub(crate) const TOOLTIP_HEIGHT: usize = 2;
+
 pub(crate) fn bar_visible(state: &PagerState) -> bool {
-    matches!(state.mode, Mode::Search | Mode::Help | Mode::Visual)
-        || !state.status_message.is_empty()
+    matches!(state.mode, Mode::Search) || !state.status_message.is_empty() || state.tooltip_visible
 }
 
 pub(crate) fn content_height(rows: u16, state: &PagerState) -> usize {
+    let mut h = rows as usize;
     if bar_visible(state) {
-        rows.saturating_sub(1) as usize
-    } else {
-        rows as usize
+        h = h.saturating_sub(1);
     }
+    if state.tooltip_visible {
+        h = h.saturating_sub(TOOLTIP_HEIGHT);
+    }
+    h
 }
 
-pub(crate) fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
-    let help = keymap_help_lines();
-
-    let mut lines = Vec::with_capacity(content_height);
-    let top_pad = content_height.saturating_sub(help.len()) / 2;
-    for _ in 0..top_pad {
-        lines.push(" ".repeat(cols));
-    }
-
-    let max_w = help.iter().map(|h| h.chars().count()).max().unwrap_or(0);
-    let left_pad = cols.saturating_sub(max_w) / 2;
-
-    for h in &help {
-        if lines.len() >= content_height {
-            break;
-        }
-        let vis_len = h.chars().count();
-        if vis_len >= cols {
-            lines.push(h.chars().take(cols).collect());
-        } else {
-            let right_pad = cols.saturating_sub(left_pad + vis_len);
-            lines.push(format!(
-                "{}{}{}",
-                " ".repeat(left_pad),
-                h,
-                " ".repeat(right_pad)
-            ));
-        }
-    }
-
-    while lines.len() < content_height {
-        lines.push(" ".repeat(cols));
-    }
-
-    lines
+pub(crate) fn format_tooltip_lines(cols: usize) -> Vec<String> {
+    let raw = [
+        "j/k scroll  d/u page  g/G top/bot  z center  ]/[ hunk  }/{ file",
+        "s single  o context  l tree  / search  n/N match  m mark  y yank  e edit  q quit",
+    ];
+    raw.iter()
+        .map(|line| {
+            let vis = line.chars().count();
+            let pad = cols.saturating_sub(vis + 1);
+            format!(" {}{line}{}{}", style::DIM, " ".repeat(pad), style::NO_DIM)
+        })
+        .collect()
 }
 
 pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols: usize) -> String {
-    use tui::search::max_scroll;
-
-    if state.mode == Mode::Visual {
-        let lo = state.visual_anchor.min(state.cursor_line);
-        let hi = state.visual_anchor.max(state.cursor_line);
-        let count = hi - lo + 1;
-        let left = format!("-- VISUAL -- ({count} lines)");
-        let left_len = left.len();
-        let pad = cols.saturating_sub(left_len);
-        return format!("{left}{}", " ".repeat(pad));
-    }
-
-    if state.mode == Mode::Help {
-        let left = "? to close";
-        let line_count = state.doc.line_count();
-        let max_top = max_scroll(line_count, content_height);
-        let top = state.top_line.min(max_top);
-        let end = (top + content_height).min(line_count);
-        let range = format!("{}-{}/{}", top + 1, end, line_count);
-        let position = if top == 0 {
-            "TOP".to_string()
-        } else if end >= line_count {
-            "END".to_string()
-        } else {
-            format!("{}%", (end as f64 / line_count as f64 * 100.0).round() as usize)
-        };
-        let right = format!("{}{}{} {}", style::DIM, range, style::NO_DIM, position);
-        let right_vis = range.len() + 1 + position.len();
-        let total_vis = left.len() + right_vis;
-        if total_vis >= cols {
-            let pad = " ".repeat(cols.saturating_sub(right_vis));
-            return format!("{pad}{right}");
-        }
-        let gap = cols - total_vis;
-        return format!("{left}{}{right}", " ".repeat(gap));
-    }
-
     if state.mode == Mode::Search {
         let cursor = clamp_cursor_to_boundary(&state.search_input, state.search_cursor);
         let before = &state.search_input[..cursor];
@@ -195,12 +126,7 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
             let rest = &after[c.len_utf8()..];
             format!("{}{c}{}{}{rest}", style::RESET, style::STATUS_BG, style::STATUS_FG)
         } else {
-            format!(
-                "{}\u{2588}{}{}",
-                style::RESET,
-                style::STATUS_BG,
-                style::STATUS_FG
-            )
+            format!("{}\u{2588}{}{}", style::RESET, style::STATUS_BG, style::STATUS_FG)
         };
         let content = format!("/{before}{cursor_char}");
         let vis_len = if cursor < state.search_input.len() {
@@ -218,19 +144,39 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
         return format!("{msg}{pad}");
     }
 
-    " ".repeat(cols)
-}
+    // Position indicator
+    use tui::search::max_scroll;
+    let line_count = state.doc.line_count();
+    let max_top = max_scroll(line_count, content_height);
+    let top = state.top_line.min(max_top);
+    let end = (top + content_height).min(line_count);
+    let position = if top == 0 {
+        "TOP".to_string()
+    } else if end >= line_count {
+        "END".to_string()
+    } else {
+        format!("{}%", (end as f64 / line_count as f64 * 100.0).round() as usize)
+    };
+    let right = format!("{}{}-{}/{}{} {}", style::DIM, top + 1, end, line_count, style::NO_DIM, position);
+    let right_vis = format!("{}-{}/{} {}", top + 1, end, line_count, position).len();
 
-pub(crate) fn highlight_visual_line(line: &str, width: usize) -> String {
-    let vis_w = crate::ansi::visible_width(line);
-    let target = width.saturating_sub(1);
-    let pad = target.saturating_sub(vis_w);
-    format!(
-        "{}{line}{}{}",
-        style::BG_VISUAL,
-        " ".repeat(pad),
-        style::RESET,
-    )
+    let left = if let Some(idx) = state.active_file() {
+        let path = state.doc.line_map.get(state.cursor_line).map_or("", |li| li.path.as_str());
+        format!("Single: {path} (file {}/{})", idx + 1, state.doc.file_count())
+    } else if state.mark_line.is_some() {
+        "Mark set".to_string()
+    } else {
+        String::new()
+    };
+    let left_vis = left.len();
+
+    let total_vis = left_vis + right_vis;
+    if total_vis >= cols {
+        let pad = " ".repeat(cols.saturating_sub(right_vis));
+        return format!("{pad}{right}");
+    }
+    let gap = cols - total_vis;
+    format!("{left}{}{right}", " ".repeat(gap))
 }
 
 pub(crate) fn resolve_lineno(
@@ -269,15 +215,6 @@ pub(crate) fn render_content_area(
     let (vis_start, vis_end, _, max_top) = viewport_bounds(state, content_height);
     let top = state.top_line.clamp(vis_start, max_top);
 
-    if state.mode == Mode::Help {
-        let help_lines = format_help_lines(cols as usize, content_height);
-        for (i, line) in help_lines.iter().enumerate() {
-            move_to(out, i as u16, 0);
-            let _ = write!(out, "{CLEAR_LINE}{}{line}{}", style::DIM, style::NO_DIM);
-        }
-        return;
-    }
-
     let diff_w = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
     let show_scrollbar = state.full_context;
 
@@ -289,22 +226,20 @@ pub(crate) fn render_content_area(
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }
-            if state.mode == Mode::Visual {
-                let lo = state.visual_anchor.min(state.cursor_line);
-                let hi = state.visual_anchor.max(state.cursor_line);
-                if idx >= lo && idx <= hi {
-                    line = highlight_visual_line(&line, diff_w);
+            // Mark highlight
+            if let Some(mark) = state.mark_line {
+                let lo = mark.min(state.cursor_line);
+                let hi = mark.max(state.cursor_line);
+                if idx >= lo && idx <= hi && idx != state.cursor_line {
+                    let vis_w = crate::ansi::visible_width(&line);
+                    let pad = diff_w.saturating_sub(vis_w);
+                    line = format!("{}{line}{}{}", style::BG_VISUAL, " ".repeat(pad), style::RESET);
                 }
             }
-            if idx == state.cursor_line && state.mode != Mode::Visual {
+            if idx == state.cursor_line {
                 let vis_w = crate::ansi::visible_width(&line);
                 let pad = diff_w.saturating_sub(vis_w);
-                line = format!(
-                    "{}{line}{}{}",
-                    style::BG_CURSOR,
-                    " ".repeat(pad),
-                    style::RESET
-                );
+                line = format!("{}{line}{}{}", style::BG_CURSOR, " ".repeat(pad), style::RESET);
             }
             let _ = write!(out, "{CLEAR_LINE}{line}");
         } else {
@@ -312,30 +247,16 @@ pub(crate) fn render_content_area(
         }
 
         if show_scrollbar {
-            let cell = render_scrollbar_cell(
-                row,
-                content_height,
-                vis_start,
-                vis_end,
-                top,
-                &state.doc.line_map,
-            );
+            let cell = render_scrollbar_cell(row, content_height, vis_start, vis_end, top, &state.doc.line_map);
             let _ = write!(out, "{}\x1b[{}G{cell}", style::RESET, diff_w + 1);
         }
 
         if state.tree_visible {
             let tree_col = diff_w + 1 + usize::from(show_scrollbar);
-            let sep_color = if state.tree_focused() {
-                style::FG_SEP_ACTIVE
-            } else {
-                style::FG_SEP
-            };
             let _ = write!(
                 out,
-                "{}\x1b[{}G\x1b[K{sep_color}│{}",
-                style::RESET,
-                tree_col,
-                style::RESET,
+                "{}\x1b[{}G\x1b[K{}│{}",
+                style::RESET, tree_col, style::FG_SEP, style::RESET,
             );
             if let Some(tree_line) = state.tree_lines.get(state.tree_scroll + row) {
                 let _ = write!(out, "{tree_line}");
@@ -345,27 +266,43 @@ pub(crate) fn render_content_area(
     }
 }
 
-fn render_status_bar(out: &mut impl Write, state: &PagerState, cols: u16, content_rows: u16) {
-    let content_height = content_rows as usize;
-    move_to(out, content_rows, 0);
+fn render_tooltip_bar(out: &mut impl Write, state: &PagerState, cols: u16, start_row: u16) {
+    if !state.tooltip_visible {
+        return;
+    }
+    let lines = format_tooltip_lines(cols as usize);
+    for (i, line) in lines.iter().enumerate() {
+        move_to(out, start_row + i as u16, 0);
+        let _ = write!(out, "{CLEAR_LINE}{line}");
+    }
+}
+
+fn render_status_bar(out: &mut impl Write, state: &PagerState, cols: u16, row: u16) {
+    let content_height = row as usize;
+    move_to(out, row, 0);
     let _ = write!(out, "{CLEAR_LINE}");
     let status = format_status_bar(state, content_height, cols as usize);
     let _ = write!(
         out,
         "{}{}{}{}{}",
-        style::RESET,
-        style::STATUS_BG,
-        style::STATUS_FG,
-        status,
-        style::RESET
+        style::RESET, style::STATUS_BG, style::STATUS_FG, status, style::RESET
     );
 }
 
 pub(crate) fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16) {
     let ch = content_height(rows, state);
-    render_content_area(out, state, cols, u16::try_from(ch).unwrap_or(u16::MAX));
+    let ch16 = u16::try_from(ch).unwrap_or(u16::MAX);
+    render_content_area(out, state, cols, ch16);
+
+    let mut next_row = ch16;
+
+    if state.tooltip_visible {
+        render_tooltip_bar(out, state, cols, next_row);
+        next_row += TOOLTIP_HEIGHT as u16;
+    }
+
     if bar_visible(state) {
-        render_status_bar(out, state, cols, u16::try_from(ch).unwrap_or(u16::MAX));
+        render_status_bar(out, state, cols, next_row);
     } else {
         move_to(out, rows - 1, 0);
         let _ = write!(out, "{CLEAR_LINE}");

@@ -13,5 +13,5 @@ StateSnapshot {
     tooltip_visible: false,
     mode: Normal,
     status_message: "",
-    full_context: false,
+    full_context: true,
 }

@@ -10,7 +10,6 @@ use tui::pager::{
 use crate::git::diff::DiffFile;
 use crate::render::{RenderOutput};
 
-use super::navigation::ensure_tree_cursor_visible;
 use super::rendering::{content_height, render_screen};
 use super::state::{capture_view_anchor, remap_after_document_swap, DiffContext};
 use super::state::{Document, PagerState};
@@ -58,9 +57,8 @@ fn format_debug_state(state: &PagerState) -> String {
         .and_then(|e| e.file_idx)
         .map_or(String::from("null"), |v| v.to_string());
     format!(
-        "{{\"treeVisible\":{},\"treeFocused\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
+        "{{\"treeVisible\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
         state.tree_visible,
-        state.tree_focused(),
         state.active_file().map_or(String::from("null"), |v| v.to_string()),
         active_file_valid,
         state.full_context,
@@ -152,8 +150,6 @@ pub fn run_pager(
 
     let mut last_size = get_term_size();
     re_render(&mut state, &files, color, last_size.0);
-    let ch = content_height(last_size.1, &state);
-    ensure_tree_cursor_visible(&mut state, ch);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
     loop {
@@ -167,8 +163,6 @@ pub fn run_pager(
                 if current_size != last_size {
                     last_size = current_size;
                     re_render(&mut state, &files, color, last_size.0);
-                    let ch = content_height(last_size.1, &state);
-                    ensure_tree_cursor_visible(&mut state, ch);
                     render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 }
                 continue;
@@ -180,8 +174,6 @@ pub fn run_pager(
             Event::Resize(_, _) => {
                 last_size = get_term_size();
                 re_render(&mut state, &files, color, last_size.0);
-                let ch = content_height(last_size.1, &state);
-                ensure_tree_cursor_visible(&mut state, ch);
                 render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 continue;
             }

@@ -21,95 +21,82 @@ No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with st
 
 ## Keybindings
 
+All keys work the same regardless of what's visible. No modes, no context-dependent behavior (except search input, which naturally captures typed characters).
+
 ### Navigation
 
 | Key | Action |
 |-----|--------|
-| `j` / `Down` / `Enter` | Next content line (skips headers) |
-| `k` / `Up` | Previous content line (skips headers) |
-| `Ctrl-D` / `PageDown` | Half page down (snaps to content) |
-| `Ctrl-U` / `PageUp` | Half page up (snaps to content) |
-| `g` / `Home` | First content line |
-| `G` / `End` | Last content line |
+| `j` / `Down` / `Enter` | Scroll down (skips headers) |
+| `k` / `Up` | Scroll up (skips headers) |
+| `d` | Half page down |
+| `u` | Half page up |
+| `g` / `Home` | Top |
+| `G` / `End` | Bottom |
+| `z` | Center viewport on cursor |
 
 ### Diff Navigation
 
 | Key | Action |
 |-----|--------|
-| `d` / `u` | Next/prev hunk (change group in full-context mode), always global across files |
-| `D` / `U` | Next/prev file (shows file position) |
-| `a` | Toggle single-file view (independent of tree panel) |
-| `z` | Toggle full file context |
+| `]` / `[` | Next / previous hunk |
+| `}` / `{` | Next / previous file (switches file in single-file mode) |
+| `s` | Toggle single-file view |
+| `o` | Toggle full file context |
 
 ### Search
 
 | Key | Action |
 |-----|--------|
-| `/` | Search |
-| `n` / `N` | Next/prev match |
+| `/` | Enter search |
+| `n` / `N` | Next / previous match |
+| `Enter` | Submit search (in search input) |
+| `Esc` / `Ctrl-C` | Cancel search (in search input) |
 
-### File Tree
-
-The file tree is a navigation aid that does not affect the diff pane's content. Tree navigation with `j`/`k` updates only the tree selection; `Enter` on a file scrolls the diff to that file (and switches active file in single-file mode). Folders are focusable and can be expanded/collapsed with Enter. File headers are hidden in the diff pane while the tree is visible, since the tree already shows file names. Single-file view can be toggled independently with `a`.
-
-| Key | Action |
-|-----|--------|
-| `e` | Toggle file tree panel (open/focus/close cycle) |
-| `Tab` | Switch focus to tree |
-| `1` | Toggle tree focus |
-| `l` / `Ctrl-L` | Show + focus tree |
-| `h` / `Ctrl-H` | Return focus to diff |
-| `j` / `k` | Navigate tree selection only (when tree focused) |
-| `g` / `G` | Jump to first/last file (when tree focused) |
-| `d` / `u` | Next/prev hunk (global, syncs tree selection) |
-| `Enter` | Scroll to file (switch active file in single-file mode) / toggle folder expand/collapse |
-| `Esc` | Return focus to diff |
-
-### Visual Mode
+### Selection
 
 | Key | Action |
 |-----|--------|
-| `v` | Enter visual line selection mode |
-| `j` / `k` | Extend selection down/up (clamped to current file) |
-| `y` | Copy `path:start-end` to clipboard (via `pbcopy`) |
-| `Esc` | Cancel selection |
+| `m` | Set mark at cursor line |
+| `y` | Copy `path:start-end` from mark to cursor (via `pbcopy`) |
 
 ### Other
 
 | Key | Action |
 |-----|--------|
-| `E` | Open file in `$EDITOR` at current line |
-| `?` | Help overlay |
+| `l` | Toggle file tree sidebar |
+| `e` | Open file in `$EDITOR` at current line |
+| `?` | Toggle keybinding hints bar |
 | `q` / `Ctrl-C` | Quit |
 
 ## Architecture
 
 **Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then renders all files as a single ANSI-colored document with dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
 
-**Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, `↪` continuation markers on wrapped lines, and file/hunk header separators.
+**Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. The pager now lives under `src/pager/` with `mod.rs` as the entrypoint and focused submodules (`content`, `text`, `types`, `keymap`, `state`, `navigation`, `search`, `tree`, `rendering`, `reducer`, `runtime`) to make the large pager implementation easier to evolve. Keybindings remain defined in a single table, so runtime behavior, help overlay, and docs stay in sync. Opens with the file tree visible and focused, all files shown with hunk context (surrounding diff lines only). Supports scrolling with content-line skipping (cursor skips file headers, hunk headers, and blank separators, landing only on Added/Deleted/Context lines), search highlighting with UTF-8-safe cursor editing, `d`/`u` hunk navigation (change-group navigation in full-context mode), `D`/`U` file navigation (with file position status), `$EDITOR` delegation with line-number positioning (diff paths resolved against repo root, so `E` works from subdirectories), a toggleable right-side file tree panel (navigation sidebar where `j`/`k` moves tree selection only and `Enter` jumps diff to the selected file without filtering) with flat and hierarchical views, file type icons, lsd-style tree connector lines (rounded corners, branch/end markers), directory collapsing (`e` to cycle open/focus/close, scrollable, `h`/`l` or `Ctrl-H`/`Ctrl-L` directional focus, `g`/`G`/`d`/`u` tree navigation), focusable folder nodes with Enter to expand/collapse (Enter on a file switches to that file in single-file mode), `1` for tree focus toggle, accent-colored separator when tree is focused, tree-focused key passthrough (search, hunk/file nav, help, editor, visual mode fall through to normal handlers), single-file view (`a` toggle independent of tree; diff pane shows only the selected file), with auto-sync cursor tracking, always-visible cursor line (tinted background bar, scrolloff=8), centered viewport on hunk/file jumps, full-file context toggle (`z`, shows a scrollbar with colored change markers and viewport thumb), hidden-by-default status bar (appears for search input, transient messages, visual mode, and help overlay), and visual line selection mode (`v`) for copying `path:line` references to the clipboard.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode). Selection uses marks (`m` to set, `y` to yank) instead of a modal visual mode. A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows position indicators, single-file info, and mark status.
 
 ## Modules
 
-- `main.rs` — CLI parsing (clap), `DiffSource` resolution (including `--base`/`-b` base-branch detection), git diff, render, pager decision
-- `git/mod.rs` — Synchronous git command runner (`std::process::Command`)
-- `git/diff.rs` — Unified diff parser with multi-hunk support
-- `render.rs` — `DiffFile[]` → ANSI text with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
-- `style.rs` — Diff color palette (GitHub Dark-inspired) and ANSI helpers
-- `pager/mod.rs` — Pager entrypoint and shared wiring
-- `pager/content.rs` — Pure line-map helpers (next_content_line, snap_to_content, etc.)
-- `pager/text.rs` — Char-boundary helpers for search input
-- `pager/types.rs` — Typed pager enums/newtypes and action identifiers
-- `pager/keymap.rs` — Keybinding table + help-line generation
-- `pager/state.rs` — Pager/document state model and remap helpers
-- `pager/navigation.rs` — Navigation (d/u, D/U, viewport, sync_tree_cursor, etc.)
-- `pager/search.rs` — Search overlay (submit, cancel, handle_search_key, scroll_to_match)
-- `pager/tree.rs` — File tree (build_tree_entries, build_tree_lines, TreeEntry)
-- `pager/rendering.rs` — Rendering (render_screen, format_status_bar, scrollbar, etc.)
-- `pager/reducer.rs` — Reducer and mode-specific handlers (handle_key, dispatch_*)
-- `pager/runtime.rs` — Run loop (run_pager, re_render, regenerate_files)
-- `ansi.rs` — Re-exports from `tui::ansi`: `visible_width`, `split_ansi`, `wrap_line_for_display` (plus `strip_ansi` for tests)
+- `main.rs` -- CLI parsing (clap), `DiffSource` resolution (including `--base`/`-b` base-branch detection), git diff, render, pager decision
+- `git/mod.rs` -- Synchronous git command runner (`std::process::Command`)
+- `git/diff.rs` -- Unified diff parser with multi-hunk support
+- `render.rs` -- `DiffFile[]` -> ANSI text with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
+- `style.rs` -- Diff color palette (GitHub Dark-inspired) and ANSI helpers
+- `pager/mod.rs` -- Pager entrypoint and shared wiring
+- `pager/content.rs` -- Pure line-map helpers (next_content_line, snap_to_content, etc.)
+- `pager/text.rs` -- Char-boundary helpers for search input
+- `pager/types.rs` -- Typed pager enums/newtypes and action identifiers
+- `pager/keymap.rs` -- Keybinding table + help-line generation
+- `pager/state.rs` -- Pager/document state model and remap helpers
+- `pager/navigation.rs` -- Navigation (hunk/file jumping, viewport, sync_tree_cursor)
+- `pager/search.rs` -- Search overlay (submit, cancel, handle_search_key, scroll_to_match)
+- `pager/tree.rs` -- File tree (build_tree_entries, build_tree_lines, TreeEntry)
+- `pager/rendering.rs` -- Rendering (render_screen, tooltip bar, format_status_bar, scrollbar)
+- `pager/reducer.rs` -- Flat reducer (handle_key, dispatch_normal_action)
+- `pager/runtime.rs` -- Run loop (run_pager, re_render, regenerate_files)
+- `ansi.rs` -- Re-exports from `tui::ansi`: `visible_width`, `split_ansi`, `wrap_line_for_display` (plus `strip_ansi` for tests)
 
 ## Build
 
@@ -133,9 +120,9 @@ Requires [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) (`cargo ins
 
 `./coverage.sh agent` produces three sections on stdout, designed for AI agents to parse:
 
-- **COVERAGE SUMMARY** — per-file line/function coverage percentages
-- **UNCOVERED FUNCTIONS** — `file:line function_name` for every function with 0 hits (test files excluded)
-- **UNCOVERED LINES BY FILE** — `file (uncovered: 10-15,22,30-35)` with collapsed ranges (test files excluded)
+- **COVERAGE SUMMARY** -- per-file line/function coverage percentages
+- **UNCOVERED FUNCTIONS** -- `file:line function_name` for every function with 0 hits (test files excluded)
+- **UNCOVERED LINES BY FILE** -- `file (uncovered: 10-15,22,30-35)` with collapsed ranges (test files excluded)
 
 It also writes `lcov.info`, which agents can read directly for line-granular data. The lcov format uses `SF:` for source file, `DA:line,count` for line hits (0 = uncovered), and `FNDA:count,name` for function hits.
 

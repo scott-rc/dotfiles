@@ -54,41 +54,6 @@ impl TreeEntryIx {
     }
 }
 
-/// Which panel has keyboard focus.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Focus {
-    Diff,
-    Tree,
-}
-
-/// Overlay mode with typed payloads. Used in later chunks.
-#[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
-pub(crate) enum Overlay {
-    None,
-    Search(SearchState),
-    Help,
-    Visual(VisualState),
-}
-
-/// Search overlay state. Used in later chunks.
-#[derive(Debug, Clone, PartialEq, Default)]
-#[allow(dead_code)]
-pub(crate) struct SearchState {
-    pub query: String,
-    pub matches: Vec<usize>,
-    pub current_match: isize,
-    pub input: String,
-    pub cursor: usize,
-}
-
-/// Visual mode overlay state. Used in later chunks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
-pub(crate) struct VisualState {
-    pub anchor: usize,
-}
-
 /// View scope: all files or single file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ViewScope {
@@ -100,8 +65,6 @@ pub(crate) enum ViewScope {
 pub(crate) enum Mode {
     Normal,
     Search,
-    Help,
-    Visual,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -117,12 +80,10 @@ pub(crate) enum KeyResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum KeyContext {
     Normal,
-    Tree,
     Search,
-    Visual,
 }
 
-/// Action identifiers. Single source of truth for key→action mapping.
+/// Action identifiers. Single source of truth for key->action mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ActionId {
     Quit,
@@ -132,6 +93,7 @@ pub(crate) enum ActionId {
     HalfPageUp,
     Top,
     Bottom,
+    CenterViewport,
     NextHunk,
     PrevHunk,
     NextFile,
@@ -144,22 +106,10 @@ pub(crate) enum ActionId {
     NextMatch,
     PrevMatch,
     ToggleTree,
-    FocusTree,
-    FocusTreeOrShow,
-    ReturnToDiff,
-    TreeClose,
-    TreeFirst,
-    TreeLast,
-    TreeNavDown,
-    TreeNavUp,
-    TreeSelect,
-    EnterVisual,
-    VisualExtendDown,
-    VisualExtendUp,
-    VisualCopy,
-    VisualCancel,
+    SetMark,
+    YankToMark,
     OpenEditor,
-    Help,
+    ToggleTooltip,
 }
 
 /// Help group for overlay layout.
@@ -168,8 +118,6 @@ pub(crate) enum HelpGroup {
     Navigation,
     DiffNav,
     Search,
-    FileTree,
-    VisualMode,
+    Selection,
     Other,
 }
-

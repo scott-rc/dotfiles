@@ -39,13 +39,10 @@ fn bar_visible_normal_mode_is_false() {
 }
 
 #[test]
-fn bar_visible_search_help_visual_modes_are_true() {
-    use super::super::types::Mode;
+fn bar_visible_search_mode_is_true() {
     let mut state = make_keybinding_state();
-    for mode in [Mode::Search, Mode::Help, Mode::Visual] {
-        state.mode = mode.clone();
-        assert!(bar_visible(&state), "bar should be visible in {mode:?}");
-    }
+    state.mode = Mode::Search;
+    assert!(bar_visible(&state), "bar should be visible in Search");
 }
 
 #[test]
@@ -53,6 +50,13 @@ fn bar_visible_status_message_any_mode() {
     let mut state = make_keybinding_state();
     state.status_message = "some message".into();
     assert!(bar_visible(&state), "non-empty status_message should show bar in Normal mode");
+}
+
+#[test]
+fn bar_visible_tooltip_visible() {
+    let mut state = make_keybinding_state();
+    state.tooltip_visible = true;
+    assert!(bar_visible(&state), "tooltip_visible should show bar");
 }
 
 // -- content_height --
@@ -66,8 +70,15 @@ fn content_height_normal_mode_full_rows() {
 #[test]
 fn content_height_bar_visible_subtracts_one() {
     let mut state = make_keybinding_state();
-    state.mode = super::super::types::Mode::Search;
+    state.mode = Mode::Search;
     assert_eq!(content_height(24, &state), 23);
+}
+
+#[test]
+fn content_height_tooltip_visible_subtracts_tooltip_height() {
+    let mut state = make_keybinding_state();
+    state.tooltip_visible = true;
+    assert_eq!(content_height(24, &state), 24 - 1 - TOOLTIP_HEIGHT);
 }
 
 // -- resolve_lineno --
@@ -234,56 +245,6 @@ fn render_scrollbar_cell_zero_range_returns_track() {
 // -- format_status_bar --
 
 #[test]
-fn format_status_bar_visual_mode() {
-    use super::super::types::Mode;
-    let mut state = make_keybinding_state();
-    state.mode = Mode::Visual;
-    state.visual_anchor = 0;
-    state.cursor_line = 4;
-    let bar = format_status_bar(&state, 20, 80);
-    let visible = strip(&bar);
-    assert!(
-        visible.contains("-- VISUAL -- (5 lines)"),
-        "should contain visual label with line count: {visible:?}"
-    );
-    assert_eq!(visible.len(), 80, "should be padded to cols");
-}
-
-#[test]
-fn format_status_bar_help_mode_top() {
-    use super::super::types::Mode;
-    let mut state = make_keybinding_state();
-    state.mode = Mode::Help;
-    state.top_line = 0;
-    let bar = format_status_bar(&state, 20, 80);
-    let visible = strip(&bar);
-    assert!(visible.contains("? to close"), "should contain help hint: {visible:?}");
-    assert!(visible.contains("TOP"), "top_line=0 should show TOP: {visible:?}");
-}
-
-#[test]
-fn format_status_bar_help_mode_end() {
-    use super::super::types::Mode;
-    let mut state = make_keybinding_state();
-    state.mode = Mode::Help;
-    state.top_line = 90;
-    let bar = format_status_bar(&state, 20, 80);
-    let visible = strip(&bar);
-    assert!(visible.contains("END"), "top_line at end should show END: {visible:?}");
-}
-
-#[test]
-fn format_status_bar_help_mode_middle() {
-    use super::super::types::Mode;
-    let mut state = make_keybinding_state();
-    state.mode = Mode::Help;
-    state.top_line = 40;
-    let bar = format_status_bar(&state, 20, 80);
-    let visible = strip(&bar);
-    assert!(visible.contains('%'), "middle position should show percentage: {visible:?}");
-}
-
-#[test]
 fn format_status_bar_status_message() {
     let mut state = make_keybinding_state();
     state.status_message = "Copied to clipboard".into();
@@ -296,76 +257,56 @@ fn format_status_bar_status_message() {
     assert_eq!(visible.len(), 80, "should be padded to cols");
 }
 
-// -- format_help_lines --
-
 #[test]
-fn format_help_lines_normal() {
-    let lines = format_help_lines(80, 24);
-    assert_eq!(lines.len(), 24, "should produce exactly content_height lines");
-    let joined = lines.join("\n");
+fn format_status_bar_position_indicator() {
+    let state = make_keybinding_state();
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
     assert!(
-        joined.contains("Navigation"),
-        "should contain centered help group header: {joined:?}"
+        visible.contains("TOP") || visible.contains("END") || visible.contains('%'),
+        "should contain position indicator: {visible:?}"
     );
 }
 
 #[test]
-fn format_help_lines_narrow_terminal() {
-    let lines = format_help_lines(30, 24);
-    for (i, line) in lines.iter().enumerate() {
-        assert!(
-            line.chars().count() <= 30,
-            "line {i} exceeds 30 chars: len={}, content={line:?}",
-            line.chars().count()
-        );
-    }
-}
-
-#[test]
-fn format_help_lines_small_content_height() {
-    let lines = format_help_lines(80, 5);
-    assert_eq!(lines.len(), 5, "should produce exactly content_height lines");
-}
-
-// -- highlight_visual_line --
-
-#[test]
-fn highlight_visual_line_normal() {
-    let out = highlight_visual_line("foo", 20);
+fn format_status_bar_mark_set() {
+    let mut state = make_keybinding_state();
+    state.mark_line = Some(5);
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
     assert!(
-        out.contains(style::BG_VISUAL),
-        "should contain visual bg: {out:?}"
-    );
-    let stripped = strip(&out);
-    assert!(stripped.contains("foo"), "should contain the line text");
-}
-
-#[test]
-fn highlight_visual_line_wider_than_width() {
-    let long_line = "x".repeat(50);
-    let out = highlight_visual_line(&long_line, 20);
-    assert!(
-        out.contains(style::BG_VISUAL),
-        "should still apply visual highlight: {out:?}"
-    );
-    assert!(
-        out.contains(&long_line),
-        "should contain the full line text"
+        visible.contains("Mark set"),
+        "should show mark set indicator: {visible:?}"
     );
 }
 
 #[test]
-fn highlight_visual_line_empty() {
-    let out = highlight_visual_line("", 20);
+fn format_status_bar_single_file() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
     assert!(
-        out.contains(style::BG_VISUAL),
-        "should contain visual bg for empty line: {out:?}"
+        visible.contains("Single:"),
+        "should show single file indicator: {visible:?}"
     );
-    let stripped = strip(&out);
-    assert!(
-        stripped.trim().is_empty(),
-        "stripped output should be whitespace: {stripped:?}"
-    );
+}
+
+// -- format_tooltip_lines --
+
+#[test]
+fn format_tooltip_lines_produces_two_lines() {
+    let lines = format_tooltip_lines(80);
+    assert_eq!(lines.len(), TOOLTIP_HEIGHT, "tooltip should produce exactly TOOLTIP_HEIGHT lines");
+}
+
+#[test]
+fn format_tooltip_lines_contains_key_hints() {
+    let lines = format_tooltip_lines(80);
+    let joined = lines.join(" ");
+    let stripped = strip(&joined);
+    assert!(stripped.contains("j/k"), "tooltip should mention j/k");
+    assert!(stripped.contains("quit"), "tooltip should mention quit");
 }
 
 // -- render_content_area --
@@ -385,21 +326,6 @@ fn render_content_area_basic() {
 }
 
 #[test]
-fn render_content_area_help_mode() {
-    let files = make_two_file_diff();
-    let mut state = make_pager_state_from_files(&files, false);
-    state.mode = Mode::Help;
-    let mut buf = Vec::new();
-    render_content_area(&mut buf, &state, 80, 24);
-    let output = String::from_utf8_lossy(&buf);
-    let visible = strip(&output);
-    assert!(
-        visible.contains("Navigation"),
-        "help mode should render help text: {visible:?}"
-    );
-}
-
-#[test]
 fn render_content_area_search_highlight() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, false);
@@ -414,36 +340,21 @@ fn render_content_area_search_highlight() {
 }
 
 #[test]
-fn render_content_area_visual_mode() {
+fn render_content_area_mark_highlight() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, false);
-    state.mode = Mode::Visual;
-    state.visual_anchor = 0;
+    state.mark_line = Some(0);
     state.cursor_line = 2;
     let mut buf = Vec::new();
     render_content_area(&mut buf, &state, 80, 24);
     let output = String::from_utf8_lossy(&buf);
     assert!(
         output.contains(style::BG_VISUAL),
-        "visual mode should render visual highlight: {output:?}"
+        "mark range should render visual highlight: {output:?}"
     );
 }
 
 // -- render_screen --
-
-#[test]
-fn render_screen_with_status_bar() {
-    let mut state = make_keybinding_state();
-    state.mode = Mode::Help;
-    let mut buf = Vec::new();
-    render_screen(&mut buf, &state, 80, 24);
-    let output = String::from_utf8_lossy(&buf);
-    let visible = strip(&output);
-    assert!(
-        visible.contains("? to close"),
-        "help mode render_screen should include status bar text: {visible:?}"
-    );
-}
 
 #[test]
 fn render_screen_no_status_bar() {
@@ -453,17 +364,16 @@ fn render_screen_no_status_bar() {
     assert!(!buf.is_empty(), "render_screen in Normal mode should produce output");
 }
 
-// -- format_status_bar help narrow --
-
 #[test]
-fn format_status_bar_help_narrow() {
+fn render_screen_with_tooltip() {
     let mut state = make_keybinding_state();
-    state.mode = Mode::Help;
-    let bar = format_status_bar(&state, 10, 15);
-    let visible = strip(&bar);
-    assert_eq!(
-        visible.len(),
-        15,
-        "narrow help bar should fit cols=15: {visible:?}"
+    state.tooltip_visible = true;
+    let mut buf = Vec::new();
+    render_screen(&mut buf, &state, 80, 24);
+    let output = String::from_utf8_lossy(&buf);
+    let visible = strip(&output);
+    assert!(
+        visible.contains("quit"),
+        "tooltip render_screen should include key hints: {visible:?}"
     );
 }

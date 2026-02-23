@@ -48,12 +48,11 @@ pub struct StateSnapshot {
     pub top_line: usize,
     pub active_file: Option<usize>,
     pub tree_visible: bool,
-    pub tree_focused: bool,
-    pub tree_cursor: usize,
+    pub mark_line: Option<usize>,
+    pub tooltip_visible: bool,
     pub mode: super::super::types::Mode,
     pub status_message: String,
     pub full_context: bool,
-    pub visual_anchor: usize,
 }
 
 impl From<&PagerState> for StateSnapshot {
@@ -63,12 +62,11 @@ impl From<&PagerState> for StateSnapshot {
             top_line: s.top_line,
             active_file: s.active_file(),
             tree_visible: s.tree_visible,
-            tree_focused: s.tree_focused(),
-            tree_cursor: s.tree_cursor(),
+            mark_line: s.mark_line,
+            tooltip_visible: s.tooltip_visible,
             mode: s.mode.clone(),
             status_message: s.status_message.clone(),
             full_context: s.full_context,
-            visual_anchor: s.visual_anchor,
         }
     }
 }
@@ -104,31 +102,12 @@ pub fn assert_state_invariants(state: &PagerState) {
         );
     }
 
-    if state.tree_focused() {
-        assert!(!state.tree_entries.is_empty(), "tree focus invalid when tree empty");
-        assert!(state.tree_selection.is_some(), "tree focus requires valid tree_selection");
-        if let Some(sel) = state.tree_selection {
-            assert!(
-                sel.get() < state.tree_entry_count(),
-                "tree_selection {} out of bounds (entry_count={})",
-                sel.get(),
-                state.tree_entry_count()
-            );
-        }
-    }
-
     for &idx in &state.search_matches {
         assert!(
             idx < line_count,
             "search_match index {idx} out of doc bounds (line_count={line_count})"
         );
     }
-    assert!(
-        state.visual_anchor < line_count || line_count == 0,
-        "visual_anchor {} out of doc bounds (line_count={})",
-        state.visual_anchor,
-        line_count
-    );
 }
 
 /// Build a 90-line PagerState for keybinding snapshot tests.
@@ -170,7 +149,6 @@ pub fn make_keybinding_state() -> PagerState {
         tree_entries,
     );
     state.cursor_line = 1;
-    state.set_tree_focused(false);
     state
 }
 
@@ -342,7 +320,6 @@ pub fn make_pager_state_from_files(files: &[DiffFile], tree_visible: bool) -> Pa
         tree_entries,
     );
     state.tree_visible = tree_visible;
-    state.set_tree_focused(false);
     state
 }
 
@@ -401,7 +378,6 @@ pub fn make_mixed_content_state() -> PagerState {
         tree_entries,
     );
     state.cursor_line = 1;
-    state.set_tree_focused(false);
     state
 }
 
@@ -413,4 +389,3 @@ pub fn add_leading_context_before_hunk_changes(state: &mut PagerState) {
     state.doc.line_map[16].line_kind = Some(LineKind::Context);
     state.doc.line_map[17].line_kind = Some(LineKind::Deleted);
 }
-

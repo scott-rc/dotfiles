@@ -185,14 +185,12 @@ fn document_swap_to_empty_exits_cleanly() {
     remap_after_document_swap(&mut state, anchor, empty_doc, &[]);
     assert_eq!(state.cursor_line, 0);
     assert_eq!(state.top_line, 0);
-    assert_eq!(state.visual_anchor, 0);
 }
 
 #[test]
 fn resize_with_tree_visible_keeps_valid_selection_and_cursor() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, true);
-    state.set_tree_focused(true);
     state.set_tree_cursor(1);
     state.set_active_file(Some(1));
     state.cursor_line = 4;
@@ -285,7 +283,6 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
     let mut state = make_pager_state_for_range(vec![0, 10], 20, None);
     state.cursor_line = 10;
     state.top_line = 5;
-    state.visual_anchor = 10;
 
     let new_doc = Document {
         lines: vec![String::new(); 20],
@@ -307,5 +304,4 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
 
     assert_eq!(state.cursor_line, 0);
     assert_eq!(state.top_line, 0);
-    assert_eq!(state.visual_anchor, 0);
 }

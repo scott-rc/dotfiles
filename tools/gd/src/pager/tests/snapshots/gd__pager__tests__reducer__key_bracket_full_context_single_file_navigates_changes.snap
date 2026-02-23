@@ -3,7 +3,7 @@ source: gd/src/pager/tests/reducer.rs
 expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
-    cursor_line: 1,
+    cursor_line: 7,
     top_line: 0,
     active_file: Some(
         0,
@@ -12,6 +12,6 @@ StateSnapshot {
     mark_line: None,
     tooltip_visible: false,
     mode: Normal,
-    status_message: "",
-    full_context: false,
+    status_message: "Change 1/2 · a.rs",
+    full_context: true,
 }

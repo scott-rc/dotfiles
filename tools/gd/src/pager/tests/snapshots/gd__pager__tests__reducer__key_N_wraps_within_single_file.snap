@@ -9,10 +9,9 @@ StateSnapshot {
         0,
     ),
     tree_visible: true,
-    tree_focused: false,
-    tree_cursor: 0,
+    mark_line: None,
+    tooltip_visible: false,
     mode: Normal,
     status_message: "",
     full_context: false,
-    visual_anchor: 0,
 }

@@ -277,33 +277,17 @@ pub(crate) fn nav_U_up(state: &PagerState, content_height: usize) -> NavDUResult
 }
 
 pub(crate) fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
-    if !state.tree_visible || state.tree_focused() {
-        return;
-    }
-    sync_tree_cursor_force(state, content_height);
-}
-
-pub(crate) fn sync_tree_cursor_force(state: &mut PagerState, content_height: usize) {
-    if !state.tree_visible {
-        return;
-    }
-    if state.tree_entries.is_empty() {
+    if !state.tree_visible || state.tree_entries.is_empty() {
         return;
     }
     let new_cursor = if let Some(fi) = state.active_file() {
         fi
     } else {
-        state
-            .doc
-            .line_map
-            .get(state.cursor_line)
-            .map_or(0, |li| li.file_idx)
+        state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx)
     };
     let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     if !state.tree_visible_to_entry.contains(&new_entry_idx) {
-        let target_depth = state
-            .tree_entry(new_entry_idx)
-            .map_or(0, |e| e.depth);
+        let target_depth = state.tree_entry(new_entry_idx).map_or(0, |e| e.depth);
         new_entry_idx = state.tree_entries[..new_entry_idx]
             .iter()
             .rposition(|e| e.file_idx.is_none() && e.depth < target_depth)
@@ -337,26 +321,4 @@ pub(crate) fn ensure_tree_cursor_visible(state: &mut PagerState, content_height:
     if offset >= state.tree_scroll + content_height {
         state.tree_scroll = offset + 1 - content_height;
     }
-}
-
-pub(crate) fn move_tree_selection(
-    state: &mut PagerState,
-    delta: isize,
-    content_height: usize,
-) -> bool {
-    let Some(current_visible_idx) = state
-        .tree_visible_to_entry
-        .iter()
-        .position(|&entry_idx| entry_idx == state.tree_cursor())
-    else {
-        return false;
-    };
-    let next_visible_idx = current_visible_idx as isize + delta;
-    if next_visible_idx < 0 || next_visible_idx >= state.tree_visible_to_entry.len() as isize {
-        return false;
-    }
-    state.set_tree_cursor(state.tree_visible_to_entry[next_visible_idx as usize]);
-    state.rebuild_tree_lines();
-    ensure_tree_cursor_visible(state, content_height);
-    true
 }
