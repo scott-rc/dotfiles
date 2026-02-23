@@ -30,3 +30,7 @@ The `init.sh` script creates symlinks:
 - `~/.claude/settings.json` → `configs/claude/settings.json`
 - `~/.claude/commands/` → `configs/claude/commands/`
 - `~/.claude/skills/` → `configs/claude/skills/`
+
+## Shared With Codex
+
+For Codex/Agents symlink mappings, see `README.md` under `Shared Agent Configuration (Claude Authority)`.

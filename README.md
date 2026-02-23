@@ -40,6 +40,7 @@ Configuration directories symlinked to their expected locations:
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
 | `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
+| `AGENTS.md` | `~/.codex/AGENTS.md` (Codex instructions that defer to Claude sources) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
@@ -218,6 +219,16 @@ Custom CLI tools.
 | Skill | Description |
 |-------|-------------|
 | `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
+
+### Shared Agent Configuration (Claude Authority)
+
+`apply.sh` links Codex and Agents to Claude-authored sources so they stay in sync:
+
+- `~/.codex/claude-rules` → `configs/claude/rules`
+- `~/.codex/skills/<skill>` → `configs/claude/skills/<skill>`
+- `~/.agents/skills/<skill>` → `configs/claude/skills/<skill>`
+
+`AGENTS.md` is symlinked to `~/.codex/AGENTS.md` (listed in the `configs/` table above). This keeps `configs/claude/skills/*` and `configs/claude/rules/*` as the single source of truth for shared skill and rule content.
 
 ## Useful Commands
 

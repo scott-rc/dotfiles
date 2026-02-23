@@ -189,6 +189,24 @@ ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ensure_symlink "$CONFIGS/claude/statusline" "$HOME/.claude/statusline"
 ensure_symlink "$CONFIGS/claude/rules" "$HOME/.claude/rules"
 
+# --- Codex ---
+
+# Make Codex use repo-scoped instructions that defer to Claude-owned guidance.
+ensure_symlink "$WORKSPACE_ROOT/AGENTS.md" "$HOME/.codex/AGENTS.md"
+
+# Expose Claude rules for Codex references without duplicating rule content.
+ensure_symlink "$CONFIGS/claude/rules" "$HOME/.codex/claude-rules"
+
+# Mirror Claude skills into Codex and Agents skill homes as symlinks so
+# Claude skill files remain the single source of truth.
+mkdir -p "$HOME/.codex/skills" "$HOME/.agents/skills"
+for skill_dir in "$CONFIGS/claude/skills"/*; do
+	[ -d "$skill_dir" ] || continue
+	skill_name="$(basename "$skill_dir")"
+	ensure_symlink "$skill_dir" "$HOME/.codex/skills/$skill_name"
+	ensure_symlink "$skill_dir" "$HOME/.agents/skills/$skill_name"
+done
+
 # --- Cursor ---
 
 ensure_symlink "$CONFIGS/cursor/settings.json" "$HOME/Library/Application Support/Cursor/User/settings.json"
