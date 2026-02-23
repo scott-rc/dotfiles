@@ -38,15 +38,18 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
 4. **Confirm understanding**:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
-   - MUST NOT proceed to decomposition until the user confirms the summary is accurate
-   - If the user corrects anything, update understanding and re-confirm
+   - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
+   - If the user selects "Start over", return to step 1
+   - MUST NOT proceed to decomposition until the user selects "Looks good"
 
 5. **Decompose into chunks**:
    Identify 2-6 chunks that partition the work. Present the chunk list with one-line descriptions for user approval.
 
    MUST read [plan-template.md](plan-template.md) and follow the Chunking Guidelines before decomposing.
 
-   MUST NOT proceed to writing chunk files until the user approves the chunk list. If the user requests changes, revise and re-present.
+   MUST present the chunk list and ask for approval via AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
+   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust, revise the list, and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
 6. **Write chunk files via subagents**:
    For each approved chunk, spawn a Task tool subagent (type: general-purpose) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.

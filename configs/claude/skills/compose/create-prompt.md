@@ -26,8 +26,10 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 
 3. **Confirm understanding**:
    - MUST summarize the goal, constraints, and planned context in 2-3 sentences
-   - MUST NOT proceed to drafting until the user confirms the summary is accurate
-   - If the user corrects anything, update understanding and re-confirm
+   - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
+   - If the user selects "Start over", return to step 1
+   - MUST NOT proceed to drafting until the user selects "Looks good"
 
 4. **Draft the prompt**:
    Write the prompt using this structure (MUST omit sections that don't apply):
