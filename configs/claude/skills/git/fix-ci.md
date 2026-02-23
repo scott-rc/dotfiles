@@ -28,6 +28,8 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    ```
 
 4. **Parse logs and identify root cause**:
+   If the log output is large (>200 lines), spawn a Task subagent (type: general-purpose, model: sonnet) to parse the logs. The subagent should extract only actionable information and return a concise failure summary. Otherwise, parse inline.
+
    MUST focus on actionable information:
    - Test failures: extract failing test names and assertion messages
    - Lint failures: extract file locations and specific errors
@@ -40,7 +42,7 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
 6. **Fix the issues**:
    - Read the relevant source files identified in the failure logs
    - Apply fixes for the root cause
-   - If the fix is ambiguous or risky, present options to the user before proceeding
+   - If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options
    - If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user
 
 7. **Verify fixes locally** (when possible):

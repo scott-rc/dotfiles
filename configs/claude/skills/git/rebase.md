@@ -19,7 +19,7 @@ Fetch the latest from the base branch and rebase the current branch onto it.
 4. **If conflicts occur**:
    - List conflicting files: `git diff --name-only --diff-filter=U`
    - Report conflicts to the user
-   - Offer to help resolve them or abort with `git rebase --abort`
+   - Present options via AskUserQuestion: "Help resolve conflicts", "Abort rebase"
 
 5. **If rebase succeeds**: MUST verify branch scope following the scope verification pattern in [git-patterns.md](git-patterns.md). SHOULD also show commit count: `git rev-list --count origin/<base>..HEAD`
 

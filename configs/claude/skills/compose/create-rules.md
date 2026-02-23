@@ -23,13 +23,15 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - **User-level rule**: `~/.claude/rules/<name>.md` — for personal rules across all projects (loaded before project rules)
    - **Managed policy**: `/Library/Application Support/ClaudeCode/CLAUDE.md` (macOS) — organization-wide, requires IT/DevOps deployment
    - Rules files MAY be organized into subdirectories (e.g., `.claude/rules/frontend/react.md`)
-   - MUST confirm the location with the user before proceeding
-   - If a file already exists at the target location, read it and ask the user whether to replace, extend, or pick a different location
+   - MUST confirm the location with the user -- present 1-3 applicable locations via AskUserQuestion based on the user's requirements (e.g., project CLAUDE.md, `.claude/rules/<name>.md`, `~/.claude/rules/<name>.md`)
+   - If a file already exists at the target location, read it and present options via AskUserQuestion: "Replace existing", "Extend existing", "Pick a different location"
 
 3. **Assess existing documentation**:
-   - SHOULD check for README.md, CONTRIBUTING.md, and other docs in the project
-   - SHOULD identify candidates for `@file` references to avoid duplicating content
-   - SHOULD check for existing CLAUDE.md files in parent/child directories to avoid conflicts or redundancy
+   Spawn a Task subagent (type: Explore, model: haiku) to scan the project for existing documentation. The subagent MUST:
+   - Check for README.md, CONTRIBUTING.md, and other docs in the project
+   - Identify candidates for `@file` references to avoid duplicating content
+   - Check for existing CLAUDE.md files in parent/child directories and `.claude/rules/` files
+   - Return a list of relevant files with paths and brief content summaries
 
 4. **Write the rules file**:
    - MUST follow [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md)

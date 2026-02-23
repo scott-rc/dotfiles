@@ -12,14 +12,14 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - **Small scope**: ≤8 changed files AND ≤500 changed lines → follow steps 3–6
    - **Large scope**: >8 changed files OR >500 changed lines → follow steps 7–13
 
-   Present the assessment and let the user choose which path. The user can force the thorough path by saying "thorough review" or "deep review".
+   Present the assessment via AskUserQuestion with options: "Quick review (single-pass)", "Thorough review (subagent decomposition)". The user can also force the thorough path by saying "thorough review" or "deep review".
 
 ### Small Scope (Single-Pass Review)
 
 3. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md) and [testing-guidelines.md](testing-guidelines.md). If a language-specific file exists for the target language ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load it too.
 
 4. **Study project context**:
-   Read surrounding code to understand project conventions — naming patterns, error handling style, abstraction level, test patterns. The review MUST judge code against its own project's standards, not abstract ideals.
+   Spawn a Task subagent (type: Explore, model: haiku) to read surrounding code and identify project conventions -- naming patterns, error handling style, abstraction level, test patterns. The subagent should return a concise summary of conventions found. The review MUST judge code against its own project's standards, not abstract ideals.
 
 5. **Run review checklist**:
    Evaluate every item in the [Review Checklist](#review-checklist) below. Track findings with severity:

@@ -21,8 +21,11 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 4. **Load coding preferences**: MUST use the Skill tool to load the code skill (`skill: "code"`). From the code skill's References section, read general-guidelines.md and the language-specific guidelines for the files being changed. Apply these preferences when writing fixes.
 
 5. **Fix each unresolved thread**:
+   When there are many threads (5+), spawn a Task subagent (type: Explore, model: sonnet) to read all referenced files and their surrounding context, returning a concise summary of the current code at each thread location. This avoids loading many files inline.
+
+   For each thread:
    - Read all comments in the thread -- later replies often contain clarifications or refined requests
-   - Open the file at the indicated line
+   - Open the file at the indicated line (use the subagent's context if available)
    - Understand the reviewer's concern and apply the fix
    - Group threads by file path to minimize context switching
 
@@ -30,6 +33,4 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 7. **If writing any text to GitHub** (PR comments, review replies, etc.): MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes.
 
-8. **After all fixes, offer follow-up actions**:
-   - Commit the changes (commit operation)
-   - Push to update the PR (push operation)
+8. **After all fixes, offer follow-up actions** via AskUserQuestion: "Commit changes", "Commit and push", "Done (no commit)"

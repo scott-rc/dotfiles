@@ -11,10 +11,10 @@ Write characterization tests for existing untested code — documenting its curr
    MUST read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these when writing code and tests.
 
 3. **Identify target code**:
-   Determine which module, function, or class to cover. If the user hasn't specified, ask what code they want tests for.
+   Determine which module, function, or class to cover. If the user hasn't specified, spawn a Task subagent (type: Explore, model: haiku) to scan the codebase for untested code -- it should check for files without corresponding test files and public functions without test coverage. Present 1-3 untested candidates as AskUserQuestion options.
 
 4. **Plan characterization tests**:
-   Read the target code and draft a list of test cases that document its current behavior — happy paths, edge cases, error handling, and boundary conditions. Present the plan to the user before writing tests.
+   Spawn a Task subagent (type: Explore, model: sonnet) to read the target code and its callers, then return a structured analysis: function signatures, branches, edge cases, error paths, and boundary conditions. Use the analysis to draft a list of test cases that document current behavior. Present the plan to the user before writing tests.
 
 5. **Write tests incrementally**:
    Write tests in small batches. Every test MUST pass — these tests document what the code currently does, not what it should do.

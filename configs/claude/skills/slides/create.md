@@ -6,8 +6,8 @@ Scaffold a new talk package inside the slides workspace.
 
 1. **Interview**:
    Ask the user for:
-   - Talk name (MUST be kebab-case, e.g., `intro-to-graphql`)
-   - Theme (optional, default: `@slidev/theme-default`)
+   - Talk name (MUST be kebab-case) -- suggest 1-3 names inferred from context via AskUserQuestion
+   - Theme -- present via AskUserQuestion: "@slidev/theme-default (Recommended)", "@slidev/theme-seriph", "@slidev/theme-apple-basic"
 
    Verify `~/Code/personal/slides/` exists. If it does not, run the Setup operation first.
 

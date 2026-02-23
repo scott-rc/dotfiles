@@ -7,7 +7,7 @@ Push commits and create/update PR.
 1. **Check current branch**:
    - If on `main` or `master`:
      - For `dotfiles` repo: push directly to main and **skip PR creation** (steps 4-8)
-     - Otherwise, ask the user if they want to create a new branch first
+     - Otherwise, present options via AskUserQuestion: suggest 1-2 branch names inferred from the changes, plus "Stay on main (no PR)"
      - If the user chooses to stay on main, push directly and **skip PR creation** (steps 4-8)
 
 2. **Check for uncommitted changes**:
@@ -15,7 +15,7 @@ Push commits and create/update PR.
 
 3. **Push to remote**:
    - `git push -u origin HEAD`
-   - If push is rejected (non-fast-forward), offer to pull/rebase first or force push with `git push --force-with-lease`
+   - If push is rejected (non-fast-forward), present options via AskUserQuestion: "Rebase onto remote", "Force push (--force-with-lease)"
 
 4. **Check for existing PR** on this branch:
    ```bash
@@ -26,7 +26,7 @@ Push commits and create/update PR.
    - If the PR's `state` is `MERGED` or `CLOSED`: treat as no PR exists (create a new one)
    - If the PR is `OPEN`, verify its head commit is in current history:
      - Check: `git merge-base --is-ancestor <headRefOid> HEAD`
-     - If NOT an ancestor: ask the user if they want to close the old PR and create a new one, or abort
+     - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
 6. **If NO PR exists** (or old PR was merged/closed):
    - Create one with `gh pr create --title "<title>" --body "<body>"`

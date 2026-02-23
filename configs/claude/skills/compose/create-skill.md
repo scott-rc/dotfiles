@@ -11,7 +11,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - What operations it needs (distinct tasks the skill should handle)
    - What shared knowledge operations need (patterns, guidelines, templates)
    - Any runtime dependencies (CLIs, APIs, services)
-   - Where to create it (default: `~/.claude/skills/` or the project's skill directory)
+   - Where to create it -- present applicable locations via AskUserQuestion (e.g., `~/.claude/skills/`, project `.claude/skills/`)
    - Who invokes the skill — user only (`disable-model-invocation: true` for side-effect workflows), Claude only (`user-invocable: false` for background knowledge), or both (default)?
    - Should it run in a subagent (`context: fork`) or inline?
    - Any tool restrictions needed (`allowed-tools`)?
@@ -19,11 +19,11 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 2. **Determine skill name**:
    - MUST apply naming rules from [skill-spec.md](skill-spec.md): lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
-   - MUST confirm the name with the user before proceeding
+   - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements via AskUserQuestion
 
 3. **Create the skill directory**:
    - Create `<location>/<skill-name>/`
-   - If the directory already exists, ask the user whether to overwrite or pick a different name
+   - If the directory already exists, present options via AskUserQuestion: "Overwrite existing", "Pick a different name"
 
 4. **Write SKILL.md**:
    - MUST use the SKILL.md template from [skill-template.md](skill-template.md)
@@ -53,11 +53,14 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - SHOULD keep each reference file focused on one topic
 
 7. **Validate and evaluate**:
-   - MUST run through [quality-checklist.md](quality-checklist.md)
-   - MUST check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
-   - SHOULD write at least one test scenario per operation: a user phrase, the expected behavior, and how to judge pass/fail. Format as a markdown list, not JSON
-   - SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails
-   - MUST fix any issues found before reporting to the user
+   Spawn a Task subagent (type: Explore, model: sonnet) to validate the new skill. The subagent MUST:
+   - Run through [quality-checklist.md](quality-checklist.md)
+   - Check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
+   - Return findings grouped by severity (blocking, improvement, suggestion)
+
+   SHOULD write at least one test scenario per operation: a user phrase, the expected behavior, and how to judge pass/fail. Format as a markdown list, not JSON.
+   SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails.
+   MUST fix any issues found before reporting to the user.
 
 8. **Report results**:
    - MUST list all files created with a one-line description of each

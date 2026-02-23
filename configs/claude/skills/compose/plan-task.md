@@ -27,11 +27,12 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    If no code changes are involved, MUST skip this step.
 
 3. **Explore codebase context**:
-   If a codebase is relevant:
-   - MUST explore key file paths, directory structure, and architecture
-   - SHOULD identify naming conventions, types, and patterns the chunks will reference
-   - MUST stay focused on what the task actually needs -- do not map the entire codebase
-   - SHOULD note specific function names, type signatures, or modules each chunk will touch
+   If a codebase is relevant, spawn a Task subagent (type: Explore, model: sonnet) to gather context. The subagent MUST:
+   - Map key file paths, directory structure, and architecture
+   - Identify naming conventions, types, and patterns the chunks will reference
+   - Stay focused on what the task actually needs -- do not map the entire codebase
+   - Note specific function names, type signatures, or modules each chunk will touch
+   - Return a concise summary of findings organized by area
 
    If no codebase applies, MUST skip this step entirely.
 

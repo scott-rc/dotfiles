@@ -7,7 +7,7 @@ Fold outstanding changes into the last commit.
 1. **Check current branch**:
    - If on `main` or `master`:
      - Skip this check for `dotfiles` repo (amending directly on main is fine there)
-     - Otherwise, ask the user if they want to create a new branch first
+     - Otherwise, present options via AskUserQuestion: suggest 1-2 branch names inferred from the changes, plus "Stay on main"
 
 2. **Check for changes to amend**:
    - Run `git status`, `git diff --staged`, and `git diff`
@@ -21,7 +21,7 @@ Fold outstanding changes into the last commit.
 
 4. **Stage changes**:
    - If all changes belong together: `git add -A`
-   - If mixed changes: ask user which files to include, then `git add <files>`
+   - If mixed changes: group files by logical change and present groups as AskUserQuestion options, then `git add <files>`
 
 5. **Amend the commit**:
    ```bash
@@ -33,7 +33,7 @@ Fold outstanding changes into the last commit.
    - Record the post-amend file set: `git diff --name-only origin/<base> HEAD`
    - Compare against the pre-amend file set from step 3
    - If the file sets are identical: keep the original message, skip to step 7
-   - If files were added or removed: draft a new message per [commit-guidelines.md](commit-guidelines.md), show both the original and proposed message to the user, and let them choose
+   - If files were added or removed: draft a new message per [commit-guidelines.md](commit-guidelines.md), present both via AskUserQuestion: the proposed new message and "Keep original message"
    - Apply with `git commit --amend -m "<message>"` if the user picks the new one
 
 7. **Push if already pushed**:

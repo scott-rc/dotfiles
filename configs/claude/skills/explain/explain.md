@@ -15,7 +15,7 @@ Current branch and recent history:
 1. **Parse arguments**:
    Classify each argument in `$ARGUMENTS` using the rules in [explain-patterns.md](explain-patterns.md).
    - No arguments = explain full branch diff against base
-   - Ambiguous argument = ask the user to clarify
+   - Ambiguous argument = present possible interpretations as AskUserQuestion options
    - Multiple arguments compose per the combination rules in explain-patterns.md
 
 2. **Detect base**:
@@ -26,10 +26,11 @@ Current branch and recent history:
    - File-only (no commit/branch): diff against the default branch merge-base
 
 3. **Gather commit context**:
-   - `git log --format='%h %s%n%n%b' <base>..HEAD` (or the resolved range)
-   - If a GitHub PR exists for the branch: `gh pr view --json title,body,url` — extract motivation from the description
+   Spawn a Task subagent (type: general-purpose, model: haiku) to gather all commit context. The subagent MUST:
+   - Run `git log --format='%h %s%n%n%b' <base>..HEAD` (or the resolved range)
+   - If a GitHub PR exists for the branch: `gh pr view --json title,body,url` -- extract motivation from the description
    - If the PR body or commit messages reference issues (e.g., `#123`, `fixes #456`): fetch each with `gh issue view <number> --json title,body` and extract relevant context
-   - If no PR exists, rely on commit messages alone
+   - Return a concise summary: PR title/motivation, commit list with subjects, and relevant issue context. If no PR exists, return commit messages only.
 
 4. **Get the diff**:
    - `git diff --stat <base>...<target>` for overview

@@ -8,7 +8,7 @@ Write or edit Slidev presentation content following Slidev markdown conventions.
    MUST read [slidev-syntax.md](slidev-syntax.md) before writing any slides. This ensures correct use of frontmatter, layouts, code blocks, click animations, and other Slidev features.
 
 2. **Locate and read**:
-   Identify which talk to edit. If the workspace has multiple talks, ask the user which one (list `talks/` directories if needed). Read the current `slides.md` to understand existing content and structure.
+   Identify which talk to edit. If the workspace has multiple talks, discover `talks/` directories and present them as AskUserQuestion options. Read the current `slides.md` to understand existing content and structure.
 
 3. **Write/edit slides**:
    Follow Slidev conventions when writing or modifying slide content:

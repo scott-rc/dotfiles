@@ -5,7 +5,7 @@ Run the dev server, build static output, or export to PDF/PNG.
 ## Instructions
 
 1. **Identify talk**:
-   Ask which talk to present if ambiguous. List available talks via `ls ~/Code/personal/slides/talks/` to help the user choose.
+   If ambiguous, discover available talks via `ls ~/Code/personal/slides/talks/` and present them as AskUserQuestion options.
 
 2. **Dev server**:
    Start the live-reload development server for previewing slides:

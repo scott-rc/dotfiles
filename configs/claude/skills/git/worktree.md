@@ -7,7 +7,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 1. **Determine repository**:
    - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat this as "not in a git repo" and scan for other repositories instead
    - **If in a git repo** (not dotfiles): Use `git rev-parse --show-toplevel` to get the repo path
-   - **If not in a git repo**: Scan `~/Code/*/*` for git repositories, excluding dotfiles. If multiple repos found, try to infer from the task description. If ambiguous, ask the user.
+   - **If not in a git repo**: Spawn a Task subagent (type: Explore, model: haiku) to scan `~/Code/*/*` for git repositories (excluding dotfiles), returning repo names and paths. If multiple repos found, try to infer from the task description. If ambiguous, present matching repos as AskUserQuestion options.
 
 2. **Determine mode** from the user's request:
    - **Existing branch**: User names a specific branch to check out as a worktree
@@ -31,10 +31,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 6. **Handle exit codes**:
    - **0**: Success -- proceed to step 7
    - **1**: Error -- report the output to the user
-   - **2**: Branch exists and is not merged -- ask the user:
-     - Use the existing branch as-is (`fish -c 'gwt --branch <name>'`)
-     - Delete and start fresh (`fish -c 'gwt --force <same args>'`)
-     - Choose a different name
+   - **2**: Branch exists and is not merged -- present options via AskUserQuestion: "Use existing branch", "Delete and start fresh", "Choose a different name"
 
 7. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.
 

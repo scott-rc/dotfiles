@@ -8,7 +8,7 @@ Evaluate a session task prompt against best practices, report findings, and offe
    - If the user pastes prompt text directly, use it as-is
    - If the user provides a file path, read the file
    - If the user says "clipboard" or "from clipboard", read from `pbpaste`
-   - If unclear, ask the user to paste the prompt, provide a file path, or confirm clipboard
+   - If unclear, present source options via AskUserQuestion: "Paste text", "From clipboard", "From file"
 
 2. **Analyze structure**:
    Check for these sections (per [create-prompt.md](create-prompt.md) structure):
@@ -23,7 +23,7 @@ Evaluate a session task prompt against best practices, report findings, and offe
 3. **Check content quality**:
    Evaluate against these criteria:
    - No common knowledge or vague guidance ("write clean code", "follow best practices", "handle errors properly")
-   - No information already covered by the project's CLAUDE.md or rules files (check if a codebase path is available)
+   - No information already covered by the project's CLAUDE.md or rules files (if a codebase path is available, spawn a Task subagent (type: Explore, model: haiku) to read them and summarize what's already covered)
    - Specific file paths and function names where applicable, not vague references ("the handler", "the config")
    - Imperative voice throughout ("Add a function...", not "A function should be added...")
    - Under ~60 lines total
@@ -50,5 +50,5 @@ Evaluate a session task prompt against best practices, report findings, and offe
    For each finding, state the issue, quote the problematic text, and provide a specific fix.
 
 5. **Offer to rewrite**:
-   - MUST ask the user before rewriting: "Want me to apply these fixes?"
-   - If approved, apply all fixes and deliver the improved prompt following the delivery pattern from [content-patterns.md](content-patterns.md)
+   - MUST present options via AskUserQuestion: "Apply all fixes", "Apply blocking fixes only", "No changes"
+   - If approved, apply the selected fixes and deliver the improved prompt following the delivery pattern from [content-patterns.md](content-patterns.md)

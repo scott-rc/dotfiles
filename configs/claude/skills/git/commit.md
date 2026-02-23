@@ -7,8 +7,8 @@ Commit outstanding changes with a well-formatted message.
 1. **Check current branch**:
    - If on `main` or `master`:
      - Skip this check for `dotfiles` repo (committing directly to main is fine there)
-     - Otherwise, ask the user if they want to create a new branch first
-     - If yes, create and switch to the new branch before committing
+     - Otherwise, present options via AskUserQuestion: suggest 1-2 branch names inferred from the changes, plus "Stay on main"
+     - If a branch is chosen, create and switch to it before committing
 
 2. **Review uncommitted changes**:
    - Show status: `git status`
@@ -16,7 +16,7 @@ Commit outstanding changes with a well-formatted message.
 
 3. **Stage files**:
    - If all changes belong together: `git add -A`
-   - If mixed changes: ask user which files to include, then `git add <files>`
+   - If mixed changes: group files by logical change and present groups as AskUserQuestion options, then `git add <files>`
 
 4. **Create commit** following [commit-guidelines.md](commit-guidelines.md)
 

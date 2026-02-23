@@ -7,14 +7,16 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
 1. **Locate the rules file(s)**:
    - If the user provides a path, use it directly
    - If the user says "review my CLAUDE.md", check the current project root first, then `~/.claude/CLAUDE.md`
-   - If neither, list CLAUDE.md files found in the project and ask the user to choose
+   - If neither, discover CLAUDE.md files in the project and present them as AskUserQuestion options
    - SHOULD also identify related files: other CLAUDE.md files in parent/child directories, `.claude/rules/` files (including subdirectories), `~/.claude/rules/` user-level rules
 
-2. **Read all related files**:
-   - MUST read the target rules file
-   - MUST read every file referenced via `@filename`
-   - MUST read other CLAUDE.md files in the project hierarchy (parent dirs, subdirs) to check for conflicts or redundancy
-   - MUST read `.claude/rules/` files if they exist (including subdirectories — all `.md` files are discovered recursively)
+2. **Read all related files via subagent**:
+   Spawn a Task subagent (type: Explore, model: haiku) to gather all related files. The subagent MUST:
+   - Read the target rules file
+   - Read every file referenced via `@filename`
+   - Read other CLAUDE.md files in the project hierarchy (parent dirs, subdirs)
+   - Read `.claude/rules/` files if they exist (including subdirectories)
+   - Return a structured summary: for each file, its path, approximate token count (1 token per 4 chars), `@file` references found, and a 1-2 sentence content summary. Flag any conflicts or redundancy between files.
 
 3. **Validate against spec**:
    MUST validate the rules file against every rule in [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md), covering file location, structure, content guidelines, `@file` references, scoped rules frontmatter, and anti-patterns.
@@ -66,5 +68,5 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
 
 8. **Offer to apply fixes**:
    - MUST ask the user about blocking fixes before applying them
-   - SHOULD list improvements and suggestions for the user to choose from
+   - SHOULD present improvements and suggestions as AskUserQuestion options for the user to select
    - MUST apply fixes one at a time, confirming each change

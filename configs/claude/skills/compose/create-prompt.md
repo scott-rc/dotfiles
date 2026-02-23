@@ -15,11 +15,12 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if the answers are ambiguous or incomplete.
 
 2. **Explore codebase context** (conditional):
-   If a codebase is relevant:
-   - MUST explore it for key file paths, directory structure, and architecture
-   - SHOULD identify naming conventions, build/test commands, and relevant CLAUDE.md content
-   - MUST stay focused on what the task actually needs — do not map the entire codebase
-   - SHOULD note specific function names, type signatures, or patterns the prompt should reference
+   If a codebase is relevant, spawn a Task subagent (type: Explore, model: haiku) to gather context. The subagent MUST:
+   - Identify key file paths, directory structure, and architecture
+   - Find naming conventions, build/test commands, and relevant CLAUDE.md content
+   - Stay focused on what the task actually needs -- do not map the entire codebase
+   - Note specific function names, type signatures, or patterns the prompt should reference
+   - Return a concise summary of findings (paths, conventions, commands)
 
    If no codebase applies, MUST skip this step entirely.
 

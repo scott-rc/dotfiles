@@ -40,10 +40,8 @@ Conduct a structured, multi-round interview with the user on any topic, then pro
    If the user corrects anything, update and re-confirm.
 
 5. **Deliver results**:
-   Ask the user what they want to do with the results:
+   Present delivery options via AskUserQuestion: "Copy to clipboard", "Save to file", "Keep in context", "Feed into another task". Then:
    - **Copy to clipboard** -- format as a clean summary document, copy via `pbcopy`, confirm it's copied
    - **Save to file** -- ask for a file path, write the summary
    - **Keep in context** -- do nothing further; the summary is now part of the session for follow-up work
    - **Feed into another task** -- ask what task, then proceed with the gathered context
-
-   If the user doesn't specify, default to printing the summary and asking.
