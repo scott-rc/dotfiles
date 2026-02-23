@@ -193,6 +193,7 @@ ensure_symlink "$CONFIGS/claude/rules" "$HOME/.claude/rules"
 
 # Make Codex use repo-scoped instructions that defer to Claude-owned guidance.
 ensure_symlink "$WORKSPACE_ROOT/AGENTS.md" "$HOME/.codex/AGENTS.md"
+ensure_symlink "$CONFIGS/codex/config.toml" "$HOME/.codex/config.toml"
 
 # Expose Claude rules for Codex references without duplicating rule content.
 ensure_symlink "$CONFIGS/claude/rules" "$HOME/.codex/claude-rules"

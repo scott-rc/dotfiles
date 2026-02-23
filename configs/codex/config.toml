@@ -1,0 +1,40 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = [
+  "/Users/scott/Code/personal/dotfiles/tmp",
+  "/tmp",
+  "/Users/scott/.cargo/bin",
+  "/Users/scott/.cargo/registry",
+  "/Users/scott/.config/atuin",
+  "/Users/scott/.config/bat",
+  "/Users/scott/.config/direnv",
+  "/Users/scott/.config/fish",
+  "/Users/scott/.config/git",
+  "/Users/scott/.config/gitui",
+  "/Users/scott/.config/karabiner",
+  "/Users/scott/.config/nix",
+  "/Users/scott/.config/nvim",
+  "/Users/scott/.config/zed",
+  "/Users/scott/.config/claude",
+  "/Users/scott/.config/zellij",
+  "/Users/scott/.rustup",
+  "/Users/scott/go/pkg/mod",
+]
+
+[tools]
+web_search = true
+
+[projects."/Users/scott/Code/personal/dotfiles"]
+trust_level = "trusted"
+
+[projects."/Users/scott/Code/personal"]
+trust_level = "trusted"
+
+[projects."/Users/scott/Code/gadget"]
+trust_level = "trusted"

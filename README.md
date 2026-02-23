@@ -40,6 +40,7 @@ Configuration directories symlinked to their expected locations:
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
 | `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
+| `codex/` | `~/.codex/config.toml` |
 | `AGENTS.md` | `~/.codex/AGENTS.md` (Codex instructions that defer to Claude sources) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
@@ -224,6 +225,7 @@ Custom CLI tools.
 
 `apply.sh` links Codex and Agents to Claude-authored sources so they stay in sync:
 
+- `~/.codex/config.toml` → `configs/codex/config.toml`
 - `~/.codex/claude-rules` → `configs/claude/rules`
 - `~/.codex/skills/<skill>` → `configs/claude/skills/<skill>`
 - `~/.agents/skills/<skill>` → `configs/claude/skills/<skill>`
