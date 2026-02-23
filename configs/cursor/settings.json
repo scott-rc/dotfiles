@@ -1,0 +1,354 @@
+{
+  "accessibility.signalOptions.volume": 0,
+  "better-comments.multilineComments": true,
+  "better-comments.tags": [
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "fixme",
+      "color": "#C54444",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    }
+  ],
+  "claudeCode.preferredLocation": "sidebar",
+  "claudeCode.selectedModel": "default",
+  "cSpell.maxDuplicateProblems": 1,
+  "cSpell.userWords": [
+    "direnv",
+    "excalidraw",
+    "gofumpt",
+    "golangci",
+    "gopls"
+  ],
+  "cursor.cpp.disabledLanguages": [],
+  "cursor.cpp.enablePartialAccepts": true,
+  "D2.previewSketch": true,
+  "D2.previewLayout": "elk",
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.renderSideBySide": false,
+  "docker.extension.enableComposeLanguageServer": false,
+  "editor.accessibilitySupport": "on",
+  "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+  "editor.cursorBlinking": "solid",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.cursorSurroundingLines": 8,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.foldingImportsByDefault": true,
+  "editor.fontFamily": "MonoLisa, 'MonaspiceAr Nerd Font Mono', 'BlexMono Nerd Font', monospace",
+  "editor.fontLigatures": true,
+  "editor.fontSize": 13,
+  "editor.formatOnSave": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.lineHeight": 3,
+  "editor.linkedEditing": true,
+  "editor.minimap.enabled": false,
+  "editor.mouseWheelScrollSensitivity": 0.2,
+  "editor.renderWhitespace": "none",
+  "editor.rulers": [
+    72,
+    144
+  ],
+  "editor.semanticHighlighting.enabled": true,
+  "editor.smoothScrolling": true,
+  "editor.stickyScroll.defaultModel": "foldingProviderModel",
+  "editor.stickyScroll.enabled": true,
+  "editor.suggest.matchOnWordStartOnly": false,
+  "editor.suggest.showStatusBar": true,
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": [
+          "meta.function-call"
+        ],
+        "settings": {
+          "fontStyle": "underline"
+        }
+      },
+      {
+        "scope": [
+          "comment"
+        ],
+        "settings": {
+          "fontStyle": "italic"
+        }
+      },
+      {
+        "scope": [
+          "variable",
+          "punctuation.accessor"
+        ],
+        "settings": {
+          "fontStyle": ""
+        }
+      }
+    ]
+  },
+  "emmet.showExpandedAbbreviation": "never",
+  "explorer.autoReveal": false,
+  "explorer.compactFolders": false,
+  "extensions.ignoreRecommendations": true,
+  "files.associations": {
+    "*.ejs": "html",
+    "*.eta": "html",
+    "*.vrl": "rust"
+  },
+  "files.insertFinalNewline": true,
+  "files.simpleDialog.enable": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/.hg/store/**": true,
+    "**/.direnv/**": true
+  },
+  "git.blame.editorDecoration.enabled": false,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.openRepositoryInParentFolders": "never",
+  "gitlens.ai.model": "gitkraken",
+  "gitlens.ai.gitkraken.model": "gemini:gemini-2.0-flash",
+  "gitlens.launchpad.indicator.enabled": false,
+  "gitlens.views.commits.avatars": false,
+  "gitlens.views.commits.files.layout": "tree",
+  "gitlens.views.commits.pullRequests.enabled": false,
+  "gitlens.views.commits.pullRequests.showForBranches": false,
+  "gitlens.views.commits.showBranchComparison": false,
+  "gitlens.views.scm.grouped.views": {
+    "commits": false,
+    "branches": true,
+    "remotes": true,
+    "stashes": true,
+    "tags": true,
+    "worktrees": true,
+    "contributors": true,
+    "fileHistory": false,
+    "repositories": false,
+    "searchAndCompare": true,
+    "launchpad": false
+  },
+  "gitlens.views.showRelativeDateMarkers": false,
+  "go.inlayHints.assignVariableTypes": true,
+  "go.lintFlags": [
+    "--fast-only"
+  ],
+  "go.lintTool": "golangci-lint-v2",
+  "go.terminal.activateEnvironment": false,
+  "go.toolsManagement.autoUpdate": true,
+  "go.useLanguageServer": true,
+  "gopls": {
+    "formatting.gofumpt": true
+  },
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.jsxAttributeCompletionStyle": "auto",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "json.schemaDownload.enable": true,
+  "openInGitHub.remote.branch": "main",
+  "openInGitHub.useLocalBranch": false,
+  "redhat.telemetry.enabled": false,
+  "scm.defaultViewMode": "tree",
+  "tailwind-fold.autoFold": false,
+  "terminal.integrated.allowedLinkSchemes": [
+    "file",
+    "http",
+    "https",
+    "mailto",
+    "vscode",
+    "vscode-insiders",
+    "docker-desktop"
+  ],
+  "terminal.integrated.cursorBlinking": false,
+  "terminal.integrated.cursorStyle": "line",
+  "terminal.integrated.defaultProfile.osx": "zellij",
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.macOptionIsMeta": true,
+  "terminal.integrated.persistentSessionScrollback": 100,
+  "terminal.integrated.scrollback": 1000,
+  "terminal.integrated.profiles.osx": {
+    "zellij": {
+      "path": "fish",
+      "args": [
+        "-l",
+        "-i"
+      ],
+      "env": {
+        "ZELLIJ_AUTO_ATTACH": "true",
+        "ZELLIJ_AUTO_EXIT": "true"
+      }
+    }
+  },
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": false,
+  "typescript.inlayHints.parameterNames.enabled": "none",
+  "typescript.inlayHints.parameterTypes.enabled": false,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": false,
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.tsserver.maxTsServerMemory": 12000,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  // "vim.foldfix": true,
+  "vim.highlightedyank.enable": true,
+  "vim.insertModeKeyBindings": [
+    {
+      "before": [
+        "f",
+        "d"
+      ],
+      "after": [
+        "<Esc>"
+      ]
+    }
+  ],
+  "vim.normalModeKeyBindings": [
+    {
+      "before": [
+        "H"
+      ],
+      "after": [
+        "^"
+      ]
+    },
+    {
+      "before": [
+        "L"
+      ],
+      "after": [
+        "$"
+      ]
+    }
+  ],
+  "vim.visualModeKeyBindings": [
+    {
+      "before": [
+        "f",
+        "d"
+      ],
+      "after": [
+        "<Esc>"
+      ]
+    },
+    {
+      "before": [
+        "H"
+      ],
+      "after": [
+        "^"
+      ]
+    },
+    {
+      "before": [
+        "L"
+      ],
+      "after": [
+        "$",
+        "h"
+      ]
+    }
+  ],
+  "projectManager.any.baseFolders": [
+    "~/gadget"
+  ],
+  "projectManager.any.maxDepthRecursion": 1,
+  "projectManager.git.baseFolders": [
+    "~/Code/gadget",
+    "~/Code/personal"
+  ],
+  "projectManager.git.maxDepthRecursion": 1,
+  "vs-kubernetes": {
+    "vs-kubernetes.crd-code-completion": "disabled",
+    "vscode-kubernetes.helm-path-mac": "/Users/scott/.vs-kubernetes/tools/helm/darwin-arm64/helm",
+    "vscode-kubernetes.minikube-path-mac": "/Users/scott/.vs-kubernetes/tools/minikube/darwin-arm64/minikube",
+    "disable-linters": [
+      "resource-limits"
+    ]
+  },
+  "vsicons.dontShowNewVersionMessage": true,
+  "window.autoDetectColorScheme": true,
+  "window.dialogStyle": "custom",
+  "window.newWindowDimensions": "maximized",
+  "workbench.colorTheme": "GitHub Dark",
+  "workbench.commandPalette.preserveInput": true,
+  "workbench.editorAssociations": {
+    "git-rebase-todo": "default"
+  },
+  "workbench.iconTheme": "vscode-icons",
+  "workbench.list.smoothScrolling": true,
+  "workbench.preferredDarkColorTheme": "GitHub Dark Default",
+  "workbench.preferredHighContrastColorTheme": "GitHub Dark High Contrast",
+  "workbench.preferredHighContrastLightColorTheme": "GitHub Dark High Contrast",
+  "workbench.preferredLightColorTheme": "GitHub Dark",
+  "workbench.quickOpen.preserveInput": true,
+  "workbench.settings.editor": "json",
+  "workbench.sideBar.location": "right",
+  "workbench.startupEditor": "none",
+  "workbench.tree.enableStickyScroll": true,
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-containers"
+  },
+  "[dotenv]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[fish]": {
+    "editor.defaultFormatter": "bmalehorn.vscode-fish"
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSaveMode": "file"
+  },
+  "[ignore]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 72,
+    "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+  },
+  "[properties]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[terraform]": {
+    "editor.defaultFormatter": "hashicorp.terraform"
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "remote.SSH.remotePlatform": {
+    "scott-testing.us-central1-a.gadget-core-production": "linux"
+  },
+  "[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua"
+  },
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}
