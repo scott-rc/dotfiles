@@ -1,0 +1,98 @@
+# Broad allowlist for common developer workflows.
+# Keep clearly destructive git operations on prompt.
+
+# Common read/inspect/navigation commands.
+prefix_rule(
+    pattern = [[
+        "pwd", "ls", "la", "ll", "tree", "find", "fd", "rg", "which", "whereis",
+        "file", "stat", "realpath", "readlink", "cat", "head", "tail", "less", "more",
+        "wc", "cut", "sort", "uniq", "tr", "awk", "sed", "jq", "yq", "xargs", "dirname",
+        "basename", "printenv", "env", "date", "uname", "whoami", "id", "ps", "top", "du", "df"
+    ]],
+    decision = "allow",
+    justification = "Allow routine local inspection and analysis commands.",
+)
+
+# Common build/test/toolchain commands.
+prefix_rule(
+    pattern = [[
+        "make", "just", "npm", "npx", "pnpm", "yarn", "bun", "node", "python", "python3", "pip",
+        "pip3", "uv", "pytest", "tox", "nox", "go", "cargo", "rustc", "javac", "java", "mvn",
+        "gradle", "gradlew", "swift", "ruby", "bundle", "rake"
+    ]],
+    decision = "allow",
+    justification = "Allow common local build, dependency, and test workflows.",
+)
+
+# Safe codex CLI commands (introspection, help, policy checking).
+prefix_rule(
+    pattern = ["codex", [
+        "help", "--help", "-h", "--version", "-V", "features", "completion", "debug"
+    ]],
+    decision = "allow",
+    justification = "Allow safe Codex CLI introspection and metadata commands.",
+)
+
+prefix_rule(
+    pattern = ["codex", "execpolicy", ["check", "help"]],
+    decision = "allow",
+    justification = "Allow execpolicy validation commands such as codex execpolicy check.",
+)
+
+# Potentially state-changing codex commands should still require confirmation.
+prefix_rule(
+    pattern = ["codex", ["exec", "review", "apply", "sandbox", "cloud", "app", "app-server", "mcp", "mcp-server", "login", "logout", "resume", "fork"]],
+    decision = "prompt",
+    justification = "These Codex commands may execute code, change files, or alter session/auth state.",
+)
+
+# Safe git workflows (read + normal day-to-day operations).
+prefix_rule(
+    pattern = ["git", [
+        "status", "log", "show", "diff", "grep", "blame", "fetch", "pull", "push",
+        "add", "commit", "switch", "restore", "checkout", "merge", "rebase", "cherry-pick", "revert",
+        "stash", "branch", "tag", "remote", "config", "submodule", "worktree", "clone", "init",
+        "rev-parse", "describe", "ls-files", "ls-tree", "cat-file", "for-each-ref", "merge-base",
+        "reflog", "shortlog", "cherry", "bisect", "annotate", "name-rev", "rev-list", "symbolic-ref",
+        "check-ignore", "check-attr", "archive"
+    ]],
+    decision = "allow",
+    justification = "Allow routine git operations without approval prompts.",
+)
+
+# Clearly destructive git operations still require confirmation.
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "git clean can irreversibly remove untracked files.",
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "prompt",
+    justification = "git reset --hard discards working tree and index changes.",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "prompt",
+    justification = "Force-push can rewrite remote history.",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "-f"],
+    decision = "prompt",
+    justification = "Force-push can rewrite remote history.",
+)
+
+prefix_rule(
+    pattern = ["git", "gc"],
+    decision = "prompt",
+    justification = "git gc can permanently prune unreachable objects.",
+)
+
+prefix_rule(
+    pattern = ["git", "prune"],
+    decision = "prompt",
+    justification = "git prune can permanently remove unreachable objects.",
+)
