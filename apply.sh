@@ -215,13 +215,6 @@ ensure_symlink "$CONFIGS/cursor/settings.json" "$HOME/Library/Application Suppor
 ensure_symlink "$CONFIGS/cursor/keybindings.json" "$HOME/Library/Application Support/Cursor/User/keybindings.json"
 ensure_symlink "$CONFIGS/cursor/mcp.json" "$HOME/.cursor/mcp.json"
 
-if command -v cursor &>/dev/null; then
-	log_info "Installing Cursor extensions"
-	while IFS= read -r ext; do
-		cursor --install-extension "$ext" --force 2>&1 | grep -v "already installed" || true
-	done < "$CONFIGS/cursor/extensions.txt"
-fi
-
 # --- direnv ---
 
 ensure_symlink "$CONFIGS/direnv/direnv.toml" "$HOME/.config/direnv/direnv.toml"
