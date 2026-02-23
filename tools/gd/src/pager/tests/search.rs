@@ -211,3 +211,62 @@ fn test_scroll_to_match_out_of_bounds_no_op() {
     scroll_to_match(&mut state, 24);
     assert_eq!(state.cursor_line, 3);
 }
+
+#[test]
+fn test_search_char_inserts_at_cursor() {
+    let mut state = make_search_state("ab", 1);
+    handle_search_key(&mut state, Key::Char('x'));
+    assert_eq!(state.search_input, "axb");
+    assert_eq!(state.search_cursor, 2);
+}
+
+#[test]
+fn test_search_char_multibyte() {
+    let mut state = make_search_state("a", 1);
+    handle_search_key(&mut state, Key::Char('\u{1f50d}'));
+    assert!(
+        state.search_input.contains('\u{1f50d}'),
+        "expected emoji in input, got {:?}",
+        state.search_input
+    );
+    assert_eq!(state.search_cursor, 1 + '\u{1f50d}'.len_utf8());
+}
+
+#[test]
+fn test_search_backspace_when_one_char_exits_to_normal() {
+    let mut state = make_search_state("a", 1);
+    handle_search_key(&mut state, Key::Backspace);
+    assert!(state.search_input.is_empty());
+    assert_eq!(state.search_cursor, 0);
+    assert_eq!(state.mode, super::super::types::Mode::Normal);
+}
+
+#[test]
+fn test_search_alt_backspace_ascii() {
+    let mut state = make_search_state("foo bar", 7);
+    handle_search_key(&mut state, Key::AltBackspace);
+    assert_eq!(state.search_input, "foo ");
+    assert_eq!(state.search_cursor, 4);
+}
+
+#[test]
+fn test_search_ctrl_u_deletes_to_start() {
+    let mut state = make_search_state("hello", 2);
+    handle_search_key(&mut state, Key::CtrlU);
+    assert_eq!(state.search_input, "llo");
+    assert_eq!(state.search_cursor, 0);
+}
+
+#[test]
+fn test_search_alt_left_word_boundary() {
+    let mut state = make_search_state("foo bar", 7);
+    handle_search_key(&mut state, Key::AltLeft);
+    assert_eq!(state.search_cursor, 4);
+}
+
+#[test]
+fn test_search_alt_right_word_boundary() {
+    let mut state = make_search_state("foo bar", 0);
+    handle_search_key(&mut state, Key::AltRight);
+    assert_eq!(state.search_cursor, 4);
+}

@@ -1191,3 +1191,53 @@ fn reducer_overlay_focus_transitions_produce_valid_state() {
     assert!(!state.tree_visible);
     assert_state_invariants(&state);
 }
+
+#[test]
+fn test_reduce_help_any_key_exits() {
+    let mut state = make_keybinding_state();
+    state.mode = Mode::Help;
+    handle_key(&mut state, Key::Char('x'), 40, 40, &[]);
+    assert_eq!(state.mode, Mode::Normal);
+}
+
+#[test]
+fn test_key_n_single_file_moves_to_next_match() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    state.search_matches = vec![5, 15];
+    state.current_match = 0;
+    handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
+    assert_eq!(state.current_match, 1);
+    assert_eq!(state.cursor_line, 15);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn test_key_N_single_file_moves_to_prev_match() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    state.search_matches = vec![5, 15];
+    state.current_match = 1;
+    handle_key(&mut state, Key::Char('N'), 40, 40, &[]);
+    assert_eq!(state.current_match, 0);
+    assert_eq!(state.cursor_line, 5);
+}
+
+#[test]
+fn test_key_n_empty_matches_noop() {
+    let mut state = make_keybinding_state();
+    state.search_matches = vec![];
+    state.current_match = -1;
+    handle_key(&mut state, Key::Char('n'), 40, 40, &[]);
+    assert_eq!(state.current_match, -1);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn test_key_N_empty_matches_noop() {
+    let mut state = make_keybinding_state();
+    state.search_matches = vec![];
+    state.current_match = -1;
+    handle_key(&mut state, Key::Char('N'), 40, 40, &[]);
+    assert_eq!(state.current_match, -1);
+}

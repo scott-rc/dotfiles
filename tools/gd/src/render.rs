@@ -126,12 +126,12 @@ pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool)
 }
 
 /// Group consecutive added/deleted lines into change blocks for word-level diffing.
-struct ChangeBlock {
-    deleted: Vec<usize>,
-    added: Vec<usize>,
+pub(crate) struct ChangeBlock {
+    pub(crate) deleted: Vec<usize>,
+    pub(crate) added: Vec<usize>,
 }
 
-fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
+pub(crate) fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
     let mut blocks = Vec::new();
     let mut i = 0;
     let hunk_lines = &hunk.lines;
@@ -292,7 +292,7 @@ fn word_highlights(
 }
 
 /// Merge contiguous or overlapping highlight ranges in-place.
-fn merge_ranges(ranges: &mut Vec<(usize, usize)>) {
+pub(crate) fn merge_ranges(ranges: &mut Vec<(usize, usize)>) {
     if ranges.len() <= 1 {
         return;
     }
@@ -483,7 +483,7 @@ fn render_hunk_lines(
 
 /// Apply diff background colors and word-level highlights to syntax-colored text.
 /// The `raw` parameter is the original uncolored content used for word range mapping.
-fn apply_diff_colors(
+pub(crate) fn apply_diff_colors(
     syntax_colored: &str,
     raw: &str,
     line_bg: &str,
@@ -552,6 +552,7 @@ fn apply_diff_colors(
 mod tests {
     use super::*;
     use crate::git::diff;
+    use crate::git::diff::DiffLine;
     use insta::assert_debug_snapshot;
     use insta::assert_snapshot;
 
@@ -1215,6 +1216,139 @@ diff --git a/foo.rs b/foo.rs
                 output.line_map[hs].line_kind
             );
         }
+    }
+
+    #[test]
+    fn apply_diff_colors_is_changed_false() {
+        let result = apply_diff_colors("foo", "foo", "", "", &[(0, 3)], false);
+        assert_eq!(result, "foo");
+    }
+
+    #[test]
+    fn apply_diff_colors_empty_word_ranges() {
+        let result = apply_diff_colors("foo", "foo", "", "", &[], true);
+        assert_eq!(result, "foo");
+    }
+
+    #[test]
+    fn apply_diff_colors_simple_ascii_one_range() {
+        let result = apply_diff_colors(
+            "hello",
+            "hello",
+            style::BG_ADDED,
+            style::BG_ADDED_WORD,
+            &[(0, 5)],
+            true,
+        );
+        assert!(
+            result.contains(style::BG_ADDED_WORD),
+            "expected word highlight in result: {result:?}"
+        );
+        assert!(
+            crate::ansi::strip_ansi(&result).contains("hello"),
+            "content should be preserved"
+        );
+    }
+
+    #[test]
+    fn apply_diff_colors_multi_byte_unicode() {
+        let raw = "a\u{1F600}b";
+        let result = apply_diff_colors(
+            raw,
+            raw,
+            style::BG_ADDED,
+            style::BG_ADDED_WORD,
+            &[(0, raw.len())],
+            true,
+        );
+        assert!(
+            crate::ansi::strip_ansi(&result).contains("a\u{1F600}b"),
+            "multi-byte content preserved: {result:?}"
+        );
+    }
+
+    #[test]
+    fn apply_diff_colors_two_adjacent_ranges() {
+        let result = apply_diff_colors(
+            "abcd",
+            "abcd",
+            style::BG_DELETED,
+            style::BG_DELETED_WORD,
+            &[(0, 2), (2, 4)],
+            true,
+        );
+        let word_count = result.matches(style::BG_DELETED_WORD).count();
+        assert!(
+            word_count >= 2,
+            "expected at least 2 word highlight insertions, got {word_count}: {result:?}"
+        );
+    }
+
+    #[test]
+    fn merge_ranges_overlapping() {
+        let mut ranges = vec![(0, 5), (3, 8), (10, 12)];
+        merge_ranges(&mut ranges);
+        assert_eq!(ranges, vec![(0, 8), (10, 12)]);
+    }
+
+    #[test]
+    fn merge_ranges_single_or_empty() {
+        let mut single = vec![(1, 3)];
+        merge_ranges(&mut single);
+        assert_eq!(single, vec![(1, 3)]);
+
+        let mut empty: Vec<(usize, usize)> = vec![];
+        merge_ranges(&mut empty);
+        assert!(empty.is_empty());
+    }
+
+    fn make_line(kind: LineKind) -> DiffLine {
+        DiffLine {
+            kind,
+            content: String::new(),
+            old_lineno: None,
+            new_lineno: None,
+        }
+    }
+
+    #[test]
+    fn find_change_blocks_added_only() {
+        let hunk = DiffHunk {
+            old_start: 1,
+            new_start: 1,
+            lines: vec![
+                make_line(LineKind::Context),
+                make_line(LineKind::Added),
+                make_line(LineKind::Added),
+                make_line(LineKind::Context),
+            ],
+        };
+        let blocks = find_change_blocks(&hunk);
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].deleted.is_empty());
+        assert_eq!(blocks[0].added, vec![1, 2]);
+    }
+
+    #[test]
+    fn find_change_blocks_mixed() {
+        let hunk = DiffHunk {
+            old_start: 1,
+            new_start: 1,
+            lines: vec![
+                make_line(LineKind::Deleted),
+                make_line(LineKind::Deleted),
+                make_line(LineKind::Added),
+                make_line(LineKind::Added),
+                make_line(LineKind::Context),
+                make_line(LineKind::Added),
+            ],
+        };
+        let blocks = find_change_blocks(&hunk);
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(blocks[0].deleted, vec![0, 1]);
+        assert_eq!(blocks[0].added, vec![2, 3]);
+        assert!(blocks[1].deleted.is_empty());
+        assert_eq!(blocks[1].added, vec![5]);
     }
 
     #[test]

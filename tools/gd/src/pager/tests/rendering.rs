@@ -1,7 +1,11 @@
 //! Characterization tests for `pager::rendering` helper functions.
 
-use super::common::{make_keybinding_state, make_line_map, make_pager_state_for_range, strip};
+use super::common::{
+    make_keybinding_state, make_line_map, make_pager_state_from_files, make_pager_state_for_range,
+    make_two_file_diff, strip,
+};
 use super::super::rendering::*;
+use super::super::types::Mode;
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
 use crate::style;
@@ -290,4 +294,176 @@ fn format_status_bar_status_message() {
         "should contain status message: {visible:?}"
     );
     assert_eq!(visible.len(), 80, "should be padded to cols");
+}
+
+// -- format_help_lines --
+
+#[test]
+fn format_help_lines_normal() {
+    let lines = format_help_lines(80, 24);
+    assert_eq!(lines.len(), 24, "should produce exactly content_height lines");
+    let joined = lines.join("\n");
+    assert!(
+        joined.contains("Navigation"),
+        "should contain centered help group header: {joined:?}"
+    );
+}
+
+#[test]
+fn format_help_lines_narrow_terminal() {
+    let lines = format_help_lines(30, 24);
+    for (i, line) in lines.iter().enumerate() {
+        assert!(
+            line.chars().count() <= 30,
+            "line {i} exceeds 30 chars: len={}, content={line:?}",
+            line.chars().count()
+        );
+    }
+}
+
+#[test]
+fn format_help_lines_small_content_height() {
+    let lines = format_help_lines(80, 5);
+    assert_eq!(lines.len(), 5, "should produce exactly content_height lines");
+}
+
+// -- highlight_visual_line --
+
+#[test]
+fn highlight_visual_line_normal() {
+    let out = highlight_visual_line("foo", 20);
+    assert!(
+        out.contains(style::BG_VISUAL),
+        "should contain visual bg: {out:?}"
+    );
+    let stripped = strip(&out);
+    assert!(stripped.contains("foo"), "should contain the line text");
+}
+
+#[test]
+fn highlight_visual_line_wider_than_width() {
+    let long_line = "x".repeat(50);
+    let out = highlight_visual_line(&long_line, 20);
+    assert!(
+        out.contains(style::BG_VISUAL),
+        "should still apply visual highlight: {out:?}"
+    );
+    assert!(
+        out.contains(&long_line),
+        "should contain the full line text"
+    );
+}
+
+#[test]
+fn highlight_visual_line_empty() {
+    let out = highlight_visual_line("", 20);
+    assert!(
+        out.contains(style::BG_VISUAL),
+        "should contain visual bg for empty line: {out:?}"
+    );
+    let stripped = strip(&out);
+    assert!(
+        stripped.trim().is_empty(),
+        "stripped output should be whitespace: {stripped:?}"
+    );
+}
+
+// -- render_content_area --
+
+#[test]
+fn render_content_area_basic() {
+    let files = make_two_file_diff();
+    let state = make_pager_state_from_files(&files, false);
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 24);
+    assert!(!buf.is_empty(), "should produce output");
+    let output = String::from_utf8_lossy(&buf);
+    assert!(
+        output.contains("\x1b["),
+        "should contain ANSI escape sequences: {output:?}"
+    );
+}
+
+#[test]
+fn render_content_area_help_mode() {
+    let files = make_two_file_diff();
+    let mut state = make_pager_state_from_files(&files, false);
+    state.mode = Mode::Help;
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 24);
+    let output = String::from_utf8_lossy(&buf);
+    let visible = strip(&output);
+    assert!(
+        visible.contains("Navigation"),
+        "help mode should render help text: {visible:?}"
+    );
+}
+
+#[test]
+fn render_content_area_search_highlight() {
+    let files = make_two_file_diff();
+    let mut state = make_pager_state_from_files(&files, false);
+    state.search_query = "first".into();
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 24);
+    let output = String::from_utf8_lossy(&buf);
+    assert!(
+        output.contains("\x1b["),
+        "search should produce ANSI highlighting: {output:?}"
+    );
+}
+
+#[test]
+fn render_content_area_visual_mode() {
+    let files = make_two_file_diff();
+    let mut state = make_pager_state_from_files(&files, false);
+    state.mode = Mode::Visual;
+    state.visual_anchor = 0;
+    state.cursor_line = 2;
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 24);
+    let output = String::from_utf8_lossy(&buf);
+    assert!(
+        output.contains(style::BG_VISUAL),
+        "visual mode should render visual highlight: {output:?}"
+    );
+}
+
+// -- render_screen --
+
+#[test]
+fn render_screen_with_status_bar() {
+    let mut state = make_keybinding_state();
+    state.mode = Mode::Help;
+    let mut buf = Vec::new();
+    render_screen(&mut buf, &state, 80, 24);
+    let output = String::from_utf8_lossy(&buf);
+    let visible = strip(&output);
+    assert!(
+        visible.contains("? to close"),
+        "help mode render_screen should include status bar text: {visible:?}"
+    );
+}
+
+#[test]
+fn render_screen_no_status_bar() {
+    let state = make_keybinding_state();
+    let mut buf = Vec::new();
+    render_screen(&mut buf, &state, 80, 24);
+    assert!(!buf.is_empty(), "render_screen in Normal mode should produce output");
+}
+
+// -- format_status_bar help narrow --
+
+#[test]
+fn format_status_bar_help_narrow() {
+    let mut state = make_keybinding_state();
+    state.mode = Mode::Help;
+    let bar = format_status_bar(&state, 10, 15);
+    let visible = strip(&bar);
+    assert_eq!(
+        visible.len(),
+        15,
+        "narrow help bar should fit cols=15: {visible:?}"
+    );
 }

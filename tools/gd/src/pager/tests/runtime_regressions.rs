@@ -1,12 +1,14 @@
 //! Runtime regression tests: resolve_path, re_render, document swap, resize.
 
+use crate::git::diff::LineKind;
 use crate::render;
+use crate::render::LineInfo;
 
 use super::super::runtime::{re_render, resolve_path_for_editor};
 use super::super::state::{capture_view_anchor, remap_after_document_swap, visible_range, Document};
 use super::common::{
-    assert_state_invariants, make_pager_state_from_files, make_two_file_diff,
-    with_gd_debug_env, StateSnapshot,
+    assert_state_invariants, make_keybinding_state, make_pager_state_for_range,
+    make_pager_state_from_files, make_two_file_diff, with_gd_debug_env, StateSnapshot,
 };
 use super::super::tree::build_tree_lines;
 
@@ -199,4 +201,111 @@ fn resize_with_tree_visible_keeps_valid_selection_and_cursor() {
     state.tree_visible_to_entry = tv;
     re_render(&mut state, &files, false, 40);
     assert_state_invariants(&state);
+}
+
+#[test]
+fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = false;
+    state.top_line = 65;
+    state.cursor_line = 65;
+
+    let anchor = capture_view_anchor(&state);
+    assert!(anchor.is_some());
+    assert_eq!(
+        anchor.as_ref().unwrap().file_idx,
+        2,
+        "anchor should reference file 2"
+    );
+
+    let line_map: Vec<LineInfo> = (0..20)
+        .map(|i| LineInfo {
+            file_idx: 0,
+            path: "x.txt".into(),
+            new_lineno: if i == 0 { None } else { Some(i as u32) },
+            old_lineno: None,
+            line_kind: if i == 0 { None } else { Some(LineKind::Context) },
+        })
+        .collect();
+    let new_doc = Document {
+        lines: vec![String::new(); 20],
+        line_map,
+        file_starts: vec![0],
+        hunk_starts: vec![],
+    };
+
+    remap_after_document_swap(&mut state, anchor, new_doc, &[]);
+
+    assert!(
+        state.cursor_line > 0,
+        "should skip header and land on content"
+    );
+    assert!(state.cursor_line < 20);
+}
+
+#[test]
+fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
+    let mut state = make_pager_state_for_range(vec![0, 10, 20], 30, None);
+    state.top_line = 5;
+    state.cursor_line = 5;
+
+    let anchor = capture_view_anchor(&state);
+    assert!(anchor.is_some());
+    let a = anchor.as_ref().unwrap();
+    assert_eq!(a.new_lineno, None, "header line should have no lineno");
+    assert_eq!(a.offset_in_file, 5);
+
+    let new_doc = Document {
+        lines: vec![String::new(); 30],
+        line_map: vec![
+            LineInfo {
+                file_idx: 0,
+                path: String::new(),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            };
+            30
+        ],
+        file_starts: vec![0, 10, 20],
+        hunk_starts: vec![],
+    };
+
+    remap_after_document_swap(&mut state, anchor, new_doc, &[]);
+
+    assert_eq!(
+        state.cursor_line, 5,
+        "offset_in_file fallback should preserve position"
+    );
+    assert_eq!(state.top_line, 5);
+}
+
+#[test]
+fn test_remap_anchor_none_resets_cursor_and_top() {
+    let mut state = make_pager_state_for_range(vec![0, 10], 20, None);
+    state.cursor_line = 10;
+    state.top_line = 5;
+    state.visual_anchor = 10;
+
+    let new_doc = Document {
+        lines: vec![String::new(); 20],
+        line_map: vec![
+            LineInfo {
+                file_idx: 0,
+                path: String::new(),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            };
+            20
+        ],
+        file_starts: vec![0, 10],
+        hunk_starts: vec![],
+    };
+
+    remap_after_document_swap(&mut state, None, new_doc, &[]);
+
+    assert_eq!(state.cursor_line, 0);
+    assert_eq!(state.top_line, 0);
+    assert_eq!(state.visual_anchor, 0);
 }

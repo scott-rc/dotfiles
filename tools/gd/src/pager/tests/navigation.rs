@@ -4,7 +4,8 @@ use crate::render::LineInfo;
 
 use super::super::content::{is_content_line, next_content_line, prev_content_line};
 use super::super::navigation::{
-    change_group_starts, jump_next, jump_prev, nav_status_message, viewport_bounds,
+    change_group_starts, jump_next, jump_prev, nav_status_message, sync_tree_cursor_force,
+    viewport_bounds,
 };
 use super::super::state::{capture_view_anchor, remap_after_document_swap, visible_range, Document, PagerState};
 use super::super::types::{FileIx, LineIx, TreeEntryIx};
@@ -12,7 +13,8 @@ use super::common::{
     make_keybinding_state, make_line_map, make_line_map_with_headers,
     make_pager_state_for_range, scrollbar_thumb_range,
 };
-use crate::git::diff::LineKind;
+use super::super::tree::TreeEntry;
+use crate::git::diff::{FileStatus, LineKind};
 
 #[test]
 fn test_change_group_starts_empty_line_map() {
@@ -389,4 +391,104 @@ fn test_scrollbar_no_crash_on_empty_line_map() {
             || cell.contains(crate::style::BG_SCROLLBAR_THUMB),
         "empty line_map should return a valid scrollbar cell without panicking"
     );
+}
+
+#[test]
+fn test_sync_tree_cursor_force_collapsed_parent_lands_on_directory() {
+    let tree_entries = vec![
+        TreeEntry {
+            label: "src".into(),
+            depth: 0,
+            file_idx: None,
+            status: None,
+            collapsed: true,
+        },
+        TreeEntry {
+            label: "a.rs".into(),
+            depth: 1,
+            file_idx: Some(0),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "b.rs".into(),
+            depth: 1,
+            file_idx: Some(1),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+    ];
+
+    let line_map: Vec<LineInfo> = (0..10)
+        .map(|i| LineInfo {
+            file_idx: if i < 5 { 0 } else { 1 },
+            path: if i < 5 { "src/a.rs" } else { "src/b.rs" }.into(),
+            new_lineno: Some(i as u32 + 1),
+            old_lineno: None,
+            line_kind: Some(LineKind::Context),
+        })
+        .collect();
+
+    let mut state = PagerState::new(
+        vec!["line".into(); 10],
+        line_map,
+        vec![0, 5],
+        vec![],
+        tree_entries,
+    );
+
+    assert_eq!(
+        state.tree_visible_to_entry,
+        vec![0],
+        "only collapsed dir should be visible"
+    );
+
+    state.set_tree_focused(false);
+    state.cursor_line = 2;
+
+    sync_tree_cursor_force(&mut state, 20);
+
+    assert_eq!(
+        state.tree_cursor(),
+        0,
+        "should land on parent directory entry when child is collapsed"
+    );
+}
+
+#[test]
+fn test_sync_tree_cursor_force_all_visible_normal_sync() {
+    let mut state = make_keybinding_state();
+    state.set_tree_focused(false);
+    state.cursor_line = 31;
+
+    sync_tree_cursor_force(&mut state, 20);
+
+    assert_eq!(
+        state.tree_cursor(),
+        1,
+        "should sync to entry 1 (b.rs) when cursor is in file 1"
+    );
+}
+
+#[test]
+fn test_sync_tree_cursor_force_empty_tree_no_panic() {
+    let mut state = PagerState::new(
+        vec!["line".into(); 5],
+        vec![
+            LineInfo {
+                file_idx: 0,
+                path: "a".into(),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            };
+            5
+        ],
+        vec![0],
+        vec![],
+        vec![],
+    );
+    state.tree_visible = true;
+
+    sync_tree_cursor_force(&mut state, 20);
 }

@@ -111,7 +111,7 @@ pub(crate) fn content_height(rows: u16, state: &PagerState) -> usize {
     }
 }
 
-fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
+pub(crate) fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
     let help = keymap_help_lines();
 
     let mut lines = Vec::with_capacity(content_height);
@@ -221,7 +221,7 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
     " ".repeat(cols)
 }
 
-fn highlight_visual_line(line: &str, width: usize) -> String {
+pub(crate) fn highlight_visual_line(line: &str, width: usize) -> String {
     let vis_w = crate::ansi::visible_width(line);
     let target = width.saturating_sub(1);
     let pad = target.saturating_sub(vis_w);
