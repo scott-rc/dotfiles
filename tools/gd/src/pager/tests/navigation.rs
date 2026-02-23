@@ -7,13 +7,15 @@ use super::super::navigation::{
     change_group_starts, jump_next, jump_prev, nav_status_message, sync_tree_cursor,
     viewport_bounds,
 };
-use super::super::state::{capture_view_anchor, remap_after_document_swap, visible_range, Document, PagerState};
-use super::super::types::{FileIx, LineIx, TreeEntryIx};
-use super::common::{
-    make_keybinding_state, make_line_map, make_line_map_with_headers,
-    make_pager_state_for_range, scrollbar_thumb_range,
+use super::super::state::{
+    Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
 };
 use super::super::tree::TreeEntry;
+use super::super::types::{FileIx, LineIx, TreeEntryIx};
+use super::common::{
+    make_keybinding_state, make_line_map, make_line_map_with_headers, make_pager_state_for_range,
+    scrollbar_thumb_range,
+};
 use crate::git::diff::{FileStatus, LineKind};
 
 #[test]
@@ -31,7 +33,10 @@ fn test_change_group_starts_no_changes() {
         None,
         Some(LineKind::Context),
     ]);
-    assert_eq!(change_group_starts(&line_map, 0, line_map.len()), Vec::<usize>::new());
+    assert_eq!(
+        change_group_starts(&line_map, 0, line_map.len()),
+        Vec::<usize>::new()
+    );
 }
 
 #[test]
@@ -60,18 +65,18 @@ fn test_change_group_starts_adjacent_added_deleted_one_group() {
 #[test]
 fn test_change_group_starts_range_boundaries() {
     let line_map = make_line_map(&[
-        Some(LineKind::Added),    // 0: change group at 0
-        Some(LineKind::Context),  // 1
-        Some(LineKind::Context),  // 2
-        Some(LineKind::Context),  // 3
-        Some(LineKind::Context),  // 4
-        Some(LineKind::Deleted),  // 5: change group at 5
-        Some(LineKind::Context),  // 6
-        Some(LineKind::Context),  // 7
-        Some(LineKind::Context),  // 8
-        Some(LineKind::Context),  // 9
-        Some(LineKind::Added),    // 10: change group at 10
-        Some(LineKind::Context),  // 11
+        Some(LineKind::Added),   // 0: change group at 0
+        Some(LineKind::Context), // 1
+        Some(LineKind::Context), // 2
+        Some(LineKind::Context), // 3
+        Some(LineKind::Context), // 4
+        Some(LineKind::Deleted), // 5: change group at 5
+        Some(LineKind::Context), // 6
+        Some(LineKind::Context), // 7
+        Some(LineKind::Context), // 8
+        Some(LineKind::Context), // 9
+        Some(LineKind::Added),   // 10: change group at 10
+        Some(LineKind::Context), // 11
     ]);
     assert_eq!(change_group_starts(&line_map, 2, 8), vec![5]);
     assert_eq!(change_group_starts(&line_map, 6, 12), vec![10]);
@@ -81,11 +86,11 @@ fn test_change_group_starts_range_boundaries() {
 #[test]
 fn test_change_group_starts_range_end_beyond_len() {
     let line_map = make_line_map(&[
-        Some(LineKind::Context),  // 0
-        Some(LineKind::Context),  // 1
-        Some(LineKind::Added),    // 2
-        Some(LineKind::Context),  // 3
-        Some(LineKind::Deleted),  // 4
+        Some(LineKind::Context), // 0
+        Some(LineKind::Context), // 1
+        Some(LineKind::Added),   // 2
+        Some(LineKind::Context), // 3
+        Some(LineKind::Deleted), // 4
     ]);
     assert_eq!(change_group_starts(&line_map, 0, 100), vec![2, 4]);
 }
@@ -320,7 +325,10 @@ fn test_scrollbar_thumb_fills_screen_when_content_equals_viewport() {
 fn test_scrollbar_thumb_half_height_when_content_double_viewport() {
     let (thumb_start, thumb_end) = scrollbar_thumb_range(20, 40, 0, 0);
     let height = thumb_end - thumb_start + 1;
-    assert!((9..=11).contains(&height), "thumb height should be ~10, got {height}");
+    assert!(
+        (9..=11).contains(&height),
+        "thumb height should be ~10, got {height}"
+    );
 }
 
 #[test]
@@ -433,6 +441,8 @@ fn test_sync_tree_cursor_collapsed_parent_lands_on_directory() {
 #[test]
 fn test_sync_tree_cursor_all_visible_normal_sync() {
     let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.rebuild_tree_lines();
     state.cursor_line = 31;
 
     sync_tree_cursor(&mut state, 20);

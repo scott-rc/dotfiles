@@ -4,16 +4,16 @@ use std::time::Duration;
 use crossterm::event::{self, Event, KeyEventKind};
 
 use tui::pager::{
-    crossterm_to_key, get_term_size, ALT_SCREEN_OFF, ALT_SCREEN_ON, CURSOR_HIDE, CURSOR_SHOW,
+    ALT_SCREEN_OFF, ALT_SCREEN_ON, CURSOR_HIDE, CURSOR_SHOW, crossterm_to_key, get_term_size,
 };
 
 use crate::git::diff::DiffFile;
-use crate::render::{RenderOutput};
+use crate::render::RenderOutput;
 
-use super::rendering::{content_height, render_screen};
-use super::state::{capture_view_anchor, remap_after_document_swap, DiffContext};
-use super::state::{Document, PagerState};
 use super::reducer::handle_key;
+use super::rendering::{content_height, render_screen};
+use super::state::{DiffContext, capture_view_anchor, remap_after_document_swap};
+use super::state::{Document, PagerState};
 use super::tree::build_tree_entries;
 use super::types::KeyResult;
 
@@ -59,7 +59,9 @@ fn format_debug_state(state: &PagerState) -> String {
     format!(
         "{{\"treeVisible\":{},\"activeFile\":{},\"activeFileValid\":{},\"fullContext\":{},\"cursorLine\":{},\"topLine\":{},\"rangeStart\":{},\"rangeEnd\":{},\"lineMapLen\":{},\"fileStartsLen\":{},\"treeCursor\":{},\"treeCursorFileIdx\":{}}}",
         state.tree_visible,
-        state.active_file().map_or(String::from("null"), |v| v.to_string()),
+        state
+            .active_file()
+            .map_or(String::from("null"), |v| v.to_string()),
         active_file_valid,
         state.full_context,
         state.cursor_line,
@@ -86,12 +88,7 @@ pub(crate) fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std
     }
 }
 
-pub(crate) fn re_render(
-    state: &mut PagerState,
-    files: &[DiffFile],
-    color: bool,
-    cols: u16,
-) {
+pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
     let anchor = capture_view_anchor(state);
     let width = super::rendering::diff_area_width(
         cols,
@@ -99,11 +96,15 @@ pub(crate) fn re_render(
         state.tree_visible,
         state.full_context,
     );
-    let output = crate::render::render(files, width, color, state.tree_visible);
+    let output = crate::render::render(files, width, color);
     let new_doc = Document::from_render_output(output);
     remap_after_document_swap(state, anchor, new_doc, files);
 
-    debug_trace("runtime:re_render", "post rerender state", &format_debug_state(state));
+    debug_trace(
+        "runtime:re_render",
+        "post rerender state",
+        &format_debug_state(state),
+    );
 }
 
 fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
@@ -122,16 +123,12 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
         diff_ctx.no_untracked,
         &mut files,
     );
+    crate::git::sort_files_for_display(&mut files);
 
     files
 }
 
-pub fn run_pager(
-    output: RenderOutput,
-    files: Vec<DiffFile>,
-    color: bool,
-    diff_ctx: &DiffContext,
-) {
+pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
     let mut files = files;
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -195,7 +192,11 @@ pub fn run_pager(
                 debug_trace(
                     "runtime:run_pager:regenerate:before",
                     "regenerate start",
-                    &format!("{},\"filesLen\":{}}}", base.trim_end_matches('}'), files.len()),
+                    &format!(
+                        "{},\"filesLen\":{}}}",
+                        base.trim_end_matches('}'),
+                        files.len()
+                    ),
                 );
                 files = regenerate_files(diff_ctx, state.full_context);
                 if files.is_empty() {
@@ -206,7 +207,11 @@ pub fn run_pager(
                 debug_trace(
                     "runtime:run_pager:regenerate:after",
                     "regenerate complete",
-                    &format!("{},\"filesLen\":{}}}", base.trim_end_matches('}'), files.len()),
+                    &format!(
+                        "{},\"filesLen\":{}}}",
+                        base.trim_end_matches('}'),
+                        files.len()
+                    ),
                 );
             }
             KeyResult::OpenEditor { path, lineno } => {

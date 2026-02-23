@@ -6,14 +6,14 @@ use tui::pager::Key;
 use tui::search::{find_matches, find_nearest_match};
 
 use super::super::content::is_content_line;
-use super::super::state::visible_range;
 use super::super::reducer::handle_key;
 use super::super::runtime::re_render;
+use super::super::state::visible_range;
 use super::super::types::{KeyResult, Mode};
 use super::common::{
-    add_leading_context_before_hunk_changes, assert_state_invariants,
-    make_diff_file, make_keybinding_state, make_mixed_content_state,
-    make_pager_state_from_files, make_two_file_diff, StateSnapshot,
+    StateSnapshot, add_leading_context_before_hunk_changes, assert_state_invariants,
+    make_diff_file, make_keybinding_state, make_mixed_content_state, make_pager_state_from_files,
+    make_two_file_diff,
 };
 
 // ---- Navigation: j/k scroll ----
@@ -232,7 +232,11 @@ fn key_brace_next_file_single_file_switches() {
     state.set_active_file(Some(0));
     state.cursor_line = 1;
     handle_key(&mut state, Key::Char('}'), 40, 40, &[]);
-    assert_eq!(state.active_file(), Some(1), "}} in single-file mode should switch to next file");
+    assert_eq!(
+        state.active_file(),
+        Some(1),
+        "}} in single-file mode should switch to next file"
+    );
     assert!(state.cursor_line >= 30 && state.cursor_line < 60);
 }
 
@@ -242,7 +246,11 @@ fn key_brace_prev_file_single_file_switches() {
     state.set_active_file(Some(1));
     state.cursor_line = 31;
     handle_key(&mut state, Key::Char('{'), 40, 40, &[]);
-    assert_eq!(state.active_file(), Some(0), "{{ in single-file mode should switch to prev file");
+    assert_eq!(
+        state.active_file(),
+        Some(0),
+        "{{ in single-file mode should switch to prev file"
+    );
     assert!(state.cursor_line < 30);
 }
 
@@ -395,8 +403,14 @@ fn key_bracket_then_prev_round_trip_full_context_single_file() {
     let after_next = state.cursor_line;
     handle_key(&mut state, Key::Char('['), 40, 40, &[]);
     let after_prev = state.cursor_line;
-    assert!(after_next > 6, "] should move forward from 6, got {after_next}");
-    assert!(after_prev <= 8, "[ should return near first change group, got {after_prev}");
+    assert!(
+        after_next > 6,
+        "] should move forward from 6, got {after_next}"
+    );
+    assert!(
+        after_prev <= 8,
+        "[ should return near first change group, got {after_prev}"
+    );
     assert_eq!(after_prev, 6);
 }
 
@@ -583,7 +597,11 @@ fn test_key_N_empty_matches_noop() {
 fn key_l_toggles_tree_on() {
     let mut state = make_keybinding_state();
     state.tree_visible = false;
-    let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
     handle_key(&mut state, Key::Char('l'), 40, 40, &files);
     assert!(state.tree_visible, "l should show tree");
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -592,7 +610,8 @@ fn key_l_toggles_tree_on() {
 #[test]
 fn key_l_toggles_tree_off() {
     let mut state = make_keybinding_state();
-    assert!(state.tree_visible);
+    state.tree_visible = true;
+    state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char('l'), 40, 40, &[]);
     assert!(!state.tree_visible, "l should hide tree");
 }
@@ -706,7 +725,11 @@ fn test_initial_state_no_active_file() {
 
 #[test]
 fn sequence_toggle_single_file_context_regenerate() {
-    let files: Vec<DiffFile> = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
+    let files: Vec<DiffFile> = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
     let mut state = make_keybinding_state();
 
     handle_key(&mut state, Key::Char('s'), 40, 40, &files);

@@ -6,8 +6,8 @@ use crate::render::LineInfo;
 use crate::style;
 
 use super::super::rendering::render_scrollbar_cell;
-use super::super::state::{visible_range, PagerState};
-use super::super::tree::{build_tree_entries, TreeEntry};
+use super::super::state::{PagerState, visible_range};
+use super::super::tree::{TreeEntry, build_tree_entries};
 use super::super::types::ViewScope;
 use std::sync::{Mutex, OnceLock};
 
@@ -84,7 +84,9 @@ pub fn assert_state_invariants(state: &PagerState) {
         rs,
         range_max
     );
-    let max_top = range_max.saturating_sub(1).min(line_count.saturating_sub(1));
+    let max_top = range_max
+        .saturating_sub(1)
+        .min(line_count.saturating_sub(1));
     assert!(
         state.top_line >= rs && state.top_line <= max_top.min(range_max),
         "top_line {} out of range [rs={}, max_top={}]",
@@ -243,7 +245,12 @@ pub fn make_line_map_with_headers() -> Vec<LineInfo> {
         .collect()
 }
 
-pub fn entry_with_status(label: &str, depth: usize, file_idx: usize, status: FileStatus) -> TreeEntry {
+pub fn entry_with_status(
+    label: &str,
+    depth: usize,
+    file_idx: usize,
+    status: FileStatus,
+) -> TreeEntry {
     TreeEntry {
         label: label.to_string(),
         depth,
@@ -310,7 +317,7 @@ diff --git a/b.txt b/b.txt
 }
 
 pub fn make_pager_state_from_files(files: &[DiffFile], tree_visible: bool) -> PagerState {
-    let output = render::render(files, 80, false, tree_visible);
+    let output = render::render(files, 80, false);
     let tree_entries = build_tree_entries(files);
     let mut state = PagerState::new(
         output.lines,

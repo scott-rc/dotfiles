@@ -1,4 +1,4 @@
-use tui::pager::{copy_to_clipboard, Key};
+use tui::pager::{Key, copy_to_clipboard};
 
 use crate::git::diff::DiffFile;
 
@@ -13,8 +13,8 @@ use super::search::{
     cancel_search, handle_search_key, next_match_in_range, prev_match_in_range, scroll_to_match,
     submit_search,
 };
-use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
+use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
 use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx};
 use super::types::{ActionId, KeyContext, KeyResult, Mode};
 
@@ -74,13 +74,11 @@ fn dispatch_normal_action(
             None
         }
         ActionId::Top => {
-            state.cursor_line =
-                next_content_line(&state.doc.line_map, range_start, max_cursor);
+            state.cursor_line = next_content_line(&state.doc.line_map, range_start, max_cursor);
             None
         }
         ActionId::Bottom => {
-            state.cursor_line =
-                prev_content_line(&state.doc.line_map, max_cursor, range_start);
+            state.cursor_line = prev_content_line(&state.doc.line_map, max_cursor, range_start);
             None
         }
         ActionId::CenterViewport => {

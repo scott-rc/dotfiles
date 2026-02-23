@@ -127,16 +127,15 @@ pub fn find_base_branch(repo: &Path) -> String {
         .unwrap_or_default();
 
     let default = run(repo, &["rev-parse", "--abbrev-ref", "origin/HEAD"])
-        .map(|s| {
-            s.trim()
-                .trim_start_matches("origin/")
-                .to_string()
-        })
+        .map(|s| s.trim().trim_start_matches("origin/").to_string())
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "main".to_string());
 
-    let branches_raw = run(repo, &["for-each-ref", "--format=%(refname:short)", "refs/heads/"])
-        .unwrap_or_default();
+    let branches_raw = run(
+        repo,
+        &["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
+    )
+    .unwrap_or_default();
 
     let mut candidates: Vec<(String, u64)> = Vec::new();
     for branch in branches_raw.lines().filter(|l| !l.is_empty()) {
@@ -200,6 +199,10 @@ pub fn append_untracked(
     }
 }
 
+pub fn sort_files_for_display(files: &mut [diff::DiffFile]) {
+    files.sort_by(|a, b| a.path().cmp(b.path()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,7 +246,9 @@ mod tests {
 
     #[test]
     fn snapshot_full_context_args_range() {
-        assert_debug_snapshot!(DiffSource::Range("main".into(), "HEAD".into()).diff_args_full_context());
+        assert_debug_snapshot!(
+            DiffSource::Range("main".into(), "HEAD".into()).diff_args_full_context()
+        );
     }
 
     #[test]
@@ -346,7 +351,10 @@ mod tests {
 
     #[test]
     fn test_resolve_source() {
-        assert!(matches!(resolve_source(false, &[]), DiffSource::WorkingTree));
+        assert!(matches!(
+            resolve_source(false, &[]),
+            DiffSource::WorkingTree
+        ));
         assert!(matches!(resolve_source(true, &[]), DiffSource::Staged));
         match resolve_source(false, &["main..HEAD".into()]) {
             DiffSource::Range(l, r) => {
@@ -385,6 +393,18 @@ mod tests {
             }
             other => panic!("expected Range, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_sort_files_for_display_orders_by_path() {
+        let mut files = vec![
+            diff::DiffFile::from_content("z-last.txt", "z"),
+            diff::DiffFile::from_content("a-first.txt", "a"),
+            diff::DiffFile::from_content("m-middle.txt", "m"),
+        ];
+        sort_files_for_display(&mut files);
+        let paths: Vec<&str> = files.iter().map(diff::DiffFile::path).collect();
+        assert_eq!(paths, vec!["a-first.txt", "m-middle.txt", "z-last.txt"]);
     }
 
     #[test]

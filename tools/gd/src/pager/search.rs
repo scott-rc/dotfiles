@@ -173,10 +173,7 @@ pub(crate) fn prev_match_in_range(
     })
 }
 
-pub(crate) fn scroll_to_match(
-    state: &mut PagerState,
-    content_height: usize,
-) {
+pub(crate) fn scroll_to_match(state: &mut PagerState, content_height: usize) {
     let Ok(match_idx) = usize::try_from(state.current_match) else {
         return;
     };

@@ -5,11 +5,10 @@ use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
 use super::super::tree::{
-    build_tree_entries, build_tree_lines, compute_connector_prefix, compute_tree_width,
-    TreeEntry,
+    TreeEntry, build_tree_entries, build_tree_lines, compute_connector_prefix, compute_tree_width,
 };
-use crate::git::diff::DiffFile;
 use super::common::{entry, entry_with_status, make_diff_file, strip};
+use crate::git::diff::DiffFile;
 
 #[test]
 fn test_compute_connector_prefix_flat() {
@@ -54,11 +53,7 @@ fn test_tree_cursor_line_continuous_background() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let cursor_line = &lines[0];
-    let forbidden = format!(
-        "{} {}",
-        crate::style::RESET,
-        crate::style::BG_TREE_CURSOR
-    );
+    let forbidden = format!("{} {}", crate::style::RESET, crate::style::BG_TREE_CURSOR);
     assert!(
         !cursor_line.contains(&forbidden),
         "cursor line has a background gap between icon and label:\n{cursor_line}"
@@ -92,7 +87,11 @@ fn test_build_tree_entries_single_child_collapse() {
     let entries = build_tree_entries(&files);
     let dir_entry = entries.iter().find(|e| e.file_idx.is_none());
     assert!(dir_entry.is_some());
-    assert_eq!(dir_entry.unwrap().label, "src/lib", "single-child dirs should collapse");
+    assert_eq!(
+        dir_entry.unwrap().label,
+        "src/lib",
+        "single-child dirs should collapse"
+    );
 }
 
 #[test]
@@ -120,7 +119,10 @@ fn test_tree_status_symbol_modified() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(stripped.contains("M "), "modified entry should contain 'M ': {stripped:?}");
+    assert!(
+        stripped.contains("M "),
+        "modified entry should contain 'M ': {stripped:?}"
+    );
 }
 
 #[test]
@@ -129,7 +131,10 @@ fn test_tree_status_symbol_added() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(stripped.contains("A "), "added entry should contain 'A ': {stripped:?}");
+    assert!(
+        stripped.contains("A "),
+        "added entry should contain 'A ': {stripped:?}"
+    );
 }
 
 #[test]
@@ -138,7 +143,10 @@ fn test_tree_status_symbol_deleted() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(stripped.contains("D "), "deleted entry should contain 'D ': {stripped:?}");
+    assert!(
+        stripped.contains("D "),
+        "deleted entry should contain 'D ': {stripped:?}"
+    );
 }
 
 #[test]
@@ -147,7 +155,10 @@ fn test_tree_status_symbol_renamed() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(stripped.contains("R "), "renamed entry should contain 'R ': {stripped:?}");
+    assert!(
+        stripped.contains("R "),
+        "renamed entry should contain 'R ': {stripped:?}"
+    );
 }
 
 #[test]
@@ -156,7 +167,10 @@ fn test_tree_status_symbol_untracked() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(stripped.contains("? "), "untracked entry should contain '? ': {stripped:?}");
+    assert!(
+        stripped.contains("? "),
+        "untracked entry should contain '? ': {stripped:?}"
+    );
 }
 
 #[test]
@@ -171,11 +185,26 @@ fn test_tree_status_symbol_directory() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
-    assert!(!stripped.contains("M "), "directory must not show M: {stripped:?}");
-    assert!(!stripped.contains("A "), "directory must not show A: {stripped:?}");
-    assert!(!stripped.contains("D "), "directory must not show D: {stripped:?}");
-    assert!(!stripped.contains("R "), "directory must not show R: {stripped:?}");
-    assert!(!stripped.contains("? "), "directory must not show ?: {stripped:?}");
+    assert!(
+        !stripped.contains("M "),
+        "directory must not show M: {stripped:?}"
+    );
+    assert!(
+        !stripped.contains("A "),
+        "directory must not show A: {stripped:?}"
+    );
+    assert!(
+        !stripped.contains("D "),
+        "directory must not show D: {stripped:?}"
+    );
+    assert!(
+        !stripped.contains("R "),
+        "directory must not show R: {stripped:?}"
+    );
+    assert!(
+        !stripped.contains("? "),
+        "directory must not show ?: {stripped:?}"
+    );
 }
 
 #[test]
@@ -199,27 +228,33 @@ fn test_compute_tree_width_includes_status_chars() {
 
 #[test]
 fn snapshot_tree_entries_flat() {
-    let files = vec![make_diff_file("a.rs"), make_diff_file("b.rs"), make_diff_file("c.rs")];
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
     assert_debug_snapshot!(build_tree_entries(&files));
 }
 
 #[test]
 fn snapshot_tree_entries_nested() {
-    let files = vec![
+    let mut files = vec![
         make_diff_file("src/lib.rs"),
         make_diff_file("src/main.rs"),
         make_diff_file("README.md"),
     ];
+    crate::git::sort_files_for_display(&mut files);
     assert_debug_snapshot!(build_tree_entries(&files));
 }
 
 #[test]
 fn snapshot_tree_entries_single_child_collapse() {
-    let files = vec![
+    let mut files = vec![
         make_diff_file("src/lib/foo.rs"),
         make_diff_file("src/lib/bar.rs"),
         make_diff_file("tests/integration.rs"),
     ];
+    crate::git::sort_files_for_display(&mut files);
     assert_debug_snapshot!(build_tree_entries(&files));
 }
 
@@ -275,11 +310,12 @@ fn snapshot_tree_lines_flat() {
 
 #[test]
 fn snapshot_tree_lines_nested() {
-    let files = vec![
+    let mut files = vec![
         make_diff_file("src/lib.rs"),
         make_diff_file("src/main.rs"),
         make_diff_file("README.md"),
     ];
+    crate::git::sort_files_for_display(&mut files);
     let entries = build_tree_entries(&files);
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width);

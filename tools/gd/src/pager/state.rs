@@ -2,7 +2,9 @@ use crate::git::diff::DiffFile;
 use crate::render::{LineInfo, RenderOutput};
 
 use super::content::{next_content_line, snap_to_content};
-use super::tree::{build_tree_lines, build_tree_entries, compute_tree_width, file_idx_to_entry_idx, TreeEntry};
+use super::tree::{
+    TreeEntry, build_tree_entries, build_tree_lines, compute_tree_width, file_idx_to_entry_idx,
+};
 use super::types::{FileIx, KeyResult, Mode, TreeEntryIx, ViewScope};
 
 /// Context passed into the reducer (content height, total rows, files for tree/editor).
@@ -185,7 +187,8 @@ impl PagerState {
     }
 
     pub(crate) fn tree_cursor(&self) -> usize {
-        self.tree_selection.map_or(0, super::types::TreeEntryIx::get)
+        self.tree_selection
+            .map_or(0, super::types::TreeEntryIx::get)
     }
 
     pub(crate) fn set_tree_cursor(&mut self, idx: usize) {
@@ -205,20 +208,20 @@ impl PagerState {
         hunk_starts: Vec<usize>,
         tree_entries: Vec<TreeEntry>,
     ) -> Self {
-        let doc = Document { lines, line_map, file_starts, hunk_starts };
+        let doc = Document {
+            lines,
+            line_map,
+            file_starts,
+            hunk_starts,
+        };
         Self::from_doc(doc, tree_entries)
     }
 
     pub(crate) fn from_doc(doc: Document, tree_entries: Vec<TreeEntry>) -> Self {
         let entry_count = tree_entries.len();
         let tree_width = compute_tree_width(&tree_entries);
-
-        let (tree_selection, tree_visible) = if entry_count > 0 {
-            let sel = TreeEntryIx::new(0, entry_count).unwrap();
-            (Some(sel), true)
-        } else {
-            (None, false)
-        };
+        let tree_visible = should_show_tree_by_default(&doc, &tree_entries);
+        let tree_selection = TreeEntryIx::new(0, entry_count);
 
         let (tree_lines, tree_visible_to_entry) = if tree_visible {
             build_tree_lines(&tree_entries, 0, tree_width)
@@ -252,6 +255,15 @@ impl PagerState {
     }
 }
 
+fn should_show_tree_by_default(doc: &Document, tree_entries: &[TreeEntry]) -> bool {
+    if tree_entries.is_empty() {
+        return false;
+    }
+    let file_count = doc.file_count();
+    let has_directories = tree_entries.iter().any(|e| e.file_idx.is_none());
+    has_directories || file_count >= 4
+}
+
 #[cfg(debug_assertions)]
 pub(crate) fn debug_assert_valid_state(state: &PagerState) {
     let (rs, re) = visible_range(state);
@@ -259,16 +271,25 @@ pub(crate) fn debug_assert_valid_state(state: &PagerState) {
     assert!(
         state.cursor_line >= rs && state.cursor_line <= max_cursor,
         "cursor_line {} out of visible range [{}, {}]",
-        state.cursor_line, rs, max_cursor
+        state.cursor_line,
+        rs,
+        max_cursor
     );
     assert!(
         state.top_line >= rs
-            && state.top_line <= re.saturating_sub(1).min(state.doc.line_count().saturating_sub(1)),
+            && state.top_line
+                <= re
+                    .saturating_sub(1)
+                    .min(state.doc.line_count().saturating_sub(1)),
         "top_line {} out of range",
         state.top_line
     );
     if let ViewScope::SingleFile(ix) = state.view_scope {
-        assert!(ix.get() < state.file_count(), "SingleFile index {} out of bounds", ix.get());
+        assert!(
+            ix.get() < state.file_count(),
+            "SingleFile index {} out of bounds",
+            ix.get()
+        );
     }
 }
 
@@ -278,7 +299,9 @@ pub(crate) fn debug_assert_valid_state(_state: &PagerState) {}
 pub(crate) fn clamp_cursor_and_top(state: &mut PagerState) {
     let (rs, re) = visible_range(state);
     let range_max = re.saturating_sub(1);
-    let max_top = range_max.saturating_sub(1).min(state.doc.line_count().saturating_sub(1));
+    let max_top = range_max
+        .saturating_sub(1)
+        .min(state.doc.line_count().saturating_sub(1));
     state.cursor_line = state.cursor_line.clamp(rs, range_max);
     state.top_line = state.top_line.clamp(rs, max_top.min(range_max));
 }
@@ -298,7 +321,9 @@ pub(crate) fn capture_view_anchor(state: &PagerState) -> Option<ViewAnchor> {
     if state.doc.is_empty() {
         return None;
     }
-    let top = state.top_line.min(state.doc.line_map.len().saturating_sub(1));
+    let top = state
+        .top_line
+        .min(state.doc.line_map.len().saturating_sub(1));
     let info = &state.doc.line_map[top];
     let file_start = state.file_start(info.file_idx).unwrap_or(0);
     let offset_in_file = top - file_start;
@@ -351,17 +376,24 @@ pub(crate) fn remap_after_document_swap(
         let target_line = if a.file_idx >= file_count {
             next_content_line(&state.doc.line_map, 0, line_count.saturating_sub(1))
         } else if let Some(lineno) = a.new_lineno {
-            state.doc.line_map.iter()
+            state
+                .doc
+                .line_map
+                .iter()
                 .position(|li| li.file_idx == a.file_idx && li.new_lineno == Some(lineno))
                 .unwrap_or_else(|| {
                     let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
                     let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
-                    (file_start + a.offset_in_file).min(file_end).min(line_count.saturating_sub(1))
+                    (file_start + a.offset_in_file)
+                        .min(file_end)
+                        .min(line_count.saturating_sub(1))
                 })
         } else {
             let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
             let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
-            (file_start + a.offset_in_file).min(file_end).min(line_count.saturating_sub(1))
+            (file_start + a.offset_in_file)
+                .min(file_end)
+                .min(line_count.saturating_sub(1))
         };
         state.top_line = target_line.min(range_max);
         state.cursor_line = state.top_line.min(range_max);
@@ -376,7 +408,11 @@ pub(crate) fn remap_after_document_swap(
     if state.tree_visible && !files.is_empty() {
         state.tree_entries = build_tree_entries(files);
         state.tree_width = compute_tree_width(&state.tree_entries);
-        let cursor_file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+        let cursor_file_idx = state
+            .doc
+            .line_map
+            .get(state.cursor_line)
+            .map_or(0, |li| li.file_idx);
         let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
         state.set_tree_cursor(cursor_entry_idx);
         let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
@@ -386,6 +422,7 @@ pub(crate) fn remap_after_document_swap(
 
     if !state.search_query.is_empty() {
         state.search_matches = tui::search::find_matches(&state.doc.lines, &state.search_query);
-        state.current_match = tui::search::find_nearest_match(&state.search_matches, state.top_line);
+        state.current_match =
+            tui::search::find_nearest_match(&state.search_matches, state.top_line);
     }
 }

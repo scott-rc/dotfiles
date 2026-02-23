@@ -1,5 +1,6 @@
 ---
 source: gd/src/pager/tests/tree.rs
+assertion_line: 258
 expression: build_tree_entries(&files)
 ---
 [
@@ -14,7 +15,7 @@ expression: build_tree_entries(&files)
         label: "bar.rs",
         depth: 1,
         file_idx: Some(
-            1,
+            0,
         ),
         status: Some(
             Modified,
@@ -25,7 +26,7 @@ expression: build_tree_entries(&files)
         label: "foo.rs",
         depth: 1,
         file_idx: Some(
-            0,
+            1,
         ),
         status: Some(
             Modified,

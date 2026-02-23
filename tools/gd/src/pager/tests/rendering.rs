@@ -1,11 +1,11 @@
 //! Characterization tests for `pager::rendering` helper functions.
 
-use super::common::{
-    make_keybinding_state, make_line_map, make_pager_state_from_files, make_pager_state_for_range,
-    make_two_file_diff, strip,
-};
 use super::super::rendering::*;
 use super::super::types::Mode;
+use super::common::{
+    make_keybinding_state, make_line_map, make_pager_state_for_range, make_pager_state_from_files,
+    make_two_file_diff, strip,
+};
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
 use crate::style;
@@ -49,7 +49,10 @@ fn bar_visible_search_mode_is_true() {
 fn bar_visible_status_message_any_mode() {
     let mut state = make_keybinding_state();
     state.status_message = "some message".into();
-    assert!(bar_visible(&state), "non-empty status_message should show bar in Normal mode");
+    assert!(
+        bar_visible(&state),
+        "non-empty status_message should show bar in Normal mode"
+    );
 }
 
 #[test]
@@ -95,7 +98,11 @@ fn li(new: Option<u32>, old: Option<u32>) -> LineInfo {
 
 #[test]
 fn resolve_lineno_prefers_new_lineno() {
-    let map = vec![li(Some(10), Some(100)), li(Some(11), Some(101)), li(Some(12), Some(102))];
+    let map = vec![
+        li(Some(10), Some(100)),
+        li(Some(11), Some(101)),
+        li(Some(12), Some(102)),
+    ];
     assert_eq!(resolve_lineno(&map, 0, 2), (Some(10), Some(12)));
 }
 
@@ -147,7 +154,10 @@ fn enforce_scrolloff_cursor_near_top() {
     state.cursor_line = 2;
     state.top_line = 0;
     enforce_scrolloff(&mut state, 20);
-    assert_eq!(state.top_line, 0, "top should stay at 0 since cursor-SCROLLOFF saturates to 0");
+    assert_eq!(
+        state.top_line, 0,
+        "top should stay at 0 since cursor-SCROLLOFF saturates to 0"
+    );
 }
 
 #[test]
@@ -170,7 +180,10 @@ fn enforce_scrolloff_cursor_in_middle_no_change() {
     state.top_line = 10;
     let original_top = state.top_line;
     enforce_scrolloff(&mut state, 20);
-    assert_eq!(state.top_line, original_top, "cursor well within scrolloff — no adjustment");
+    assert_eq!(
+        state.top_line, original_top,
+        "cursor well within scrolloff — no adjustment"
+    );
 }
 
 #[test]
@@ -179,7 +192,10 @@ fn enforce_scrolloff_cursor_at_range_boundaries() {
     state.cursor_line = 49;
     state.top_line = 0;
     enforce_scrolloff(&mut state, 20);
-    assert_eq!(state.cursor_line, 49, "cursor should be clamped to last line");
+    assert_eq!(
+        state.cursor_line, 49,
+        "cursor should be clamped to last line"
+    );
     assert!(
         state.top_line <= 30,
         "top_line should be within max_top: got {}",
@@ -297,7 +313,11 @@ fn format_status_bar_single_file() {
 #[test]
 fn format_tooltip_lines_produces_two_lines() {
     let lines = format_tooltip_lines(80);
-    assert_eq!(lines.len(), TOOLTIP_HEIGHT, "tooltip should produce exactly TOOLTIP_HEIGHT lines");
+    assert_eq!(
+        lines.len(),
+        TOOLTIP_HEIGHT,
+        "tooltip should produce exactly TOOLTIP_HEIGHT lines"
+    );
 }
 
 #[test]
@@ -361,7 +381,10 @@ fn render_screen_no_status_bar() {
     let state = make_keybinding_state();
     let mut buf = Vec::new();
     render_screen(&mut buf, &state, 80, 24);
-    assert!(!buf.is_empty(), "render_screen in Normal mode should produce output");
+    assert!(
+        !buf.is_empty(),
+        "render_screen in Normal mode should produce output"
+    );
 }
 
 #[test]

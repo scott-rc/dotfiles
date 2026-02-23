@@ -106,21 +106,21 @@ pub fn continuation_gutter(color: bool) -> String {
 pub fn file_icon(path: &str) -> (&'static str, &'static str) {
     let ext = path.rsplit('.').next().unwrap_or("");
     match ext {
-        "rs" => ("\u{e7a8}", "\x1b[38;2;222;135;53m"),          // Rust orange
-        "ts" | "tsx" => ("\u{e628}", "\x1b[38;2;49;120;198m"),   // TypeScript blue
-        "js" | "jsx" => ("\u{e781}", "\x1b[38;2;241;224;90m"),   // JavaScript yellow
-        "go" => ("\u{e627}", "\x1b[38;2;0;173;216m"),            // Go cyan
-        "py" => ("\u{e73c}", "\x1b[38;2;55;118;171m"),           // Python blue
-        "md" => ("\u{e73e}", "\x1b[38;2;81;154;186m"),           // Markdown teal
-        "json" => ("\u{e60b}", "\x1b[38;2;241;224;90m"),         // JSON yellow
-        "toml" => ("\u{e6b2}", "\x1b[38;2;139;148;158m"),        // TOML gray
-        "yaml" | "yml" => ("\u{e6a8}", "\x1b[38;2;203;75;83m"),  // YAML red
+        "rs" => ("\u{e7a8}", "\x1b[38;2;222;135;53m"), // Rust orange
+        "ts" | "tsx" => ("\u{e628}", "\x1b[38;2;49;120;198m"), // TypeScript blue
+        "js" | "jsx" => ("\u{e781}", "\x1b[38;2;241;224;90m"), // JavaScript yellow
+        "go" => ("\u{e627}", "\x1b[38;2;0;173;216m"),  // Go cyan
+        "py" => ("\u{e73c}", "\x1b[38;2;55;118;171m"), // Python blue
+        "md" => ("\u{e73e}", "\x1b[38;2;81;154;186m"), // Markdown teal
+        "json" => ("\u{e60b}", "\x1b[38;2;241;224;90m"), // JSON yellow
+        "toml" => ("\u{e6b2}", "\x1b[38;2;139;148;158m"), // TOML gray
+        "yaml" | "yml" => ("\u{e6a8}", "\x1b[38;2;203;75;83m"), // YAML red
         "sh" | "fish" | "bash" | "zsh" => ("\u{e795}", "\x1b[38;2;137;224;81m"), // Shell green
-        "lua" => ("\u{e620}", "\x1b[38;2;81;160;207m"),          // Lua blue
-        "html" => ("\u{e736}", "\x1b[38;2;228;77;38m"),          // HTML orange
-        "css" => ("\u{e749}", "\x1b[38;2;86;156;214m"),          // CSS blue
-        "lock" => ("\u{f023}", "\x1b[38;2;139;148;158m"),        // Lock gray
-        _ => ("\u{f15b}", FG_TREE),                              // Generic file
+        "lua" => ("\u{e620}", "\x1b[38;2;81;160;207m"), // Lua blue
+        "html" => ("\u{e736}", "\x1b[38;2;228;77;38m"), // HTML orange
+        "css" => ("\u{e749}", "\x1b[38;2;86;156;214m"), // CSS blue
+        "lock" => ("\u{f023}", "\x1b[38;2;139;148;158m"), // Lock gray
+        _ => ("\u{f15b}", FG_TREE),                    // Generic file
     }
 }
 
@@ -142,7 +142,10 @@ mod tests {
     fn test_file_header_basic() {
         let out = strip_ansi(&file_header("foo.rs", "M", 40));
         assert!(out.starts_with("──"), "should start with ──: {out:?}");
-        assert!(out.contains("foo.rs (M)"), "should contain path and status: {out:?}");
+        assert!(
+            out.contains("foo.rs (M)"),
+            "should contain path and status: {out:?}"
+        );
         assert!(out.ends_with("──"), "should end with ──: {out:?}");
     }
 
@@ -150,7 +153,10 @@ mod tests {
     fn test_file_header_narrow_width() {
         let out = file_header("path", "A", 5);
         let visible = strip_ansi(&out);
-        assert!(visible.contains("path (A)"), "label still present: {visible:?}");
+        assert!(
+            visible.contains("path (A)"),
+            "label still present: {visible:?}"
+        );
     }
 
     #[test]
@@ -171,7 +177,11 @@ mod tests {
         assert!(out.contains('1'), "should contain old line number: {out:?}");
         assert!(out.contains('2'), "should contain new line number: {out:?}");
         assert!(out.contains('│'), "should contain separator: {out:?}");
-        assert_eq!(out.chars().count(), GUTTER_WIDTH, "visible width should be {GUTTER_WIDTH}");
+        assert_eq!(
+            out.chars().count(),
+            GUTTER_WIDTH,
+            "visible width should be {GUTTER_WIDTH}"
+        );
     }
 
     #[test]
@@ -196,13 +206,16 @@ mod tests {
     fn test_file_icon_all_extensions() {
         let default_icon = "\u{f15b}";
         let exts = [
-            "rs", "ts", "tsx", "js", "jsx", "go", "py", "md", "json", "toml",
-            "yaml", "yml", "sh", "fish", "bash", "zsh", "lua", "html", "css", "lock",
+            "rs", "ts", "tsx", "js", "jsx", "go", "py", "md", "json", "toml", "yaml", "yml", "sh",
+            "fish", "bash", "zsh", "lua", "html", "css", "lock",
         ];
         for ext in exts {
             let path = format!("x.{ext}");
             let (icon, _) = file_icon(&path);
-            assert_ne!(icon, default_icon, "extension {ext:?} should have a specific icon");
+            assert_ne!(
+                icon, default_icon,
+                "extension {ext:?} should have a specific icon"
+            );
         }
     }
 
@@ -211,7 +224,10 @@ mod tests {
         let default_icon = "\u{f15b}";
         for path in ["noext", ".gitignore", "a.b.c"] {
             let (icon, _) = file_icon(path);
-            assert_eq!(icon, default_icon, "{path:?} should return the default icon");
+            assert_eq!(
+                icon, default_icon,
+                "{path:?} should return the default icon"
+            );
         }
     }
 
@@ -226,11 +242,18 @@ mod tests {
     #[test]
     fn test_wrap_marker() {
         let colored = wrap_marker(true);
-        assert!(colored.contains("\u{21aa}"), "colored marker contains arrow");
+        assert!(
+            colored.contains("\u{21aa}"),
+            "colored marker contains arrow"
+        );
         assert!(colored.contains(RESET), "colored marker contains RESET");
         let plain = wrap_marker(false);
         assert_eq!(plain, "\u{21aa}", "plain marker is just the arrow");
-        assert_eq!(strip_ansi(&colored), plain, "stripping ANSI yields plain marker");
+        assert_eq!(
+            strip_ansi(&colored),
+            plain,
+            "stripping ANSI yields plain marker"
+        );
     }
 
     #[test]
@@ -239,6 +262,9 @@ mod tests {
         assert_eq!(plain, "     |     |", "plain continuation gutter");
         let colored = continuation_gutter(true);
         let stripped = strip_ansi(&colored);
-        assert_eq!(stripped, "     │     │", "colored gutter stripped matches expected layout");
+        assert_eq!(
+            stripped, "     │     │",
+            "colored gutter stripped matches expected layout"
+        );
     }
 }

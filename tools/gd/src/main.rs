@@ -69,6 +69,7 @@ fn main() {
 
     let mut files = git::diff::parse(&raw);
     git::append_untracked(&repo, &source, cli.no_untracked, &mut files);
+    git::sort_files_for_display(&mut files);
 
     if files.is_empty() {
         return;
@@ -78,7 +79,7 @@ fn main() {
     let color = !cli.no_color && is_tty;
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
 
-    let output = render::render(&files, cols as usize, color, false);
+    let output = render::render(&files, cols as usize, color);
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
     if is_tty && !cli.no_pager && output.lines.len() > rows as usize {

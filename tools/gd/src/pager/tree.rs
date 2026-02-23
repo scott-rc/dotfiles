@@ -11,8 +11,15 @@ pub(crate) struct TreeEntry {
 }
 
 pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
-    let mut indexed: Vec<(usize, &str)> = files.iter().enumerate().map(|(i, f)| (i, f.path())).collect();
-    indexed.sort_by(|a, b| a.1.cmp(b.1));
+    debug_assert!(
+        files.windows(2).all(|w| w[0].path() <= w[1].path()),
+        "build_tree_entries expects files sorted by path"
+    );
+    let indexed: Vec<(usize, &str)> = files
+        .iter()
+        .enumerate()
+        .map(|(i, f)| (i, f.path()))
+        .collect();
 
     let mut entries: Vec<TreeEntry> = Vec::new();
     let mut prev_components: Vec<&str> = Vec::new();
@@ -199,10 +206,14 @@ pub(crate) fn build_tree_lines(
                     let (sc, sc_color) = status_symbol(st);
                     lines.push(format!("{bg}{guide}{prefix}{reset}{bg}{icon_color}{icon} {sc_color}{sc}{fg} {label}{rpad}{reset}"));
                 } else {
-                    lines.push(format!("{bg}{guide}{prefix}{reset}{bg}{icon_color}{icon} {fg}{label}{rpad}{reset}"));
+                    lines.push(format!(
+                        "{bg}{guide}{prefix}{reset}{bg}{icon_color}{icon} {fg}{label}{rpad}{reset}"
+                    ));
                 }
             } else {
-                lines.push(format!("{bg}{guide}{prefix}{reset}{bg}{icon_color}{icon} {fg}{label}{rpad}{reset}"));
+                lines.push(format!(
+                    "{bg}{guide}{prefix}{reset}{bg}{icon_color}{icon} {fg}{label}{rpad}{reset}"
+                ));
             }
         } else if entry.file_idx.is_some() {
             let reset = style::RESET;
@@ -213,14 +224,18 @@ pub(crate) fn build_tree_lines(
                 let (sc, sc_color) = status_symbol(st);
                 lines.push(format!("{guide}{prefix}{reset}{icon_color}{icon}{reset} {sc_color}{sc}{reset} {fg}{label}{rpad}{reset}"));
             } else {
-                lines.push(format!("{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}{reset}"));
+                lines.push(format!(
+                    "{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}{reset}"
+                ));
             }
         } else {
             let reset = style::RESET;
             let fg = style::FG_TREE_DIR;
             let label = &entry.label;
             let rpad = " ".repeat(right_pad);
-            lines.push(format!("{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}{reset}"));
+            lines.push(format!(
+                "{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}{reset}"
+            ));
         }
     }
 

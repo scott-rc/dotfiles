@@ -1,7 +1,7 @@
 use crate::render::LineInfo;
 
 use super::content::next_content_line;
-use super::state::{visible_range, PagerState};
+use super::state::{PagerState, visible_range};
 use super::tree::file_idx_to_entry_idx;
 
 pub(crate) fn jump_next(targets: &[usize], top_line: usize) -> Option<usize> {
@@ -20,7 +20,11 @@ fn targets_in_range(targets: &[usize], range_start: usize, range_end: usize) -> 
         .collect()
 }
 
-pub(crate) fn change_group_starts(line_map: &[LineInfo], range_start: usize, range_end: usize) -> Vec<usize> {
+pub(crate) fn change_group_starts(
+    line_map: &[LineInfo],
+    range_start: usize,
+    range_end: usize,
+) -> Vec<usize> {
     use crate::git::diff::LineKind;
 
     let end = range_end.min(line_map.len());
@@ -58,7 +62,12 @@ fn hunk_change_starts(line_map: &[LineInfo], hunk_starts: &[usize]) -> Vec<usize
             .min(line_map.len());
 
         let target = (start..end)
-            .find(|&i| matches!(line_map[i].line_kind, Some(LineKind::Added | LineKind::Deleted)))
+            .find(|&i| {
+                matches!(
+                    line_map[i].line_kind,
+                    Some(LineKind::Added | LineKind::Deleted)
+                )
+            })
             .unwrap_or(start);
         targets.push(target);
     }
@@ -101,11 +110,7 @@ pub(crate) fn nav_status_message(
     format!("{label} {}/{} \u{00b7} {}", idx + 1, starts.len(), path)
 }
 
-fn file_status_message(
-    cursor: usize,
-    file_starts: &[usize],
-    line_map: &[LineInfo],
-) -> String {
+fn file_status_message(cursor: usize, file_starts: &[usize], line_map: &[LineInfo]) -> String {
     nav_status_message("File", cursor, file_starts, line_map)
 }
 
@@ -115,9 +120,7 @@ pub(crate) fn viewport_bounds(
 ) -> (usize, usize, usize, usize) {
     let (range_start, range_end) = visible_range(state);
     let max_line = range_end.saturating_sub(1);
-    let max_top = range_end
-        .saturating_sub(content_height)
-        .max(range_start);
+    let max_top = range_end.saturating_sub(content_height).max(range_start);
     (range_start, range_end, max_line, max_top)
 }
 
@@ -207,10 +210,7 @@ pub(crate) fn nav_du_up(state: &PagerState) -> NavDuResult {
 }
 
 #[allow(non_snake_case)]
-pub(crate) fn nav_D_down(
-    state: &PagerState,
-    content_height: usize,
-) -> NavDUResult {
+pub(crate) fn nav_D_down(state: &PagerState, content_height: usize) -> NavDUResult {
     let anchor = state.cursor_line;
     let (rs, re) = visible_range(state);
     let max_line = re.saturating_sub(1);
@@ -283,7 +283,11 @@ pub(crate) fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
     let new_cursor = if let Some(fi) = state.active_file() {
         fi
     } else {
-        state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx)
+        state
+            .doc
+            .line_map
+            .get(state.cursor_line)
+            .map_or(0, |li| li.file_idx)
     };
     let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     if !state.tree_visible_to_entry.contains(&new_entry_idx) {
@@ -304,7 +308,12 @@ pub(crate) fn sync_active_file_to_cursor(state: &mut PagerState) {
     if state.active_file().is_none() {
         return;
     }
-    if let Some(file_idx) = state.doc.line_map.get(state.cursor_line).map(|li| li.file_idx) {
+    if let Some(file_idx) = state
+        .doc
+        .line_map
+        .get(state.cursor_line)
+        .map(|li| li.file_idx)
+    {
         state.set_active_file(Some(file_idx));
     }
 }

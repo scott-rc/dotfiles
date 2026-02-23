@@ -17,7 +17,7 @@ gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
 ```
 
-No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them.
+No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
 
 ## Keybindings
 
@@ -75,7 +75,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode). Selection uses marks (`m` to set, `y` to yank) instead of a modal visual mode. A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows position indicators, single-file info, and mark status.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode), defaults visible for nested or larger diffs, and defaults hidden for small flat diffs. File headers remain visible even when the tree is open. Selection uses marks (`m` to set, `y` to yank) instead of a modal visual mode. A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows position indicators, single-file info, and mark status.
 
 ## Modules
 

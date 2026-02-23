@@ -5,12 +5,15 @@ use crate::render;
 use crate::render::LineInfo;
 
 use super::super::runtime::{re_render, resolve_path_for_editor};
-use super::super::state::{capture_view_anchor, remap_after_document_swap, visible_range, Document};
-use super::common::{
-    assert_state_invariants, make_keybinding_state, make_pager_state_for_range,
-    make_pager_state_from_files, make_two_file_diff, with_gd_debug_env, StateSnapshot,
+use super::super::state::{
+    Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
 };
+use super::super::tree::build_tree_entries;
 use super::super::tree::build_tree_lines;
+use super::common::{
+    StateSnapshot, assert_state_invariants, make_keybinding_state, make_pager_state_for_range,
+    make_pager_state_from_files, make_two_file_diff, with_gd_debug_env,
+};
 
 #[test]
 fn test_resolve_path_relative_joins_repo_root() {
@@ -43,7 +46,7 @@ fn test_resolve_path_simple_filename() {
 }
 
 #[test]
-fn re_render_passes_skip_headers_when_tree_visible() {
+fn re_render_includes_headers_when_tree_visible() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, true);
     re_render(&mut state, &files, false, 80);
@@ -55,8 +58,8 @@ fn re_render_passes_skip_headers_when_tree_visible() {
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
-        !stripped.contains('\u{2500}'),
-        "with tree_visible=true, re_render should skip file headers"
+        stripped.contains('\u{2500}'),
+        "with tree_visible=true, re_render should include file headers"
     );
 }
 
@@ -75,6 +78,89 @@ fn re_render_includes_headers_when_tree_hidden() {
     assert!(
         stripped.contains('\u{2500}'),
         "with tree_visible=false, re_render should include file headers"
+    );
+}
+
+#[test]
+fn default_tree_hidden_for_small_flat_file_lists() {
+    let files = vec![
+        crate::git::diff::DiffFile::from_content("a.txt", "a"),
+        crate::git::diff::DiffFile::from_content("b.txt", "b"),
+    ];
+    let output = render::render(&files, 80, false);
+    let state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        build_tree_entries(&files),
+    );
+    assert!(
+        !state.tree_visible,
+        "tree should default hidden for a small flat file list"
+    );
+}
+
+#[test]
+fn default_tree_hidden_for_three_flat_files() {
+    let files = vec![
+        crate::git::diff::DiffFile::from_content("a.txt", "a"),
+        crate::git::diff::DiffFile::from_content("b.txt", "b"),
+        crate::git::diff::DiffFile::from_content("c.txt", "c"),
+    ];
+    let output = render::render(&files, 80, false);
+    let state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        build_tree_entries(&files),
+    );
+    assert!(
+        !state.tree_visible,
+        "tree should default hidden for three flat files"
+    );
+}
+
+#[test]
+fn default_tree_visible_for_four_flat_files() {
+    let files = vec![
+        crate::git::diff::DiffFile::from_content("a.txt", "a"),
+        crate::git::diff::DiffFile::from_content("b.txt", "b"),
+        crate::git::diff::DiffFile::from_content("c.txt", "c"),
+        crate::git::diff::DiffFile::from_content("d.txt", "d"),
+    ];
+    let output = render::render(&files, 80, false);
+    let state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        build_tree_entries(&files),
+    );
+    assert!(
+        state.tree_visible,
+        "tree should default visible for four flat files"
+    );
+}
+
+#[test]
+fn default_tree_visible_for_nested_file_lists() {
+    let files = vec![
+        crate::git::diff::DiffFile::from_content("src/a.txt", "a"),
+        crate::git::diff::DiffFile::from_content("src/b.txt", "b"),
+    ];
+    let output = render::render(&files, 80, false);
+    let state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        build_tree_entries(&files),
+    );
+    assert!(
+        state.tree_visible,
+        "tree should default visible when directory hierarchy is present"
     );
 }
 
@@ -101,7 +187,10 @@ fn re_render_preserves_position_on_header_line() {
             li.file_idx == state.doc.line_map[target].file_idx && li.new_lineno.is_none()
         })
         .unwrap();
-    assert_ne!(first_none, target, "need at least two None-lineno lines for the same file");
+    assert_ne!(
+        first_none, target,
+        "need at least two None-lineno lines for the same file"
+    );
 
     state.top_line = target;
     re_render(&mut state, &files, false, 80);
@@ -126,7 +215,10 @@ fn debug_toggle_does_not_change_reducer_output() {
         StateSnapshot::from(&state_on)
     });
 
-    assert_eq!(snap_off, snap_on, "GD_DEBUG on vs off must produce identical state");
+    assert_eq!(
+        snap_off, snap_on,
+        "GD_DEBUG on vs off must produce identical state"
+    );
 }
 
 #[test]
@@ -154,14 +246,16 @@ diff --git a/c.txt b/c.txt
     let mut state = make_pager_state_from_files(&three_files, true);
     state.set_active_file(Some(1));
     state.cursor_line = 35;
-    let single_file = crate::git::diff::parse("\
+    let single_file = crate::git::diff::parse(
+        "\
 diff --git a/b.txt b/b.txt
 --- a/b.txt
 +++ b/b.txt
 @@ -1,2 +1,1 @@
  keep
 -remove
-");
+",
+    );
     re_render(&mut state, &single_file, false, 80);
     let (rs, re) = visible_range(&state);
     assert!(
@@ -181,7 +275,7 @@ fn document_swap_to_empty_exits_cleanly() {
     state.cursor_line = 5;
     state.top_line = 3;
     let anchor = capture_view_anchor(&state);
-    let empty_doc = Document::from_render_output(render::render(&[], 80, false, false));
+    let empty_doc = Document::from_render_output(render::render(&[], 80, false));
     remap_after_document_swap(&mut state, anchor, empty_doc, &[]);
     assert_eq!(state.cursor_line, 0);
     assert_eq!(state.top_line, 0);
@@ -222,7 +316,11 @@ fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
             path: "x.txt".into(),
             new_lineno: if i == 0 { None } else { Some(i as u32) },
             old_lineno: None,
-            line_kind: if i == 0 { None } else { Some(LineKind::Context) },
+            line_kind: if i == 0 {
+                None
+            } else {
+                Some(LineKind::Context)
+            },
         })
         .collect();
     let new_doc = Document {

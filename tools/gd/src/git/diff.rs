@@ -178,10 +178,7 @@ fn parse_file(chunk: &str) -> Option<DiffFile> {
         }
 
         for (idx, &start) in hunk_starts.iter().enumerate() {
-            let end = hunk_starts
-                .get(idx + 1)
-                .copied()
-                .unwrap_or(lines.len());
+            let end = hunk_starts.get(idx + 1).copied().unwrap_or(lines.len());
             if let Some(hunk) = parse_hunk(&lines[start..end]) {
                 hunks.push(hunk);
             }
@@ -407,7 +404,10 @@ rename to new_name.rs
 
     #[test]
     fn snapshot_untracked_from_content() {
-        assert_debug_snapshot!(DiffFile::from_content("new.rs", "fn main() {\n    println!(\"hello\");\n}\n"));
+        assert_debug_snapshot!(DiffFile::from_content(
+            "new.rs",
+            "fn main() {\n    println!(\"hello\");\n}\n"
+        ));
     }
 
     #[test]
@@ -584,13 +584,19 @@ diff --git a/f.rs b/f.rs
         let files = parse(diff);
         let lines = &files[0].hunks[0].lines;
         // ctx1: old=1, new=1
-        assert_eq!((lines[0].old_lineno, lines[0].new_lineno), (Some(1), Some(1)));
+        assert_eq!(
+            (lines[0].old_lineno, lines[0].new_lineno),
+            (Some(1), Some(1))
+        );
         // -old: old=2, new=None
         assert_eq!((lines[1].old_lineno, lines[1].new_lineno), (Some(2), None));
         // +new: old=None, new=2
         assert_eq!((lines[2].old_lineno, lines[2].new_lineno), (None, Some(2)));
         // ctx2: old=3, new=3
-        assert_eq!((lines[3].old_lineno, lines[3].new_lineno), (Some(3), Some(3)));
+        assert_eq!(
+            (lines[3].old_lineno, lines[3].new_lineno),
+            (Some(3), Some(3))
+        );
     }
 
     #[test]

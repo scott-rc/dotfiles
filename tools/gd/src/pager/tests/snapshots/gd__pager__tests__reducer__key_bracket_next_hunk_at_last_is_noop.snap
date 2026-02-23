@@ -6,7 +6,7 @@ StateSnapshot {
     cursor_line: 76,
     top_line: 0,
     active_file: None,
-    tree_visible: true,
+    tree_visible: false,
     mark_line: None,
     tooltip_visible: false,
     mode: Normal,

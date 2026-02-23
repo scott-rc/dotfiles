@@ -1,14 +1,14 @@
 use std::io::Write;
 
-use tui::pager::{move_to, CLEAR_LINE};
+use tui::pager::{CLEAR_LINE, move_to};
 
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
 use crate::style;
 
-use super::state::{visible_range, PagerState};
-use super::types::Mode;
+use super::state::{PagerState, visible_range};
 use super::text::clamp_cursor_to_boundary;
+use super::types::Mode;
 
 pub(crate) fn diff_area_width(
     cols: u16,
@@ -52,11 +52,17 @@ pub(crate) fn render_scrollbar_cell(
     let thumb_end = (thumb_start + content_height * content_height / range).max(thumb_start + 1);
     let in_thumb = row >= thumb_start && row < thumb_end;
 
-    let bg = if in_thumb { style::BG_SCROLLBAR_THUMB } else { style::BG_SCROLLBAR_TRACK };
+    let bg = if in_thumb {
+        style::BG_SCROLLBAR_THUMB
+    } else {
+        style::BG_SCROLLBAR_TRACK
+    };
 
     match change {
         Some(LineKind::Added) => format!("{bg}{}\u{2590}{}", style::FG_ADDED_MARKER, style::RESET),
-        Some(LineKind::Deleted) => format!("{bg}{}\u{2590}{}", style::FG_DELETED_MARKER, style::RESET),
+        Some(LineKind::Deleted) => {
+            format!("{bg}{}\u{2590}{}", style::FG_DELETED_MARKER, style::RESET)
+        }
         _ => format!("{bg} {}", style::RESET),
     }
 }
@@ -124,9 +130,19 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
         let cursor_char = if cursor < state.search_input.len() {
             let c = after.chars().next().unwrap();
             let rest = &after[c.len_utf8()..];
-            format!("{}{c}{}{}{rest}", style::RESET, style::STATUS_BG, style::STATUS_FG)
+            format!(
+                "{}{c}{}{}{rest}",
+                style::RESET,
+                style::STATUS_BG,
+                style::STATUS_FG
+            )
         } else {
-            format!("{}\u{2588}{}{}", style::RESET, style::STATUS_BG, style::STATUS_FG)
+            format!(
+                "{}\u{2588}{}{}",
+                style::RESET,
+                style::STATUS_BG,
+                style::STATUS_FG
+            )
         };
         let content = format!("/{before}{cursor_char}");
         let vis_len = if cursor < state.search_input.len() {
@@ -155,14 +171,33 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
     } else if end >= line_count {
         "END".to_string()
     } else {
-        format!("{}%", (end as f64 / line_count as f64 * 100.0).round() as usize)
+        format!(
+            "{}%",
+            (end as f64 / line_count as f64 * 100.0).round() as usize
+        )
     };
-    let right = format!("{}{}-{}/{}{} {}", style::DIM, top + 1, end, line_count, style::NO_DIM, position);
+    let right = format!(
+        "{}{}-{}/{}{} {}",
+        style::DIM,
+        top + 1,
+        end,
+        line_count,
+        style::NO_DIM,
+        position
+    );
     let right_vis = format!("{}-{}/{} {}", top + 1, end, line_count, position).len();
 
     let left = if let Some(idx) = state.active_file() {
-        let path = state.doc.line_map.get(state.cursor_line).map_or("", |li| li.path.as_str());
-        format!("Single: {path} (file {}/{})", idx + 1, state.doc.file_count())
+        let path = state
+            .doc
+            .line_map
+            .get(state.cursor_line)
+            .map_or("", |li| li.path.as_str());
+        format!(
+            "Single: {path} (file {}/{})",
+            idx + 1,
+            state.doc.file_count()
+        )
     } else if state.mark_line.is_some() {
         "Mark set".to_string()
     } else {
@@ -185,12 +220,16 @@ pub(crate) fn resolve_lineno(
     hi: usize,
 ) -> (Option<u32>, Option<u32>) {
     let new_start = (lo..=hi).find_map(|i| line_map.get(i).and_then(|li| li.new_lineno));
-    let new_end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(|li| li.new_lineno));
+    let new_end = (lo..=hi)
+        .rev()
+        .find_map(|i| line_map.get(i).and_then(|li| li.new_lineno));
     if new_start.is_some() && new_end.is_some() {
         return (new_start, new_end);
     }
     let old_start = (lo..=hi).find_map(|i| line_map.get(i).and_then(|li| li.old_lineno));
-    let old_end = (lo..=hi).rev().find_map(|i| line_map.get(i).and_then(|li| li.old_lineno));
+    let old_end = (lo..=hi)
+        .rev()
+        .find_map(|i| line_map.get(i).and_then(|li| li.old_lineno));
     (old_start, old_end)
 }
 
@@ -215,7 +254,12 @@ pub(crate) fn render_content_area(
     let (vis_start, vis_end, _, max_top) = viewport_bounds(state, content_height);
     let top = state.top_line.clamp(vis_start, max_top);
 
-    let diff_w = diff_area_width(cols, state.tree_width, state.tree_visible, state.full_context);
+    let diff_w = diff_area_width(
+        cols,
+        state.tree_width,
+        state.tree_visible,
+        state.full_context,
+    );
     let show_scrollbar = state.full_context;
 
     for row in 0..content_height {
@@ -233,13 +277,23 @@ pub(crate) fn render_content_area(
                 if idx >= lo && idx <= hi && idx != state.cursor_line {
                     let vis_w = crate::ansi::visible_width(&line);
                     let pad = diff_w.saturating_sub(vis_w);
-                    line = format!("{}{line}{}{}", style::BG_VISUAL, " ".repeat(pad), style::RESET);
+                    line = format!(
+                        "{}{line}{}{}",
+                        style::BG_VISUAL,
+                        " ".repeat(pad),
+                        style::RESET
+                    );
                 }
             }
             if idx == state.cursor_line {
                 let vis_w = crate::ansi::visible_width(&line);
                 let pad = diff_w.saturating_sub(vis_w);
-                line = format!("{}{line}{}{}", style::BG_CURSOR, " ".repeat(pad), style::RESET);
+                line = format!(
+                    "{}{line}{}{}",
+                    style::BG_CURSOR,
+                    " ".repeat(pad),
+                    style::RESET
+                );
             }
             let _ = write!(out, "{CLEAR_LINE}{line}");
         } else {
@@ -247,7 +301,14 @@ pub(crate) fn render_content_area(
         }
 
         if show_scrollbar {
-            let cell = render_scrollbar_cell(row, content_height, vis_start, vis_end, top, &state.doc.line_map);
+            let cell = render_scrollbar_cell(
+                row,
+                content_height,
+                vis_start,
+                vis_end,
+                top,
+                &state.doc.line_map,
+            );
             let _ = write!(out, "{}\x1b[{}G{cell}", style::RESET, diff_w + 1);
         }
 
@@ -256,7 +317,10 @@ pub(crate) fn render_content_area(
             let _ = write!(
                 out,
                 "{}\x1b[{}G\x1b[K{}│{}",
-                style::RESET, tree_col, style::FG_SEP, style::RESET,
+                style::RESET,
+                tree_col,
+                style::FG_SEP,
+                style::RESET,
             );
             if let Some(tree_line) = state.tree_lines.get(state.tree_scroll + row) {
                 let _ = write!(out, "{tree_line}");
@@ -285,7 +349,11 @@ fn render_status_bar(out: &mut impl Write, state: &PagerState, cols: u16, row: u
     let _ = write!(
         out,
         "{}{}{}{}{}",
-        style::RESET, style::STATUS_BG, style::STATUS_FG, status, style::RESET
+        style::RESET,
+        style::STATUS_BG,
+        style::STATUS_FG,
+        status,
+        style::RESET
     );
 }
 

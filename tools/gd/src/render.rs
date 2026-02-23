@@ -1,7 +1,7 @@
 use similar::TextDiff;
 use tui::highlight::{
-    highlight_line, HighlightLines, SyntaxReference, SyntectSyntaxSet, SyntectTheme, SYNTAX_SET,
-    THEME,
+    HighlightLines, SYNTAX_SET, SyntaxReference, SyntectSyntaxSet, SyntectTheme, THEME,
+    highlight_line,
 };
 
 use crate::git::diff::{DiffFile, DiffHunk, FileStatus, LineKind};
@@ -37,7 +37,7 @@ struct HunkRenderContext<'a> {
     width: usize,
 }
 
-pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool) -> RenderOutput {
+pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
     let mut lines = Vec::new();
     let mut line_map = Vec::new();
     let mut file_starts = Vec::new();
@@ -53,30 +53,27 @@ pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool)
             FileStatus::Renamed => "Renamed",
             FileStatus::Untracked => "Untracked",
         };
-
-        // File header (omitted when tree panel serves as file index)
-        if !skip_headers {
-            let header = if color {
-                style::file_header(path, status_label, width)
-            } else {
-                let label = format!(" {path} ({status_label}) ");
-                let bar_len = width.saturating_sub(2 + label.len());
-                format!(
-                    "{}{}{}",
-                    "\u{2500}".repeat(2),
-                    label,
-                    "\u{2500}".repeat(bar_len)
-                )
-            };
-            lines.push(header);
-            line_map.push(LineInfo {
-                file_idx,
-                path: path.to_string(),
-                new_lineno: None,
-                old_lineno: None,
-                line_kind: None,
-            });
-        }
+        // File header
+        let header = if color {
+            style::file_header(path, status_label, width)
+        } else {
+            let label = format!(" {path} ({status_label}) ");
+            let bar_len = width.saturating_sub(2 + label.len());
+            format!(
+                "{}{}{}",
+                "\u{2500}".repeat(2),
+                label,
+                "\u{2500}".repeat(bar_len)
+            )
+        };
+        lines.push(header);
+        line_map.push(LineInfo {
+            file_idx,
+            path: path.to_string(),
+            new_lineno: None,
+            old_lineno: None,
+            line_kind: None,
+        });
 
         // Syntax highlighter for this file's extension
         let syntax = SYNTAX_SET
@@ -102,18 +99,6 @@ pub fn render(files: &[DiffFile], width: usize, color: bool, skip_headers: bool)
 
             // Render diff lines with word-level highlights
             render_hunk_lines(hunk, &render_ctx, &mut lines, &mut line_map);
-        }
-
-        // Blank line between files
-        if file_idx + 1 < files.len() {
-            lines.push(String::new());
-            line_map.push(LineInfo {
-                file_idx,
-                path: path.to_string(),
-                new_lineno: None,
-                old_lineno: None,
-                line_kind: None,
-            });
         }
     }
 
@@ -384,8 +369,18 @@ fn render_hunk_lines(
         };
 
         let (marker, line_bg, word_bg, marker_color) = match diff_line.kind {
-            LineKind::Added => ("+", style::BG_ADDED, style::BG_ADDED_WORD, style::FG_ADDED_MARKER),
-            LineKind::Deleted => ("-", style::BG_DELETED, style::BG_DELETED_WORD, style::FG_DELETED_MARKER),
+            LineKind::Added => (
+                "+",
+                style::BG_ADDED,
+                style::BG_ADDED_WORD,
+                style::FG_ADDED_MARKER,
+            ),
+            LineKind::Deleted => (
+                "-",
+                style::BG_DELETED,
+                style::BG_DELETED_WORD,
+                style::FG_DELETED_MARKER,
+            ),
             LineKind::Context => (" ", "", "", ""),
         };
 
@@ -577,7 +572,7 @@ diff --git a/foo.rs b/foo.rs
  line3
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_snapshot!(strip(&output.lines));
     }
 
@@ -598,7 +593,7 @@ diff --git a/b.txt b/b.txt
 -remove
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_snapshot!(strip(&output.lines));
     }
 
@@ -620,7 +615,7 @@ diff --git a/foo.rs b/foo.rs
  line12
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_snapshot!(strip(&output.lines));
     }
 
@@ -638,14 +633,14 @@ diff --git a/foo.txt b/foo.txt
 "
         );
         let files = diff::parse(&raw);
-        let output = render(&files, 40, false, false);
+        let output = render(&files, 40, false);
         assert_snapshot!(strip(&output.lines));
     }
 
     #[test]
     fn snapshot_untracked_file() {
         let file = diff::DiffFile::from_content("new.rs", "hello\nworld\n");
-        let output = render(&[file], 80, false, false);
+        let output = render(&[file], 80, false);
         assert_snapshot!(strip(&output.lines));
     }
 
@@ -661,7 +656,7 @@ diff --git a/f.rs b/f.rs
  more
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_debug_snapshot!(output.line_map);
     }
 
@@ -678,7 +673,7 @@ diff --git a/foo.rs b/foo.rs
  line3
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         // File header + 4 diff lines (no hunk header)
         assert_eq!(output.lines.len(), 5);
@@ -710,7 +705,7 @@ diff --git a/b.txt b/b.txt
 -remove
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         assert_eq!(output.file_starts.len(), 2);
         assert_eq!(output.hunk_starts.len(), 2);
@@ -720,6 +715,30 @@ diff --git a/b.txt b/b.txt
         assert_eq!(first_file_info.path, "a.txt");
         let second_file_info = &output.line_map[output.file_starts[1]];
         assert_eq!(second_file_info.path, "b.txt");
+    }
+
+    #[test]
+    fn render_multi_file_with_headers_has_no_blank_separator_line() {
+        let raw = "\
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1,1 +1,2 @@
+ first
++second
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1,2 +1,1 @@
+ keep
+-remove
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false);
+        assert!(
+            !output.lines.iter().any(std::string::String::is_empty),
+            "all-files mode should not insert blank lines between file headers"
+        );
     }
 
     #[test]
@@ -740,7 +759,7 @@ diff --git a/foo.rs b/foo.rs
  line12
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         assert_eq!(output.hunk_starts.len(), 2);
     }
@@ -757,7 +776,7 @@ diff --git a/f.rs b/f.rs
  more
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         // Find the added line's info
         let added_info = output
@@ -779,7 +798,7 @@ diff --git a/foo.txt b/foo.txt
 +added line
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, true, false);
+        let output = render(&files, 80, true);
 
         // Find the added line (after file header, context)
         let added = &output.lines[2];
@@ -789,7 +808,8 @@ diff --git a/foo.txt b/foo.txt
         // The full RESET (\x1b[0m) should only appear at the very end of the line,
         // not between the marker and content or between syntax tokens
         let content_area = added.split(style::BG_ADDED).last().unwrap_or(added);
-        let mid_section = &content_area[..content_area.rfind("\x1b[0m").unwrap_or(content_area.len())];
+        let mid_section =
+            &content_area[..content_area.rfind("\x1b[0m").unwrap_or(content_area.len())];
         assert!(
             !mid_section.contains("\x1b[0m"),
             "full RESET should not appear mid-line (kills bg): {mid_section:?}"
@@ -829,7 +849,7 @@ diff --git a/foo.txt b/foo.txt
         let files = diff::parse(&raw);
         // Narrow width forces wrapping: gutter(12) + marker(1) + avail
         let width = 40;
-        let output = render(&files, width, false, false);
+        let output = render(&files, width, false);
 
         // Should produce more lines than the 3 logical lines (header, ctx, added)
         assert!(
@@ -888,13 +908,17 @@ diff --git a/foo.txt b/foo.txt
 
         // The insertion is `, description: "Select the application"`
         // which starts right after the `]` in the added line
-        assert_eq!(add_hl[0].len(), 1, "added line should have exactly one highlight range, got: {:?}", add_hl[0]);
+        assert_eq!(
+            add_hl[0].len(),
+            1,
+            "added line should have exactly one highlight range, got: {:?}",
+            add_hl[0]
+        );
         let (start, end) = add_hl[0][0];
         let added = &hunk.lines[1].content;
         let highlighted = &added[start..end];
         assert_eq!(
-            highlighted,
-            r#", description: "Select the application""#,
+            highlighted, r#", description: "Select the application""#,
             "should highlight only the inserted portion"
         );
     }
@@ -910,7 +934,7 @@ diff --git a/a.rs b/a.rs
 +added
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_eq!(output.file_starts.len(), 1);
         assert_eq!(output.file_starts[0], 0);
     }
@@ -932,9 +956,12 @@ diff --git a/b.rs b/b.rs
 +added2
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_eq!(output.file_starts.len(), 2);
-        assert!(output.file_starts[1] > 0, "second file should start after line 0");
+        assert!(
+            output.file_starts[1] > 0,
+            "second file should start after line 0"
+        );
     }
 
     #[test]
@@ -955,9 +982,12 @@ diff --git a/foo.rs b/foo.rs
  line12
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_eq!(output.hunk_starts.len(), 2);
-        assert!(output.hunk_starts[0] < output.hunk_starts[1], "hunk starts should be ordered");
+        assert!(
+            output.hunk_starts[0] < output.hunk_starts[1],
+            "hunk starts should be ordered"
+        );
     }
 
     #[test]
@@ -972,7 +1002,7 @@ diff --git a/a.rs b/a.rs
  more
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         assert_eq!(output.lines.len(), output.line_map.len());
     }
 
@@ -988,15 +1018,28 @@ diff --git a/a.rs b/a.rs
 -old
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
         // File header (index 0) should have None line_kind
-        assert!(output.line_map[0].line_kind.is_none(), "file header should have None line_kind");
+        assert!(
+            output.line_map[0].line_kind.is_none(),
+            "file header should have None line_kind"
+        );
         // Content lines should have Some(_)
-        let content_lines: Vec<_> = output.line_map.iter().filter(|li| li.line_kind.is_some()).collect();
-        assert!(!content_lines.is_empty(), "should have content lines with Some line_kind");
+        let content_lines: Vec<_> = output
+            .line_map
+            .iter()
+            .filter(|li| li.line_kind.is_some())
+            .collect();
+        assert!(
+            !content_lines.is_empty(),
+            "should have content lines with Some line_kind"
+        );
         for li in &content_lines {
             assert!(
-                matches!(li.line_kind, Some(LineKind::Added | LineKind::Deleted | LineKind::Context)),
+                matches!(
+                    li.line_kind,
+                    Some(LineKind::Added | LineKind::Deleted | LineKind::Context)
+                ),
                 "content lines should be Added, Deleted, or Context"
             );
         }
@@ -1005,7 +1048,7 @@ diff --git a/a.rs b/a.rs
     #[test]
     fn render_untracked_file_shows_status_label() {
         let file = diff::DiffFile::from_content("new.rs", "hello\n");
-        let output = render(&[file], 80, false, false);
+        let output = render(&[file], 80, false);
         let header = &output.lines[0];
         assert!(
             header.contains("Untracked"),
@@ -1026,7 +1069,7 @@ diff --git a/foo.rs b/foo.rs
  line3
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         for line in &output.lines {
             assert!(
@@ -1049,9 +1092,12 @@ diff --git a/foo.rs b/foo.rs
  line3
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
-        assert!(!output.hunk_starts.is_empty(), "should have at least one hunk_start");
+        assert!(
+            !output.hunk_starts.is_empty(),
+            "should have at least one hunk_start"
+        );
         let hs = output.hunk_starts[0];
         // Must be past the file header
         assert!(
@@ -1085,134 +1131,13 @@ diff --git a/foo.rs b/foo.rs
  line12
 ";
         let files = diff::parse(raw);
-        let output = render(&files, 80, false, false);
+        let output = render(&files, 80, false);
 
         assert_eq!(output.hunk_starts.len(), 2, "should have two hunks");
         for (i, &hs) in output.hunk_starts.iter().enumerate() {
             assert!(
                 output.line_map[hs].line_kind.is_some(),
                 "hunk_starts[{i}]={hs} should point at a content line with Some(line_kind), got {:?}",
-                output.line_map[hs].line_kind
-            );
-        }
-    }
-
-    #[test]
-    fn snapshot_single_file_skip_headers() {
-        let raw = "\
-diff --git a/foo.rs b/foo.rs
---- a/foo.rs
-+++ b/foo.rs
-@@ -1,3 +1,4 @@
- line1
-+added
- line2
- line3
-";
-        let files = diff::parse(raw);
-        let output = render(&files, 80, false, true);
-        let stripped = strip(&output.lines);
-        // No box-drawing characters (file headers use \u{2500})
-        assert!(
-            !stripped.contains('\u{2500}'),
-            "skip_headers output should contain no box-drawing header characters"
-        );
-        // Content lines still present
-        assert!(stripped.contains("added"), "content lines should still be present");
-        assert!(stripped.contains("line1"), "context lines should still be present");
-        assert_snapshot!(stripped);
-    }
-
-    #[test]
-    fn snapshot_multi_file_skip_headers() {
-        let raw = "\
-diff --git a/a.txt b/a.txt
---- a/a.txt
-+++ b/a.txt
-@@ -1,1 +1,2 @@
- first
-+second
-diff --git a/b.txt b/b.txt
---- a/b.txt
-+++ b/b.txt
-@@ -1,2 +1,1 @@
- keep
--remove
-";
-        let files = diff::parse(raw);
-        let output = render(&files, 80, false, true);
-        let stripped = strip(&output.lines);
-        // No file header lines
-        assert!(
-            !stripped.contains('\u{2500}'),
-            "skip_headers output should contain no file header characters"
-        );
-        // Blank separator between files still present
-        assert!(
-            output.lines.iter().any(std::string::String::is_empty),
-            "blank separator between files should still be present"
-        );
-        // All content from both files
-        assert!(stripped.contains("first"), "first file content present");
-        assert!(stripped.contains("second"), "first file added line present");
-        assert!(stripped.contains("keep"), "second file content present");
-        assert!(stripped.contains("remove"), "second file deleted line present");
-        assert_snapshot!(stripped);
-    }
-
-    #[test]
-    fn file_starts_with_skip_headers() {
-        let raw = "\
-diff --git a/a.txt b/a.txt
---- a/a.txt
-+++ b/a.txt
-@@ -1,1 +1,2 @@
- first
-+second
-diff --git a/b.txt b/b.txt
---- a/b.txt
-+++ b/b.txt
-@@ -1,2 +1,1 @@
- keep
--remove
-";
-        let files = diff::parse(raw);
-        let output = render(&files, 80, false, true);
-        assert_eq!(output.file_starts.len(), 2);
-        // Both file_starts should point at content lines (line_kind is Some)
-        for (i, &fs) in output.file_starts.iter().enumerate() {
-            assert!(
-                output.line_map[fs].line_kind.is_some(),
-                "file_starts[{i}]={fs} should point at a content line, got {:?}",
-                output.line_map[fs].line_kind
-            );
-        }
-    }
-
-    #[test]
-    fn hunk_starts_unchanged_with_skip_headers() {
-        let raw = "\
-diff --git a/foo.rs b/foo.rs
---- a/foo.rs
-+++ b/foo.rs
-@@ -1,3 +1,4 @@
- line1
-+added1
- line2
- line3
-@@ -10,3 +11,4 @@
- line10
-+added2
- line11
- line12
-";
-        let files = diff::parse(raw);
-        let output = render(&files, 80, false, true);
-        assert_eq!(output.hunk_starts.len(), 2, "should have two hunks");
-        for (i, &hs) in output.hunk_starts.iter().enumerate() {
-            assert!(
-                output.line_map[hs].line_kind.is_some(),
-                "hunk_starts[{i}]={hs} should point at a content line, got {:?}",
                 output.line_map[hs].line_kind
             );
         }
@@ -1366,7 +1291,7 @@ diff --git a/foo.txt b/foo.txt
         );
         let files = diff::parse(&raw);
         let width = 40;
-        let output = render(&files, width, true, false);
+        let output = render(&files, width, true);
 
         // Find continuation lines — they have blank gutter (no line numbers)
         // and contain 'x' from the long content
@@ -1375,7 +1300,10 @@ diff --git a/foo.txt b/foo.txt
             .iter()
             .position(|l| crate::ansi::strip_ansi(l).contains('+'))
             .expect("should find added line");
-        let cont_lines: Vec<_> = output.lines.iter().skip(first_added + 1)
+        let cont_lines: Vec<_> = output
+            .lines
+            .iter()
+            .skip(first_added + 1)
             .filter(|l| {
                 let s = crate::ansi::strip_ansi(l);
                 // Continuation lines have blank gutter (starts with spaces before │)
