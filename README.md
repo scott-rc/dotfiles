@@ -41,7 +41,7 @@ Configuration directories symlinked to their expected locations:
 | `bat/` | `~/.config/bat` |
 | `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
 | `codex/` | `~/.codex/config.toml`, `~/.codex/rules/default.rules` |
-| `AGENTS.md` | `~/.codex/AGENTS.md` (Codex instructions that defer to Claude sources) |
+| `configs/claude/CLAUDE.md` | `~/.codex/AGENTS.md` (Codex global AGENTS guidance) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
 | `direnv/` | `~/.config/direnv/direnv.toml` |
 | `fish/` | `~/.config/fish/` |
@@ -231,7 +231,7 @@ Custom CLI tools.
 - `~/.codex/skills/<skill>` → `configs/claude/skills/<skill>`
 - `~/.agents/skills/<skill>` → `configs/claude/skills/<skill>`
 
-`AGENTS.md` is symlinked to `~/.codex/AGENTS.md` (listed in the `configs/` table above). This keeps `configs/claude/skills/*` and `configs/claude/rules/*` as the single source of truth for shared skill and rule content.
+`configs/claude/CLAUDE.md` is symlinked to `~/.codex/AGENTS.md` (listed in the `configs/` table above). This keeps shared Codex guidance in the same Claude-authored source of truth.
 
 Codex runtime/session files remain machine-local and are not source-controlled: `~/.codex/auth.json`, `~/.codex/history.jsonl`, `~/.codex/log/`, `~/.codex/models_cache.json`, `~/.codex/sessions/`, `~/.codex/shell_snapshots/`, `~/.codex/tmp/`, and `~/.codex/version.json`.
 

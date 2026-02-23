@@ -191,8 +191,8 @@ ensure_symlink "$CONFIGS/claude/rules" "$HOME/.claude/rules"
 
 # --- Codex ---
 
-# Make Codex use repo-scoped instructions that defer to Claude-owned guidance.
-ensure_symlink "$WORKSPACE_ROOT/AGENTS.md" "$HOME/.codex/AGENTS.md"
+# Make Codex use global guidance from the Claude-owned source file.
+ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.codex/AGENTS.md"
 ensure_symlink "$CONFIGS/codex/config.toml" "$HOME/.codex/config.toml"
 ensure_symlink "$CONFIGS/codex/rules/default.rules" "$HOME/.codex/rules/default.rules"
 

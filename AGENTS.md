@@ -1,7 +1,6 @@
 # AGENTS.md
 
 @CLAUDE.md
-@configs/claude/CLAUDE.md
 
 ## Authority
 
