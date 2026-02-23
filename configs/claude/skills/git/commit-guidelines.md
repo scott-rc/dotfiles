@@ -22,6 +22,12 @@ Separate title and body with a blank line. The body is optional for trivial chan
 - MUST write prose, not bullets (unless listing genuinely unrelated items)
 - Use backticks for code: function names, variables, file paths, flags, etc.
 
+## Shell-Safe Application
+
+- For title-only commits, inline `git commit -m "<title>"` is acceptable.
+- For any multi-line commit message, MUST write the full message to a temp file and use `git commit -F <file>` (or `git commit --amend -F <file>`).
+- MUST NOT pass multi-line messages through repeated inline `-m` arguments, because shell interpolation can corrupt content (especially backticks).
+
 ## Examples
 
 **Feature addition** (title + body):

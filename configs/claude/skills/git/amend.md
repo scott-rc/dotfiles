@@ -34,7 +34,22 @@ Fold outstanding changes into the last commit.
    - Compare against the pre-amend file set from step 3
    - If the file sets are identical: keep the original message, skip to step 7
    - If files were added or removed: draft a new message per [commit-guidelines.md](commit-guidelines.md), present both via AskUserQuestion: the proposed new message and "Keep original message"
-   - Apply with `git commit --amend -m "<message>"` if the user picks the new one
+   - If the user picks the new message:
+     - For title-only updates, inline `-m` is acceptable:
+       ```bash
+       git commit --amend -m "<title>"
+       ```
+     - For any multi-line message (or any message containing shell-significant characters like backticks), MUST write the message to a temp file and apply with `-F`:
+       ```bash
+       cat > ./.tmp-amend-msg.txt <<'EOF'
+       <title>
+       
+       <body>
+       EOF
+       git commit --amend -F ./.tmp-amend-msg.txt
+       rm ./.tmp-amend-msg.txt
+       ```
+   - MUST NOT pass multi-line amend messages via inline `-m` arguments.
 
 7. **Push if already pushed**:
    - Check if a remote tracking branch exists:

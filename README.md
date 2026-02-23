@@ -233,6 +233,8 @@ Custom CLI tools.
 
 `configs/claude/CLAUDE.md` is symlinked to `~/.codex/AGENTS.md` (listed in the `configs/` table above). This keeps shared Codex guidance in the same Claude-authored source of truth.
 
+Codex is configured with `approval_policy = "on-request"` in `configs/codex/config.toml`, which keeps routine work unblocked while still asking before higher-risk operations.
+
 Codex runtime/session files remain machine-local and are not source-controlled: `~/.codex/auth.json`, `~/.codex/history.jsonl`, `~/.codex/log/`, `~/.codex/models_cache.json`, `~/.codex/sessions/`, `~/.codex/shell_snapshots/`, `~/.codex/tmp/`, and `~/.codex/version.json`.
 
 ## Useful Commands

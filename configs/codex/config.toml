@@ -1,6 +1,6 @@
 model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
-approval_policy = "untrusted"
+approval_policy = "on-request"
 sandbox_mode = "danger-full-access"
 web_search = "live"
 

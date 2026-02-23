@@ -19,6 +19,21 @@ Commit outstanding changes with a well-formatted message.
    - If mixed changes: group files by logical change and present groups as AskUserQuestion options, then `git add <files>`
 
 4. **Create commit** following [commit-guidelines.md](commit-guidelines.md)
+   - For title-only commits, inline `-m` is acceptable:
+     ```bash
+     git commit -m "<title>"
+     ```
+   - For any multi-line message (or any message containing shell-significant characters like backticks), MUST write the message to a temp file and commit with `-F`:
+     ```bash
+     cat > ./.tmp-commit-msg.txt <<'EOF'
+     <title>
+     
+     <body>
+     EOF
+     git commit -F ./.tmp-commit-msg.txt
+     rm ./.tmp-commit-msg.txt
+     ```
+   - MUST NOT pass multi-line commit messages via inline `-m` arguments.
 
 5. **If commit fails due to a pre-commit hook**: read the error output, fix the issue, re-stage changes, and retry the commit. MUST NOT use `--no-verify`.
 
