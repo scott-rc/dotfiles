@@ -1,11 +1,13 @@
 use std::io::Write;
 
 use tui::pager::{CLEAR_LINE, move_to};
+use tui::search::max_scroll;
 
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
 use crate::style;
 
+use super::keymap::keymap_tooltip_lines;
 use super::state::{PagerState, visible_range};
 use super::text::clamp_cursor_to_boundary;
 use super::types::Mode;
@@ -109,15 +111,29 @@ pub(crate) fn content_height(rows: u16, state: &PagerState) -> usize {
 }
 
 pub(crate) fn format_tooltip_lines(cols: usize) -> Vec<String> {
-    let raw = [
-        "j/k scroll  d/u page  g/G top/bot  z center  ]/[ hunk  }/{ file",
-        "s single  o context  l tree  / search  n/N match  m mark  y yank  e edit  q quit",
-    ];
-    raw.iter()
+    fn truncate_to_chars(s: &str, max_chars: usize) -> &str {
+        if s.chars().count() <= max_chars {
+            return s;
+        }
+        let byte_idx = s
+            .char_indices()
+            .nth(max_chars)
+            .map_or(s.len(), |(idx, _)| idx);
+        &s[..byte_idx]
+    }
+
+    keymap_tooltip_lines()
+        .iter()
         .map(|line| {
-            let vis = line.chars().count();
+            let clipped = truncate_to_chars(line, cols.saturating_sub(1));
+            let vis = clipped.chars().count();
             let pad = cols.saturating_sub(vis + 1);
-            format!(" {}{line}{}{}", style::DIM, " ".repeat(pad), style::NO_DIM)
+            format!(
+                " {}{clipped}{}{}",
+                style::DIM,
+                " ".repeat(pad),
+                style::NO_DIM
+            )
         })
         .collect()
 }
@@ -161,7 +177,6 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
     }
 
     // Position indicator
-    use tui::search::max_scroll;
     let line_count = state.doc.line_count();
     let max_top = max_scroll(line_count, content_height);
     let top = state.top_line.min(max_top);

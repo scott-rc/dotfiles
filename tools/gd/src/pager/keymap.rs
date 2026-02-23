@@ -14,12 +14,11 @@ struct KeymapEntry {
 }
 
 fn keymap_entries() -> &'static [KeymapEntry] {
-    use ActionId::*;
     use HelpGroup::{DiffNav, Navigation, Other, Selection};
     use KeyContext::Normal;
     static ENTRIES: &[KeymapEntry] = &[
         KeymapEntry {
-            action: ScrollDown,
+            action: ActionId::ScrollDown,
             context: Normal,
             keys: &[Key::Char('j'), Key::Down, Key::Enter],
             group: Navigation,
@@ -27,7 +26,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Scroll down",
         },
         KeymapEntry {
-            action: ScrollUp,
+            action: ActionId::ScrollUp,
             context: Normal,
             keys: &[Key::Char('k'), Key::Up],
             group: Navigation,
@@ -35,7 +34,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Scroll up",
         },
         KeymapEntry {
-            action: HalfPageDown,
+            action: ActionId::HalfPageDown,
             context: Normal,
             keys: &[Key::Char('d')],
             group: Navigation,
@@ -43,7 +42,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Half page down",
         },
         KeymapEntry {
-            action: HalfPageUp,
+            action: ActionId::HalfPageUp,
             context: Normal,
             keys: &[Key::Char('u')],
             group: Navigation,
@@ -51,7 +50,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Half page up",
         },
         KeymapEntry {
-            action: Top,
+            action: ActionId::Top,
             context: Normal,
             keys: &[Key::Char('g'), Key::Home],
             group: Navigation,
@@ -59,7 +58,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Top",
         },
         KeymapEntry {
-            action: Bottom,
+            action: ActionId::Bottom,
             context: Normal,
             keys: &[Key::Char('G'), Key::End],
             group: Navigation,
@@ -67,7 +66,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Bottom",
         },
         KeymapEntry {
-            action: CenterViewport,
+            action: ActionId::CenterViewport,
             context: Normal,
             keys: &[Key::Char('z')],
             group: Navigation,
@@ -75,7 +74,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Center viewport",
         },
         KeymapEntry {
-            action: NextHunk,
+            action: ActionId::NextHunk,
             context: Normal,
             keys: &[Key::Char(']')],
             group: DiffNav,
@@ -83,7 +82,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Next hunk",
         },
         KeymapEntry {
-            action: PrevHunk,
+            action: ActionId::PrevHunk,
             context: Normal,
             keys: &[Key::Char('[')],
             group: DiffNav,
@@ -91,7 +90,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Previous hunk",
         },
         KeymapEntry {
-            action: NextFile,
+            action: ActionId::NextFile,
             context: Normal,
             keys: &[Key::Char('}')],
             group: DiffNav,
@@ -99,7 +98,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Next file",
         },
         KeymapEntry {
-            action: PrevFile,
+            action: ActionId::PrevFile,
             context: Normal,
             keys: &[Key::Char('{')],
             group: DiffNav,
@@ -107,7 +106,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Previous file",
         },
         KeymapEntry {
-            action: ToggleSingleFile,
+            action: ActionId::ToggleSingleFile,
             context: Normal,
             keys: &[Key::Char('s')],
             group: DiffNav,
@@ -115,7 +114,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Toggle single file",
         },
         KeymapEntry {
-            action: ToggleFullContext,
+            action: ActionId::ToggleFullContext,
             context: Normal,
             keys: &[Key::Char('o')],
             group: DiffNav,
@@ -131,7 +130,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Search",
         },
         KeymapEntry {
-            action: SearchSubmit,
+            action: ActionId::SearchSubmit,
             context: KeyContext::Search,
             keys: &[Key::Enter],
             group: HelpGroup::Search,
@@ -139,7 +138,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Apply search",
         },
         KeymapEntry {
-            action: SearchCancel,
+            action: ActionId::SearchCancel,
             context: KeyContext::Search,
             keys: &[Key::Escape, Key::CtrlC],
             group: HelpGroup::Search,
@@ -147,7 +146,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Cancel search",
         },
         KeymapEntry {
-            action: NextMatch,
+            action: ActionId::NextMatch,
             context: Normal,
             keys: &[Key::Char('n')],
             group: HelpGroup::Search,
@@ -155,7 +154,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Next match",
         },
         KeymapEntry {
-            action: PrevMatch,
+            action: ActionId::PrevMatch,
             context: Normal,
             keys: &[Key::Char('N')],
             group: HelpGroup::Search,
@@ -163,7 +162,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Previous match",
         },
         KeymapEntry {
-            action: ToggleTree,
+            action: ActionId::ToggleTree,
             context: Normal,
             keys: &[Key::Char('l')],
             group: Other,
@@ -171,7 +170,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Toggle tree panel",
         },
         KeymapEntry {
-            action: SetMark,
+            action: ActionId::SetMark,
             context: Normal,
             keys: &[Key::Char('m')],
             group: Selection,
@@ -179,7 +178,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Set mark",
         },
         KeymapEntry {
-            action: YankToMark,
+            action: ActionId::YankToMark,
             context: Normal,
             keys: &[Key::Char('y')],
             group: Selection,
@@ -187,7 +186,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Copy mark..cursor",
         },
         KeymapEntry {
-            action: OpenEditor,
+            action: ActionId::OpenEditor,
             context: Normal,
             keys: &[Key::Char('e')],
             group: Other,
@@ -195,7 +194,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Open in editor",
         },
         KeymapEntry {
-            action: Quit,
+            action: ActionId::Quit,
             context: Normal,
             keys: &[Key::Char('q'), Key::CtrlC],
             group: Other,
@@ -203,7 +202,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Quit",
         },
         KeymapEntry {
-            action: ToggleTooltip,
+            action: ActionId::ToggleTooltip,
             context: Normal,
             keys: &[Key::Char('?')],
             group: Other,
@@ -223,6 +222,97 @@ pub(crate) fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
     None
 }
 
+fn keymap_entry(action: ActionId, context: KeyContext) -> Option<&'static KeymapEntry> {
+    keymap_entries()
+        .iter()
+        .find(|e| e.action == action && e.context == context)
+}
+
+fn first_key_from_display(display: &str) -> &str {
+    display.split('/').next().unwrap_or(display)
+}
+
+fn tooltip_pair(
+    first: ActionId,
+    second: ActionId,
+    label: &str,
+    context: KeyContext,
+) -> Option<String> {
+    let a = keymap_entry(first, context)?;
+    let b = keymap_entry(second, context)?;
+    debug_assert_eq!(a.group, b.group);
+    Some(format!(
+        "{}/{} {label}",
+        first_key_from_display(a.key_display),
+        first_key_from_display(b.key_display)
+    ))
+}
+
+fn compact_label(label: &str) -> String {
+    match label {
+        "Center viewport" => "center".to_string(),
+        "Toggle single file" => "single".to_string(),
+        "Toggle full file context" => "context".to_string(),
+        "Toggle tree panel" => "tree".to_string(),
+        "Search" => "search".to_string(),
+        "Set mark" => "mark".to_string(),
+        "Copy mark..cursor" => "yank".to_string(),
+        "Open in editor" => "edit".to_string(),
+        "Quit" => "quit".to_string(),
+        _ => label.to_ascii_lowercase(),
+    }
+}
+
+fn tooltip_single(action: ActionId, context: KeyContext) -> Option<String> {
+    let entry = keymap_entry(action, context)?;
+    let label = compact_label(entry.label);
+    Some(format!(
+        "{} {label}",
+        first_key_from_display(entry.key_display)
+    ))
+}
+
+pub(crate) fn keymap_tooltip_lines() -> [String; 2] {
+    let context = KeyContext::Normal;
+
+    let line1 = [
+        tooltip_pair(ActionId::ScrollDown, ActionId::ScrollUp, "scroll", context),
+        tooltip_pair(
+            ActionId::HalfPageDown,
+            ActionId::HalfPageUp,
+            "page",
+            context,
+        ),
+        tooltip_pair(ActionId::Top, ActionId::Bottom, "top/bot", context),
+        tooltip_single(ActionId::CenterViewport, context),
+        tooltip_pair(ActionId::NextHunk, ActionId::PrevHunk, "hunk", context),
+        tooltip_pair(ActionId::NextFile, ActionId::PrevFile, "file", context),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<String>>()
+    .join("  ");
+
+    let line2 = [
+        tooltip_single(ActionId::ToggleSingleFile, context),
+        tooltip_single(ActionId::ToggleFullContext, context),
+        tooltip_single(ActionId::ToggleTree, context),
+        tooltip_single(ActionId::Search, context),
+        tooltip_pair(ActionId::NextMatch, ActionId::PrevMatch, "match", context),
+        tooltip_single(ActionId::SetMark, context),
+        tooltip_single(ActionId::YankToMark, context),
+        tooltip_single(ActionId::OpenEditor, context),
+        tooltip_single(ActionId::Quit, context),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<String>>()
+    .join("  ");
+
+    [line1, line2]
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn keymap_help_lines() -> Vec<String> {
     use HelpGroup::{DiffNav, Navigation, Other, Search, Selection};
     use std::collections::HashSet;

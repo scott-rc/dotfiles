@@ -207,7 +207,7 @@ fn enforce_scrolloff_cursor_at_range_boundaries() {
 
 #[test]
 fn render_scrollbar_cell_thumb_vs_track() {
-    let map = make_line_map(&vec![Some(LineKind::Context); 100]);
+    let map = make_line_map(&[Some(LineKind::Context); 100]);
     let ch = 20;
     let (vis_start, vis_end) = (0, 100);
     let top = 0;
@@ -327,6 +327,19 @@ fn format_tooltip_lines_contains_key_hints() {
     let stripped = strip(&joined);
     assert!(stripped.contains("j/k"), "tooltip should mention j/k");
     assert!(stripped.contains("quit"), "tooltip should mention quit");
+}
+
+#[test]
+fn format_tooltip_lines_narrow_width_is_visible_width_safe() {
+    let cols = 20usize;
+    let lines = format_tooltip_lines(cols);
+    for line in lines {
+        let visible = strip(&line);
+        assert!(
+            visible.chars().count() <= cols,
+            "tooltip line visible width must be <= cols: {visible:?}"
+        );
+    }
 }
 
 // -- render_content_area --

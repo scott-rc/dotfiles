@@ -1,6 +1,8 @@
 //! Keymap and help tests.
 
-use super::super::keymap::{keymap_help_lines, keymap_lookup};
+use std::collections::HashSet;
+
+use super::super::keymap::{keymap_help_lines, keymap_lookup, keymap_tooltip_lines};
 use super::super::types::{ActionId, KeyContext};
 
 #[test]
@@ -182,4 +184,58 @@ fn help_groups_are_present() {
     ] {
         assert!(joined.contains(group), "help must include group: {group:?}");
     }
+}
+
+#[test]
+fn keymap_tooltip_lines_has_expected_shape() {
+    let lines = keymap_tooltip_lines();
+    assert_eq!(lines.len(), 2, "tooltip should have two lines");
+    for line in lines {
+        assert!(!line.trim().is_empty(), "tooltip lines must be non-empty");
+        let segments: Vec<&str> = line.split("  ").collect();
+        let unique: HashSet<&str> = segments.iter().copied().collect();
+        assert_eq!(
+            unique.len(),
+            segments.len(),
+            "tooltip line should not duplicate segments: {line:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_tooltip_lines_uses_primary_keys() {
+    let joined = keymap_tooltip_lines().join(" ");
+    for token in ["j/k scroll", "]/[ hunk", "}/{ file", "n/N match"] {
+        assert!(
+            joined.contains(token),
+            "tooltip should use primary key token: {token:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_tooltip_lines_tracks_runtime_actions() {
+    let joined = keymap_tooltip_lines().join(" ");
+    for token in [
+        "scroll", "page", "top/bot", "center", "hunk", "file", "single", "context", "tree",
+        "search", "match", "mark", "yank", "edit", "quit",
+    ] {
+        assert!(
+            joined.contains(token),
+            "tooltip should include runtime token: {token:?}"
+        );
+    }
+}
+
+#[test]
+fn keymap_tooltip_lines_excludes_search_only_bindings() {
+    let joined = keymap_tooltip_lines().join(" ");
+    assert!(
+        !joined.contains("Enter"),
+        "tooltip should not include search-only Enter binding"
+    );
+    assert!(
+        !joined.contains("Esc"),
+        "tooltip should not include search-only Esc binding"
+    );
 }

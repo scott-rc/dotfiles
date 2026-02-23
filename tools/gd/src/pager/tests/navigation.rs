@@ -405,7 +405,7 @@ fn test_sync_tree_cursor_collapsed_parent_lands_on_directory() {
 
     let line_map: Vec<LineInfo> = (0..10)
         .map(|i| LineInfo {
-            file_idx: if i < 5 { 0 } else { 1 },
+            file_idx: usize::from(i >= 5),
             path: if i < 5 { "src/a.rs" } else { "src/b.rs" }.into(),
             new_lineno: Some(i as u32 + 1),
             old_lineno: None,
