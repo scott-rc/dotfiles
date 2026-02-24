@@ -9,10 +9,9 @@
       "lineCount": 23,
       "containsLines": [
         "Navigation",
-        "j/↓/Enter  Scroll down",
-        "C          Copy absolute path",
-        "p          Toggle plain/pretty",
-        "r          Reload file"
+        "Tab        Next link",
+        "Enter      Follow link / scroll down",
+        "c/C/y/e/v/p/r  Copy/edit/toggle"
       ],
       "allLineWidth": 80
     }
@@ -27,7 +26,7 @@
       "lineCount": 23,
       "containsLines": [
         "Navigation",
-        "r          Reload file"
+        "q          Quit"
       ],
       "allLineWidth": 40
     }

@@ -146,7 +146,9 @@ impl Style {
     }
 
     pub fn link_text(&self, s: &str) -> String {
-        if self.color {
+        if self.color && self.pretty {
+            underline(&rgb24(s, LINK_BLUE))
+        } else if self.color {
             underline(&rgb24(s, FOREGROUND))
         } else {
             s.to_string()
@@ -158,6 +160,16 @@ impl Style {
             italic(&underline(&rgb24(s, LINK_BLUE)))
         } else {
             s.to_string()
+        }
+    }
+
+    /// Wrap `visible` text in an OSC 8 hyperlink to `url`.
+    /// Only emits the escape sequence when color is enabled.
+    pub fn osc8_link(&self, url: &str, visible: &str) -> String {
+        if self.color {
+            format!("\x1b]8;;{url}\x07{visible}\x1b]8;;\x07")
+        } else {
+            visible.to_string()
         }
     }
 
@@ -394,6 +406,20 @@ mod tests {
         let result = style.link_text("example");
         assert!(result.contains(&rgb24_sequence(fg)));
         assert!(result.contains("\x1b[4m"));
+        assert_eq!(strip_ansi(&result), "example");
+    }
+
+    #[test]
+    fn test_link_text_pretty_blue() {
+        let palette = load_palette();
+        let blue = parse_hex(&palette["LINK_BLUE"]);
+        let style = Style::new(true, true);
+        let result = style.link_text("example");
+        assert!(
+            result.contains(&rgb24_sequence(blue)),
+            "pretty link text should use LINK_BLUE"
+        );
+        assert!(result.contains("\x1b[4m"), "pretty link text should be underlined");
         assert_eq!(strip_ansi(&result), "example");
     }
 

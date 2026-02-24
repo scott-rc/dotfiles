@@ -2,8 +2,10 @@ use regex::Regex;
 use std::sync::LazyLock;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-/// Matches ANSI SGR escape sequences (e.g., `\x1b[0m`, `\x1b[38;2;100;200;50m`).
-pub static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m").unwrap());
+/// Matches ANSI SGR escape sequences (e.g., `\x1b[0m`, `\x1b[38;2;100;200;50m`)
+/// and OSC 8 hyperlink sequences (e.g., `\x1b]8;;url\x07`).
+pub static ANSI_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m|\x1b\][^\x07]*\x07").unwrap());
 
 /// Tracks active ANSI styling state across text segments.
 ///
@@ -146,13 +148,23 @@ pub fn visible_width(text: &str) -> usize {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == 0x1b {
-            // Skip ANSI escape: \x1b[...m
             i += 1;
-            while i < bytes.len() && bytes[i] != b'm' {
-                i += 1;
-            }
-            if i < bytes.len() {
-                i += 1;
+            if i < bytes.len() && bytes[i] == b']' {
+                // OSC sequence: skip to BEL (\x07)
+                while i < bytes.len() && bytes[i] != 0x07 {
+                    i += 1;
+                }
+                if i < bytes.len() {
+                    i += 1;
+                }
+            } else {
+                // SGR sequence: skip to 'm'
+                while i < bytes.len() && bytes[i] != b'm' {
+                    i += 1;
+                }
+                if i < bytes.len() {
+                    i += 1;
+                }
             }
             continue;
         }
@@ -211,8 +223,19 @@ pub fn wrap_line_for_display(line: &str, max_width: usize) -> Vec<String> {
     let mut current = String::new();
     let mut width: usize = 0;
     let mut state = AnsiState::default();
+    let mut hyperlink: Option<String> = None; // current OSC 8 URL
 
     for seg in segments {
+        if seg.starts_with("\x1b]8;") {
+            // OSC 8 hyperlink open/close
+            if seg == "\x1b]8;;\x07" {
+                hyperlink = None;
+            } else {
+                hyperlink = Some(seg.to_string());
+            }
+            current.push_str(seg);
+            continue;
+        }
         if seg.starts_with('\x1b') {
             state.update(seg);
             current.push_str(seg);
@@ -222,11 +245,19 @@ pub fn wrap_line_for_display(line: &str, max_width: usize) -> Vec<String> {
         for c in seg.chars() {
             let cw = c.width().unwrap_or(0);
             if width + cw > max_width && width > 0 {
+                // Close hyperlink and SGR before wrapping
+                if hyperlink.is_some() {
+                    current.push_str("\x1b]8;;\x07");
+                }
                 if state.is_active() {
                     current.push_str("\x1b[0m");
                 }
                 rows.push(std::mem::take(&mut current));
+                // Re-apply SGR and hyperlink on new line
                 current = state.to_codes();
+                if let Some(ref link) = hyperlink {
+                    current.push_str(link);
+                }
                 width = 0;
             }
             current.push(c);
@@ -326,6 +357,79 @@ mod tests {
             "continuation row must re-apply bg: {:?}",
             result[1]
         );
+    }
+
+    // ── OSC 8 hyperlink tests ──────────────────────────────
+
+    #[test]
+    fn strip_ansi_removes_osc8() {
+        let input = "\x1b]8;;https://example.com\x07click here\x1b]8;;\x07";
+        assert_eq!(strip_ansi(input), "click here");
+    }
+
+    #[test]
+    fn strip_ansi_removes_osc8_with_surrounding_text() {
+        let input = "before \x1b]8;;https://x.com\x07link\x1b]8;;\x07 after";
+        assert_eq!(strip_ansi(input), "before link after");
+    }
+
+    #[test]
+    fn visible_width_ignores_osc8() {
+        let plain = "click here";
+        let with_osc = "\x1b]8;;https://example.com\x07click here\x1b]8;;\x07";
+        assert_eq!(visible_width(with_osc), visible_width(plain));
+    }
+
+    #[test]
+    fn visible_width_osc8_with_sgr() {
+        // OSC 8 + bold SGR around text
+        let input = "\x1b]8;;https://x.com\x07\x1b[1mtext\x1b[22m\x1b]8;;\x07";
+        assert_eq!(visible_width(input), 4);
+    }
+
+    #[test]
+    fn split_ansi_separates_osc8() {
+        let input = "before\x1b]8;;https://x.com\x07link\x1b]8;;\x07after";
+        let parts = split_ansi(input);
+        assert_eq!(
+            parts,
+            vec![
+                "before",
+                "\x1b]8;;https://x.com\x07",
+                "link",
+                "\x1b]8;;\x07",
+                "after",
+            ]
+        );
+    }
+
+    #[test]
+    fn wrap_line_for_display_preserves_osc8_no_wrap() {
+        let input = "\x1b]8;;https://x.com\x07link\x1b]8;;\x07";
+        let result = wrap_line_for_display(input, 80);
+        assert_eq!(result.len(), 1);
+        assert!(result[0].contains("\x1b]8;;https://x.com\x07"));
+        assert!(result[0].contains("\x1b]8;;\x07"));
+    }
+
+    #[test]
+    fn wrap_line_for_display_osc8_across_wrap() {
+        // "abcdefghij" is 10 chars, wrap at 5 should split into 2 rows
+        // Each row should have the hyperlink open/close
+        let input = "\x1b]8;;https://x.com\x07abcdefghij\x1b]8;;\x07";
+        let result = wrap_line_for_display(input, 5);
+        assert_eq!(result.len(), 2);
+        // Both rows should have the OSC 8 open and close
+        for (i, row) in result.iter().enumerate() {
+            assert!(
+                row.contains("\x1b]8;;https://x.com\x07"),
+                "row {i} should have OSC 8 open: {row:?}"
+            );
+            assert!(
+                row.contains("\x1b]8;;\x07"),
+                "row {i} should have OSC 8 close: {row:?}"
+            );
+        }
     }
 
     #[test]

@@ -12,6 +12,7 @@ pub const CLEAR_LINE: &str = "\x1b[2K";
 pub enum Key {
     Char(char),
     Tab,
+    BackTab,
     Enter,
     Escape,
     Backspace,
@@ -62,6 +63,7 @@ pub fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
         KeyCode::End => Key::End,
         // Special keys
         KeyCode::Tab => Key::Tab,
+        KeyCode::BackTab => Key::BackTab,
         KeyCode::Enter => Key::Enter,
         KeyCode::Esc => Key::Escape,
         KeyCode::Backspace => Key::Backspace,

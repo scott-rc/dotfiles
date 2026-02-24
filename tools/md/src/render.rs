@@ -341,7 +341,10 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 inline_buffer.push_str(&style.code_span(&text));
             }
             Event::Start(Tag::Link { dest_url, .. }) => {
-                if !style.pretty {
+                if style.pretty && style.color {
+                    // Open OSC 8 hyperlink before the link text
+                    let _ = write!(inline_buffer, "\x1b]8;;{dest_url}\x07");
+                } else if !style.pretty {
                     inline_buffer.push_str(&style.marker("["));
                 }
                 link_dest.push(dest_url.to_string());
@@ -349,11 +352,10 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             Event::End(TagEnd::Link) => {
                 let dest = link_dest.pop().unwrap_or_default();
                 if style.pretty {
-                    let _ = write!(
-                        inline_buffer,
-                        " ({})",
-                        style.link_url(&dest),
-                    );
+                    if style.color {
+                        // Close OSC 8 hyperlink after the link text
+                        inline_buffer.push_str("\x1b]8;;\x07");
+                    }
                 } else {
                     let _ = write!(
                         inline_buffer,
@@ -1348,6 +1350,105 @@ mod tests {
 
     fn is_only_brackets(s: &str) -> bool {
         !s.is_empty() && s.chars().all(|c| matches!(c, ')' | ']' | '.' | ',' | ';' | ':'))
+    }
+
+    // ── OSC 8 hyperlink tests ──────────────────────────────
+
+    fn render_pretty_color(md: &str) -> String {
+        let style = Style::new(true, true);
+        render_tokens(md, WIDTH, &style)
+    }
+
+    fn render_color(md: &str) -> String {
+        let style = Style::new(true, false);
+        render_tokens(md, WIDTH, &style)
+    }
+
+    #[test]
+    fn test_pretty_color_link_has_osc8() {
+        let md = "[example](https://example.com)";
+        let result = render_pretty_color(md);
+        assert!(
+            result.contains("\x1b]8;;https://example.com\x07"),
+            "pretty+color should have OSC 8 open: {result:?}"
+        );
+        assert!(
+            result.contains("\x1b]8;;\x07"),
+            "pretty+color should have OSC 8 close: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_plain_color_link_no_osc8() {
+        let md = "[example](https://example.com)";
+        let result = render_color(md);
+        assert!(
+            !result.contains("\x1b]8;;"),
+            "plain+color should NOT have OSC 8: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_plain_nocolor_link_no_osc8() {
+        let md = "[example](https://example.com)";
+        let result = render_plain(md);
+        assert!(
+            !result.contains("\x1b]8;;"),
+            "plain+nocolor should NOT have OSC 8: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_pretty_nocolor_link_no_osc8() {
+        let md = "[example](https://example.com)";
+        let result = render_pretty(md);
+        assert!(
+            !result.contains("\x1b]8;;"),
+            "pretty+nocolor should NOT have OSC 8: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_pretty_color_link_osc8_wraps_text_only() {
+        // Pretty mode: OSC 8 wraps just the link text (URL hidden)
+        let md = "[click here](https://example.com)";
+        let result = render_pretty_color(md);
+        let osc_open = "\x1b]8;;https://example.com\x07";
+        let osc_close = "\x1b]8;;\x07";
+        let start = result.find(osc_open).expect("should have OSC 8 open");
+        let after_open = start + osc_open.len();
+        let end = result[after_open..].find(osc_close).expect("should have OSC 8 close");
+        let wrapped = &result[after_open..after_open + end];
+        let stripped = crate::wrap::strip_ansi(wrapped);
+        assert_eq!(
+            stripped, "click here",
+            "OSC 8 should wrap only link text: stripped={stripped:?}"
+        );
+    }
+
+    #[test]
+    fn test_pretty_color_link_hides_url() {
+        let md = "[example](https://example.com)";
+        let result = render_pretty_color(md);
+        let stripped = crate::wrap::strip_ansi(&result);
+        assert!(
+            !stripped.contains("https://example.com"),
+            "pretty mode should hide URL: stripped={stripped:?}"
+        );
+    }
+
+    #[test]
+    fn test_pretty_nocolor_link_hides_url() {
+        let md = "[example](https://example.com)";
+        let result = render_pretty(md);
+        assert!(
+            !result.contains("https://example.com"),
+            "pretty+nocolor should hide URL: {result:?}"
+        );
+        assert!(
+            result.contains("example"),
+            "pretty+nocolor should show link text: {result:?}"
+        );
     }
 
     #[test]

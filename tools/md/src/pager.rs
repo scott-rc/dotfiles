@@ -1,7 +1,10 @@
 use std::io::{self, Write};
+use std::path::Path;
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyEventKind};
+use regex::Regex;
+use std::sync::LazyLock;
 
 use tui::pager::{
     ALT_SCREEN_OFF, ALT_SCREEN_ON, CLEAR_LINE, CURSOR_HIDE, CURSOR_SHOW, copy_to_clipboard,
@@ -12,7 +15,13 @@ use tui::search::{
     word_boundary_right,
 };
 
-use crate::wrap::wrap_line_for_display;
+use unicode_width::UnicodeWidthChar;
+
+use crate::wrap::{split_ansi, wrap_line_for_display};
+
+/// Matches OSC 8 hyperlink open sequences: \x1b]8;;URL\x07
+static OSC8_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\x1b\]8;;([^\x07]*)\x07").unwrap());
 
 const REVERSE: &str = "\x1b[7m";
 const NO_REVERSE: &str = "\x1b[27m";
@@ -21,6 +30,7 @@ const DIM: &str = "\x1b[2m";
 const NO_DIM: &str = "\x1b[22m";
 const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
 const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
+const LINK_HIGHLIGHT_BG: &str = "\x1b[48;2;22;30;48m";
 
 pub use tui::pager::Key;
 
@@ -29,6 +39,23 @@ pub enum Mode {
     Normal,
     Search,
     Help,
+}
+
+/// A link extracted from rendered output.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinkInfo {
+    pub line: usize,
+    pub url: String,
+}
+
+/// Saved state when navigating into a linked file.
+pub struct StackEntry {
+    pub lines: Vec<String>,
+    pub top_line: usize,
+    pub file_path: Option<String>,
+    pub raw_content: Option<String>,
+    pub links: Vec<LinkInfo>,
+    pub focused_link: isize,
 }
 
 pub struct PagerState {
@@ -44,12 +71,116 @@ pub struct PagerState {
     pub search_message: String,
     pub file_path: Option<String>,
     pub raw_content: Option<String>,
+    pub links: Vec<LinkInfo>,
+    pub focused_link: isize,
+    pub file_stack: Vec<StackEntry>,
+}
+
+/// Extract links from rendered lines by scanning for OSC 8 sequences.
+/// Returns one `LinkInfo` per unique URL per line (deduped within a line).
+pub fn extract_links(lines: &[String]) -> Vec<LinkInfo> {
+    let mut result = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        let mut seen = std::collections::HashSet::new();
+        for cap in OSC8_RE.captures_iter(line) {
+            let url = cap[1].to_string();
+            if !url.is_empty() && seen.insert(url.clone()) {
+                result.push(LinkInfo { line: i, url });
+            }
+        }
+    }
+    result
+}
+
+/// Resolve a link destination relative to the directory of the current file.
+/// Returns `None` if the URL is not a local file path.
+pub fn resolve_link_path(url: &str, current_file: &str) -> Option<String> {
+    // Skip absolute URLs (http(s), mailto, etc.)
+    if url.contains("://") || url.starts_with("mailto:") {
+        return None;
+    }
+    let link_path = Path::new(url);
+    if link_path.is_absolute() {
+        return Some(url.to_string());
+    }
+    // Resolve relative to current file's directory
+    let base = Path::new(current_file).parent()?;
+    let resolved = base.join(link_path);
+    Some(resolved.to_string_lossy().into_owned())
+}
+
+/// Returns true if the URL looks like a local markdown file.
+pub fn is_md_link(url: &str) -> bool {
+    let path = url.split('#').next().unwrap_or(url);
+    let path = path.split('?').next().unwrap_or(path);
+    let lower = path.to_lowercase();
+    lower.ends_with(".md") || lower.ends_with(".mdx") || lower.ends_with(".markdown")
+}
+
+/// Find the OSC 8 hyperlink URL at a given visible column position in a rendered line.
+pub fn link_url_at_col(line: &str, col: usize) -> Option<String> {
+    let segments = split_ansi(line);
+    let mut visible_col: usize = 0;
+    let mut active_url: Option<String> = None;
+
+    for seg in segments {
+        if seg.starts_with("\x1b]8;") {
+            // OSC 8 hyperlink open/close
+            if seg == "\x1b]8;;\x07" {
+                active_url = None;
+            } else if let Some(url) = seg.strip_prefix("\x1b]8;;") {
+                let url = url.strip_suffix('\x07').unwrap_or(url);
+                if url.is_empty() {
+                    active_url = None;
+                } else {
+                    active_url = Some(url.to_string());
+                }
+            }
+            continue;
+        }
+        if seg.starts_with('\x1b') {
+            // SGR sequence — skip
+            continue;
+        }
+        // Visible text
+        for c in seg.chars() {
+            let cw = c.width().unwrap_or(0);
+            if cw > 0 && col >= visible_col && col < visible_col + cw {
+                return active_url.clone();
+            }
+            visible_col += cw;
+        }
+    }
+    None
+}
+
+/// Map a screen row to a (logical line index, sub-row within that wrapped line).
+pub fn screen_row_to_logical(
+    lines: &[String],
+    top_line: usize,
+    row: usize,
+    cols: usize,
+) -> Option<(usize, usize)> {
+    let mut visual_row: usize = 0;
+    let mut idx = top_line;
+
+    while idx < lines.len() {
+        let wrapped = wrap_line_for_display(&lines[idx], cols);
+        let count = wrapped.len();
+        if row < visual_row + count {
+            return Some((idx, row - visual_row));
+        }
+        visual_row += count;
+        idx += 1;
+    }
+    None
 }
 
 fn bar_visible(state: &PagerState) -> bool {
     state.mode == Mode::Search
         || state.mode == Mode::Help
         || !state.search_message.is_empty()
+        || state.focused_link >= 0
 }
 
 fn content_height(rows: u16, state: &PagerState) -> usize {
@@ -82,27 +213,24 @@ pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_conte
 pub fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
     let help = [
         "Navigation",
-        "j/↓/Enter  Scroll down",
+        "j/↓        Scroll down",
         "k/↑        Scroll up",
         "d/Space    Half page down",
         "u          Half page up",
         "g/Home     Top",
         "G/End      Bottom",
         "",
+        "Links",
+        "Tab        Next link",
+        "Shift-Tab  Previous link",
+        "Enter      Follow link / scroll down",
+        "Backspace  Go back",
+        "",
         "Search",
         "/          Search",
-        "n          Next match",
-        "N          Previous match",
+        "n/N        Next/prev match",
         "",
-        "Clipboard & Editor",
-        "c          Copy path",
-        "C          Copy absolute path",
-        "y          Copy raw markdown",
-        "e          Open in editor",
-        "v          Open read-only",
-        "p          Toggle plain/pretty",
-        "r          Reload file",
-        "",
+        "c/C/y/e/v/p/r  Copy/edit/toggle",
         "q          Quit",
     ];
 
@@ -187,6 +315,30 @@ pub fn format_status_bar(state: &PagerState, cols: usize) -> String {
     // Search message mode
     if !state.search_message.is_empty() {
         let msg = &state.search_message;
+        let padding = if cols > msg.len() {
+            " ".repeat(cols - msg.len())
+        } else {
+            String::new()
+        };
+        return format!("{msg}{padding}");
+    }
+
+    // Focused link mode
+    if state.focused_link >= 0 && (state.focused_link as usize) < state.links.len() {
+        let link = &state.links[state.focused_link as usize];
+        let idx = state.focused_link as usize + 1;
+        let total = state.links.len();
+        let prefix = if !state.file_stack.is_empty() {
+            format!("[{idx}/{total}] {}", link.url)
+        } else {
+            format!("[{idx}/{total}] {}", link.url)
+        };
+        let back_hint = if !state.file_stack.is_empty() {
+            " ← Backspace"
+        } else {
+            ""
+        };
+        let msg = format!("{prefix}{back_hint}");
         let padding = if cols > msg.len() {
             " ".repeat(cols - msg.len())
         } else {
@@ -288,6 +440,46 @@ fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
     tui::pager::open_in_editor(file_path, line.map(|l| l as u32), read_only);
 }
 
+/// Follow a link URL: open local .md files stacked in the pager, or open external URLs in browser.
+fn follow_link(
+    state: &mut PagerState,
+    url: &str,
+    on_rerender: &mut Option<&mut dyn FnMut(bool, &str) -> String>,
+) {
+    if is_md_link(url) {
+        if let Some(ref fp) = state.file_path {
+            if let Some(resolved) = resolve_link_path(url, fp) {
+                match std::fs::read_to_string(&resolved) {
+                    Ok(new_raw) => {
+                        state.file_stack.push(StackEntry {
+                            lines: std::mem::take(&mut state.lines),
+                            top_line: state.top_line,
+                            file_path: state.file_path.take(),
+                            raw_content: state.raw_content.take(),
+                            links: std::mem::take(&mut state.links),
+                            focused_link: state.focused_link,
+                        });
+                        state.raw_content = Some(new_raw);
+                        state.file_path = Some(resolved);
+                        state.top_line = 0;
+                        state.focused_link = -1;
+                        state.search_query.clear();
+                        state.search_matches.clear();
+                        state.current_match = -1;
+                        refresh_content(state, on_rerender);
+                    }
+                    Err(e) => {
+                        state.search_message = format!("Cannot open: {e}");
+                    }
+                }
+            }
+        }
+    } else {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+        state.search_message = format!("Opened: {url}");
+    }
+}
+
 fn refresh_content(
     state: &mut PagerState,
     on_rerender: &mut Option<&mut dyn FnMut(bool, &str) -> String>,
@@ -305,6 +497,8 @@ fn refresh_content(
     if !state.search_query.is_empty() {
         state.search_matches = find_matches(&state.lines, &state.search_query);
     }
+    state.links = extract_links(&state.lines);
+    state.focused_link = -1;
     state.raw_content = Some(raw);
 }
 
@@ -321,11 +515,15 @@ pub fn run_pager(
     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
     let _ = stdout.flush();
 
-    // Enable raw mode
+    // Enable raw mode and mouse tracking
     let _ = crossterm::terminal::enable_raw_mode();
+    let _ = write!(stdout, "\x1b[?1000h\x1b[?1006h");
+    let _ = stdout.flush();
 
+    let lines: Vec<String> = content.lines().map(String::from).collect();
+    let links = extract_links(&lines);
     let mut state = PagerState {
-        lines: content.lines().map(String::from).collect(),
+        lines,
         top_line: 0,
         is_plain: plain,
         search_query: String::new(),
@@ -337,6 +535,9 @@ pub fn run_pager(
         search_message: String::new(),
         file_path: file_path.map(String::from),
         raw_content: raw_content.map(String::from),
+        links,
+        focused_link: -1,
+        file_stack: Vec::new(),
     };
 
     let mut last_size = get_term_size();
@@ -362,6 +563,49 @@ pub fn run_pager(
             }
             Err(_) => break,
         };
+
+        // Handle mouse events before key conversion
+        if let Event::Mouse(mouse) = &event {
+            use crossterm::event::{MouseButton, MouseEventKind};
+            match mouse.kind {
+                MouseEventKind::Down(MouseButton::Left) => {
+                    if state.mode != Mode::Search && state.mode != Mode::Help {
+                        let cols = last_size.0;
+                        let row = mouse.row as usize;
+                        let col = mouse.column as usize;
+                        if let Some((logical, sub_row)) =
+                            screen_row_to_logical(&state.lines, state.top_line, row, cols as usize)
+                        {
+                            let wrapped =
+                                wrap_line_for_display(&state.lines[logical], cols as usize);
+                            if sub_row < wrapped.len() {
+                                if let Some(url) = link_url_at_col(&wrapped[sub_row], col) {
+                                    state.search_message.clear();
+                                    follow_link(&mut state, &url, &mut on_rerender);
+                                    render_screen(&mut stdout, &state, last_size.0, last_size.1);
+                                }
+                            }
+                        }
+                    }
+                    continue;
+                }
+                MouseEventKind::ScrollUp => {
+                    state.focused_link = -1;
+                    state.top_line = state.top_line.saturating_sub(3);
+                    render_screen(&mut stdout, &state, last_size.0, last_size.1);
+                    continue;
+                }
+                MouseEventKind::ScrollDown => {
+                    let ch = content_height(last_size.1, &state);
+                    let max_top = max_scroll(state.lines.len(), ch);
+                    state.focused_link = -1;
+                    state.top_line = (state.top_line + 3).min(max_top);
+                    render_screen(&mut stdout, &state, last_size.0, last_size.1);
+                    continue;
+                }
+                _ => continue,
+            }
+        }
 
         let key = match event {
             Event::Resize(_, _) => {
@@ -403,22 +647,74 @@ pub fn run_pager(
 
         match key {
             Key::Char('q') | Key::CtrlC => break,
-            Key::Char('j') | Key::Down | Key::Enter => {
+            Key::Tab => {
+                // Cycle to next link
+                if !state.links.is_empty() {
+                    state.focused_link =
+                        (state.focused_link + 1) % state.links.len() as isize;
+                    let link_line = state.links[state.focused_link as usize].line;
+                    // Scroll to show the link, centered in viewport
+                    let target = link_line.saturating_sub(ch / 3);
+                    state.top_line = target.min(max_top);
+                }
+            }
+            Key::BackTab => {
+                // Cycle to previous link
+                if !state.links.is_empty() {
+                    if state.focused_link <= 0 {
+                        state.focused_link = state.links.len() as isize - 1;
+                    } else {
+                        state.focused_link -= 1;
+                    }
+                    let link_line = state.links[state.focused_link as usize].line;
+                    let target = link_line.saturating_sub(ch / 3);
+                    state.top_line = target.min(max_top);
+                }
+            }
+            Key::Enter => {
+                if state.focused_link >= 0 && (state.focused_link as usize) < state.links.len() {
+                    let url = state.links[state.focused_link as usize].url.clone();
+                    follow_link(&mut state, &url, &mut on_rerender);
+                } else {
+                    // No link focused: scroll down
+                    state.top_line = (state.top_line + 1).min(max_top);
+                }
+            }
+            Key::Backspace => {
+                if let Some(entry) = state.file_stack.pop() {
+                    state.lines = entry.lines;
+                    state.top_line = entry.top_line;
+                    state.file_path = entry.file_path;
+                    state.raw_content = entry.raw_content;
+                    state.links = entry.links;
+                    state.focused_link = entry.focused_link;
+                    state.search_query.clear();
+                    state.search_matches.clear();
+                    state.current_match = -1;
+                }
+            }
+            Key::Char('j') | Key::Down => {
+                state.focused_link = -1;
                 state.top_line = (state.top_line + 1).min(max_top);
             }
             Key::Char('k') | Key::Up => {
+                state.focused_link = -1;
                 state.top_line = state.top_line.saturating_sub(1);
             }
             Key::Char('d' | ' ') | Key::CtrlD | Key::PageDown => {
+                state.focused_link = -1;
                 state.top_line = (state.top_line + half_page).min(max_top);
             }
             Key::Char('u') | Key::CtrlU | Key::PageUp => {
+                state.focused_link = -1;
                 state.top_line = state.top_line.saturating_sub(half_page);
             }
             Key::Char('g') | Key::Home => {
+                state.focused_link = -1;
                 state.top_line = 0;
             }
             Key::Char('G') | Key::End => {
+                state.focused_link = -1;
                 state.top_line = max_top;
             }
             Key::Char('/') => {
@@ -490,7 +786,8 @@ pub fn run_pager(
                 if let Some(ref fp) = state.file_path {
                     let fp = fp.clone();
                     let read_only = key == Key::Char('v');
-                    // Exit raw mode & restore screen for editor
+                    // Exit raw mode, mouse tracking & restore screen for editor
+                    let _ = write!(stdout, "\x1b[?1000l\x1b[?1006l");
                     let _ = crossterm::terminal::disable_raw_mode();
                     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
                     let _ = stdout.flush();
@@ -505,6 +802,8 @@ pub fn run_pager(
                     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
                     let _ = stdout.flush();
                     let _ = crossterm::terminal::enable_raw_mode();
+                    let _ = write!(stdout, "\x1b[?1000h\x1b[?1006h");
+                    let _ = stdout.flush();
                     last_size = get_term_size();
                     if let Ok(new_raw) = std::fs::read_to_string(&fp) {
                         state.raw_content = Some(new_raw);
@@ -518,7 +817,8 @@ pub fn run_pager(
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
     }
 
-    // Cleanup
+    // Cleanup: disable mouse tracking, raw mode, restore screen
+    let _ = write!(stdout, "\x1b[?1000l\x1b[?1006l");
     let _ = crossterm::terminal::disable_raw_mode();
     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
     let _ = stdout.flush();
@@ -551,18 +851,31 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
         let mut visual_row: usize = 0;
         let mut logical_idx = top;
 
+        let focused_line = if state.focused_link >= 0
+            && (state.focused_link as usize) < state.links.len()
+        {
+            Some(state.links[state.focused_link as usize].line)
+        } else {
+            None
+        };
+
         while visual_row < ch && logical_idx < state.lines.len() {
             let mut line = state.lines[logical_idx].clone();
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }
             let wrapped = wrap_line_for_display(&line, cols as usize);
+            let is_focused = focused_line == Some(logical_idx);
             for vline in wrapped {
                 if visual_row >= ch {
                     break;
                 }
                 move_to(out, visual_row as u16, 0);
-                let _ = write!(out, "{CLEAR_LINE}{vline}");
+                if is_focused {
+                    let _ = write!(out, "{LINK_HIGHLIGHT_BG}{CLEAR_LINE}{vline}{RESET}");
+                } else {
+                    let _ = write!(out, "{CLEAR_LINE}{vline}");
+                }
                 visual_row += 1;
             }
             logical_idx += 1;
@@ -780,6 +1093,9 @@ mod tests {
                 file_path: case.input.state.file_path.clone(),
                 is_plain: false,
                 raw_content: None,
+                links: Vec::new(),
+                focused_link: -1,
+                file_stack: Vec::new(),
             };
             let result = format_status_bar(&state, case.input.cols);
             assert_eq!(
@@ -994,6 +1310,9 @@ mod tests {
                 search_message: case.state.search_message.clone(),
                 file_path: None,
                 raw_content: None,
+                links: Vec::new(),
+                focused_link: -1,
+                file_stack: Vec::new(),
             };
 
             let key = json_to_key(&case.key);
@@ -1236,6 +1555,9 @@ mod tests {
             search_message: String::new(),
             file_path: None,
             raw_content: Some("dummy".to_string()),
+            links: Vec::new(),
+            focused_link: -1,
+            file_stack: Vec::new(),
         };
 
         let mut callback = |_: bool, _: &str| "a\nb\nc\nd\ne\nf\ng\nh".to_string();
@@ -1262,6 +1584,9 @@ mod tests {
             search_message: String::new(),
             file_path: None,
             raw_content: Some("dummy".to_string()),
+            links: Vec::new(),
+            focused_link: -1,
+            file_stack: Vec::new(),
         };
 
         let mut callback = |_: bool, _: &str| "no match\nfoo bar\nanother\nfoo baz".to_string();
@@ -1286,6 +1611,9 @@ mod tests {
             search_message: String::new(),
             file_path: None,
             raw_content: None,
+            links: Vec::new(),
+            focused_link: -1,
+            file_stack: Vec::new(),
         };
 
         let mut on_rerender: Option<&mut dyn FnMut(bool, &str) -> String> = None;
@@ -1293,5 +1621,213 @@ mod tests {
 
         assert_eq!(state.lines, vec!["unchanged".to_string()]);
         assert_eq!(state.top_line, 0);
+    }
+
+    // ---- extract_links ----
+
+    #[test]
+    fn test_extract_links_finds_osc8() {
+        let lines = vec![
+            "plain text".to_string(),
+            "click \x1b]8;;https://example.com\x07here\x1b]8;;\x07 text".to_string(),
+            "no links".to_string(),
+            "\x1b]8;;./other.md\x07other\x1b]8;;\x07".to_string(),
+        ];
+        let links = extract_links(&lines);
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0], LinkInfo { line: 1, url: "https://example.com".to_string() });
+        assert_eq!(links[1], LinkInfo { line: 3, url: "./other.md".to_string() });
+    }
+
+    #[test]
+    fn test_extract_links_empty() {
+        let lines = vec!["no links".to_string(), "at all".to_string()];
+        assert!(extract_links(&lines).is_empty());
+    }
+
+    #[test]
+    fn test_extract_links_dedupes_same_url_on_line() {
+        let lines = vec![
+            "\x1b]8;;https://x.com\x07a\x1b]8;;\x07 \x1b]8;;https://x.com\x07b\x1b]8;;\x07".to_string(),
+        ];
+        let links = extract_links(&lines);
+        assert_eq!(links.len(), 1, "same URL on same line should dedup");
+    }
+
+    #[test]
+    fn test_extract_links_multiple_urls_on_line() {
+        let lines = vec![
+            "\x1b]8;;https://a.com\x07a\x1b]8;;\x07 \x1b]8;;https://b.com\x07b\x1b]8;;\x07".to_string(),
+        ];
+        let links = extract_links(&lines);
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0].url, "https://a.com");
+        assert_eq!(links[1].url, "https://b.com");
+    }
+
+    // ---- resolve_link_path ----
+
+    #[test]
+    fn test_resolve_link_path_relative() {
+        let result = resolve_link_path("./other.md", "/docs/README.md");
+        assert_eq!(result, Some("/docs/./other.md".to_string()));
+    }
+
+    #[test]
+    fn test_resolve_link_path_parent_dir() {
+        let result = resolve_link_path("../guide.md", "/docs/api/README.md");
+        assert_eq!(result, Some("/docs/api/../guide.md".to_string()));
+    }
+
+    #[test]
+    fn test_resolve_link_path_absolute_url() {
+        let result = resolve_link_path("https://example.com", "/docs/README.md");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_resolve_link_path_mailto() {
+        let result = resolve_link_path("mailto:foo@bar.com", "/docs/README.md");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_resolve_link_path_absolute_path() {
+        let result = resolve_link_path("/tmp/test.md", "/docs/README.md");
+        assert_eq!(result, Some("/tmp/test.md".to_string()));
+    }
+
+    // ---- link_url_at_col ----
+
+    #[test]
+    fn test_link_url_at_col_plain_text() {
+        assert_eq!(link_url_at_col("hello world", 3), None);
+    }
+
+    #[test]
+    fn test_link_url_at_col_within_link() {
+        let line = "click \x1b]8;;https://example.com\x07here\x1b]8;;\x07 text";
+        assert_eq!(
+            link_url_at_col(line, 7), // 'h' of "here"
+            Some("https://example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_link_url_at_col_before_link() {
+        let line = "click \x1b]8;;https://example.com\x07here\x1b]8;;\x07 text";
+        assert_eq!(link_url_at_col(line, 3), None); // 'c' of "click"
+    }
+
+    #[test]
+    fn test_link_url_at_col_after_link() {
+        let line = "click \x1b]8;;https://example.com\x07here\x1b]8;;\x07 text";
+        assert_eq!(link_url_at_col(line, 11), None); // 't' of " text"
+    }
+
+    #[test]
+    fn test_link_url_at_col_first_col_of_link() {
+        let line = "ab\x1b]8;;https://x.com\x07cd\x1b]8;;\x07";
+        assert_eq!(
+            link_url_at_col(line, 2), // 'c'
+            Some("https://x.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_link_url_at_col_last_col_of_link() {
+        let line = "ab\x1b]8;;https://x.com\x07cd\x1b]8;;\x07ef";
+        assert_eq!(
+            link_url_at_col(line, 3), // 'd'
+            Some("https://x.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_link_url_at_col_two_links() {
+        let line = "\x1b]8;;https://a.com\x07aa\x1b]8;;\x07 \x1b]8;;https://b.com\x07bb\x1b]8;;\x07";
+        assert_eq!(
+            link_url_at_col(line, 0),
+            Some("https://a.com".to_string())
+        );
+        assert_eq!(
+            link_url_at_col(line, 1),
+            Some("https://a.com".to_string())
+        );
+        assert_eq!(link_url_at_col(line, 2), None); // space between
+        assert_eq!(
+            link_url_at_col(line, 3),
+            Some("https://b.com".to_string())
+        );
+        assert_eq!(
+            link_url_at_col(line, 4),
+            Some("https://b.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_link_url_at_col_with_sgr_inside() {
+        // SGR bold inside the OSC 8 region
+        let line = "\x1b]8;;https://x.com\x07\x1b[1mlink\x1b[22m\x1b]8;;\x07";
+        assert_eq!(
+            link_url_at_col(line, 0),
+            Some("https://x.com".to_string())
+        );
+        assert_eq!(
+            link_url_at_col(line, 3),
+            Some("https://x.com".to_string())
+        );
+    }
+
+    // ---- screen_row_to_logical ----
+
+    #[test]
+    fn test_screen_row_to_logical_no_wrap() {
+        let lines = vec!["aaa".into(), "bbb".into(), "ccc".into()];
+        assert_eq!(screen_row_to_logical(&lines, 0, 0, 80), Some((0, 0)));
+        assert_eq!(screen_row_to_logical(&lines, 0, 1, 80), Some((1, 0)));
+        assert_eq!(screen_row_to_logical(&lines, 0, 2, 80), Some((2, 0)));
+    }
+
+    #[test]
+    fn test_screen_row_to_logical_scrolled() {
+        let lines: Vec<String> = (0..10).map(|i| format!("line {i}")).collect();
+        assert_eq!(screen_row_to_logical(&lines, 5, 0, 80), Some((5, 0)));
+        assert_eq!(screen_row_to_logical(&lines, 5, 1, 80), Some((6, 0)));
+    }
+
+    #[test]
+    fn test_screen_row_to_logical_with_wrap() {
+        // "abcdefghij" at width 5 wraps into 2 visual rows
+        let lines = vec!["abcdefghij".into(), "short".into()];
+        assert_eq!(screen_row_to_logical(&lines, 0, 0, 5), Some((0, 0)));
+        assert_eq!(screen_row_to_logical(&lines, 0, 1, 5), Some((0, 1)));
+        assert_eq!(screen_row_to_logical(&lines, 0, 2, 5), Some((1, 0)));
+    }
+
+    #[test]
+    fn test_screen_row_to_logical_beyond_content() {
+        let lines = vec!["a".into(), "b".into()];
+        assert_eq!(screen_row_to_logical(&lines, 0, 5, 80), None);
+    }
+
+    #[test]
+    fn test_screen_row_to_logical_empty() {
+        let lines: Vec<String> = vec![];
+        assert_eq!(screen_row_to_logical(&lines, 0, 0, 80), None);
+    }
+
+    // ---- is_md_link ----
+
+    #[test]
+    fn test_is_md_link() {
+        assert!(is_md_link("other.md"));
+        assert!(is_md_link("./docs/guide.md"));
+        assert!(is_md_link("CHANGELOG.mdx"));
+        assert!(is_md_link("notes.markdown"));
+        assert!(is_md_link("file.md#section"));
+        assert!(!is_md_link("https://example.com"));
+        assert!(!is_md_link("image.png"));
+        assert!(!is_md_link("script.js"));
     }
 }
