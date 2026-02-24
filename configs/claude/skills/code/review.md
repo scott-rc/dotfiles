@@ -48,14 +48,14 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
    Present the scopes to the user for approval before proceeding.
 
-9. **Load review template**: Read [review-template.md](review-template.md) for the subagent prompt template.
+9. **Load review template**: Read [review-template.md](review-template.md) for the subagent prompt template. Use this template when spawning each review subagent below.
 
 10. **Spawn review subagents**:
-    Launch parallel Task subagents (type: general-purpose), one per scope. Fill in the template from review-template.md with:
+    Launch parallel Task subagents (type: code-reviewer), one per scope. Fill in the template with:
     - The scope's name, file list, and focus
     - Paths to the guidelines files loaded in step 7
     - Project context (repo root, conventions observed)
-    - The full review checklist
+    - The full [Review Checklist](#review-checklist) below (paste all five sections into the template's checklist placeholder)
     - Scope-specific criteria
 
 11. **Consolidate findings**:

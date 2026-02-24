@@ -55,7 +55,3 @@ instead of checking `readyState` in a polling loop.
 ```
 Bump eslint-plugin-react from 7.33.2 to 7.34.0
 ```
-
-## When Unsure
-
-If the commit scope or message is unclear, ask the user before committing.

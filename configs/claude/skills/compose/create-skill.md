@@ -53,10 +53,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - SHOULD keep each reference file focused on one topic
 
 7. **Validate and evaluate**:
-   Spawn a Task subagent (type: Explore, model: sonnet) to validate the new skill. The subagent MUST:
-   - Run through [quality-checklist.md](quality-checklist.md)
-   - Check: frontmatter is valid, all linked files exist, no orphan files, names follow rules, no redundancy between files
-   - Return findings grouped by severity (blocking, improvement, suggestion)
+   Spawn a Task subagent (type: skill-reviewer) with the new skill directory path. The skill-reviewer agent reads all files, validates structure, evaluates content quality, and checks for anti-patterns. It returns findings grouped by severity with per-file token counts.
 
    SHOULD write at least one test scenario per operation: a user phrase, the expected behavior, and how to judge pass/fail. Format as a markdown list, not JSON.
    SHOULD run each evaluation: invoke the skill with the test input, compare output against criteria, fix the skill if it fails.

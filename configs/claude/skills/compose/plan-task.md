@@ -67,16 +67,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    Decision point: If all chunks receive their full context from the parent prompt (the typical case), launch all subagents in parallel. If a chunk's writer prompt says "read chunk-NN for context," that chunk must wait for chunk-NN's subagent to finish.
 
-   After all subagents complete, read each chunk file and verify it meets these requirements:
-   - Has a "Depends on" line naming its prerequisite chunk (or "None")
-   - Has a "What and Why" section with enough context for a fresh Claude Code session
-   - Has an "Implementation Steps" section with numbered sub-step groups and `- [ ]` checkboxes
-   - Has a "Verification" section with `- [ ]` checkboxes for build, test, and manual checks
-   - Has ~15-25 total checkboxes (split the chunk if it exceeds 25)
-   - Includes specific file paths, function names, and shell commands -- not vague descriptions
-   - Chunks adding testable behavior use TDD structure: step groups named "Red: ...", "Green: ...", "Refactor" with explicit test-run checkboxes confirming failure then success
-
-   If a chunk file fails validation, provide feedback and re-run the subagent.
+   After all subagents complete, read each chunk file and verify it matches the chunk-writer agent's Output Format (correct sections, checkboxes, TDD structure where appropriate). Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
 
 7. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](plan-template.md).

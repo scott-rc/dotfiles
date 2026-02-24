@@ -18,7 +18,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - Include any review summaries (these provide high-level context from the reviewer)
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
-4. **Load coding preferences**: MUST use the Skill tool to load the code skill (`skill: "code"`). From the code skill's References section, read general-guidelines.md and the language-specific guidelines for the files being changed. Apply these preferences when writing fixes.
+4. **Load coding preferences**: MUST load the code skill (`skill: "code"`) for coding style preferences. Apply these when writing fixes.
 
 5. **Fix each unresolved thread**:
    When there are many threads (5+), spawn a Task subagent (type: Explore, model: sonnet) to read all referenced files and their surrounding context, returning a concise summary of the current code at each thread location. This avoids loading many files inline.

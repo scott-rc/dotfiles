@@ -45,11 +45,8 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - SHOULD use `---` separators between distinct instruction groups
 
 5. **Validate**:
-   - MUST run through the Rules-specific items in [quality-checklist.md](quality-checklist.md)
-   - MUST verify all `@file` references point to existing files
-   - MUST check for content that duplicates referenced files
-   - MUST check for common knowledge or vague instructions and remove them
-   - MUST fix any issues found before reporting to the user
+   Spawn a Task subagent (type: rules-reviewer) with the rules file path. The rules-reviewer agent reads the file and related files, validates structure, evaluates content quality, and checks for anti-patterns. It returns findings grouped by severity with token counts.
+   MUST fix any issues found before reporting to the user.
 
 6. **Report results**:
    - MUST show the complete rules file content for user review

@@ -11,7 +11,7 @@ pnpm monorepo for Slidev presentations.
 
 - `pnpm-workspace.yaml` defines workspace packages with `talks/*`
 - Each talk lives in `talks/<talk-name>/` with its own `package.json` and `slides.md`
-- Shared Slidev dependencies use the `catalog:` protocol in the root `package.json`
+- Shared Slidev dependencies use the `catalog:` protocol in `pnpm-workspace.yaml`
 
 ## Creating a New Talk
 
@@ -40,7 +40,7 @@ Run all commands from the individual talk directory (`talks/<name>/`):
 
 ## Dependencies
 
-- Shared Slidev packages are declared in the root `package.json` under `pnpm.catalog`
+- Shared Slidev packages are declared in `pnpm-workspace.yaml` under `catalog:`
 - Individual talks reference them with `catalog:` in their own `package.json`
 - Run `pnpm install` from the workspace root after adding new dependencies
 ```

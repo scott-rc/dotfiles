@@ -19,4 +19,6 @@ Load the user's coding style preferences, write code, and verify it matches.
 
 5. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Repeat until all items pass.
 
-6. **Present results**: Present the code to the user with a summary of which preferences were applied and any conflicts resolved.
+6. **Run existing tests**: If the project has a test suite, run it (or the relevant subset) to confirm no regressions.
+
+7. **Present results**: Present the code to the user with a summary of which preferences were applied and any conflicts resolved.

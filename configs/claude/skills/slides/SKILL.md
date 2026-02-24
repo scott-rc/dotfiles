@@ -33,8 +33,6 @@ See [present.md](present.md) for detailed instructions.
 - **"new talk"** / **"add a talk"** → Run Create (assumes workspace exists)
 - **"create presentation from scratch"** → Run Setup, Create, then Author
 
-**Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
-
 ## References
 
 These files are referenced by the operation instructions above:

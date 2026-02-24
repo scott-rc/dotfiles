@@ -18,6 +18,8 @@ You review code for quality, security, and maintainability. Before starting, con
 4. Apply the review checklist below to each file
 5. Group findings by severity and report
 
+When the task prompt includes a review checklist, use that checklist instead of the one below. The checklist below is the default for ad-hoc reviews without a task-provided checklist.
+
 ## Review Checklist
 
 ### Correctness

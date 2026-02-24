@@ -10,38 +10,18 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - If neither, discover CLAUDE.md files in the project and present them as AskUserQuestion options
    - SHOULD also identify related files: other CLAUDE.md files in parent/child directories, `.claude/rules/` files (including subdirectories), `~/.claude/rules/` user-level rules
 
-2. **Read all related files via subagent**:
-   Spawn a Task subagent (type: Explore, model: haiku) to gather all related files. The subagent MUST:
-   - Read the target rules file
-   - Read every file referenced via `@filename`
-   - Read other CLAUDE.md files in the project hierarchy (parent dirs, subdirs)
-   - Read `.claude/rules/` files if they exist (including subdirectories)
-   - Return a structured summary: for each file, its path, approximate token count (1 token per 4 chars), `@file` references found, and a 1-2 sentence content summary. Flag any conflicts or redundancy between files.
+2. **Evaluate rules via subagent**:
+   Spawn a Task subagent (type: rules-reviewer) with the rules file path. The rules-reviewer agent reads the target file and all related files (`@file` references, other CLAUDE.md files in the hierarchy, `.claude/rules/` files), validates structure, evaluates content quality, checks for anti-patterns, and returns findings grouped by severity with per-file token counts.
 
-3. **Validate against spec**:
-   MUST validate the rules file against every rule in [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md), covering file location, structure, content guidelines, `@file` references, scoped rules frontmatter, and anti-patterns.
+3. **Review rules-reviewer findings**:
+   The rules-reviewer has already evaluated structure, content quality, and anti-patterns. MUST cross-reference findings against any project-specific context the agent would not have (e.g., known issues where Claude ignores specific rules, recently changed conventions). Only re-read individual files inline when a finding needs verification.
 
-4. **Evaluate content quality against checklist**:
-   MUST evaluate against every Rules-relevant item in [quality-checklist.md](quality-checklist.md).
-
-5. **Check for additional issues**:
-   - Instructions that belong in scoped rules rather than the main CLAUDE.md (they apply to a small subset of files)
-   - Instructions that could be split from CLAUDE.md into unconditional `.claude/rules/` files for better organization (especially if CLAUDE.md exceeds ~200 lines)
-   - Missing sections that would help Claude (e.g., no build/test commands, no architecture overview)
-   - `@file` references to files that contain mostly irrelevant content (should extract relevant parts instead)
-   - Conflicts or redundancy with other CLAUDE.md files in the project hierarchy or with `.claude/rules/` files
-   - Rules files in `.claude/rules/` without `paths:` that should be scoped, or scoped rules with overly broad patterns
-   - Private per-project preferences in CLAUDE.md that should be in CLAUDE.local.md instead
-   - Rules files that are too long, causing Claude to ignore instructions (the over-specification anti-pattern — if Claude ignores a rule despite it being present, the file needs pruning)
-   - Missing emphasis on critical rules that Claude frequently violates (but check for over-emphasis too)
-
-6. **Estimate token impact**:
-   - Count approximate tokens (rough: 1 token per 4 characters) for the rules file itself
-   - Count tokens for all `@file` referenced files (these also load into context)
-   - Report total token cost per conversation
+4. **Estimate token impact**:
+   - Use the token counts from the rules-reviewer's output
    - Flag files over 200 lines as candidates for splitting into scoped rules
+   - Flag total token cost if it seems disproportionate
 
-7. **Present findings**:
+5. **Present findings**:
    Group results by severity:
 
    **Blocking** (MUST fix):
@@ -66,7 +46,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - Where it is (line number or section)
    - What the fix would be (specific, not vague)
 
-8. **Offer to apply fixes**:
+6. **Offer to apply fixes**:
    - MUST ask the user about blocking fixes before applying them
    - SHOULD present improvements and suggestions as AskUserQuestion options for the user to select
    - MUST apply fixes one at a time, confirming each change

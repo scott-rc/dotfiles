@@ -18,73 +18,12 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 ## Chunk File Template
 
-For chunks adding testable behavior, structure step groups as red-green-refactor: write failing tests first, implement to make them pass, then refactor. For pure refactoring, config, or glue code, use plain step groups.
+The canonical chunk file format is defined in the chunk-writer agent's Output Format section. Chunks use one of two structures:
 
-### TDD chunk (adding testable behavior)
+- **TDD chunk** (adding testable behavior): Red-green-refactor step groups with explicit test-run checkboxes
+- **Non-TDD chunk** (refactoring, config, glue): Plain numbered step groups
 
-```markdown
-# Chunk <NN>: <Title>
-
-**Depends on**: <chunk-NN-slug.md, or "None">
-
-## What and Why
-
-<2-4 sentences explaining what this chunk does and why it matters. Include enough context that a fresh Claude Code session can understand the purpose without reading other chunks.>
-
-## Implementation Steps
-
-### 1. Red: Write failing tests for <feature>
-
-- [ ] <Create/update test file at path>
-- [ ] <Write test for expected behavior>
-- [ ] <Run tests -- confirm they fail for the right reason>
-
-### 2. Green: Implement <feature>
-
-- [ ] <Implement the minimal code to make tests pass>
-- [ ] <Run tests -- confirm they pass>
-
-### 3. Refactor
-
-- [ ] <Clean up implementation if needed>
-- [ ] <Run tests -- confirm they still pass>
-
-## Verification
-
-- [ ] <Build command passes>
-- [ ] <Test command passes>
-- [ ] <Manual check or assertion>
-```
-
-### Non-TDD chunk (refactoring, config, glue)
-
-```markdown
-# Chunk <NN>: <Title>
-
-**Depends on**: <chunk-NN-slug.md, or "None">
-
-## What and Why
-
-<2-4 sentences explaining what this chunk does and why it matters. Include enough context that a fresh Claude Code session can understand the purpose without reading other chunks.>
-
-## Implementation Steps
-
-### 1. <Step Group Name>
-
-- [ ] <Concrete action with file paths, function names, or shell commands>
-- [ ] <Next action>
-
-### 2. <Step Group Name>
-
-- [ ] <Action>
-- [ ] ...
-
-## Verification
-
-- [ ] <Build command passes>
-- [ ] <Test command passes>
-- [ ] <Manual check or assertion>
-```
+Both include: a "Depends on" line, a "What and Why" section, numbered "Implementation Steps" with `- [ ]` checkboxes, and a "Verification" section. Target ~15-25 checkboxes per chunk.
 
 ## Orchestrator Prompt Template
 
@@ -106,7 +45,7 @@ Execute the plan in ./tmp/<plan-name>/plan.md by running each chunk as a sequent
 # Requirements
 
 1. Read plan.md to get the ordered chunk list
-2. For each chunk in order, launch a Task tool subagent (type: chunk-writer) with the Chunk Subagent Prompt below, substituting the chunk file path
+2. For each chunk in order, launch a Task tool subagent (type: chunk-executor) with the prompt below, substituting CHUNK_FILE_PATH
 3. After each subagent completes, verify it reported success. If it reported failure, STOP and report the failure to the user -- do not continue to the next chunk.
 4. After all chunks complete, report the full plan as done
 
@@ -122,100 +61,22 @@ Use this as the prompt for each Task subagent, replacing CHUNK_FILE_PATH:
 
 ---
 
-Execute the implementation chunk defined in CHUNK_FILE_PATH.
+Execute the implementation chunk at CHUNK_FILE_PATH.
 
-## Process
-
-1. If this chunk involves writing or modifying code, invoke the code skill first: `skill: "code"` (no args). Follow its coding preferences and TDD workflow guidance throughout execution.
-2. Read the chunk file
-3. Check the "Depends on" line. If it names a dependency, read that chunk file and verify all its checkboxes are checked. If any are unchecked, STOP and report the dependency is incomplete.
-4. Scan for the first unchecked `- [ ]` item. If all items are checked, report "Chunk already complete" and stop.
-5. Starting from that item, execute each unchecked step in order:
-   a. Perform the action described
-   b. Mark the checkbox: replace `- [ ]` with `- [x]` in the chunk file
-   c. After completing each numbered step group, run the build command and fix any errors before moving on
-6. After all Implementation Steps are checked, execute the Verification section the same way
-7. When all checkboxes are checked, report "Chunk complete"
-
-## Rules
-
-- If a step fails and you cannot fix it within 3 attempts, STOP and report the failure with details
-- MUST mark each checkbox immediately after completing it -- this is the progress ledger
-- MUST NOT skip ahead or reorder steps
-- MUST run the build command after each step group, not just at the end
-- For TDD chunks (step groups named "Red/Green/Refactor"), MUST verify test failures before implementing and test passes after implementing
+- Build command: <build command>
+- Test command: <test command>
 
 ---
 ```
 
-## Chunk Writer Subagent Prompt Template
+## Chunk Writer Subagent Inputs
 
-This template is now embedded in the `chunk-writer` agent's system prompt. The orchestrator only needs to send: Chunk Details, High-Level Steps, Codebase Context, and Build/Test sections. Keep the template here as reference documentation.
+The chunk-writer agent's system prompt is in `chunk-writer.md`. The orchestrator supplies these four sections per chunk:
 
-This prompt is used by the plan-task operation to delegate chunk file writing to a Task subagent. Fill in all `<...>` placeholders.
-
-```markdown
-Write a plan chunk file to <output-file-path>.
-
-## Chunk Details
-
-- **Number**: <NN>
-- **Title**: <chunk title>
-- **Depends on**: <chunk-NN-slug.md, or "None">
-- **Summary**: <2-4 sentences explaining what this chunk does and why>
-
-## High-Level Steps
-
-<Numbered list of the high-level implementation steps from the decomposition, with enough detail for the subagent to expand into checkboxes>
-
-## Codebase Context
-
-<Relevant file paths, function/type names, patterns, and conventions the chunk will touch. Include enough detail that a fresh session can write precise checkboxes without exploring the codebase.>
-
-## Build and Test
-
-- Build: `<build command>`
-- Test: `<test command>`
-
-## Output Format
-
-Write the chunk file using this exact template structure:
-
-# Chunk <NN>: <Title>
-
-**Depends on**: <dependency>
-
-## What and Why
-
-<2-4 sentences with enough context for a fresh Claude Code session to understand the purpose without reading other chunks.>
-
-## Implementation Steps
-
-### 1. <Step Group Name>
-
-- [ ] <Concrete action with file paths, function names, or shell commands>
-- [ ] <Next action>
-
-### 2. <Step Group Name>
-
-- [ ] <Action>
-- [ ] ...
-
-## Verification
-
-- [ ] <Build command passes>
-- [ ] <Test command passes>
-- [ ] <Manual check or assertion>
-
-## Rules
-
-- Target ~15-25 total checkboxes. If it would exceed 25, report that the chunk should be split.
-- Each checkbox MUST be completable in a single focused action.
-- Use specific file paths, function names, and shell commands -- not vague descriptions.
-- The "What and Why" section MUST be self-contained: a fresh Claude Code session should understand the chunk without reading other chunks or having prior conversation context.
-- For chunks adding testable behavior, MUST use TDD structure: "Red" step group (write failing tests), "Green" step group (implement to pass), "Refactor" step group (clean up). Include explicit "run tests -- confirm fail/pass" checkboxes.
-- For pure refactoring, config, or glue code, use plain step groups without TDD structure.
-```
+- **Chunk Details** — number, title, dependency, and 2-4 sentence summary
+- **High-Level Steps** — numbered list from the decomposition
+- **Codebase Context** — file paths, function/type names, patterns, conventions
+- **Build and Test** — build and test commands
 
 ## Chunking Guidelines
 

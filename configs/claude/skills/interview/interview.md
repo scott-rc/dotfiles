@@ -33,15 +33,11 @@ Conduct a structured, multi-round interview with the user on any topic, then pro
    SHOULD prioritize depth over breadth -- it is better to thoroughly explore 3 important areas than to superficially cover 10.
 
 4. **Summarize understanding**:
-   Write a concise summary of everything learned. Structure it with clear headings that match the topic's natural shape (not the question order).
+   Write a concise summary of everything learned (aim for 3-6 top-level headings, under 500 words unless complexity demands more). Structure it with clear headings that match the topic's natural shape (not the question order).
 
-   MUST present the summary to the user and ask: "Does this capture everything accurately? Anything to add or correct?"
+   Announce "The interview is complete." then present the summary to the user: "Does this capture everything accurately? Anything to add or correct?"
 
    If the user corrects anything, update and re-confirm.
 
 5. **Deliver results**:
-   Present delivery options via AskUserQuestion: "Copy to clipboard", "Save to file", "Keep in context", "Feed into another task". Then:
-   - **Copy to clipboard** -- format as a clean summary document, copy via `pbcopy`, confirm it's copied
-   - **Save to file** -- ask for a file path, write the summary
-   - **Keep in context** -- do nothing further; the summary is now part of the session for follow-up work
-   - **Feed into another task** -- ask what task, then proceed with the gathered context
+   Default to keeping the summary in context for follow-up work. If the user asks to save or share, offer: copy to clipboard (`pbcopy`), save to a file, or feed into another task (ask what task, then invoke the relevant skill with the summary as context).

@@ -4,11 +4,8 @@ Write a benchmark that captures the performance target, then write or optimize c
 
 ## Instructions
 
-1. **Resolve benchmark environment**:
-   MUST read [test-environment.md](test-environment.md) and follow its benchmark detection steps to determine the benchmark runner, file placement, and naming convention.
-
-2. **Load coding preferences**:
-   MUST read [general-guidelines.md](general-guidelines.md) and the language-specific guidelines if available ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these when writing code and benchmarks.
+1. **Load preferences and resolve benchmark environment**:
+   MUST read [test-environment.md](test-environment.md), [general-guidelines.md](general-guidelines.md), and the language-specific guidelines if available. Apply these throughout.
 
 3. **Understand the performance goal**:
    Clarify what metric matters (throughput, latency, memory, binary size) and what the target is. If the user provides a specific target (e.g., "under 50ms", "10k ops/sec"), use it directly. If the goal is vague (e.g., "make it faster"), proceed to step 4.

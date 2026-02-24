@@ -5,9 +5,7 @@ Fold outstanding changes into the last commit.
 ## Instructions
 
 1. **Check current branch**:
-   - If on `main` or `master`:
-     - Skip this check for `dotfiles` repo (amending directly on main is fine there)
-     - Otherwise, present options via AskUserQuestion: suggest 1-2 branch names inferred from the changes, plus "Stay on main"
+   Check main branch protection per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion.
 
 2. **Check for changes to amend**:
    - Run `git status`, `git diff --staged`, and `git diff`
@@ -34,22 +32,7 @@ Fold outstanding changes into the last commit.
    - Compare against the pre-amend file set from step 3
    - If the file sets are identical: keep the original message, skip to step 7
    - If files were added or removed: draft a new message per [commit-guidelines.md](commit-guidelines.md), present both via AskUserQuestion: the proposed new message and "Keep original message"
-   - If the user picks the new message:
-     - For title-only updates, inline `-m` is acceptable:
-       ```bash
-       git commit --amend -m "<title>"
-       ```
-     - For any multi-line message (or any message containing shell-significant characters like backticks), MUST write the message to a temp file and apply with `-F`:
-       ```bash
-       cat > ./.tmp-amend-msg.txt <<'EOF'
-       <title>
-       
-       <body>
-       EOF
-       git commit --amend -F ./.tmp-amend-msg.txt
-       rm ./.tmp-amend-msg.txt
-       ```
-   - MUST NOT pass multi-line amend messages via inline `-m` arguments.
+   - If the user picks the new message, apply it with `git commit --amend -m` (title-only) or `--amend -F` per the Shell-Safe Application rules in [commit-guidelines.md](commit-guidelines.md).
 
 7. **Push if already pushed**:
    - Check if a remote tracking branch exists:
@@ -67,7 +50,7 @@ Fold outstanding changes into the last commit.
    - If no PR exists: skip to step 9
    - Reuse the file-set comparison from step 6:
      - If the file sets are identical: keep the current PR description
-     - If files were added or removed: follow the [Update Description operation](update-description.md) steps 2-5 to rewrite the title and description
+     - If files were added or removed: follow the [Update Description operation](update-description.md) steps 2-4 to rewrite the title and description
 
 9. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
 

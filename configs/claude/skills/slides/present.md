@@ -7,30 +7,32 @@ Run the dev server, build static output, or export to PDF/PNG.
 1. **Identify talk**:
    If ambiguous, discover available talks via `ls ~/Code/personal/slides/talks/` and present them as AskUserQuestion options.
 
-2. **Dev server**:
-   Start the live-reload development server for previewing slides:
-   ```
-   cd ~/Code/personal/slides/talks/<name> && pnpm dev
-   ```
-   The server runs at `http://localhost:3030` by default. Presenter view is at `http://localhost:3030/presenter`.
+2. **Run the requested action**:
 
-3. **Build static SPA**:
-   Build an optimized static single-page application:
-   ```
-   cd ~/Code/personal/slides/talks/<name> && pnpm build
-   ```
-   Output goes to `dist/`. The result can be deployed to any static hosting.
+   Based on the user's intent, run one of the following:
 
-4. **Export to PDF**:
-   Export slides to a PDF file:
-   ```
-   cd ~/Code/personal/slides/talks/<name> && pnpm export
-   ```
-   Requires playwright (installed automatically on first run). Output is `slides-export.pdf` in the talk directory.
+   - **Dev server** — start live-reload preview:
+     ```
+     cd ~/Code/personal/slides/talks/<name> && pnpm dev
+     ```
+     Server runs at `http://localhost:3030`. Presenter view at `http://localhost:3030/presenter`.
 
-5. **Export to PNG**:
-   Export each slide as a separate PNG image:
-   ```
-   cd ~/Code/personal/slides/talks/<name> && pnpm export -- --format png
-   ```
-   Output goes to a `slides-export/` directory with one PNG per slide.
+   - **Build static SPA** — optimized static output:
+     ```
+     cd ~/Code/personal/slides/talks/<name> && pnpm build
+     ```
+     Output goes to `dist/`.
+
+   - **Export to PDF**:
+     ```
+     cd ~/Code/personal/slides/talks/<name> && pnpm export
+     ```
+     Requires playwright (run `pnpm exec playwright install` if export fails). Output is `slides-export.pdf`.
+
+   - **Export to PNG** — one image per slide:
+     ```
+     cd ~/Code/personal/slides/talks/<name> && pnpm export -- --format png
+     ```
+     Output goes to `slides-export/`.
+
+3. **Report results**: Confirm the action completed — report the server URL, output file path, or output directory as appropriate.

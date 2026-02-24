@@ -87,8 +87,6 @@ Users often request multiple operations together. Handle these as follows:
 - **"request changes"** / **"block this PR"** / **"needs work"** → Run submit-review operation
 - **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
 
-**Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
-
 ## References
 
 These files are referenced by the operation instructions above:
@@ -96,3 +94,7 @@ These files are referenced by the operation instructions above:
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [commit-guidelines.md](commit-guidelines.md) - Commit message format, structure, and examples
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
+- `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads (used by Review operation)
+- `scripts/get-unreplied-comments.sh` - Fetches unreplied PR review threads (used by Reply operation)
+
+Scripts require the skill to be installed at `~/.claude/skills/git/` (set up by `apply.sh`).

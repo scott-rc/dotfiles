@@ -35,7 +35,7 @@ Current branch and recent history:
 4. **Get the diff**:
    - `git diff --stat <base>...<target>` for overview
    - `git diff <base>...<target>` for full diff (add `-- <files>` if file arguments were given)
-   - Note the total line count of the diff for threshold classification
+   - Note the total added + removed lines from `git diff --stat` for threshold classification
 
 5. **Read changed files**:
    Read full files (not just diff hunks) to understand surrounding context.
@@ -54,5 +54,8 @@ Current branch and recent history:
    - Medium (200–500 lines): full three-layer treatment
    - Large (500+ lines): full treatment with themed sub-sections under What
 
-7. **Print**:
+7. **Verify completeness**:
+   Check that the explanation covers all changed files from the diff stat. If any files are missing, add them. Verify the Why traces back to at least one source (PR body, issue, or commit message).
+
+8. **Print**:
    Output the explanation directly to the terminal. MUST NOT offer to save, copy, or share.

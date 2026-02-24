@@ -4,11 +4,8 @@ Write characterization tests for existing untested code — documenting its curr
 
 ## Instructions
 
-1. **Resolve test environment**:
-   MUST read [test-environment.md](test-environment.md) and follow its detection steps to determine the test runner, file placement, and naming convention.
-
-2. **Load coding preferences**:
-   MUST read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these when writing code and tests.
+1. **Load preferences and resolve test environment**:
+   MUST read [test-environment.md](test-environment.md), [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available. Apply these throughout.
 
 3. **Identify target code**:
    Determine which module, function, or class to cover. If the user hasn't specified, spawn a Task subagent (type: Explore, model: haiku) to scan the codebase for untested code -- it should check for files without corresponding test files and public functions without test coverage. Present 1-3 untested candidates as AskUserQuestion options.

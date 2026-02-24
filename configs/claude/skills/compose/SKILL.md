@@ -56,8 +56,6 @@ Users often request multiple operations together. Handle these as follows:
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
 - **"review"** (ambiguous) → Ask the user whether they mean a skill, a rules file, or a prompt
 
-**Important**: You MUST read and follow the detailed operation file for each operation before executing it. Do not rely on the summaries above.
-
 ## References
 
 These files are referenced by the operation instructions. Operations that link to a reference file MUST read it before proceeding.

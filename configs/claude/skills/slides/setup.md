@@ -37,7 +37,7 @@ Scaffold the `~/Code/personal/slides/` pnpm workspace for Slidev presentations.
 
 4. **Initialize repo**:
    - `git init`
+   - `pnpm install`
    - `git add .`
    - Create an initial commit with message `Initial slides workspace`
-   - `pnpm install`
    - Report that the workspace is ready and suggest running the Create operation to add a talk

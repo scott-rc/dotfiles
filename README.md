@@ -228,9 +228,11 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 
 | Agent | Description |
 |-------|-------------|
+| `chunk-executor.md` | Executes implementation chunks from a plan, marking checkboxes as steps are completed |
 | `chunk-writer.md` | Writes plan chunk files with TDD structure and checkpoint tracking |
-| `skill-reviewer.md` | Evaluates skills against a quality checklist with persistent cross-project memory |
 | `code-reviewer.md` | Reviews code for quality, security, and maintainability with persistent cross-project memory |
+| `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria with persistent cross-project memory |
+| `skill-reviewer.md` | Evaluates skills against a quality checklist with persistent cross-project memory |
 
 Agents with `memory: user` accumulate knowledge across sessions in `~/.claude/agent-memory/<name>/`; the first 200 lines of each agent's `MEMORY.md` are injected into context at invocation.
 

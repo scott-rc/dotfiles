@@ -4,14 +4,15 @@ Scaffold a new talk package inside the slides workspace.
 
 ## Instructions
 
-1. **Interview**:
+1. **Check workspace**:
+   Verify `~/Code/personal/slides/` exists. If it does not, run the Setup operation first.
+
+2. **Interview**:
    Ask the user for:
    - Talk name (MUST be kebab-case) -- suggest 1-3 names inferred from context via AskUserQuestion
    - Theme -- present via AskUserQuestion: "@slidev/theme-default (Recommended)", "@slidev/theme-seriph", "@slidev/theme-apple-basic"
 
-   Verify `~/Code/personal/slides/` exists. If it does not, run the Setup operation first.
-
-2. **Scaffold talk**:
+3. **Scaffold talk**:
    Create `talks/<name>/` with two files:
    - `package.json`:
      ```json
@@ -55,7 +56,7 @@ Scaffold a new talk package inside the slides workspace.
      # Thank You
      ```
 
-3. **Install and report**:
+4. **Install and report**:
    - Run `pnpm install` from the workspace root (`~/Code/personal/slides/`)
    - Report the new talk location and how to start the dev server:
      ```

@@ -37,7 +37,7 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    - Focus on the first failure -- subsequent failures are often cascading
    - Truncate logs to the most relevant sections; do not dump raw output
 
-5. **Load coding preferences**: MUST use the Skill tool to load the code skill (`skill: "code"`). From the code skill's References section, read general-guidelines.md and the language-specific guidelines for the files being changed.
+5. **Load coding preferences**: MUST load the code skill (`skill: "code"`) for coding style preferences.
 
 6. **Fix the issues**:
    - Read the relevant source files identified in the failure logs

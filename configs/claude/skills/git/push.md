@@ -5,10 +5,7 @@ Push commits and create/update PR.
 ## Instructions
 
 1. **Check current branch**:
-   - If on `main` or `master`:
-     - For `dotfiles` repo: push directly to main and **skip PR creation** (steps 4-8)
-     - Otherwise, present options via AskUserQuestion: suggest 1-2 branch names inferred from the changes, plus "Stay on main (no PR)"
-     - If the user chooses to stay on main, push directly and **skip PR creation** (steps 4-8)
+   Check main branch protection per [git-patterns.md](git-patterns.md). If dotfiles repo on main, push directly and **skip PR creation** (steps 4-8). If other repo on main/master, present branch options via AskUserQuestion; if user stays on main, push directly and **skip PR creation**.
 
 2. **Check for uncommitted changes**:
    - If changes exist, commit them first (follow commit guidelines)

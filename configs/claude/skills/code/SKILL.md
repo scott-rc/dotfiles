@@ -62,8 +62,6 @@ Users often request multiple operations together. Handle these as follows:
 
 **When to use Apply instead of TDD**: Refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 
-**Important**: You MUST read and follow the detailed instruction file for each operation before executing it. Do not rely on the summaries above.
-
 ## References
 
 - [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, testing, and string conventions
