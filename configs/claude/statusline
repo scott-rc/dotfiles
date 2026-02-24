@@ -29,14 +29,7 @@ fi
 
 read -r percent dir < <(
   printf '%s' "$payload" | jq -r '[
-    (
-      .context_window.current_usage as $cu |
-      if $cu and .context_window.context_window_size > 0 then
-        (($cu.input_tokens + $cu.cache_creation_input_tokens + $cu.cache_read_input_tokens + $cu.output_tokens) * 100 / .context_window.context_window_size) | floor
-      else
-        (.context_window.used_percentage // 0)
-      end
-    ),
+    (.context_window.used_percentage // 0 | floor),
     (.workspace.current_dir // .workspace.project_dir // .cwd // "")
   ] | @tsv'
 )
