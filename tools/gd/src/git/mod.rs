@@ -99,37 +99,28 @@ pub fn repo_root(from: &Path) -> Option<PathBuf> {
     Some(PathBuf::from(out.trim()))
 }
 
-/// Pure helper: given the current branch name, default branch name, and a list of
-/// (branch, commits-ahead-of-merge-base) pairs, return the best base branch.
-///
-/// Returns `default` when `current` is empty (detached HEAD), equals `default`
-/// (already on the default branch), or no valid candidates remain after filtering.
-/// Among candidates, the one with the fewest commits ahead wins; ties go to the
-/// first entry seen (strict `<` comparison).
-pub(crate) fn select_base_branch(
-    current: &str,
-    default: &str,
-    candidates: &[(String, u64)],
-) -> String {
-    if current.is_empty() || current == default {
-        return default.to_string();
-    }
-    let mut best: Option<(&str, u64)> = None;
-    for (branch, count) in candidates {
-        if branch == current {
+/// Pure helper: parse `git log --first-parent --format=%D` output to find the
+/// closest ancestor branch. `skip` contains ref names to ignore (e.g. current
+/// branch, its HEAD pointer, and remote tracking ref). Returns the first branch
+/// name found, with `origin/` prefix stripped.
+pub(crate) fn parse_first_parent_base(log_output: &str, skip: &[&str]) -> Option<String> {
+    for line in log_output.lines() {
+        if line.is_empty() {
             continue;
         }
-        match best {
-            None => best = Some((branch, *count)),
-            Some((_, best_count)) if *count < best_count => best = Some((branch, *count)),
-            _ => {}
+        for r in line.split(", ") {
+            let name = r.strip_prefix("HEAD -> ").unwrap_or(r);
+            if skip.iter().any(|s| *s == name) {
+                continue;
+            }
+            return Some(name.strip_prefix("origin/").unwrap_or(name).to_string());
         }
     }
-    best.map_or_else(|| default.to_string(), |(b, _)| b.to_string())
+    None
 }
 
-/// Detect the base branch of the current branch by finding the local branch
-/// with the fewest commits between its merge-base and HEAD.
+/// Detect the base branch by walking first-parent history and finding the first
+/// ancestor commit decorated with another branch. Mirrors the `gbb` fish function.
 pub fn find_base_branch(repo: &Path) -> String {
     let current = run(repo, &["branch", "--show-current"])
         .map(|s| s.trim().to_string())
@@ -140,31 +131,31 @@ pub fn find_base_branch(repo: &Path) -> String {
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "main".to_string());
 
-    let branches_raw = run(
-        repo,
-        &["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
-    )
-    .unwrap_or_default();
+    if current.is_empty() || current == default {
+        return default;
+    }
 
-    let mut candidates: Vec<(String, u64)> = Vec::new();
-    for branch in branches_raw.lines().filter(|l| !l.is_empty()) {
-        if branch == current {
-            continue;
-        }
-        let mb = match run(repo, &["merge-base", &current, branch]) {
-            Some(s) => s.trim().to_string(),
-            None => continue,
-        };
-        let count_str = match run(repo, &["rev-list", "--count", &format!("{mb}..{current}")]) {
-            Some(s) => s.trim().to_string(),
-            None => continue,
-        };
-        if let Ok(count) = count_str.parse::<u64>() {
-            candidates.push((branch.to_string(), count));
+    let skip_head = format!("HEAD -> {current}");
+    let skip_origin = format!("origin/{current}");
+    let skip = [skip_head.as_str(), current.as_str(), skip_origin.as_str()];
+
+    if let Some(log_output) = run(
+        repo,
+        &[
+            "log",
+            "--first-parent",
+            "--format=%D",
+            "--decorate-refs=refs/heads/",
+            "--decorate-refs=refs/remotes/origin/",
+            &current,
+        ],
+    ) {
+        if let Some(base) = parse_first_parent_base(&log_output, &skip) {
+            return base;
         }
     }
 
-    select_base_branch(&current, &default, &candidates)
+    default
 }
 
 /// List untracked files (respecting .gitignore).
@@ -281,51 +272,55 @@ mod tests {
     }
 
     #[test]
-    fn test_select_base_branch_prefers_fewest_commits_ahead() {
-        let result = select_base_branch(
-            "feature",
-            "main",
-            &[("main".into(), 3u64), ("other".into(), 10u64)],
+    fn test_parse_first_parent_base_finds_ancestor_branch() {
+        let log = "\n\nHEAD -> feature, origin/feature\n\nmain, origin/main\n";
+        let skip = ["HEAD -> feature", "feature", "origin/feature"];
+        assert_eq!(
+            parse_first_parent_base(log, &skip),
+            Some("main".to_string())
         );
-        assert_eq!(result, "main");
     }
 
     #[test]
-    fn test_select_base_branch_returns_default_when_no_branches() {
-        let result = select_base_branch("feature", "main", &[]);
-        assert_eq!(result, "main");
-    }
-
-    #[test]
-    fn test_select_base_branch_skips_current_branch() {
-        let result = select_base_branch(
-            "feature",
-            "main",
-            &[("feature".into(), 0u64), ("main".into(), 5u64)],
+    fn test_parse_first_parent_base_strips_origin_prefix() {
+        let log = "\n\norigin/develop\n";
+        let skip = ["HEAD -> feature", "feature", "origin/feature"];
+        assert_eq!(
+            parse_first_parent_base(log, &skip),
+            Some("develop".to_string())
         );
-        assert_eq!(result, "main");
     }
 
     #[test]
-    fn test_select_base_branch_returns_default_when_on_default_branch() {
-        let result = select_base_branch("main", "main", &[("other".into(), 2u64)]);
-        assert_eq!(result, "main");
-    }
-
-    #[test]
-    fn test_select_base_branch_empty_current_returns_default() {
-        let result = select_base_branch("", "main", &[("other".into(), 1u64)]);
-        assert_eq!(result, "main");
-    }
-
-    #[test]
-    fn test_select_base_branch_ties_pick_first_seen() {
-        let result = select_base_branch(
-            "feature",
-            "main",
-            &[("branchA".into(), 4u64), ("branchB".into(), 4u64)],
+    fn test_parse_first_parent_base_skips_current_branch() {
+        let log = "HEAD -> feature\norigin/feature\nmain\n";
+        let skip = ["HEAD -> feature", "feature", "origin/feature"];
+        assert_eq!(
+            parse_first_parent_base(log, &skip),
+            Some("main".to_string())
         );
-        assert_eq!(result, "branchA");
+    }
+
+    #[test]
+    fn test_parse_first_parent_base_returns_none_when_no_match() {
+        let log = "\n\n\n";
+        let skip = ["HEAD -> feature", "feature", "origin/feature"];
+        assert_eq!(parse_first_parent_base(log, &skip), None);
+    }
+
+    #[test]
+    fn test_parse_first_parent_base_picks_first_on_multi_decorated_commit() {
+        let log = "develop, staging\n";
+        let skip = ["HEAD -> feature", "feature", "origin/feature"];
+        assert_eq!(
+            parse_first_parent_base(log, &skip),
+            Some("develop".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_first_parent_base_empty_input() {
+        assert_eq!(parse_first_parent_base("", &["feature"]), None);
     }
 
     #[test]
