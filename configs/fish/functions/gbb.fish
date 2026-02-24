@@ -12,65 +12,18 @@ function gbb --description "Print the base branch for the given or current branc
         return
     end
 
-    # Collect candidate branches: local + remote tracking (deduplicated)
-    set -l seen
-    set -l candidates
-
-    for branch in (command git for-each-ref --format='%(refname:short)' refs/heads/)
-        test "$branch" = "$target"; and continue
-        set -a seen $branch
-        set -a candidates $branch
-    end
-
-    for ref in (command git for-each-ref --format='%(refname:short)' refs/remotes/origin/)
-        set -l name (string replace 'origin/' '' $ref)
-        test "$name" = "$target"; and continue
-        test "$name" = HEAD; and continue
-        contains -- $name $seen; and continue
-        set -a candidates $ref
-    end
-
-    # Two-pass: first prefer ancestors (candidate_ahead == 0), then fall back to closest
-    set -l best ""
-    set -l best_count 2147483647
-    set -l fallback ""
-    set -l fallback_count 2147483647
-
-    for branch in $candidates
-        set -l mb (command git merge-base "$target" "$branch" 2>/dev/null)
-        or continue
-
-        set -l ahead (command git rev-list --count "$mb..$target" 2>/dev/null)
-        or continue
-
-        set -l candidate_ahead (command git rev-list --count "$mb..$branch" 2>/dev/null)
-        or continue
-
-        if test "$candidate_ahead" -eq 0
-            # True ancestor: target was branched from this
-            if test "$ahead" -lt "$best_count"
-                set best_count $ahead
-                set best $branch
-            end
-        else
-            # Sibling/diverged: track as fallback
-            if test "$ahead" -lt "$fallback_count"
-                set fallback_count $ahead
-                set fallback $branch
-            end
+    # Walk first-parent history looking for a commit decorated with another branch
+    set -l skip "HEAD -> $target" "$target" "origin/$target"
+    for line in (command git log --first-parent --format='%D' --decorate-refs=refs/heads/ --decorate-refs=refs/remotes/origin/ "$target" 2>/dev/null)
+        test -z "$line"; and continue
+        for ref in (string split ', ' $line)
+            set -l name (string replace 'HEAD -> ' '' $ref)
+            contains -- "$name" $skip; and continue
+            # Found the closest ancestor branch
+            echo (string replace 'origin/' '' $name)
+            return
         end
     end
 
-    set -l result ""
-    if test -n "$best"
-        set result $best
-    else if test -n "$fallback"
-        set result $fallback
-    else
-        echo $default_branch
-        return
-    end
-
-    # Strip origin/ prefix for display
-    echo (string replace 'origin/' '' $result)
+    echo $default_branch
 end
