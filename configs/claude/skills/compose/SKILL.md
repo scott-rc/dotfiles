@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts, and decomposes large tasks into chunked execution plans. Use when the user asks to create, review, improve, scaffold, or fix a skill, write or review rules or CLAUDE.md, craft or review a prompt, or plan, chunk, break down, or decompose a task.
+description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity. Use when the user asks to create, review, improve, scaffold, or fix a skill, write or review rules or CLAUDE.md, craft or review a prompt, plan, chunk, break down, or decompose a task, or hand off, save context, continue later, or write what's left.
 ---
 
 # Composing for Claude Code
@@ -33,6 +33,10 @@ See [create-prompt.md](create-prompt.md) for detailed instructions.
 Evaluate a session task prompt against best practices, report findings, and offer to improve it.
 See [review-prompt.md](review-prompt.md) for detailed instructions.
 
+### Create Handoff
+Write a self-contained handoff and deliver via plan mode so the user can accept and continue in a fresh context.
+See [create-handoff.md](create-handoff.md) for detailed instructions.
+
 ### Plan Task
 Decompose a large task into ordered chunks with orchestrated subagent execution.
 See [plan-task.md](plan-task.md) for detailed instructions.
@@ -48,6 +52,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
+- **"hand this off"** / **"handoff"** / **"save context"** / **"continue later"** / **"write what's left"** → Run Create Handoff
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
 - **"review"** (ambiguous) → Ask the user whether they mean a skill, a rules file, or a prompt
 
