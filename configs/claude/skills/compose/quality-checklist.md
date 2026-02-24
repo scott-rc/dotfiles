@@ -22,6 +22,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Reference files exist**: Every file linked from SKILL.md or operation files exists
 - [ ] **No orphan files**: Every `.md` file in the directory is referenced from SKILL.md or an operation file
 - [ ] **H1 headings match**: Each operation file's H1 starts with the operation name from SKILL.md
+- [ ] **Companion agent files exist**: Every agent name referenced in an operation's Task tool call (via `agent:` field) has a corresponding file in `configs/claude/agents/<name>.md`
 
 ## Structure — Rules
 
@@ -93,4 +94,5 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No keyword inflation**: MUST is not applied to every rule indiscriminately — if most rules use MUST, the skill needs reclassification
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content (reference content needs no fork)
 - [ ] **No cross-skill file references**: Use the Skill tool for cross-skill delegation, not relative file paths
+- [ ] **No inline system prompts for reusable agents**: Operations do not embed full system prompts in ad-hoc Task tool delegation when the same agent identity (prompt + tools + model) is reused across two or more invocations -- extract into a named agent file instead
 

@@ -106,7 +106,7 @@ Execute the plan in ./tmp/<plan-name>/plan.md by running each chunk as a sequent
 # Requirements
 
 1. Read plan.md to get the ordered chunk list
-2. For each chunk in order, launch a Task tool subagent (type: general-purpose) with the Chunk Subagent Prompt below, substituting the chunk file path
+2. For each chunk in order, launch a Task tool subagent (type: chunk-writer) with the Chunk Subagent Prompt below, substituting the chunk file path
 3. After each subagent completes, verify it reported success. If it reported failure, STOP and report the failure to the user -- do not continue to the next chunk.
 4. After all chunks complete, report the full plan as done
 
@@ -149,6 +149,8 @@ Execute the implementation chunk defined in CHUNK_FILE_PATH.
 ```
 
 ## Chunk Writer Subagent Prompt Template
+
+This template is now embedded in the `chunk-writer` agent's system prompt. The orchestrator only needs to send: Chunk Details, High-Level Steps, Codebase Context, and Build/Test sections. Keep the template here as reference documentation.
 
 This prompt is used by the plan-task operation to delegate chunk file writing to a Task subagent. Fill in all `<...>` placeholders.
 

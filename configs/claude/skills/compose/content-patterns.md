@@ -68,3 +68,9 @@ Review the following staged changes:
 
 Evaluate for correctness, style, and potential bugs.
 ```
+
+## Agent Patterns
+
+- **Custom subagent delegation pattern**: Use a named agent (`.claude/agents/<name>.md`) when the same system prompt + tool set + model will be reused across multiple invocations or skills. Use an ad-hoc Task tool prompt with a generic type (`Explore`, `general-purpose`) when the delegation is one-off or tightly scoped to a single operation. Named agents reduce prompt duplication and make behavior consistent across callers; ad-hoc prompts are simpler when there is no reuse benefit.
+- **Companion agent pattern**: Skills that perform complex delegated work MAY ship a companion agent file at `configs/claude/agents/<agent-name>.md` alongside their operation files. The agent file contains the system prompt, tool restrictions (`allowed-tools`), and model selection. The skill operation sends only task-specific details as the task body -- not the full system prompt. Reference the agent by name in the `agent:` field of the Task tool call. This separates stable agent identity (system prompt, tools, model) from variable task content.
+- **Memory-enabled agent pattern**: Set `memory: user`, `memory: project`, or `memory: local` in an agent file's frontmatter to enable persistent memory across sessions. Use `memory: user` for personal preferences and cross-project knowledge; `memory: project` for repo-specific conventions the agent should accumulate; `memory: local` for machine-specific state. Include explicit memory management instructions in the agent system prompt: what categories of knowledge to store, when to update entries, and when to prune stale facts.

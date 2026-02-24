@@ -188,6 +188,7 @@ ensure_symlink "$CONFIGS/claude/hooks" "$HOME/.claude/hooks"
 ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ensure_symlink "$CONFIGS/claude/statusline" "$HOME/.claude/statusline"
 ensure_symlink "$CONFIGS/claude/rules" "$HOME/.claude/rules"
+ensure_symlink "$CONFIGS/claude/agents" "$HOME/.claude/agents"
 
 # --- Codex ---
 

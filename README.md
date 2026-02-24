@@ -40,6 +40,7 @@ Configuration directories symlinked to their expected locations:
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
 | `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
+| `agents/` | `~/.claude/agents/` |
 | `codex/` | `~/.codex/config.toml`, `~/.codex/rules/default.rules` |
 | `configs/claude/CLAUDE.md` | `~/.codex/AGENTS.md` (Codex global AGENTS guidance) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
@@ -220,6 +221,18 @@ Custom CLI tools.
 | Skill | Description |
 |-------|-------------|
 | `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
+
+### Custom Agents
+
+Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agents/`) and are invoked by Claude Code as specialized sub-tasks.
+
+| Agent | Description |
+|-------|-------------|
+| `chunk-writer.md` | Writes plan chunk files with TDD structure and checkpoint tracking |
+| `skill-reviewer.md` | Evaluates skills against a quality checklist with persistent cross-project memory |
+| `code-reviewer.md` | Reviews code for quality, security, and maintainability with persistent cross-project memory |
+
+Agents with `memory: user` accumulate knowledge across sessions in `~/.claude/agent-memory/<name>/`; the first 200 lines of each agent's `MEMORY.md` are injected into context at invocation.
 
 ### Shared Agent Configuration (Claude Authority)
 

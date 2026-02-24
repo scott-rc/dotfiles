@@ -33,8 +33,9 @@ Required fields: `name` and `description`. Optional fields (include only when ne
 - `allowed-tools` — comma-separated list of tools available when this skill is active (e.g., `Read, Grep, Glob`). Restricts Claude's available tools during the skill.
 - `model` — model override for this skill (`sonnet`, `opus`, `haiku`)
 - `context: fork` — runs the skill in a subagent (see Subagent Execution below)
-- `agent` — subagent type when `context: fork` is set (`Explore`, `Plan`, `general-purpose`, or a custom agent type)
+- `agent` — subagent type when `context: fork` is set (`Explore`, `Plan`, `general-purpose`, or a custom agent type). Custom agent names reference files in `.claude/agents/<name>.md`.
 - `hooks` — lifecycle hooks scoped to this skill
+- `skills` — YAML array of skill names to preload into the subagent's context when this agent runs (e.g., `skills: [git, compose]`)
 
 MUST NOT add keys not listed above.
 
@@ -68,6 +69,8 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 ### Subagent Execution
 
 When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent.
+
+Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to preload skill content into the subagent's context; list skill names as a YAML array.
 
 This only makes sense for task-oriented skills that produce a result — reference content should not use `context: fork` because it needs to augment the main conversation context, not run in isolation.
 
@@ -109,6 +112,7 @@ Reference files contain shared knowledge used by multiple operations (patterns, 
 ├── <reference>.md     # Shared knowledge (optional)
 ├── scripts/           # Executable scripts (optional)
 ├── references/        # Additional reference material (optional, for large skills)
+├── agents/            # Companion agent files (optional)
 └── assets/            # Non-text files (optional)
 ```
 

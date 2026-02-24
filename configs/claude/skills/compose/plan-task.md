@@ -52,18 +52,16 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    If the user selects "Request changes" or "Add/remove chunks", ask what to adjust, revise the list, and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
 6. **Write chunk files via subagents**:
-   For each approved chunk, spawn a Task tool subagent (type: general-purpose) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
+   For each approved chunk, spawn a Task tool subagent (type: chunk-writer) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
 
-   MUST read [plan-template.md](plan-template.md) for the Chunk File Template and Chunk Writer Subagent Prompt Template.
-
-   For each chunk, launch a subagent with the Chunk Writer Subagent Prompt Template filled in:
-   - The chunk number, title, slug, and one-line description
-   - What the chunk does and why (2-4 sentences from your decomposition)
-   - The dependency (prior chunk file name, or "None")
-   - The high-level implementation steps from your decomposition
-   - Relevant codebase context: file paths, function names, types, and patterns discovered during exploration
+   For each chunk, launch a chunk-writer subagent with only the chunk-specific fields:
+   - Chunk number, title, slug, and one-line description
+   - Summary (2-4 sentences from your decomposition)
+   - Dependency (prior chunk file name, or "None")
+   - High-level steps from your decomposition
+   - Codebase context: file paths, function names, types, and patterns discovered during exploration
    - Build and test commands
-   - The output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md`
+   - Output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md`
 
    Run chunk writer subagents in parallel when chunks have no dependency on each other's files. Run sequentially only when a chunk's writer prompt references content from an earlier chunk file.
 
