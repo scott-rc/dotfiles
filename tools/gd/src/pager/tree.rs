@@ -93,6 +93,7 @@ pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
 
 pub(crate) const MIN_DIFF_WIDTH: usize = 80;
 pub(crate) const MIN_TREE_WIDTH: usize = 15;
+const MAX_TREE_WIDTH: usize = 40;
 const FISHEYE_RADIUS: usize = 2;
 
 pub(crate) fn compute_tree_width(tree_entries: &[TreeEntry]) -> usize {
@@ -119,7 +120,7 @@ pub(crate) fn resolve_tree_layout(
     if !has_directories && file_count < 4 {
         return None;
     }
-    let allocated = content_width.min(terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+    let allocated = content_width.min(MAX_TREE_WIDTH).min(terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
     if allocated < MIN_TREE_WIDTH {
         return None;
     }
