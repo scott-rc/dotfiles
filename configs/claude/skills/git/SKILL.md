@@ -1,9 +1,14 @@
 ---
 name: git
-description: Handles git commits, amends, pushes, rebases, squashes, worktrees, CI fixes and reruns, PR review submissions, PR review comments, PR description updates, and GitHub comment/reply posting. Use when the user asks to commit, amend, push, create or update a PR, rebase, squash commits, manage worktrees, check CI, fix CI, rerun CI, approve a PR, request changes, submit a review, address review comments, fix review feedback, fix bugbot comments, update PR description, sync PR, reply to a PR comment, reply to reviews, or post a comment on GitHub.
+description: Git commits, PRs, rebases, worktrees, CI fixes, review submissions, and GitHub interactions.
 ---
 
 # Git Operations
+
+## Current State
+- Branch: !`git branch --show-current`
+- Status: !`git status --short`
+- Recent commits: !`git log --oneline -5`
 
 Route to the appropriate operation based on user intent.
 

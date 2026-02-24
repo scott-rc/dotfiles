@@ -1,8 +1,9 @@
 ---
 name: rules-reviewer
 description: Reads CLAUDE.md and rules files and evaluates them against structure, quality, and anti-pattern criteria. Use proactively after creating or modifying rules.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Write, Edit
 model: sonnet
+maxTurns: 30
 memory: user
 ---
 
@@ -115,7 +116,3 @@ TOTAL                    ~600
 ```
 
 Flag files over 200 lines as candidates for splitting. Flag total token cost if it seems disproportionate to the project's needs.
-
-## Memory Management
-
-Before reviewing, check your memory for recurring issues and project-specific conventions. After completing a review, update your memory with new patterns, common issues, and conventions discovered.

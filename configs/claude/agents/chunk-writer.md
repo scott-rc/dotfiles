@@ -3,6 +3,7 @@ name: chunk-writer
 description: Writes plan chunk files with TDD structure and checkpoint tracking. Use for plan-task decomposition.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+maxTurns: 20
 skills: [code]
 ---
 

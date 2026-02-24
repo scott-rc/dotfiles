@@ -1,6 +1,6 @@
 ---
 name: code
-description: Loads coding style preferences and guides test-driven and benchmark-driven development workflows when writing, modifying, reviewing, planning, or optimizing code. Use when the user asks to write code, implement a feature, plan or design code, refactor, fix a bug, write tests, review code, review this code, code review, check for issues, audit code, TDD a feature, write tests first, add a regression test, fix a bug with tests, backfill tests, add coverage, write characterization tests, benchmark code, optimize performance, BDD a feature, or write benchmarks first.
+description: Coding style preferences, test-driven development, code review, and benchmark-driven workflows.
 ---
 
 # Code

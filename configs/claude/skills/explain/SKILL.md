@@ -2,9 +2,13 @@
 name: explain
 description: Explains code changes — branch diffs, individual commits, specific files, or commit ranges — when the user asks to explain, understand, walk through, summarize, or review what changed.
 argument-hint: "[commit | file | branch | range]"
+allowed-tools: Read, Grep, Glob, Bash(git *)
 ---
 
 # Explain Changes
+
+## Current Context
+- Branch: !`git branch --show-current`
 
 Help the user understand code changes by producing layered explanations (why, what, how) adapted to diff size.
 

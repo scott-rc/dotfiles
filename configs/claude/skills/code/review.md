@@ -18,14 +18,14 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 3. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md) and [testing-guidelines.md](testing-guidelines.md). If a language-specific file exists for the target language ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load it too.
 
-4. **Study project context**:
-   Spawn a Task subagent (type: Explore, model: haiku) to read surrounding code and identify project conventions -- naming patterns, error handling style, abstraction level, test patterns. The subagent should return a concise summary of conventions found. The review MUST judge code against its own project's standards, not abstract ideals.
+4. **Load review template**: Read [review-template.md](review-template.md) for the subagent prompt template.
 
-5. **Run review checklist**:
-   Evaluate every item in the [Review Checklist](#review-checklist) below. Track findings with severity:
-   - **issue** — likely bug, missing error handling at a boundary, or correctness problem
-   - **suggestion** — improvement that makes code clearer, simpler, or more maintainable
-   - **nit** — minor style or preference item
+5. **Spawn review subagent**:
+   Launch a single Task subagent (type: code-reviewer) with all files in the scope. Fill in the template with:
+   - All files in the review scope
+   - Focus: general review
+   - Paths to the guidelines files loaded in step 3
+   - The full [Review Checklist](#review-checklist) below (paste all five sections into the template's checklist placeholder)
 
 6. **Report findings**:
    MUST present findings grouped by severity (issues first, then suggestions, then nits). Each finding MUST include:

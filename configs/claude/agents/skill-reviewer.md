@@ -1,8 +1,9 @@
 ---
 name: skill-reviewer
 description: Reads a skill directory and evaluates it against structure, quality, and anti-pattern criteria. Use proactively after creating or modifying skills.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Write, Edit
 model: sonnet
+maxTurns: 30
 memory: user
 ---
 
@@ -130,7 +131,3 @@ TOTAL                    ~3200
 ```
 
 Flag files over 2000 tokens and total skill size over 5000 tokens.
-
-## Memory Management
-
-Before reviewing, check your memory for recurring issues and project-specific conventions. After completing a review, update your memory with new patterns, common issues, and conventions discovered.

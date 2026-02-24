@@ -2,7 +2,9 @@
 name: code-reviewer
 description: "Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code."
 tools: Read, Grep, Glob, Bash
-model: inherit
+model: sonnet
+background: true
+maxTurns: 30
 memory: user
 ---
 
@@ -72,7 +74,3 @@ Group findings into three severity levels:
 - For each finding: file path, line reference, issue description, and a specific fix example
 
 If no findings at a severity level, omit that section. If no findings at all, state that the changes look good.
-
-## Memory Management
-
-Before reviewing, consult your memory for patterns seen before in this project or language. After completing a review, update your memory with new patterns, anti-patterns, and project conventions discovered.
