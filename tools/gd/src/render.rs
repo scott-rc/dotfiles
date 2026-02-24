@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use similar::TextDiff;
 use tui::highlight::{
     HighlightLines, SYNTAX_SET, SyntaxReference, SyntectSyntaxSet, SyntectTheme, THEME,
@@ -11,7 +13,7 @@ use crate::style;
 #[derive(Debug, Clone)]
 pub struct LineInfo {
     pub file_idx: usize,
-    pub path: String,
+    pub path: Rc<str>,
     /// Source line number in the new file (for editor jump), if applicable.
     pub new_lineno: Option<u32>,
     /// Source line number in the old file (for deleted lines), if applicable.
@@ -29,7 +31,7 @@ pub struct RenderOutput {
 
 struct HunkRenderContext<'a> {
     file_idx: usize,
-    path: &'a str,
+    path_rc: Rc<str>,
     syntax: &'a SyntaxReference,
     ss: &'a SyntectSyntaxSet,
     theme: &'a SyntectTheme,
@@ -46,6 +48,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
     for (file_idx, file) in files.iter().enumerate() {
         file_starts.push(lines.len());
         let path = file.path();
+        let path_rc: Rc<str> = Rc::from(path);
         let status_label = match file.status {
             FileStatus::Modified => "Modified",
             FileStatus::Added => "Added",
@@ -69,7 +72,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
         lines.push(header);
         line_map.push(LineInfo {
             file_idx,
-            path: path.to_string(),
+            path: Rc::clone(&path_rc),
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
@@ -86,7 +89,7 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
         let render_ctx = HunkRenderContext {
             file_idx,
-            path,
+            path_rc: Rc::clone(&path_rc),
             syntax,
             ss: &SYNTAX_SET,
             theme: &THEME,
@@ -111,12 +114,12 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
 }
 
 /// Group consecutive added/deleted lines into change blocks for word-level diffing.
-pub(crate) struct ChangeBlock {
-    pub(crate) deleted: Vec<usize>,
-    pub(crate) added: Vec<usize>,
+pub struct ChangeBlock {
+    pub deleted: Vec<usize>,
+    pub added: Vec<usize>,
 }
 
-pub(crate) fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
+pub fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
     let mut blocks = Vec::new();
     let mut i = 0;
     let hunk_lines = &hunk.lines;
@@ -163,7 +166,7 @@ pub(crate) fn find_change_blocks(hunk: &DiffHunk) -> Vec<ChangeBlock> {
 /// Tokenize text into words, whitespace runs, and individual punctuation characters.
 /// Finer than `from_words` (which groups by whitespace only), so punctuation like
 /// a trailing comma doesn't cause an entire word to be treated as changed.
-fn tokenize(s: &str) -> Vec<&str> {
+pub fn tokenize(s: &str) -> Vec<&str> {
     let mut tokens = Vec::new();
     let mut chars = s.char_indices().peekable();
 
@@ -203,7 +206,7 @@ fn tokenize(s: &str) -> Vec<&str> {
 
 /// For a change block, compute per-line word highlight ranges.
 /// Returns (deleted_highlights, added_highlights) — each a Vec<Vec<(start, end)>> per line.
-fn word_highlights(
+pub fn word_highlights(
     hunk: &DiffHunk,
     block: &ChangeBlock,
 ) -> (Vec<Vec<(usize, usize)>>, Vec<Vec<(usize, usize)>>) {
@@ -467,7 +470,7 @@ fn render_hunk_lines(
             lines.push(line);
             line_map.push(LineInfo {
                 file_idx: ctx.file_idx,
-                path: ctx.path.to_string(),
+                path: Rc::clone(&ctx.path_rc),
                 new_lineno: diff_line.new_lineno,
                 old_lineno: diff_line.old_lineno,
                 line_kind: Some(diff_line.kind),
@@ -712,9 +715,9 @@ diff --git a/b.txt b/b.txt
 
         // line_map should reference correct file indices
         let first_file_info = &output.line_map[output.file_starts[0]];
-        assert_eq!(first_file_info.path, "a.txt");
+        assert_eq!(&*first_file_info.path, "a.txt");
         let second_file_info = &output.line_map[output.file_starts[1]];
-        assert_eq!(second_file_info.path, "b.txt");
+        assert_eq!(&*second_file_info.path, "b.txt");
     }
 
     #[test]
@@ -784,7 +787,7 @@ diff --git a/f.rs b/f.rs
             .iter()
             .find(|li| li.new_lineno == Some(2))
             .expect("should find new_lineno=2");
-        assert_eq!(added_info.path, "f.rs");
+        assert_eq!(&*added_info.path, "f.rs");
     }
 
     #[test]

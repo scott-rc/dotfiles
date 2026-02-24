@@ -106,7 +106,7 @@ pub(crate) fn nav_status_message(
         return String::new();
     }
     let idx = starts.partition_point(|&s| s <= cursor).saturating_sub(1);
-    let path = line_map.get(cursor).map_or("", |li| li.path.as_str());
+    let path = line_map.get(cursor).map_or("", |li| &li.path);
     format!("{label} {}/{} \u{00b7} {}", idx + 1, starts.len(), path)
 }
 

@@ -1,0 +1,1344 @@
+diff --git a/src/components/auth/login.tsx b/src/components/auth/login.tsx
+index a1b2c3d..e4f5a6b 100644
+--- a/src/components/auth/login.tsx
++++ b/src/components/auth/login.tsx
+@@ -1,15 +1,18 @@
+-import React, { useState } from 'react';
+-import { useAuth } from '../../hooks/useAuth';
++import React, { useState, useCallback } from 'react';
++import { useAuth } from '@/hooks/useAuth';
++import { validateEmail } from '@/utils/validation';
+
+ export function LoginForm() {
+   const [email, setEmail] = useState('');
+   const [password, setPassword] = useState('');
+-  const { login } = useAuth();
++  const [error, setError] = useState<string | null>(null);
++  const { login, isLoading } = useAuth();
+
+-  const handleSubmit = async () => {
+-    await login(email, password);
+-  };
++  const handleSubmit = useCallback(async () => {
++    if (!validateEmail(email)) {
++      setError('Invalid email address');
++      return;
++    }
++    await login(email, password);
++  }, [email, password, login]);
+
+   return (
+     <form onSubmit={handleSubmit}>
+@@ -20,6 +23,7 @@ export function LoginForm() {
+         value={email}
+         onChange={(e) => setEmail(e.target.value)}
+       />
++      {error && <p className="error">{error}</p>}
+       <input
+         type="password"
+         value={password}
+diff --git a/src/components/auth/register.tsx b/src/components/auth/register.tsx
+index b2c3d4e..f5a6b7c 100644
+--- a/src/components/auth/register.tsx
++++ b/src/components/auth/register.tsx
+@@ -1,10 +1,12 @@
+-import React from 'react';
++import React, { useState } from 'react';
++import { useAuth } from '@/hooks/useAuth';
+
+ export function RegisterForm() {
+-  return (
+-    <form>
+-      <h2>Register</h2>
+-    </form>
+-  );
++  const [step, setStep] = useState(1);
++  const { register } = useAuth();
++
++  if (step === 1) {
++    return <EmailStep onNext={() => setStep(2)} />;
++  }
++  return <PasswordStep onSubmit={register} />;
+ }
+diff --git a/src/components/auth/logout.tsx b/src/components/auth/logout.tsx
+index c3d4e5f..a6b7c8d 100644
+--- a/src/components/auth/logout.tsx
++++ b/src/components/auth/logout.tsx
+@@ -1,8 +1,14 @@
+ import React from 'react';
+-import { useAuth } from '../../hooks/useAuth';
++import { useAuth } from '@/hooks/useAuth';
++import { useRouter } from '@/hooks/useRouter';
+
+ export function LogoutButton() {
+-  const { logout } = useAuth();
+-  return <button onClick={logout}>Log out</button>;
++  const { logout, user } = useAuth();
++  const router = useRouter();
++
++  const handleLogout = async () => {
++    await logout();
++    router.push('/login');
++  };
++
++  return <button onClick={handleLogout}>Log out ({user?.name})</button>;
+ }
+diff --git a/src/components/dashboard/overview.tsx b/src/components/dashboard/overview.tsx
+index d4e5f6a..b7c8d9e 100644
+--- a/src/components/dashboard/overview.tsx
++++ b/src/components/dashboard/overview.tsx
+@@ -1,12 +1,20 @@
+ import React from 'react';
+-import { Card } from '../ui/card';
++import { Card } from '@/components/ui/card';
++import { useDashboardData } from '@/hooks/useDashboard';
+
+-export function Overview() {
++interface OverviewProps {
++  timeRange: '7d' | '30d' | '90d';
++}
++
++export function Overview({ timeRange }: OverviewProps) {
++  const { metrics, isLoading } = useDashboardData(timeRange);
++
++  if (isLoading) return <div>Loading...</div>;
++
+   return (
+     <div className="grid grid-cols-3 gap-4">
+-      <Card title="Users" value="1,234" />
+-      <Card title="Revenue" value="$5,678" />
+-      <Card title="Orders" value="890" />
++      <Card title="Users" value={metrics.users} />
++      <Card title="Revenue" value={metrics.revenue} />
++      <Card title="Orders" value={metrics.orders} />
+     </div>
+   );
+ }
+diff --git a/src/components/dashboard/charts.tsx b/src/components/dashboard/charts.tsx
+index e5f6a7b..c8d9e0f 100644
+--- a/src/components/dashboard/charts.tsx
++++ b/src/components/dashboard/charts.tsx
+@@ -1,9 +1,15 @@
+ import React from 'react';
++import { LineChart, BarChart } from '@/components/ui/charts';
+
+-export function Charts() {
++interface ChartsProps {
++  data: Array<{ date: string; value: number }>;
++}
++
++export function Charts({ data }: ChartsProps) {
+   return (
+-    <div>
+-      <p>Charts placeholder</p>
++    <div className="space-y-8">
++      <LineChart data={data} xKey="date" yKey="value" />
++      <BarChart data={data} xKey="date" yKey="value" />
+     </div>
+   );
+ }
+diff --git a/src/components/dashboard/sidebar.tsx b/src/components/dashboard/sidebar.tsx
+index f6a7b8c..d9e0f1a 100644
+--- a/src/components/dashboard/sidebar.tsx
++++ b/src/components/dashboard/sidebar.tsx
+@@ -1,14 +1,22 @@
+ import React from 'react';
+-import { NavLink } from 'react-router-dom';
++import { NavLink } from '@/components/ui/nav-link';
++import { usePermissions } from '@/hooks/usePermissions';
+
+-const links = [
++const baseLinks = [
+   { to: '/dashboard', label: 'Overview' },
+   { to: '/dashboard/charts', label: 'Charts' },
+-  { to: '/dashboard/settings', label: 'Settings' },
+ ];
+
++const adminLinks = [
++  { to: '/dashboard/settings', label: 'Settings' },
++  { to: '/dashboard/users', label: 'Users' },
++];
++
+ export function Sidebar() {
+-  return (
++  const { isAdmin } = usePermissions();
++  const links = isAdmin ? [...baseLinks, ...adminLinks] : baseLinks;
++
++  return (
+     <nav className="w-64 border-r p-4">
+       {links.map((link) => (
+         <NavLink key={link.to} to={link.to}>
+diff --git a/src/components/ui/card.tsx b/src/components/ui/card.tsx
+index a7b8c9d..e0f1a2b 100644
+--- a/src/components/ui/card.tsx
++++ b/src/components/ui/card.tsx
+@@ -1,9 +1,15 @@
+ import React from 'react';
+
+ interface CardProps {
+   title: string;
+-  value: string;
++  value: string | number;
++  trend?: 'up' | 'down' | 'flat';
+ }
+
+-export function Card({ title, value }: CardProps) {
+-  return <div className="p-4 border rounded">{title}: {value}</div>;
++export function Card({ title, value, trend }: CardProps) {
++  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '';
++  return (
++    <div className="p-4 border rounded">
++      <h3>{title}</h3>
++      <p className="text-2xl font-bold">{value} {trendIcon}</p>
++    </div>
++  );
+ }
+diff --git a/src/components/ui/button.tsx b/src/components/ui/button.tsx
+index b8c9d0e..f1a2b3c 100644
+--- a/src/components/ui/button.tsx
++++ b/src/components/ui/button.tsx
+@@ -1,11 +1,18 @@
+ import React from 'react';
+
+ interface ButtonProps {
+   children: React.ReactNode;
+   onClick?: () => void;
+-  variant?: 'primary' | 'secondary';
++  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
++  size?: 'sm' | 'md' | 'lg';
++  disabled?: boolean;
+ }
+
+-export function Button({ children, onClick, variant = 'primary' }: ButtonProps) {
+-  return <button className={`btn btn-${variant}`} onClick={onClick}>{children}</button>;
++export function Button({ children, onClick, variant = 'primary', size = 'md', disabled }: ButtonProps) {
++  return (
++    <button
++      className={`btn btn-${variant} btn-${size}`}
++      onClick={onClick}
++      disabled={disabled}
++    >{children}</button>
++  );
+ }
+diff --git a/src/components/ui/modal.tsx b/src/components/ui/modal.tsx
+index c9d0e1f..a2b3c4d 100644
+--- a/src/components/ui/modal.tsx
++++ b/src/components/ui/modal.tsx
+@@ -1,10 +1,22 @@
+-import React from 'react';
++import React, { useEffect, useRef } from 'react';
+
+ interface ModalProps {
+   open: boolean;
+   onClose: () => void;
+   children: React.ReactNode;
++  title?: string;
+ }
+
+-export function Modal({ open, onClose, children }: ModalProps) {
+-  if (!open) return null;
+-  return <div className="modal-overlay" onClick={onClose}><div className="modal">{children}</div></div>;
++export function Modal({ open, onClose, children, title }: ModalProps) {
++  const ref = useRef<HTMLDivElement>(null);
++
++  useEffect(() => {
++    if (open) ref.current?.focus();
++  }, [open]);
++
++  if (!open) return null;
++  return (
++    <div className="modal-overlay" onClick={onClose}>
++      <div className="modal" ref={ref} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
++        {title && <h2 className="modal-title">{title}</h2>}
++        {children}
++      </div>
++    </div>
++  );
+ }
+diff --git a/src/components/ui/toast.tsx b/src/components/ui/toast.tsx
+index d0e1f2a..b3c4d5e 100644
+--- a/src/components/ui/toast.tsx
++++ b/src/components/ui/toast.tsx
+@@ -1,5 +1,20 @@
+-import React from 'react';
++import React, { useEffect, useState } from 'react';
+
+-export function Toast({ message }: { message: string }) {
+-  return <div className="toast">{message}</div>;
++interface ToastProps {
++  message: string;
++  type?: 'info' | 'success' | 'error';
++  duration?: number;
++}
++
++export function Toast({ message, type = 'info', duration = 3000 }: ToastProps) {
++  const [visible, setVisible] = useState(true);
++
++  useEffect(() => {
++    const timer = setTimeout(() => setVisible(false), duration);
++    return () => clearTimeout(timer);
++  }, [duration]);
++
++  if (!visible) return null;
++
++  return <div className={`toast toast-${type}`}>{message}</div>;
+ }
+diff --git a/src/hooks/useAuth.ts b/src/hooks/useAuth.ts
+index e1f2a3b..c4d5e6f 100644
+--- a/src/hooks/useAuth.ts
++++ b/src/hooks/useAuth.ts
+@@ -1,8 +1,20 @@
+-import { useState } from 'react';
++import { useState, useCallback } from 'react';
++import { api } from '@/lib/api';
+
+ export function useAuth() {
+   const [user, setUser] = useState(null);
++  const [isLoading, setIsLoading] = useState(false);
+
+-  const login = async (email: string, password: string) => {};
+-  const logout = () => setUser(null);
+-  return { user, login, logout };
++  const login = useCallback(async (email: string, password: string) => {
++    setIsLoading(true);
++    try {
++      const data = await api.post('/auth/login', { email, password });
++      setUser(data.user);
++    } finally {
++      setIsLoading(false);
++    }
++  }, []);
++
++  const logout = useCallback(async () => {
++    await api.post('/auth/logout');
++    setUser(null);
++  }, []);
++
++  return { user, login, logout, isLoading };
+ }
+diff --git a/src/hooks/useDashboard.ts b/src/hooks/useDashboard.ts
+index f2a3b4c..d5e6f7a 100644
+--- a/src/hooks/useDashboard.ts
++++ b/src/hooks/useDashboard.ts
+@@ -1,5 +1,18 @@
+-export function useDashboardData() {
+-  return { data: [] };
++import { useState, useEffect } from 'react';
++import { api } from '@/lib/api';
++
++export function useDashboardData(timeRange: string) {
++  const [metrics, setMetrics] = useState({ users: 0, revenue: '$0', orders: 0 });
++  const [isLoading, setIsLoading] = useState(true);
++
++  useEffect(() => {
++    setIsLoading(true);
++    api.get(`/dashboard/metrics?range=${timeRange}`)
++      .then((data) => setMetrics(data))
++      .finally(() => setIsLoading(false));
++  }, [timeRange]);
++
++  return { metrics, isLoading };
+ }
+diff --git a/src/hooks/usePermissions.ts b/src/hooks/usePermissions.ts
+index a3b4c5d..e6f7a8b 100644
+--- a/src/hooks/usePermissions.ts
++++ b/src/hooks/usePermissions.ts
+@@ -1,3 +1,10 @@
++import { useAuth } from './useAuth';
++
+ export function usePermissions() {
+-  return { isAdmin: false };
++  const { user } = useAuth();
++
++  return {
++    isAdmin: user?.role === 'admin',
++    canEdit: user?.role === 'admin' || user?.role === 'editor',
++  };
+ }
+diff --git a/src/hooks/useRouter.ts b/src/hooks/useRouter.ts
+index b4c5d6e..f7a8b9c 100644
+--- a/src/hooks/useRouter.ts
++++ b/src/hooks/useRouter.ts
+@@ -1,5 +1,12 @@
++import { useCallback } from 'react';
++
+ export function useRouter() {
++  const push = useCallback((path: string) => {
++    window.history.pushState(null, '', path);
++    window.dispatchEvent(new PopStateEvent('popstate'));
++  }, []);
++
+   return {
+-    push: (path: string) => {},
++    push,
++    back: () => window.history.back(),
+   };
+ }
+diff --git a/src/lib/api.ts b/src/lib/api.ts
+index c5d6e7f..a8b9c0d 100644
+--- a/src/lib/api.ts
++++ b/src/lib/api.ts
+@@ -1,5 +1,24 @@
+-export const api = {
+-  get: async (url: string) => fetch(url).then(r => r.json()),
+-  post: async (url: string, body: unknown) =>
+-    fetch(url, { method: 'POST', body: JSON.stringify(body) }).then(r => r.json()),
++const BASE_URL = process.env.API_URL || '/api';
++
++async function request(method: string, path: string, body?: unknown) {
++  const headers: Record<string, string> = {
++    'Content-Type': 'application/json',
++  };
++  const token = localStorage.getItem('auth_token');
++  if (token) headers['Authorization'] = `Bearer ${token}`;
++
++  const res = await fetch(`${BASE_URL}${path}`, {
++    method,
++    headers,
++    body: body ? JSON.stringify(body) : undefined,
++  });
++
++  if (!res.ok) throw new Error(`API error: ${res.status}`);
++  return res.json();
++}
++
++export const api = {
++  get: (path: string) => request('GET', path),
++  post: (path: string, body?: unknown) => request('POST', path, body),
++  put: (path: string, body?: unknown) => request('PUT', path, body),
++  delete: (path: string) => request('DELETE', path),
+ };
+diff --git a/src/lib/logger.ts b/src/lib/logger.ts
+index d6e7f8a..b9c0d1e 100644
+--- a/src/lib/logger.ts
++++ b/src/lib/logger.ts
+@@ -1,3 +1,15 @@
+-export function log(msg: string) {
+-  console.log(msg);
++type LogLevel = 'debug' | 'info' | 'warn' | 'error';
++
++const LEVELS: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
++const currentLevel: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 'info';
++
++function shouldLog(level: LogLevel): boolean {
++  return LEVELS[level] >= LEVELS[currentLevel];
++}
++
++export const logger = {
++  debug: (msg: string, ...args: unknown[]) => shouldLog('debug') && console.debug(msg, ...args),
++  info: (msg: string, ...args: unknown[]) => shouldLog('info') && console.info(msg, ...args),
++  warn: (msg: string, ...args: unknown[]) => shouldLog('warn') && console.warn(msg, ...args),
++  error: (msg: string, ...args: unknown[]) => shouldLog('error') && console.error(msg, ...args),
+ };
+diff --git a/src/lib/cache.ts b/src/lib/cache.ts
+index e7f8a9b..c0d1e2f 100644
+--- a/src/lib/cache.ts
++++ b/src/lib/cache.ts
+@@ -1,5 +1,25 @@
+-export class Cache {
+-  private store = new Map();
+-  get(key: string) { return this.store.get(key); }
+-  set(key: string, value: unknown) { this.store.set(key, value); }
++interface CacheEntry<T> {
++  value: T;
++  expiresAt: number;
++}
++
++export class Cache<T = unknown> {
++  private store = new Map<string, CacheEntry<T>>();
++  private defaultTTL: number;
++
++  constructor(ttlMs: number = 60_000) {
++    this.defaultTTL = ttlMs;
++  }
++
++  get(key: string): T | undefined {
++    const entry = this.store.get(key);
++    if (!entry) return undefined;
++    if (Date.now() > entry.expiresAt) {
++      this.store.delete(key);
++      return undefined;
++    }
++    return entry.value;
++  }
++
++  set(key: string, value: T, ttlMs?: number): void {
++    this.store.set(key, { value, expiresAt: Date.now() + (ttlMs ?? this.defaultTTL) });
++  }
+ }
+diff --git a/src/lib/validation.ts b/src/lib/validation.ts
+index f8a9b0c..d1e2f3a 100644
+--- a/src/lib/validation.ts
++++ b/src/lib/validation.ts
+@@ -1,3 +1,12 @@
+ export function validateEmail(email: string): boolean {
+-  return email.includes('@');
++  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
++  return re.test(email);
++}
++
++export function validatePassword(password: string): { valid: boolean; errors: string[] } {
++  const errors: string[] = [];
++  if (password.length < 8) errors.push('Must be at least 8 characters');
++  if (!/[A-Z]/.test(password)) errors.push('Must contain uppercase letter');
++  if (!/[0-9]/.test(password)) errors.push('Must contain a number');
++  return { valid: errors.length === 0, errors };
+ }
+diff --git a/src/middleware/auth.ts b/src/middleware/auth.ts
+index a9b0c1d..e2f3a4b 100644
+--- a/src/middleware/auth.ts
++++ b/src/middleware/auth.ts
+@@ -1,5 +1,18 @@
+-export function authMiddleware(req: any, res: any, next: any) {
+-  if (!req.headers.authorization) {
+-    return res.status(401).json({ error: 'Unauthorized' });
++import { verify } from 'jsonwebtoken';
++
++const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
++
++export function authMiddleware(req: any, res: any, next: any) {
++  const header = req.headers.authorization;
++  if (!header?.startsWith('Bearer ')) {
++    return res.status(401).json({ error: 'Missing token' });
++  }
++
++  const token = header.slice(7);
++  try {
++    const payload = verify(token, JWT_SECRET);
++    req.user = payload;
++    next();
++  } catch {
++    return res.status(401).json({ error: 'Invalid token' });
+   }
+-  next();
+ }
+diff --git a/src/middleware/logging.ts b/src/middleware/logging.ts
+index b0c1d2e..f3a4b5c 100644
+--- a/src/middleware/logging.ts
++++ b/src/middleware/logging.ts
+@@ -1,4 +1,12 @@
++import { logger } from '@/lib/logger';
++
+ export function loggingMiddleware(req: any, res: any, next: any) {
+-  console.log(`${req.method} ${req.url}`);
++  const start = Date.now();
++  logger.info(`→ ${req.method} ${req.url}`);
++
++  res.on('finish', () => {
++    const duration = Date.now() - start;
++    logger.info(`← ${req.method} ${req.url} ${res.statusCode} (${duration}ms)`);
++  });
++
+   next();
+ }
+diff --git a/src/middleware/rate-limit.ts b/src/middleware/rate-limit.ts
+index c1d2e3f..a4b5c6d 100644
+--- a/src/middleware/rate-limit.ts
++++ b/src/middleware/rate-limit.ts
+@@ -1,3 +1,20 @@
+-export function rateLimitMiddleware() {
+-  // TODO: implement rate limiting
++import { Cache } from '@/lib/cache';
++
++const counters = new Cache<number>(60_000);
++
++interface RateLimitOptions {
++  maxRequests: number;
++  windowMs: number;
++}
++
++export function rateLimitMiddleware({ maxRequests = 100, windowMs = 60_000 }: Partial<RateLimitOptions> = {}) {
++  return (req: any, res: any, next: any) => {
++    const key = req.ip || 'unknown';
++    const current = counters.get(key) || 0;
++    if (current >= maxRequests) {
++      return res.status(429).json({ error: 'Too many requests' });
++    }
++    counters.set(key, current + 1, windowMs);
++    next();
++  };
+ }
+diff --git a/src/routes/api/users.ts b/src/routes/api/users.ts
+index d2e3f4a..b5c6d7e 100644
+--- a/src/routes/api/users.ts
++++ b/src/routes/api/users.ts
+@@ -1,6 +1,16 @@
+-export function getUsers() {
+-  return [];
++import { db } from '@/lib/db';
++
++export async function getUsers(page = 1, limit = 20) {
++  const offset = (page - 1) * limit;
++  const users = await db.query('SELECT id, name, email, role FROM users LIMIT ? OFFSET ?', [limit, offset]);
++  const total = await db.count('users');
++  return { users, total, page, limit };
+ }
+
+-export function getUser(id: string) {
+-  return { id, name: 'User' };
++export async function getUser(id: string) {
++  const user = await db.query('SELECT id, name, email, role, created_at FROM users WHERE id = ?', [id]);
++  if (!user) throw new Error('User not found');
++  return user;
++}
++
++export async function deleteUser(id: string) {
++  await db.query('DELETE FROM users WHERE id = ?', [id]);
+ }
+diff --git a/src/routes/api/dashboard.ts b/src/routes/api/dashboard.ts
+index e3f4a5b..c6d7e8f 100644
+--- a/src/routes/api/dashboard.ts
++++ b/src/routes/api/dashboard.ts
+@@ -1,3 +1,15 @@
+-export function getDashboardData() {
+-  return { users: 0, revenue: 0, orders: 0 };
++import { db } from '@/lib/db';
++import { Cache } from '@/lib/cache';
++
++const metricsCache = new Cache(30_000);
++
++export async function getDashboardMetrics(timeRange: string) {
++  const cacheKey = `metrics:${timeRange}`;
++  const cached = metricsCache.get(cacheKey);
++  if (cached) return cached;
++
++  const users = await db.count('users', { since: timeRange });
++  const revenue = await db.sum('orders', 'amount', { since: timeRange });
++  const orders = await db.count('orders', { since: timeRange });
++  const result = { users, revenue: `$${revenue.toLocaleString()}`, orders };
++  metricsCache.set(cacheKey, result);
++  return result;
+ }
+diff --git a/src/routes/api/auth.ts b/src/routes/api/auth.ts
+index f4a5b6c..d7e8f9a 100644
+--- a/src/routes/api/auth.ts
++++ b/src/routes/api/auth.ts
+@@ -1,5 +1,22 @@
+-export function handleLogin(email: string, password: string) {
+-  return { token: 'fake-token' };
++import { sign } from 'jsonwebtoken';
++import { db } from '@/lib/db';
++import { validateEmail, validatePassword } from '@/lib/validation';
++
++const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
++
++export async function handleLogin(email: string, password: string) {
++  if (!validateEmail(email)) throw new Error('Invalid email');
++  const user = await db.query('SELECT * FROM users WHERE email = ?', [email]);
++  if (!user || user.password !== password) throw new Error('Invalid credentials');
++  const token = sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
++  return { token, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+ }
+
+-export function handleLogout() {}
++export async function handleRegister(name: string, email: string, password: string) {
++  if (!validateEmail(email)) throw new Error('Invalid email');
++  const { valid, errors } = validatePassword(password);
++  if (!valid) throw new Error(`Password errors: ${errors.join(', ')}`);
++  const existing = await db.query('SELECT id FROM users WHERE email = ?', [email]);
++  if (existing) throw new Error('Email already registered');
++  const user = await db.insert('users', { name, email, password, role: 'user' });
++  const token = sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
++  return { token, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
++}
+diff --git a/src/routes/api/orders.ts b/src/routes/api/orders.ts
+index a5b6c7d..e8f9a0b 100644
+--- a/src/routes/api/orders.ts
++++ b/src/routes/api/orders.ts
+@@ -1,4 +1,18 @@
+-export function getOrders() {
+-  return [];
++import { db } from '@/lib/db';
++
++export async function getOrders(userId?: string, page = 1, limit = 20) {
++  const offset = (page - 1) * limit;
++  const where = userId ? { user_id: userId } : {};
++  const orders = await db.query('SELECT * FROM orders WHERE ? LIMIT ? OFFSET ?', [where, limit, offset]);
++  return { orders, page, limit };
++}
++
++export async function createOrder(userId: string, items: Array<{ productId: string; quantity: number }>) {
++  const total = items.reduce((sum, item) => sum + item.quantity, 0);
++  const order = await db.insert('orders', { user_id: userId, total, status: 'pending' });
++  for (const item of items) {
++    await db.insert('order_items', { order_id: order.id, product_id: item.productId, quantity: item.quantity });
++  }
++  return order;
+ }
+diff --git a/src/config/database.ts b/src/config/database.ts
+index b6c7d8e..f9a0b1c 100644
+--- a/src/config/database.ts
++++ b/src/config/database.ts
+@@ -1,5 +1,15 @@
+ export const dbConfig = {
+-  host: 'localhost',
+-  port: 5432,
+-  database: 'myapp',
++  host: process.env.DB_HOST || 'localhost',
++  port: parseInt(process.env.DB_PORT || '5432', 10),
++  database: process.env.DB_NAME || 'myapp',
++  user: process.env.DB_USER || 'postgres',
++  password: process.env.DB_PASSWORD || '',
++  pool: {
++    min: 2,
++    max: 10,
++    idleTimeoutMs: 30_000,
++  },
++  ssl: process.env.DB_SSL === 'true' ? {
++    rejectUnauthorized: false,
++  } : false,
+ };
+diff --git a/src/config/app.ts b/src/config/app.ts
+index c7d8e9f..a0b1c2d 100644
+--- a/src/config/app.ts
++++ b/src/config/app.ts
+@@ -1,4 +1,12 @@
+ export const appConfig = {
+-  port: 3000,
+-  name: 'MyApp',
++  port: parseInt(process.env.PORT || '3000', 10),
++  name: process.env.APP_NAME || 'MyApp',
++  env: process.env.NODE_ENV || 'development',
++  cors: {
++    origin: process.env.CORS_ORIGIN || '*',
++    credentials: true,
++  },
++  session: {
++    secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
++    maxAge: 24 * 60 * 60 * 1000,
++  },
+ };
+diff --git a/tests/auth.test.ts b/tests/auth.test.ts
+index d8e9f0a..b1c2d3e 100644
+--- a/tests/auth.test.ts
++++ b/tests/auth.test.ts
+@@ -1,5 +1,20 @@
+-import { handleLogin } from '../src/routes/api/auth';
++import { handleLogin, handleRegister } from '../src/routes/api/auth';
++import { db } from '../src/lib/db';
++
++jest.mock('../src/lib/db');
+
+ describe('auth', () => {
+-  it('returns a token', () => {});
++  beforeEach(() => jest.clearAllMocks());
++
++  describe('login', () => {
++    it('returns token for valid credentials', async () => {
++      (db.query as jest.Mock).mockResolvedValue({ id: '1', name: 'Test', email: 'test@example.com', password: 'pass', role: 'user' });
++      const result = await handleLogin('test@example.com', 'pass');
++      expect(result.token).toBeDefined();
++    });
++
++    it('rejects invalid email', async () => {
++      await expect(handleLogin('invalid', 'pass')).rejects.toThrow('Invalid email');
++    });
++  });
+ });
+diff --git a/tests/dashboard.test.ts b/tests/dashboard.test.ts
+index e9f0a1b..c2d3e4f 100644
+--- a/tests/dashboard.test.ts
++++ b/tests/dashboard.test.ts
+@@ -1,5 +1,16 @@
+-import { getDashboardData } from '../src/routes/api/dashboard';
++import { getDashboardMetrics } from '../src/routes/api/dashboard';
++import { db } from '../src/lib/db';
++
++jest.mock('../src/lib/db');
+
+ describe('dashboard', () => {
+-  it('returns data', () => {});
++  it('returns metrics for time range', async () => {
++    (db.count as jest.Mock).mockResolvedValue(100);
++    (db.sum as jest.Mock).mockResolvedValue(5000);
++    const result = await getDashboardMetrics('7d');
++    expect(result).toEqual({
++      users: 100,
++      revenue: '$5,000',
++      orders: 100,
++    });
++  });
+ });
+diff --git a/tests/validation.test.ts b/tests/validation.test.ts
+index f0a1b2c..d3e4f5a 100644
+--- a/tests/validation.test.ts
++++ b/tests/validation.test.ts
+@@ -1,5 +1,18 @@
+-import { validateEmail } from '../src/lib/validation';
++import { validateEmail, validatePassword } from '../src/lib/validation';
+
+ describe('validateEmail', () => {
+-  it('validates', () => {});
++  it('accepts valid email', () => {
++    expect(validateEmail('user@example.com')).toBe(true);
++  });
++
++  it('rejects email without @', () => {
++    expect(validateEmail('invalid')).toBe(false);
++  });
++});
++
++describe('validatePassword', () => {
++  it('requires minimum length', () => {
++    const result = validatePassword('short');
++    expect(result.valid).toBe(false);
++    expect(result.errors).toContain('Must be at least 8 characters');
++  });
+ });
+diff --git a/tests/cache.test.ts b/tests/cache.test.ts
+index a1b2c3d..e4f5a6b 100644
+--- a/tests/cache.test.ts
++++ b/tests/cache.test.ts
+@@ -1,5 +1,15 @@
+ import { Cache } from '../src/lib/cache';
+
+ describe('Cache', () => {
+-  it('stores and retrieves', () => {});
++  it('stores and retrieves values', () => {
++    const cache = new Cache(1000);
++    cache.set('key', 'value');
++    expect(cache.get('key')).toBe('value');
++  });
++
++  it('returns undefined for missing keys', () => {
++    const cache = new Cache(1000);
++    expect(cache.get('missing')).toBeUndefined();
++  });
+ });
+diff --git a/package.json b/package.json
+index b2c3d4e..f5a6b7c 100644
+--- a/package.json
++++ b/package.json
+@@ -3,9 +3,15 @@
+   "version": "1.0.0",
+   "scripts": {
+     "dev": "ts-node src/index.ts",
+-    "build": "tsc",
+-    "test": "jest"
++    "build": "tsc --project tsconfig.build.json",
++    "test": "jest --coverage",
++    "test:watch": "jest --watch",
++    "lint": "eslint src/ tests/",
++    "lint:fix": "eslint src/ tests/ --fix",
++    "typecheck": "tsc --noEmit"
+   },
+   "dependencies": {
+-    "typescript": "^5.0.0"
++    "typescript": "^5.0.0",
++    "jsonwebtoken": "^9.0.0",
++    "dotenv": "^16.0.0"
+   }
+ }
+diff --git a/tsconfig.json b/tsconfig.json
+index c3d4e5f..a6b7c8d 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -1,6 +1,14 @@
+ {
+   "compilerOptions": {
+-    "target": "es2020",
+-    "module": "commonjs"
++    "target": "ES2022",
++    "module": "commonjs",
++    "strict": true,
++    "esModuleInterop": true,
++    "paths": {
++      "@/*": ["./src/*"]
++    },
++    "baseUrl": ".",
++    "outDir": "./dist",
++    "skipLibCheck": true
+   }
+ }
+diff --git a/src/lib/db.ts b/src/lib/db.ts
+index d1e2f3a..b4c5d6e 100644
+--- a/src/lib/db.ts
++++ b/src/lib/db.ts
+@@ -1,5 +1,45 @@
+-export const db = {
+-  query: async (sql: string, params?: unknown[]) => null,
+-  count: async (table: string) => 0,
+-  insert: async (table: string, data: Record<string, unknown>) => ({ id: '1' }),
++import { Pool, PoolConfig } from 'pg';
++import { dbConfig } from '@/config/database';
++import { logger } from './logger';
++
++let pool: Pool | null = null;
++
++function getPool(): Pool {
++  if (!pool) {
++    const config: PoolConfig = {
++      host: dbConfig.host,
++      port: dbConfig.port,
++      database: dbConfig.database,
++      user: dbConfig.user,
++      password: dbConfig.password,
++      min: dbConfig.pool.min,
++      max: dbConfig.pool.max,
++      idleTimeoutMillis: dbConfig.pool.idleTimeoutMs,
++    };
++    pool = new Pool(config);
++    pool.on('error', (err) => logger.error('Pool error', err));
++  }
++  return pool;
++}
++
++export const db = {
++  async query(sql: string, params?: unknown[]) {
++    const start = Date.now();
++    const result = await getPool().query(sql, params);
++    logger.debug(`Query ${sql} took ${Date.now() - start}ms`);
++    return result.rows[0] ?? null;
++  },
++  async count(table: string, where?: Record<string, unknown>) {
++    const clause = where ? Object.keys(where).map((k) => `${k} = ?`).join(' AND ') : '1=1';
++    const result = await getPool().query(`SELECT COUNT(*) as count FROM ${table} WHERE ${clause}`);
++    return parseInt(result.rows[0].count, 10);
++  },
++  async sum(table: string, column: string, where?: Record<string, unknown>) {
++    const clause = where ? Object.keys(where).map((k) => `${k} = ?`).join(' AND ') : '1=1';
++    const result = await getPool().query(`SELECT SUM(${column}) as total FROM ${table} WHERE ${clause}`);
++    return parseFloat(result.rows[0].total) || 0;
++  },
++  async insert(table: string, data: Record<string, unknown>) {
++    const keys = Object.keys(data);
++    const values = Object.values(data);
++    const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
++    const result = await getPool().query(
++      `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`,
++      values,
++    );
++    return result.rows[0];
++  },
+ };
+diff --git a/src/lib/events.ts b/src/lib/events.ts
+index e2f3a4b..c5d6e7f 100644
+--- a/src/lib/events.ts
++++ b/src/lib/events.ts
+@@ -1,5 +1,30 @@
+-type EventHandler = (...args: any[]) => void;
++type EventHandler<T = unknown> = (payload: T) => void;
+
+-export class EventEmitter {
+-  on(event: string, handler: EventHandler) {}
+-  emit(event: string, ...args: any[]) {}
++export class EventEmitter {
++  private handlers = new Map<string, Set<EventHandler>>();
++
++  on<T>(event: string, handler: EventHandler<T>): () => void {
++    if (!this.handlers.has(event)) {
++      this.handlers.set(event, new Set());
++    }
++    const set = this.handlers.get(event)!;
++    set.add(handler as EventHandler);
++    return () => set.delete(handler as EventHandler);
++  }
++
++  once<T>(event: string, handler: EventHandler<T>): () => void {
++    const wrapper: EventHandler<T> = (payload) => {
++      unsub();
++      handler(payload);
++    };
++    const unsub = this.on(event, wrapper);
++    return unsub;
++  }
++
++  emit<T>(event: string, payload: T): void {
++    const set = this.handlers.get(event);
++    if (!set) return;
++    for (const handler of set) {
++      (handler as EventHandler<T>)(payload);
++    }
++  }
+ }
+diff --git a/src/lib/queue.ts b/src/lib/queue.ts
+index f3a4b5c..d6e7f8a 100644
+--- a/src/lib/queue.ts
++++ b/src/lib/queue.ts
+@@ -1,3 +1,40 @@
+-export class Queue {
+-  // TODO: implement job queue
++import { EventEmitter } from './events';
++import { logger } from './logger';
++
++interface Job<T = unknown> {
++  id: string;
++  type: string;
++  payload: T;
++  attempts: number;
++  maxAttempts: number;
++  createdAt: Date;
++}
++
++export class Queue extends EventEmitter {
++  private jobs: Job[] = [];
++  private processing = false;
++
++  async enqueue<T>(type: string, payload: T, maxAttempts = 3): Promise<string> {
++    const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
++    this.jobs.push({ id, type, payload, attempts: 0, maxAttempts, createdAt: new Date() });
++    logger.info(`Enqueued job ${id} of type ${type}`);
++    if (!this.processing) this.process();
++    return id;
++  }
++
++  private async process(): Promise<void> {
++    this.processing = true;
++    while (this.jobs.length > 0) {
++      const job = this.jobs.shift()!;
++      job.attempts++;
++      try {
++        this.emit('process', job);
++        logger.info(`Processed job ${job.id}`);
++      } catch (err) {
++        logger.error(`Job ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`);
++        if (job.attempts < job.maxAttempts) {
++          this.jobs.push(job);
++        } else {
++          this.emit('failed', job);
++        }
++      }
++    }
++    this.processing = false;
++  }
+ }
+diff --git a/src/lib/retry.ts b/src/lib/retry.ts
+index a4b5c6d..e7f8a9b 100644
+--- a/src/lib/retry.ts
++++ b/src/lib/retry.ts
+@@ -1,3 +1,25 @@
+-export async function retry(fn: () => Promise<any>, attempts: number) {
+-  return fn();
++import { logger } from './logger';
++
++interface RetryOptions {
++  attempts: number;
++  delayMs: number;
++  backoff: 'linear' | 'exponential';
++}
++
++const defaults: RetryOptions = { attempts: 3, delayMs: 1000, backoff: 'exponential' };
++
++export async function retry<T>(fn: () => Promise<T>, opts: Partial<RetryOptions> = {}): Promise<T> {
++  const { attempts, delayMs, backoff } = { ...defaults, ...opts };
++  let lastError: Error | undefined;
++
++  for (let i = 0; i < attempts; i++) {
++    try {
++      return await fn();
++    } catch (err) {
++      lastError = err as Error;
++      const delay = backoff === 'exponential' ? delayMs * 2 ** i : delayMs * (i + 1);
++      logger.warn(`Retry ${i + 1}/${attempts} failed, waiting ${delay}ms`);
++      await new Promise((resolve) => setTimeout(resolve, delay));
++    }
++  }
++
++  throw lastError;
+ }
+diff --git a/src/routes/api/products.ts b/src/routes/api/products.ts
+index b5c6d7e..f8a9b0c 100644
+--- a/src/routes/api/products.ts
++++ b/src/routes/api/products.ts
+@@ -1,3 +1,30 @@
+-export function getProducts() {
+-  return [];
++import { db } from '@/lib/db';
++import { Cache } from '@/lib/cache';
++
++const productCache = new Cache(60_000);
++
++export async function getProducts(category?: string, page = 1, limit = 20) {
++  const cacheKey = `products:${category || 'all'}:${page}:${limit}`;
++  const cached = productCache.get(cacheKey);
++  if (cached) return cached;
++
++  const offset = (page - 1) * limit;
++  const where = category ? `WHERE category = '${category}'` : '';
++  const products = await db.query(`SELECT * FROM products ${where} ORDER BY name LIMIT ? OFFSET ?`, [limit, offset]);
++  const result = { products, page, limit };
++  productCache.set(cacheKey, result);
++  return result;
++}
++
++export async function getProduct(id: string) {
++  const product = await db.query('SELECT * FROM products WHERE id = ?', [id]);
++  if (!product) throw new Error('Product not found');
++  return product;
++}
++
++export async function updateProduct(id: string, data: Partial<{ name: string; price: number; category: string }>) {
++  const sets = Object.entries(data).map(([k, v]) => `${k} = '${v}'`).join(', ');
++  await db.query(`UPDATE products SET ${sets} WHERE id = ?`, [id]);
++  productCache.set(`product:${id}`, null); // invalidate
++  return getProduct(id);
+ }
+diff --git a/src/routes/api/search.ts b/src/routes/api/search.ts
+index c6d7e8f..a9b0c1d 100644
+--- a/src/routes/api/search.ts
++++ b/src/routes/api/search.ts
+@@ -1,3 +1,22 @@
+-export function search(query: string) {
+-  return [];
++import { db } from '@/lib/db';
++
++interface SearchOptions {
++  query: string;
++  type?: 'users' | 'products' | 'orders';
++  limit?: number;
++}
++
++export async function search({ query, type, limit = 20 }: SearchOptions) {
++  const tables = type ? [type] : ['users', 'products', 'orders'];
++  const results: Array<{ type: string; id: string; label: string }> = [];
++
++  for (const table of tables) {
++    const rows = await db.query(
++      `SELECT id, name as label FROM ${table} WHERE name ILIKE ? LIMIT ?`,
++      [`%${query}%`, limit],
++    );
++    if (rows) {
++      results.push({ type: table, ...rows });
++    }
++  }
++
++  return results;
+ }
+diff --git a/src/components/search/search-bar.tsx b/src/components/search/search-bar.tsx
+index d7e8f9a..b0c1d2e 100644
+--- a/src/components/search/search-bar.tsx
++++ b/src/components/search/search-bar.tsx
+@@ -1,8 +1,30 @@
+-import React, { useState } from 'react';
++import React, { useState, useCallback, useRef, useEffect } from 'react';
++import { search } from '@/routes/api/search';
+
+-export function SearchBar() {
++interface SearchBarProps {
++  onSelect?: (result: { type: string; id: string; label: string }) => void;
++}
++
++export function SearchBar({ onSelect }: SearchBarProps) {
+   const [query, setQuery] = useState('');
++  const [results, setResults] = useState<Array<{ type: string; id: string; label: string }>>([]);
++  const [isOpen, setIsOpen] = useState(false);
++  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
++
++  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
++    const value = e.target.value;
++    setQuery(value);
++    clearTimeout(debounceRef.current);
++    debounceRef.current = setTimeout(async () => {
++      if (value.length < 2) {
++        setResults([]);
++        setIsOpen(false);
++        return;
++      }
++      const data = await search({ query: value });
++      setResults(data);
++      setIsOpen(data.length > 0);
++    }, 300);
++  }, []);
+
+   return (
+-    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search..." />
++    <div className="relative">
++      <input value={query} onChange={handleChange} placeholder="Search..." className="w-full px-4 py-2 border rounded" />
++      {isOpen && (
++        <ul className="absolute w-full bg-white border rounded shadow mt-1">
++          {results.map((r) => (
++            <li key={`${r.type}-${r.id}`} onClick={() => { onSelect?.(r); setIsOpen(false); }} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
++              <span className="text-xs text-gray-500">{r.type}</span> {r.label}
++            </li>
++          ))}
++        </ul>
++      )}
++    </div>
+   );
+ }
+diff --git a/src/components/search/search-results.tsx b/src/components/search/search-results.tsx
+index e8f9a0b..c1d2e3f 100644
+--- a/src/components/search/search-results.tsx
++++ b/src/components/search/search-results.tsx
+@@ -1,5 +1,25 @@
+ import React from 'react';
++import { Card } from '@/components/ui/card';
+
+-export function SearchResults({ results }: { results: any[] }) {
+-  return <ul>{results.map((r, i) => <li key={i}>{r}</li>)}</ul>;
++interface SearchResult {
++  type: string;
++  id: string;
++  label: string;
++  score?: number;
++}
++
++interface SearchResultsProps {
++  results: SearchResult[];
++  onSelect: (result: SearchResult) => void;
++}
++
++export function SearchResults({ results, onSelect }: SearchResultsProps) {
++  if (results.length === 0) return <p>No results found.</p>;
++
++  return (
++    <div className="space-y-2">
++      {results.map((r) => (
++        <Card key={`${r.type}-${r.id}`} title={r.label} value={r.type} onClick={() => onSelect(r)} />
++      ))}
++    </div>
++  );
+ }
+diff --git a/src/components/settings/profile.tsx b/src/components/settings/profile.tsx
+index f9a0b1c..d2e3f4a 100644
+--- a/src/components/settings/profile.tsx
++++ b/src/components/settings/profile.tsx
+@@ -1,8 +1,35 @@
+-import React from 'react';
++import React, { useState, useEffect } from 'react';
++import { useAuth } from '@/hooks/useAuth';
++import { api } from '@/lib/api';
++import { Button } from '@/components/ui/button';
+
+-export function ProfileSettings() {
++export function ProfileSettings() {
++  const { user } = useAuth();
++  const [name, setName] = useState('');
++  const [email, setEmail] = useState('');
++  const [saving, setSaving] = useState(false);
++  const [message, setMessage] = useState('');
++
++  useEffect(() => {
++    if (user) {
++      setName(user.name);
++      setEmail(user.email);
++    }
++  }, [user]);
++
++  const handleSave = async () => {
++    setSaving(true);
++    try {
++      await api.put('/users/me', { name, email });
++      setMessage('Profile updated successfully');
++    } catch {
++      setMessage('Failed to update profile');
++    } finally {
++      setSaving(false);
++    }
++  };
++
+   return (
+-    <div>
+-      <h2>Profile Settings</h2>
++    <div className="space-y-4">
++      <h2 className="text-xl font-bold">Profile Settings</h2>
++      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
++      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
++      <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
++      {message && <p>{message}</p>}
+     </div>
+   );
+ }
+diff --git a/src/components/settings/notifications.tsx b/src/components/settings/notifications.tsx
+index a0b1c2d..e3f4a5b 100644
+--- a/src/components/settings/notifications.tsx
++++ b/src/components/settings/notifications.tsx
+@@ -1,8 +1,30 @@
+-import React from 'react';
++import React, { useState } from 'react';
++import { api } from '@/lib/api';
++import { Button } from '@/components/ui/button';
+
+-export function NotificationSettings() {
++interface NotificationPrefs {
++  email: boolean;
++  push: boolean;
++  sms: boolean;
++  digest: 'daily' | 'weekly' | 'never';
++}
++
++export function NotificationSettings() {
++  const [prefs, setPrefs] = useState<NotificationPrefs>({
++    email: true,
++    push: true,
++    sms: false,
++    digest: 'weekly',
++  });
++
++  const toggle = (key: keyof Omit<NotificationPrefs, 'digest'>) => {
++    setPrefs((p) => ({ ...p, [key]: !p[key] }));
++  };
++
++  const save = async () => {
++    await api.put('/users/me/notifications', prefs);
++  };
++
+   return (
+-    <div>
+-      <h2>Notification Settings</h2>
++    <div className="space-y-4">
++      <h2 className="text-xl font-bold">Notifications</h2>
++      <label><input type="checkbox" checked={prefs.email} onChange={() => toggle('email')} /> Email</label>
++      <label><input type="checkbox" checked={prefs.push} onChange={() => toggle('push')} /> Push</label>
++      <label><input type="checkbox" checked={prefs.sms} onChange={() => toggle('sms')} /> SMS</label>
++      <Button onClick={save}>Save preferences</Button>
+     </div>
+   );
+ }
+diff --git a/tests/products.test.ts b/tests/products.test.ts
+index b1c2d3e..e4f5a6b 100644
+--- a/tests/products.test.ts
++++ b/tests/products.test.ts
+@@ -1,5 +1,22 @@
+-import { getProducts } from '../src/routes/api/products';
++import { getProducts, getProduct, updateProduct } from '../src/routes/api/products';
++import { db } from '../src/lib/db';
++
++jest.mock('../src/lib/db');
+
+ describe('products', () => {
+-  it('returns products', () => {});
++  beforeEach(() => jest.clearAllMocks());
++
++  it('returns paginated products', async () => {
++    (db.query as jest.Mock).mockResolvedValue([{ id: '1', name: 'Widget', price: 9.99 }]);
++    const result = await getProducts(undefined, 1, 10);
++    expect(result.products).toBeDefined();
++    expect(result.page).toBe(1);
++  });
++
++  it('uses cache on repeated calls', async () => {
++    (db.query as jest.Mock).mockResolvedValue([{ id: '1', name: 'Widget' }]);
++    await getProducts('electronics', 1, 10);
++    await getProducts('electronics', 1, 10);
++    // second call should hit cache, so db.query only called once
++    expect(db.query).toHaveBeenCalledTimes(1);
++  });
+ });
+diff --git a/tests/queue.test.ts b/tests/queue.test.ts
+index c2d3e4f..a5b6c7d 100644
+--- a/tests/queue.test.ts
++++ b/tests/queue.test.ts
+@@ -1,5 +1,18 @@
+ import { Queue } from '../src/lib/queue';
+
+ describe('Queue', () => {
+-  it('enqueues jobs', () => {});
++  it('enqueues and processes jobs', async () => {
++    const queue = new Queue();
++    const processed: string[] = [];
++    queue.on('process', (job: any) => processed.push(job.id));
++    const id = await queue.enqueue('test', { data: 1 });
++    expect(id).toBeDefined();
++    // wait for async processing
++    await new Promise((r) => setTimeout(r, 10));
++    expect(processed.length).toBe(1);
++  });
++
++  it('generates unique job ids', async () => {
++    const queue = new Queue();
++    const id1 = await queue.enqueue('test', {});
++    const id2 = await queue.enqueue('test', {});
++    expect(id1).not.toBe(id2);
++  });
+ });

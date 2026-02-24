@@ -1,0 +1,40 @@
+diff --git a/src/main.rs b/src/main.rs
+index 1a2b3c4..5d6e7f8 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -1,8 +1,9 @@
+ use std::io;
++use std::path::PathBuf;
+
+ fn main() {
+-    println!("Hello, world!");
+-    let x = 42;
++    println!("Hello, dotfiles!");
++    let x = 100;
+     if x > 0 {
+         io::stdout().flush().unwrap();
+     }
+diff --git a/README.md b/README.md
+index 2b3c4d5..6e7f8a9 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,6 @@
+ # My Project
+
+-A simple demo project.
++A simple demo project with improved documentation.
++See `CHANGELOG.md` for recent updates.
+
+ ## Usage
+diff --git a/lib/utils.ts b/lib/utils.ts
+index 3c4d5e6..7f8a9b0 100644
+--- a/lib/utils.ts
++++ b/lib/utils.ts
+@@ -2,7 +2,6 @@ export function clamp(val: number, min: number, max: number): number {
+   return Math.min(Math.max(val, min), max);
+ }
+
+-// TODO: remove this helper
+ export function identity<T>(x: T): T {
+   return x;
+ }

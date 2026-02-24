@@ -2,15 +2,15 @@ use crate::git::diff::{DiffFile, FileStatus};
 use crate::style;
 
 #[derive(Debug)]
-pub(crate) struct TreeEntry {
-    pub(crate) label: String,
-    pub(crate) depth: usize,
-    pub(crate) file_idx: Option<usize>,
-    pub(crate) status: Option<FileStatus>,
-    pub(crate) collapsed: bool,
+pub struct TreeEntry {
+    pub label: String,
+    pub depth: usize,
+    pub file_idx: Option<usize>,
+    pub status: Option<FileStatus>,
+    pub collapsed: bool,
 }
 
-pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
+pub fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
     debug_assert!(
         files.windows(2).all(|w| w[0].path() <= w[1].path()),
         "build_tree_entries expects files sorted by path"

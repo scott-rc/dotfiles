@@ -1,5 +1,7 @@
 //! Shared test helpers and fixtures for pager tests.
 
+use std::rc::Rc;
+
 use crate::git::diff::{DiffFile, FileStatus, LineKind};
 use crate::render;
 use crate::render::LineInfo;
@@ -190,7 +192,7 @@ pub fn make_pager_state_for_range(
     let line_map = vec![
         LineInfo {
             file_idx: 0,
-            path: String::new(),
+            path: Rc::from(""),
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
@@ -273,7 +275,7 @@ pub fn scrollbar_thumb_range(
     let line_map: Vec<LineInfo> = (0..vis_end.max(content_height))
         .map(|_| LineInfo {
             file_idx: 0,
-            path: String::new(),
+            path: Rc::from(""),
             new_lineno: None,
             old_lineno: None,
             line_kind: None,

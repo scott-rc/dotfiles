@@ -280,7 +280,7 @@ fn dispatch_normal_action(
                 .cursor_line
                 .min(state.doc.line_map.len().saturating_sub(1));
             if !state.doc.line_map.is_empty() {
-                let rel = &state.doc.line_map[pos].path;
+                let rel = &*state.doc.line_map[pos].path;
                 let abs = ctx.repo.join(rel);
                 let text = abs.to_string_lossy().to_string();
                 let ok = copy_to_clipboard(&text);
@@ -298,7 +298,7 @@ fn dispatch_normal_action(
                 .min(state.doc.line_map.len().saturating_sub(1));
             if !state.doc.line_map.is_empty() {
                 let info = &state.doc.line_map[pos];
-                let path = info.path.clone();
+                let path = info.path.to_string();
                 let lineno = info.new_lineno;
                 return Some(ReducerEffect::OpenEditor { path, lineno });
             }

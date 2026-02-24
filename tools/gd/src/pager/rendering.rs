@@ -207,7 +207,7 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
             .doc
             .line_map
             .get(state.cursor_line)
-            .map_or("", |li| li.path.as_str());
+            .map_or("", |li| &li.path);
         format!(
             "Single: {path} (file {}/{})",
             idx + 1,

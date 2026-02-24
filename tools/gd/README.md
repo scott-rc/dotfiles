@@ -129,6 +129,35 @@ Requires [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) (`cargo ins
 
 It also writes `lcov.info`, which agents can read directly for line-granular data. The lcov format uses `SF:` for source file, `DA:line,count` for line hits (0 = uncovered), and `FNDA:count,name` for function hits.
 
+## Benchmarking
+
+### Microbenchmarks
+
+```bash
+cargo bench
+```
+
+Criterion benchmarks in `benches/bench.rs` cover diff parsing, the render pipeline, word-level diffs, and tree building. Results are stored in `target/criterion/` with HTML reports.
+
+Compare against a baseline after making changes:
+
+```bash
+cargo bench --bench bench -- --save-baseline before
+# ... make changes ...
+cargo bench --bench bench -- --baseline before
+```
+
+### Profiling
+
+Generate a flamegraph with [samply](https://github.com/mstange/samply):
+
+```bash
+cargo build --release
+samply record ./target/release/gd --no-pager HEAD~1
+```
+
+This opens the Firefox Profiler with a call tree and flame chart. Look for hot functions in `render.rs` (`render_diff_files`, `word_highlights`, `tokenize`) and `pager/tree.rs` (`build_tree_entries`).
+
 ## Debug tracing
 
 Set `GD_DEBUG=1` to emit structured debug output to stderr for rerender and regenerate paths (e.g. `GD_DEBUG=1 gd`). Default: no debug I/O. Useful for diagnosing view state after document swaps.

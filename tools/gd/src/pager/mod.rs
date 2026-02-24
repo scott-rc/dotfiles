@@ -7,7 +7,7 @@ mod runtime;
 mod search;
 mod state;
 mod text;
-mod tree;
+pub mod tree;
 mod types;
 
 #[cfg(test)]
