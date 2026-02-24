@@ -52,8 +52,8 @@ fn keymap_normal_other_keys() {
         (Key::Char('n'), ActionId::NextMatch),
         (Key::Char('N'), ActionId::PrevMatch),
         (Key::Char('l'), ActionId::ToggleTree),
-        (Key::Char('m'), ActionId::SetMark),
-        (Key::Char('y'), ActionId::YankToMark),
+        (Key::Char('v'), ActionId::VisualSelect),
+        (Key::Char('y'), ActionId::YankSelection),
         (Key::Char('e'), ActionId::OpenEditor),
         (Key::Char('q'), ActionId::Quit),
         (Key::Char('?'), ActionId::ToggleTooltip),
@@ -152,10 +152,10 @@ fn help_includes_all_primary_runtime_actions() {
         "Previous match",
         "l",
         "Toggle tree panel",
-        "m",
-        "Set mark",
+        "v",
+        "Visual select",
         "y",
-        "Copy mark..cursor",
+        "Yank selection",
         "e",
         "Open in editor",
         "q",
@@ -218,7 +218,7 @@ fn keymap_tooltip_lines_tracks_runtime_actions() {
     let joined = keymap_tooltip_lines().join(" ");
     for token in [
         "scroll", "page", "top/bot", "center", "hunk", "file", "single", "context", "tree",
-        "search", "match", "mark", "yank", "edit", "quit",
+        "search", "match", "sel", "yank", "edit", "quit",
     ] {
         assert!(
             joined.contains(token),

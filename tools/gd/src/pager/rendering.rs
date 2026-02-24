@@ -213,8 +213,8 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
             idx + 1,
             state.doc.file_count()
         )
-    } else if state.mark_line.is_some() {
-        "Mark set".to_string()
+    } else if state.visual_anchor.is_some() {
+        "-- VISUAL --".to_string()
     } else {
         String::new()
     };
@@ -285,10 +285,10 @@ pub(crate) fn render_content_area(
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }
-            // Mark highlight
-            if let Some(mark) = state.mark_line {
-                let lo = mark.min(state.cursor_line);
-                let hi = mark.max(state.cursor_line);
+            // Visual selection highlight
+            if let Some(anchor) = state.visual_anchor {
+                let lo = anchor.min(state.cursor_line);
+                let hi = anchor.max(state.cursor_line);
                 if idx >= lo && idx <= hi && idx != state.cursor_line {
                     let vis_w = crate::ansi::visible_width(&line);
                     let pad = diff_w.saturating_sub(vis_w);

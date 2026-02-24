@@ -230,15 +230,15 @@ fn dispatch_normal_action(
             }
             Some(ReducerEffect::ReRender)
         }
-        ActionId::SetMark => {
-            state.mark_line = Some(state.cursor_line);
-            state.status_message = "Mark set".to_string();
+        ActionId::VisualSelect => {
+            state.visual_anchor = Some(state.cursor_line);
+            state.status_message = "-- VISUAL --".to_string();
             Some(ReducerEffect::Continue)
         }
-        ActionId::YankToMark => {
-            if let Some(mark) = state.mark_line {
-                let lo = mark.min(state.cursor_line);
-                let hi = mark.max(state.cursor_line);
+        ActionId::YankSelection => {
+            if let Some(anchor) = state.visual_anchor {
+                let lo = anchor.min(state.cursor_line);
+                let hi = anchor.max(state.cursor_line);
                 let path = state
                     .doc
                     .line_map
@@ -253,9 +253,9 @@ fn dispatch_normal_action(
                 } else {
                     "Copy failed (pbcopy not available)".to_string()
                 };
-                state.mark_line = None;
+                state.visual_anchor = None;
             } else {
-                state.status_message = "No mark set".to_string();
+                state.status_message = "No selection".to_string();
             }
             Some(ReducerEffect::Continue)
         }
@@ -319,6 +319,11 @@ fn reduce_normal(
     let ch = ctx.content_height;
 
     state.status_message.clear();
+
+    if matches!(key, Key::Escape) && state.visual_anchor.is_some() {
+        state.visual_anchor = None;
+        return ReducerEffect::Continue;
+    }
 
     if let Some(action) = keymap_lookup(*key, KeyContext::Normal)
         && let Some(effect) = dispatch_normal_action(state, action, ctx)

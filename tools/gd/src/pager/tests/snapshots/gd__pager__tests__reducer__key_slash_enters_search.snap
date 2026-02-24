@@ -7,7 +7,7 @@ StateSnapshot {
     top_line: 0,
     active_file: None,
     tree_visible: false,
-    mark_line: None,
+    visual_anchor: None,
     tooltip_visible: false,
     mode: Search,
     status_message: "",

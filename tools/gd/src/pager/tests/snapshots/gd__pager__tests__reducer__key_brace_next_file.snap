@@ -9,7 +9,7 @@ StateSnapshot {
         1,
     ),
     tree_visible: false,
-    mark_line: None,
+    visual_anchor: None,
     tooltip_visible: false,
     mode: Normal,
     status_message: "Next file",

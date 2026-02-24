@@ -688,32 +688,49 @@ fn key_l_toggle_tree_fallback_on_very_narrow_terminal() {
     );
 }
 
-// ---- m set mark / y yank to mark ----
+// ---- v visual select / y yank selection ----
 
 #[test]
-fn key_m_sets_mark() {
+fn key_v_starts_visual_select() {
     let mut state = make_keybinding_state();
     state.cursor_line = 10;
-    handle_key(&mut state, Key::Char('m'), 40, 40, 120, &[]);
-    assert_eq!(state.mark_line, Some(10));
-    assert!(state.status_message.contains("Mark set"));
+    handle_key(&mut state, Key::Char('v'), 40, 40, 120, &[]);
+    assert_eq!(state.visual_anchor, Some(10));
+    assert!(state.status_message.contains("VISUAL"));
 }
 
 #[test]
-fn key_y_without_mark_shows_error() {
+fn key_y_without_selection_shows_error() {
     let mut state = make_keybinding_state();
-    state.mark_line = None;
+    state.visual_anchor = None;
     handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[]);
-    assert!(state.status_message.contains("No mark set"));
+    assert!(state.status_message.contains("No selection"));
 }
 
 #[test]
-fn key_y_with_mark_clears_mark() {
+fn key_y_with_selection_clears_anchor() {
     let mut state = make_keybinding_state();
-    state.mark_line = Some(5);
+    state.visual_anchor = Some(5);
     state.cursor_line = 10;
     handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[]);
-    assert_eq!(state.mark_line, None, "yank should clear mark");
+    assert_eq!(state.visual_anchor, None, "yank should clear visual anchor");
+}
+
+#[test]
+fn key_esc_clears_visual_selection() {
+    let mut state = make_keybinding_state();
+    state.visual_anchor = Some(5);
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &[]);
+    assert_eq!(state.visual_anchor, None, "Esc should clear visual anchor");
+}
+
+#[test]
+fn key_esc_without_selection_is_noop() {
+    let mut state = make_keybinding_state();
+    let cursor_before = state.cursor_line;
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &[]);
+    assert_eq!(state.cursor_line, cursor_before);
+    assert_eq!(state.visual_anchor, None);
 }
 
 // ---- ? toggle tooltip ----

@@ -285,14 +285,14 @@ fn format_status_bar_position_indicator() {
 }
 
 #[test]
-fn format_status_bar_mark_set() {
+fn format_status_bar_visual_mode() {
     let mut state = make_keybinding_state();
-    state.mark_line = Some(5);
+    state.visual_anchor = Some(5);
     let bar = format_status_bar(&state, 20, 80);
     let visible = strip(&bar);
     assert!(
-        visible.contains("Mark set"),
-        "should show mark set indicator: {visible:?}"
+        visible.contains("VISUAL"),
+        "should show visual mode indicator: {visible:?}"
     );
 }
 
@@ -373,17 +373,17 @@ fn render_content_area_search_highlight() {
 }
 
 #[test]
-fn render_content_area_mark_highlight() {
+fn render_content_area_visual_highlight() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, false);
-    state.mark_line = Some(0);
+    state.visual_anchor = Some(0);
     state.cursor_line = 2;
     let mut buf = Vec::new();
     render_content_area(&mut buf, &state, 80, 24);
     let output = String::from_utf8_lossy(&buf);
     assert!(
         output.contains(style::BG_VISUAL),
-        "mark range should render visual highlight: {output:?}"
+        "visual selection should render highlight: {output:?}"
     );
 }
 

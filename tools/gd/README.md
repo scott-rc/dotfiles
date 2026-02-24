@@ -57,8 +57,8 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 | Key | Action |
 |-----|--------|
-| `m` | Set mark at cursor line |
-| `y` | Copy `path:start-end` from mark to cursor (via `pbcopy`) |
+| `v` | Start visual selection at cursor line |
+| `y` | Yank `path:start-end` from selection to clipboard (via `pbcopy`) |
 
 ### Other
 
@@ -75,7 +75,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, and file/hunk header separators.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode), defaults visible for nested or larger diffs (requires 96+ terminal columns), and defaults hidden for small flat diffs or narrow terminals. Tree width adapts dynamically to content and terminal size, auto-hiding when the terminal is too narrow to fit both an 80-column diff area and a 15-column tree panel. The user can still manually toggle the tree with `l` on narrower terminals. Long file paths are truncated with a `..` indicator, with a fisheye expansion that shows full paths for the cursor entry and its nearby siblings. File headers remain visible even when the tree is open. Selection uses marks (`m` to set, `y` to yank) instead of a modal visual mode. A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows position indicators, single-file info, and mark status.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode), defaults visible for nested or larger diffs (requires 96+ terminal columns), and defaults hidden for small flat diffs or narrow terminals. Tree width adapts dynamically to content and terminal size, auto-hiding when the terminal is too narrow to fit both an 80-column diff area and a 15-column tree panel. The user can still manually toggle the tree with `l` on narrower terminals. Long file paths are truncated with a `..` indicator, with a fisheye expansion that shows full paths for the cursor entry and its nearby siblings. File headers remain visible even when the tree is open. Selection uses visual select (`v` to anchor, `y` to yank). A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows position indicators, single-file info, and mark status.
 
 ## Modules
 

@@ -106,8 +106,8 @@ pub(crate) enum ActionId {
     NextMatch,
     PrevMatch,
     ToggleTree,
-    SetMark,
-    YankToMark,
+    VisualSelect,
+    YankSelection,
     OpenEditor,
     ToggleTooltip,
 }
