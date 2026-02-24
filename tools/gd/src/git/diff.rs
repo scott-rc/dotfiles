@@ -160,6 +160,19 @@ fn parse_file(chunk: &str) -> Option<DiffFile> {
         }
     }
 
+    // Fall back to extracting paths from `diff --git a/X b/Y` header
+    // when ---/+++ lines are absent (e.g. permission-only changes).
+    if old_path.is_none()
+        && new_path.is_none()
+        && let Some(header) = lines.first().and_then(|l| l.strip_prefix("diff --git "))
+        && let Some(b_pos) = header.rfind(" b/")
+    {
+        let a_part = header[..b_pos].strip_prefix("a/").unwrap_or(&header[..b_pos]);
+        let b_part = &header[b_pos + 3..];
+        old_path = Some(a_part.to_string());
+        new_path = Some(b_part.to_string());
+    }
+
     let status = match (&old_path, &new_path) {
         (None, Some(_)) => FileStatus::Added,
         (Some(_), None) => FileStatus::Deleted,
@@ -620,6 +633,20 @@ diff --git a/f.rs b/f.rs
         let file = DiffFile::from_content("empty.txt", "");
         assert_eq!(file.status, FileStatus::Untracked);
         assert!(file.hunks.is_empty());
+    }
+
+    #[test]
+    fn test_parse_permission_only_change() {
+        let diff = "diff --git a/script.sh b/script.sh\nold mode 100644\nnew mode 100755\n";
+        let files = parse(diff);
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path(), "script.sh");
+    }
+
+    #[test]
+    fn snapshot_permission_only_change() {
+        let diff = "diff --git a/script.sh b/script.sh\nold mode 100644\nnew mode 100755\n";
+        assert_debug_snapshot!(parse(diff));
     }
 
     #[test]

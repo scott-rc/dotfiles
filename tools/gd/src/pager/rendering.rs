@@ -34,7 +34,7 @@ pub(crate) fn render_scrollbar_cell(
     top: usize,
     line_map: &[LineInfo],
 ) -> String {
-    let range = vis_end - vis_start;
+    let range = vis_end.saturating_sub(vis_start);
     if range == 0 {
         return format!("{} {}", style::BG_SCROLLBAR_TRACK, style::RESET);
     }

@@ -1,0 +1,16 @@
+---
+source: gd/src/git/diff.rs
+expression: parse(diff)
+---
+[
+    DiffFile {
+        old_path: Some(
+            "script.sh",
+        ),
+        new_path: Some(
+            "script.sh",
+        ),
+        status: Modified,
+        hunks: [],
+    },
+]

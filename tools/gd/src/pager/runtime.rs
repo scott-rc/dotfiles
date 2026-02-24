@@ -136,6 +136,14 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     let _ = stdout.flush();
     let _ = crossterm::terminal::enable_raw_mode();
 
+    let prev_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let _ = crossterm::terminal::disable_raw_mode();
+        let _ = io::stdout().write_all(format!("{CURSOR_SHOW}{ALT_SCREEN_OFF}").as_bytes());
+        let _ = io::stdout().flush();
+        prev_hook(info);
+    }));
+
     let tree_entries = build_tree_entries(&files);
     let mut state = PagerState::new(
         output.lines,
@@ -235,4 +243,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     let _ = crossterm::terminal::disable_raw_mode();
     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
     let _ = stdout.flush();
+
+    // Remove the custom panic hook (restores the default hook).
+    let _ = std::panic::take_hook();
 }

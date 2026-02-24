@@ -8,7 +8,7 @@ use std::io::{self, IsTerminal, Write};
 
 use clap::Parser;
 
-use crate::git::{DiffSource, resolve_source};
+use crate::git::{DiffSource, resolve_commit_parent, resolve_source};
 
 #[derive(Parser)]
 #[command(name = "gd", about = "Terminal git diff viewer")]
@@ -62,6 +62,13 @@ fn main() {
         DiffSource::Range(merge_base, "HEAD".into())
     } else {
         resolve_source(staged, &cli.source)
+    };
+    let source = match source {
+        DiffSource::Commit(ref_str) => {
+            let parent = resolve_commit_parent(&repo, &ref_str);
+            DiffSource::Range(parent, ref_str)
+        }
+        other => other,
     };
     let diff_args = source.diff_args();
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();

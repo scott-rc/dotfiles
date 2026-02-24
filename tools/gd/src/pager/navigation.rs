@@ -198,7 +198,7 @@ pub(crate) fn nav_du_up(state: &PagerState) -> NavDuResult {
         NavDuResult {
             cursor_line: cursor,
             status_message: status,
-            moved: true,
+            moved: cursor != anchor,
         }
     } else {
         NavDuResult {
@@ -264,7 +264,7 @@ pub(crate) fn nav_U_up(state: &PagerState, content_height: usize) -> NavDUResult
             cursor_line: cursor,
             top_line: top,
             status_message: status,
-            moved: true,
+            moved: cursor != anchor,
         }
     } else {
         NavDUResult {

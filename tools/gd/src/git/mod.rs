@@ -17,10 +17,7 @@ impl DiffSource {
         match self {
             Self::WorkingTree => {}
             Self::Staged => args.push("--staged".into()),
-            Self::Commit(r) => {
-                args.push(format!("{r}~1"));
-                args.push(r.clone());
-            }
+            Self::Commit(_) => unreachable!("Commit is resolved to Range in main"),
             Self::Range(l, r) => {
                 args.push(l.clone());
                 args.push(r.clone());
@@ -43,7 +40,10 @@ pub fn resolve_source(staged: bool, source: &[String]) -> DiffSource {
     match source {
         [] => DiffSource::WorkingTree,
         [arg] => {
-            if arg.contains("..") {
+            if arg.contains("...") {
+                let parts: Vec<&str> = arg.splitn(2, "...").collect();
+                DiffSource::Range(parts[0].into(), format!("...{}", parts[1]))
+            } else if arg.contains("..") {
                 let parts: Vec<&str> = arg.splitn(2, "..").collect();
                 DiffSource::Range(parts[0].into(), parts[1].into())
             } else {
@@ -51,6 +51,15 @@ pub fn resolve_source(staged: bool, source: &[String]) -> DiffSource {
             }
         }
         [left, right, ..] => DiffSource::Range(left.clone(), right.clone()),
+    }
+}
+
+/// Resolve the parent of a commit. Falls back to the empty tree SHA for root commits.
+pub fn resolve_commit_parent(repo: &Path, commit: &str) -> String {
+    let parent_ref = format!("{commit}~1");
+    match run(repo, &["rev-parse", "--verify", "--quiet", &parent_ref]) {
+        Some(s) => s.trim().to_string(),
+        None => "4b825dc642cb6eb9a060e54bf899d15d4a9a7882".to_string(),
     }
 }
 
@@ -220,11 +229,6 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_diff_args_commit() {
-        assert_debug_snapshot!(DiffSource::Commit("abc123".into()).diff_args());
-    }
-
-    #[test]
     fn snapshot_diff_args_range() {
         assert_debug_snapshot!(DiffSource::Range("main".into(), "HEAD".into()).diff_args());
     }
@@ -237,11 +241,6 @@ mod tests {
     #[test]
     fn snapshot_full_context_args_staged() {
         assert_debug_snapshot!(DiffSource::Staged.diff_args_full_context());
-    }
-
-    #[test]
-    fn snapshot_full_context_args_commit() {
-        assert_debug_snapshot!(DiffSource::Commit("abc123".into()).diff_args_full_context());
     }
 
     #[test]
@@ -342,14 +341,6 @@ mod tests {
     }
 
     #[test]
-    fn test_diff_source_commit_full_context() {
-        assert_eq!(
-            DiffSource::Commit("abc".into()).diff_args_full_context(),
-            vec!["diff", "-U999999", "abc~1", "abc"],
-        );
-    }
-
-    #[test]
     fn test_resolve_source() {
         assert!(matches!(
             resolve_source(false, &[]),
@@ -385,6 +376,17 @@ mod tests {
     }
 
     #[test]
+    fn test_resolve_source_triple_dot_range() {
+        match resolve_source(false, &["a...b".into()]) {
+            DiffSource::Range(l, r) => {
+                assert_eq!(l, "a");
+                assert_eq!(r, "...b");
+            }
+            other => panic!("expected Range, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn test_resolve_source_dotdot_range_with_ref() {
         match resolve_source(false, &["HEAD~3..HEAD".into()]) {
             DiffSource::Range(l, r) => {
@@ -393,6 +395,62 @@ mod tests {
             }
             other => panic!("expected Range, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_resolve_commit_parent_root() {
+        let dir_name = format!(
+            "gd-root-commit-test-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        );
+        let repo = std::env::temp_dir().join(dir_name);
+        std::fs::create_dir_all(&repo).expect("create temp repo");
+
+        let init = Command::new("git")
+            .args(["init"])
+            .current_dir(&repo)
+            .output()
+            .expect("git init");
+        assert!(init.status.success());
+
+        // Configure git user for the commit
+        Command::new("git")
+            .args(["config", "user.email", "test@test.com"])
+            .current_dir(&repo)
+            .output()
+            .expect("git config email");
+        Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .output()
+            .expect("git config name");
+
+        // Create a file and commit it
+        std::fs::write(repo.join("file.txt"), "hello").expect("write file");
+        Command::new("git")
+            .args(["add", "."])
+            .current_dir(&repo)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit");
+
+        let sha = run(&repo, &["rev-parse", "HEAD"])
+            .expect("get HEAD sha")
+            .trim()
+            .to_string();
+
+        let parent = resolve_commit_parent(&repo, &sha);
+        assert_eq!(parent, "4b825dc642cb6eb9a060e54bf899d15d4a9a7882");
+
+        std::fs::remove_dir_all(&repo).expect("cleanup temp repo");
     }
 
     #[test]

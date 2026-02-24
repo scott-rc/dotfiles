@@ -4,8 +4,8 @@ use crate::render::LineInfo;
 
 use super::super::content::{is_content_line, next_content_line, prev_content_line};
 use super::super::navigation::{
-    change_group_starts, jump_next, jump_prev, nav_status_message, sync_tree_cursor,
-    viewport_bounds,
+    change_group_starts, jump_next, jump_prev, nav_du_up, nav_U_up, nav_status_message,
+    sync_tree_cursor, viewport_bounds,
 };
 use super::super::state::{
     Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
@@ -475,4 +475,70 @@ fn test_sync_tree_cursor_empty_tree_no_panic() {
     state.tree_visible = true;
 
     sync_tree_cursor(&mut state, 20);
+}
+
+#[test]
+fn test_nav_du_up_at_first_hunk_reports_not_moved() {
+    let mut state = make_keybinding_state();
+    // Line 6 is the first content line after hunk_start 5 (first hunk).
+    state.cursor_line = 6;
+    let result = nav_du_up(&state);
+    assert!(
+        !result.moved,
+        "nav_du_up from first hunk should report moved=false, got cursor={}",
+        result.cursor_line
+    );
+}
+
+#[test]
+fn test_nav_du_up_fallback_to_anchor_reports_not_moved() {
+    let mut state = make_keybinding_state();
+    // Line 6 is the first content line in the first hunk. jump_prev finds
+    // hunk_start 5, next_content_line(5) returns 6 which is >= anchor (6),
+    // second jump_prev(5) returns None, so cursor resets to anchor.
+    state.cursor_line = 6;
+    let result = nav_du_up(&state);
+    assert_eq!(
+        result.cursor_line, 6,
+        "cursor should remain at anchor when fallback resets"
+    );
+    assert!(
+        !result.moved,
+        "nav_du_up should report moved=false when fallback resets to anchor"
+    );
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn test_scrollbar_no_panic_on_vis_end_less_than_vis_start() {
+    let line_map: Vec<LineInfo> = (0..20)
+        .map(|_| LineInfo {
+            file_idx: 0,
+            path: String::new(),
+            new_lineno: None,
+            old_lineno: None,
+            line_kind: None,
+        })
+        .collect();
+    // vis_start=10 > vis_end=5 should not panic on subtraction underflow.
+    let cell =
+        super::super::rendering::render_scrollbar_cell(0, 20, 10, 5, 0, &line_map);
+    assert!(
+        cell.contains(crate::style::BG_SCROLLBAR_TRACK),
+        "inverted range should return a track cell without panicking"
+    );
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn test_nav_U_up_at_first_file_reports_not_moved() {
+    let mut state = make_keybinding_state();
+    // Line 1 is the first content line in file 0.
+    state.cursor_line = 1;
+    let result = nav_U_up(&state, 40);
+    assert!(
+        !result.moved,
+        "nav_U_up from first file should report moved=false, got cursor={}",
+        result.cursor_line
+    );
 }

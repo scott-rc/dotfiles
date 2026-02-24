@@ -1,9 +1,0 @@
----
-source: gd/src/git/mod.rs
-expression: "DiffSource::Commit(\"abc123\".into()).diff_args()"
----
-[
-    "diff",
-    "abc123~1",
-    "abc123",
-]
