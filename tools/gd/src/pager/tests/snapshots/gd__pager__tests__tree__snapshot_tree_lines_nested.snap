@@ -5,4 +5,4 @@ expression: "stripped.join(\"\\n\")"
 ├──  M README.md    
 └──  src            
     ├──  M lib.rs   
-    └──  M main..
+    └──  M main.rs

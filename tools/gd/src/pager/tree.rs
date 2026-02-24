@@ -94,7 +94,6 @@ pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
 pub(crate) const MIN_DIFF_WIDTH: usize = 80;
 pub(crate) const MIN_TREE_WIDTH: usize = 15;
 const MAX_TREE_WIDTH: usize = 40;
-const FISHEYE_RADIUS: usize = 2;
 
 pub(crate) fn compute_tree_width(tree_entries: &[TreeEntry]) -> usize {
     tree_entries
@@ -152,11 +151,15 @@ pub(crate) fn file_idx_to_entry_idx(tree_entries: &[TreeEntry], file_idx: usize)
         .unwrap_or(0)
 }
 
-pub(crate) fn compute_connector_prefix(visible: &[&TreeEntry], idx: usize) -> String {
+pub(crate) fn compute_connector_prefix(
+    visible: &[&TreeEntry],
+    idx: usize,
+    start_depth: usize,
+) -> String {
     let depth = visible[idx].depth;
     let mut prefix = String::new();
 
-    for d in 0..depth {
+    for d in start_depth..depth {
         let has_continuation = visible[idx + 1..].iter().any(|e| e.depth <= d);
         if has_continuation {
             prefix.push_str("│   ");
@@ -218,11 +221,38 @@ pub(crate) fn build_tree_lines(
         .position(|&oi| oi == cursor_entry_idx)
         .unwrap_or(0);
 
+    // Compute indent_offset: how many depth levels to scroll off-screen
+    // so the cursor entry's label fits in the panel.
+    let indent_offset = {
+        let ce = visible[cursor_vis];
+        let ce_status = if ce.file_idx.is_some() && ce.status.is_some() {
+            2
+        } else {
+            0
+        };
+        let ce_prefix = (ce.depth + 1) * 4 + 2 + ce_status;
+        let ce_budget = width.saturating_sub(ce_prefix);
+        let ce_label_len = ce.label.chars().count();
+        if ce_label_len > ce_budget {
+            let extra = ce_label_len - ce_budget;
+            ((extra + 3) / 4).min(ce.depth) // round up to next indent level
+        } else {
+            0
+        }
+    };
+
     let mut lines = Vec::new();
 
     for (vi, &entry) in visible.iter().enumerate() {
         let orig_idx = visible_orig[vi];
-        let prefix = compute_connector_prefix(&visible, vi);
+
+        let use_indicator = indent_offset > 0 && entry.depth < indent_offset;
+        let prefix = if use_indicator {
+            "..".to_string()
+        } else {
+            compute_connector_prefix(&visible, vi, indent_offset)
+        };
+
         let (icon, icon_color) = if entry.file_idx.is_some() {
             style::file_icon(&entry.label)
         } else {
@@ -235,14 +265,13 @@ pub(crate) fn build_tree_lines(
             0
         };
 
-        let prefix_width = (entry.depth + 1) * 4 + 2 + status_extra;
-        let label_budget = width.saturating_sub(prefix_width);
-        let expanded = vi.abs_diff(cursor_vis) <= FISHEYE_RADIUS;
-        let label = if expanded {
-            truncate_label(&entry.label, label_budget)
+        let prefix_width = if use_indicator {
+            2 + 2 + status_extra // `..` + icon + space + optional status
         } else {
-            truncate_label(&entry.label, label_budget * 2 / 3)
+            (entry.depth - indent_offset + 1) * 4 + 2 + status_extra
         };
+        let label_budget = width.saturating_sub(prefix_width);
+        let label = truncate_label(&entry.label, label_budget);
         let label_len = label.chars().count();
 
         let vis_len = prefix_width + label_len;

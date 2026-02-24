@@ -20,9 +20,9 @@ fn test_compute_connector_prefix_flat() {
         entry("c.rs", 0, Some(2)),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    assert_eq!(compute_connector_prefix(&refs, 0), "├── ");
-    assert_eq!(compute_connector_prefix(&refs, 1), "├── ");
-    assert_eq!(compute_connector_prefix(&refs, 2), "└── ");
+    assert_eq!(compute_connector_prefix(&refs, 0, 0), "├── ");
+    assert_eq!(compute_connector_prefix(&refs, 1, 0), "├── ");
+    assert_eq!(compute_connector_prefix(&refs, 2, 0), "└── ");
 }
 
 #[test]
@@ -34,10 +34,10 @@ fn test_compute_connector_prefix_nested() {
         entry("README.md", 0, Some(2)),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    assert_eq!(compute_connector_prefix(&refs, 0), "├── ");
-    assert_eq!(compute_connector_prefix(&refs, 1), "│   ├── ");
-    assert_eq!(compute_connector_prefix(&refs, 2), "│   └── ");
-    assert_eq!(compute_connector_prefix(&refs, 3), "└── ");
+    assert_eq!(compute_connector_prefix(&refs, 0, 0), "├── ");
+    assert_eq!(compute_connector_prefix(&refs, 1, 0), "│   ├── ");
+    assert_eq!(compute_connector_prefix(&refs, 2, 0), "│   └── ");
+    assert_eq!(compute_connector_prefix(&refs, 3, 0), "└── ");
 }
 
 #[test]
@@ -426,26 +426,41 @@ fn test_truncate_label_char_boundary() {
 }
 
 #[test]
-fn test_build_tree_lines_truncates_non_cursor_entries() {
+fn test_build_tree_lines_no_truncation_when_label_fits() {
+    // All labels should show in full when they fit within their label_budget,
+    // regardless of distance from cursor.
+    let entries = vec![
+        entry("dir_name", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("longer_name.rs", 1, Some(2)),
+        entry("another.rs", 1, Some(3)),
+    ];
+    // Width 30, cursor at 0. All entries at depth 0-1 have enough budget.
+    let (lines, _) = build_tree_lines(&entries, 0, 30);
+    for (i, line) in lines.iter().enumerate() {
+        let stripped = strip(line);
+        assert!(
+            !stripped.contains(".."),
+            "line {i} should NOT be truncated when it fits: {stripped:?}"
+        );
+    }
+}
+
+#[test]
+fn test_build_tree_lines_truncates_when_label_exceeds_budget() {
     let entries = vec![
         entry("very_long_directory_name", 0, None),
         entry("a.rs", 1, Some(0)),
-        entry("b.rs", 1, Some(1)),
-        entry("extremely_long_filename_here.rs", 1, Some(2)),
-        entry("another_long_filename_here.rs", 1, Some(3)),
+        entry("extremely_long_filename_that_wont_fit.rs", 1, Some(1)),
     ];
-    // Cursor at entry 0 (visible index 0), fisheye radius 2 covers visible 0-2.
-    // Entries at visible indices 3 and 4 are beyond radius, should be truncated.
+    // Width 25: depth-1 prefix = 8+2+2=12, budget=13.
+    // "extremely_long_filename_that_wont_fit.rs" (40 chars) exceeds 13.
     let (lines, _) = build_tree_lines(&entries, 0, 25);
-    let stripped3 = strip(&lines[3]);
-    let stripped4 = strip(&lines[4]);
+    let stripped2 = strip(&lines[2]);
     assert!(
-        stripped3.contains(".."),
-        "entry beyond fisheye radius should be truncated: {stripped3:?}"
-    );
-    assert!(
-        stripped4.contains(".."),
-        "entry beyond fisheye radius should be truncated: {stripped4:?}"
+        stripped2.contains(".."),
+        "entry exceeding budget should be truncated: {stripped2:?}"
     );
 }
 
@@ -513,35 +528,72 @@ fn test_build_tree_lines_expanded_still_truncated_when_wider_than_panel() {
 }
 
 #[test]
-fn test_build_tree_lines_fisheye_gives_more_space_near_cursor() {
+fn test_scroll_shifts_tree_for_deep_cursor() {
+    // Deep cursor entry that doesn't fit at natural indent → tree scrolls.
     let entries = vec![
-        entry("a_very_long_filename_000.rs", 0, Some(0)),
-        entry("b_very_long_filename_001.rs", 0, Some(1)),
-        entry("c_very_long_filename_002.rs", 0, Some(2)),
-        entry("d_very_long_filename_003.rs", 0, Some(3)),
-        entry("e_very_long_filename_004.rs", 0, Some(4)),
-        entry("f_very_long_filename_005.rs", 0, Some(5)),
+        entry("app", 0, None),
+        entry("server", 1, None),
+        entry("handlers", 2, None),
+        entry("validate_token.rs", 3, Some(0)),
+        entry("refresh_token.rs", 3, Some(1)),
+        entry("routes.rs", 1, Some(2)),
+        entry("README.md", 0, Some(3)),
     ];
-    let width = 30;
+    // Width 28: depth-3 prefix = 16+2+2=20, budget=8, label "validate_token.rs" (18) > 8.
+    // indent_offset = ceil((18-8)/4) = ceil(10/4) = 3, clamped to depth 3 → 3.
+    let width = 28;
     let (lines, _) = build_tree_lines(&entries, 3, width);
-    // Entry 0 is far from cursor (distance 3), should be more truncated
-    let distant = strip(&lines[0]).trim_end().to_string();
+
+    // Shallow entries (depth < indent_offset=3) should have `..` indicator
+    let stripped0 = strip(&lines[0]);
     assert!(
-        distant.contains(".."),
-        "distant entry should be truncated: {distant:?}"
+        stripped0.starts_with(".."),
+        "depth-0 entry should have `..` indicator: {stripped0:?}"
     );
-    // Cursor entry (3) should be expanded (more label budget)
-    let cursor = strip(&lines[3]).trim_end().to_string();
+    let stripped1 = strip(&lines[1]);
     assert!(
-        cursor.len() > distant.len(),
-        "cursor entry should be wider than distant: cursor={cursor:?} distant={distant:?}"
+        stripped1.starts_with(".."),
+        "depth-1 entry should have `..` indicator: {stripped1:?}"
     );
-    // No line overflows the panel
+    let stripped2 = strip(&lines[2]);
+    assert!(
+        stripped2.starts_with(".."),
+        "depth-2 entry should have `..` indicator: {stripped2:?}"
+    );
+
+    // Cursor entry (depth 3) should show full label (that's why we scrolled)
+    let stripped3 = strip(&lines[3]);
+    assert!(
+        stripped3.contains("validate_token.rs"),
+        "cursor entry should show full label: {stripped3:?}"
+    );
+
+    // No line overflows
     for (i, line) in lines.iter().enumerate() {
         let stripped = strip(line);
         assert!(
             stripped.chars().count() <= width,
             "line {i} overflows: {stripped:?}"
+        );
+    }
+}
+
+#[test]
+fn test_no_scroll_when_cursor_label_fits() {
+    // All depth-0 entries: no scroll needed even with long labels that fit.
+    let entries = vec![
+        entry("a_long_name.rs", 0, Some(0)),
+        entry("b_long_name.rs", 0, Some(1)),
+        entry("c_long_name.rs", 0, Some(2)),
+    ];
+    // Width 30: depth-0 prefix = 4+2+2=8, budget=22. Labels are 14 chars → fit.
+    let width = 30;
+    let (lines, _) = build_tree_lines(&entries, 1, width);
+    for (i, line) in lines.iter().enumerate() {
+        let stripped = strip(line);
+        assert!(
+            !stripped.contains(".."),
+            "line {i} should NOT have truncation or indicator: {stripped:?}"
         );
     }
 }
