@@ -1,6 +1,7 @@
 ---
 name: compose
-description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules files, and session task prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity. Use when the user asks to create, review, improve, scaffold, or fix a skill, write or review rules or CLAUDE.md, craft or review a prompt, plan, chunk, break down, or decompose a task, or hand off, save context, continue later, or write what's left.
+description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts. Decomposes large tasks into chunked execution plans. Writes handoff files for session continuity.
+argument-hint: "[create | review | plan | handoff] [target]"
 ---
 
 # Composing for Claude Code

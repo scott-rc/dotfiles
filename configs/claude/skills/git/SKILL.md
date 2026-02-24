@@ -1,6 +1,7 @@
 ---
 name: git
 description: Git commits, PRs, rebases, worktrees, CI fixes, review submissions, and GitHub interactions.
+argument-hint: "[operation or intent]"
 ---
 
 # Git Operations

@@ -1,6 +1,7 @@
 ---
 name: slides
 description: Creates and manages Slidev markdown presentations, including scaffolding workspaces, authoring slide decks, and running dev/build/export workflows — use when the user mentions create presentations, write slides, Slidev, markdown slides, deck, talk, slide deck, or presentation.
+disable-model-invocation: true
 ---
 
 # Slides
