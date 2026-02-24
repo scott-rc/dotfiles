@@ -689,3 +689,136 @@ fn default_tree_visibility_exact_threshold_boundary() {
         threshold - 1
     );
 }
+
+// ---- tree auto-show on resize ----
+
+#[test]
+fn re_render_auto_shows_tree_when_terminal_widens() {
+    use super::super::tree::MIN_TREE_WIDTH;
+    let mut files = vec![
+        crate::git::diff::DiffFile::from_content("src/pager/handler.rs", "fn handle() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/rendering.rs", "fn render() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/state.rs", "fn state() {}"),
+        crate::git::diff::DiffFile::from_content("src/lib.rs", "mod pager;"),
+    ];
+    crate::git::sort_files_for_display(&mut files);
+    let tree_entries = build_tree_entries(&files);
+
+    // Start narrow — tree should be hidden
+    let narrow_cols: usize = MIN_DIFF_WIDTH + 5;
+    let output = render::render(&files, narrow_cols, false);
+    let state = PagerState::new(
+        output.lines.clone(),
+        output.line_map.clone(),
+        output.file_starts.clone(),
+        output.hunk_starts.clone(),
+        tree_entries,
+        narrow_cols,
+    );
+    assert!(!state.tree_visible, "tree should start hidden at {narrow_cols} cols");
+    assert!(!state.tree_user_hidden, "tree_user_hidden should be false (auto-hidden)");
+
+    // Re-render at wide terminal — tree should auto-show
+    let mut state = state;
+    re_render(&mut state, &files, false, 120);
+    assert!(
+        state.tree_visible,
+        "tree should auto-show when terminal widens to 120 cols"
+    );
+    assert!(state.tree_width >= MIN_TREE_WIDTH);
+}
+
+#[test]
+fn re_render_does_not_auto_show_tree_when_user_hidden() {
+    let mut files = vec![
+        crate::git::diff::DiffFile::from_content("src/pager/handler.rs", "fn handle() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/rendering.rs", "fn render() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/state.rs", "fn state() {}"),
+        crate::git::diff::DiffFile::from_content("src/lib.rs", "mod pager;"),
+    ];
+    crate::git::sort_files_for_display(&mut files);
+    let tree_entries = build_tree_entries(&files);
+
+    // Start wide — tree visible
+    let output = render::render(&files, 80, false);
+    let mut state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        tree_entries,
+        120,
+    );
+    assert!(state.tree_visible, "tree should start visible at 120 cols");
+
+    // Simulate user pressing `l` to hide
+    state.tree_visible = false;
+    state.tree_user_hidden = true;
+
+    // Re-render at wide terminal — tree should stay hidden
+    re_render(&mut state, &files, false, 120);
+    assert!(
+        !state.tree_visible,
+        "tree should stay hidden when user explicitly hid it"
+    );
+}
+
+#[test]
+fn re_render_auto_shows_after_auto_hide_cycle() {
+    let mut files = vec![
+        crate::git::diff::DiffFile::from_content("src/pager/handler.rs", "fn handle() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/rendering.rs", "fn render() {}"),
+        crate::git::diff::DiffFile::from_content("src/pager/state.rs", "fn state() {}"),
+        crate::git::diff::DiffFile::from_content("src/lib.rs", "mod pager;"),
+    ];
+    crate::git::sort_files_for_display(&mut files);
+    let tree_entries = build_tree_entries(&files);
+
+    // Start wide — tree visible
+    let output = render::render(&files, 80, false);
+    let mut state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        tree_entries,
+        120,
+    );
+    assert!(state.tree_visible);
+
+    // Narrow → tree auto-hides
+    re_render(&mut state, &files, false, (MIN_DIFF_WIDTH + 5) as u16);
+    assert!(!state.tree_visible, "tree should auto-hide when narrowed");
+    assert!(!state.tree_user_hidden, "auto-hide should not set user_hidden");
+
+    // Widen → tree auto-shows
+    re_render(&mut state, &files, false, 120);
+    assert!(
+        state.tree_visible,
+        "tree should auto-show after auto-hide when terminal widens again"
+    );
+}
+
+#[test]
+fn re_render_does_not_auto_show_for_small_flat_diffs() {
+    // Only 2 files, no directories — resolve_tree_layout returns None regardless of width
+    let files = make_two_file_diff();
+    let tree_entries = build_tree_entries(&files);
+    let output = render::render(&files, 80, false);
+    let mut state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        tree_entries,
+        60,
+    );
+    assert!(!state.tree_visible, "tree should be hidden for 2 flat files");
+
+    // Widen — should still not show (content doesn't qualify)
+    re_render(&mut state, &files, false, 200);
+    assert!(
+        !state.tree_visible,
+        "tree should stay hidden for small flat diffs even at wide terminal"
+    );
+}

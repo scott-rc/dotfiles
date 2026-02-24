@@ -215,6 +215,7 @@ fn dispatch_normal_action(
         }
         ActionId::ToggleTree => {
             state.tree_visible = !state.tree_visible;
+            state.tree_user_hidden = !state.tree_visible;
             if state.tree_visible {
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);

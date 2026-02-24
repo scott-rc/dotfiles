@@ -94,7 +94,7 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
     // Pre-resolve tree layout so diff_area_width uses the final tree_width.
     // Without this, the diff would be rendered at the old tree_width and then
     // remap_after_document_swap would recalculate tree_width, causing overflow.
-    if state.tree_visible && !files.is_empty() {
+    if !files.is_empty() {
         use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
         let entries = build_tree_entries(files);
         let content_width = compute_tree_width(&entries);
@@ -107,9 +107,16 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
             cols as usize
         };
         if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
-            state.tree_width = w;
-            state.tree_entries = entries;
-        } else {
+            if state.tree_visible {
+                state.tree_width = w;
+                state.tree_entries = entries;
+            } else if !state.tree_user_hidden {
+                // Auto-show: terminal widened enough for the tree
+                state.tree_visible = true;
+                state.tree_width = w;
+                state.tree_entries = entries;
+            }
+        } else if state.tree_visible {
             state.tree_visible = false;
             state.tree_width = 0;
         }
