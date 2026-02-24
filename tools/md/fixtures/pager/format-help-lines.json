@@ -12,7 +12,7 @@
         "j/↓/Enter  Scroll down",
         "C          Copy absolute path",
         "p          Toggle plain/pretty",
-        "? / Esc    Close help"
+        "r          Reload file"
       ],
       "allLineWidth": 80
     }
@@ -27,7 +27,7 @@
       "lineCount": 23,
       "containsLines": [
         "Navigation",
-        "? / Esc    Close help"
+        "r          Reload file"
       ],
       "allLineWidth": 40
     }

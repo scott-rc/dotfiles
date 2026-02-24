@@ -116,9 +116,9 @@ fn main() {
                     if should_page(no_pager, is_tty, content_lines, terminal_rows, true) {
                         let raw = input.clone();
                         let color = style.color;
-                        let mut on_rerender = |plain: bool| {
+                        let mut on_rerender = |plain: bool, content: &str| {
                             let s = Style::new(color, !plain);
-                            render_centered(&input, &s, &args)
+                            render_centered(content, &s, &args)
                         };
                         run_pager(
                             &centered,
@@ -170,9 +170,9 @@ fn main() {
         let fp = file_path.as_deref().unwrap();
         let raw = input.clone();
         let color = style.color;
-        let mut on_rerender = |plain: bool| {
+        let mut on_rerender = |plain: bool, content: &str| {
             let s = Style::new(color, !plain);
-            render_centered(&input, &s, &args)
+            render_centered(content, &s, &args)
         };
         run_pager(
             &centered,

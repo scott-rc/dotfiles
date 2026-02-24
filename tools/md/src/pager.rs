@@ -101,9 +101,9 @@ pub fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
         "e          Open in editor",
         "v          Open read-only",
         "p          Toggle plain/pretty",
+        "r          Reload file",
         "",
         "q          Quit",
-        "? / Esc    Close help",
     ];
 
     let mut lines = Vec::with_capacity(content_height);
@@ -290,17 +290,22 @@ fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
 
 fn refresh_content(
     state: &mut PagerState,
-    on_rerender: &mut Option<&mut dyn FnMut(bool) -> String>,
+    on_rerender: &mut Option<&mut dyn FnMut(bool, &str) -> String>,
 ) {
-    if let Some(rerender_fn) = on_rerender {
-        let new_content = rerender_fn(state.is_plain);
-        let old_count = state.lines.len();
-        state.lines = new_content.lines().map(String::from).collect();
-        state.top_line = map_scroll_position(state.top_line, old_count, state.lines.len());
-        if !state.search_query.is_empty() {
-            state.search_matches = find_matches(&state.lines, &state.search_query);
-        }
+    let Some(rerender_fn) = on_rerender.as_mut() else {
+        return;
+    };
+    let Some(raw) = state.raw_content.take() else {
+        return;
+    };
+    let new_content = rerender_fn(state.is_plain, &raw);
+    let old_count = state.lines.len();
+    state.lines = new_content.lines().map(String::from).collect();
+    state.top_line = map_scroll_position(state.top_line, old_count, state.lines.len());
+    if !state.search_query.is_empty() {
+        state.search_matches = find_matches(&state.lines, &state.search_query);
     }
+    state.raw_content = Some(raw);
 }
 
 pub fn run_pager(
@@ -308,7 +313,7 @@ pub fn run_pager(
     file_path: Option<&str>,
     raw_content: Option<&str>,
     plain: bool,
-    mut on_rerender: Option<&mut dyn FnMut(bool) -> String>,
+    mut on_rerender: Option<&mut dyn FnMut(bool, &str) -> String>,
 ) {
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -467,6 +472,20 @@ pub fn run_pager(
                 let label = if state.is_plain { "plain" } else { "pretty" };
                 state.search_message = format!("Switched to {label} mode");
             }
+            Key::Char('r') => {
+                if let Some(ref fp) = state.file_path {
+                    match std::fs::read_to_string(fp) {
+                        Ok(new_raw) => {
+                            state.raw_content = Some(new_raw);
+                            refresh_content(&mut state, &mut on_rerender);
+                            state.search_message = "Reloaded".to_string();
+                        }
+                        Err(e) => {
+                            state.search_message = format!("Reload failed: {e}");
+                        }
+                    }
+                }
+            }
             Key::Char('v') | Key::Char('e') => {
                 if let Some(ref fp) = state.file_path {
                     let fp = fp.clone();
@@ -487,6 +506,9 @@ pub fn run_pager(
                     let _ = stdout.flush();
                     let _ = crossterm::terminal::enable_raw_mode();
                     last_size = get_term_size();
+                    if let Ok(new_raw) = std::fs::read_to_string(&fp) {
+                        state.raw_content = Some(new_raw);
+                    }
                     refresh_content(&mut state, &mut on_rerender);
                 }
             }
@@ -1213,11 +1235,11 @@ mod tests {
             search_cursor: 0,
             search_message: String::new(),
             file_path: None,
-            raw_content: None,
+            raw_content: Some("dummy".to_string()),
         };
 
-        let mut callback = |_: bool| "a\nb\nc\nd\ne\nf\ng\nh".to_string();
-        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = Some(&mut callback);
+        let mut callback = |_: bool, _: &str| "a\nb\nc\nd\ne\nf\ng\nh".to_string();
+        let mut on_rerender: Option<&mut dyn FnMut(bool, &str) -> String> = Some(&mut callback);
         refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.lines.len(), 8);
@@ -1239,11 +1261,11 @@ mod tests {
             search_cursor: 0,
             search_message: String::new(),
             file_path: None,
-            raw_content: None,
+            raw_content: Some("dummy".to_string()),
         };
 
-        let mut callback = |_: bool| "no match\nfoo bar\nanother\nfoo baz".to_string();
-        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = Some(&mut callback);
+        let mut callback = |_: bool, _: &str| "no match\nfoo bar\nanother\nfoo baz".to_string();
+        let mut on_rerender: Option<&mut dyn FnMut(bool, &str) -> String> = Some(&mut callback);
         refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.search_matches, vec![1, 3]);
@@ -1266,7 +1288,7 @@ mod tests {
             raw_content: None,
         };
 
-        let mut on_rerender: Option<&mut dyn FnMut(bool) -> String> = None;
+        let mut on_rerender: Option<&mut dyn FnMut(bool, &str) -> String> = None;
         refresh_content(&mut state, &mut on_rerender);
 
         assert_eq!(state.lines, vec!["unchanged".to_string()]);

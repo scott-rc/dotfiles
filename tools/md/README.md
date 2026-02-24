@@ -74,6 +74,7 @@ Search input supports `Left`/`Right`, `Alt-Left`/`Alt-Right` (word jump), `Backs
 | Key | Action |
 |-----|--------|
 | `p` | Toggle plain/pretty mode |
+| `r` | Reload file from disk |
 
 ### Help
 
