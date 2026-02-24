@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, amends, pushes, rebases, squashes, worktrees, CI fixes and reruns, PR review comments, PR description updates, and GitHub comment/reply posting. Use when the user asks to commit, amend, push, create or update a PR, rebase, squash commits, manage worktrees, check CI, fix CI, rerun CI, address review comments, fix review feedback, fix bugbot comments, update PR description, sync PR, reply to a PR comment, reply to reviews, or post a comment on GitHub.
+description: Handles git commits, amends, pushes, rebases, squashes, worktrees, CI fixes and reruns, PR review submissions, PR review comments, PR description updates, and GitHub comment/reply posting. Use when the user asks to commit, amend, push, create or update a PR, rebase, squash commits, manage worktrees, check CI, fix CI, rerun CI, approve a PR, request changes, submit a review, address review comments, fix review feedback, fix bugbot comments, update PR description, sync PR, reply to a PR comment, reply to reviews, or post a comment on GitHub.
 ---
 
 # Git Operations
@@ -57,6 +57,10 @@ See [review.md](review.md) for detailed instructions.
 Rewrite the PR title and description to match current changes per guidelines.
 See [update-description.md](update-description.md) for detailed instructions.
 
+### Submit Review
+Submit a PR review (approve, request changes, or comment) with optional inline comments.
+See [submit-review.md](submit-review.md) for detailed instructions.
+
 ### Reply
 Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment.
 See [reply.md](reply.md) for detailed instructions.
@@ -78,6 +82,9 @@ Users often request multiple operations together. Handle these as follows:
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run update-description operation
 - **"reply to this comment"** / **"post a comment"** / **"answer this question on the PR"** → Run reply operation
 - **"reply to reviews"** / **"respond to feedback"** → Run reply operation (auto-discover mode)
+- **"approve"** / **"approve this PR"** / **"LGTM"** / **"submit review"** → Run submit-review operation
+- **"approve and comment"** / **"approve with comments"** / **"approve and add comments"** → Run submit-review operation
+- **"request changes"** / **"block this PR"** / **"needs work"** → Run submit-review operation
 - **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
 
 **Important**: For each operation, read and follow its detailed instruction file (e.g., commit.md, push.md). These files contain required steps that must not be skipped.
