@@ -40,8 +40,13 @@ struct HunkRenderContext<'a> {
 }
 
 pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
-    let mut lines = Vec::new();
-    let mut line_map = Vec::new();
+    let cap: usize = files
+        .iter()
+        .map(|f| f.hunks.iter().map(|h| h.lines.len()).sum::<usize>())
+        .sum::<usize>()
+        + files.len();
+    let mut lines = Vec::with_capacity(cap);
+    let mut line_map = Vec::with_capacity(cap);
     let mut file_starts = Vec::new();
     let mut hunk_starts = Vec::new();
 
@@ -357,6 +362,9 @@ fn render_hunk_lines(
 
     // Syntax highlighter state (applied in order for best results)
     let mut hl_state = HighlightLines::new(ctx.syntax, ctx.theme);
+    let mut nl_buf = String::new();
+    let cont_gutter = style::continuation_gutter(ctx.color);
+    let wrap = style::wrap_marker(ctx.color);
 
     for (i, diff_line) in hunk.lines.iter().enumerate() {
         let gutter = if ctx.color {
@@ -398,8 +406,11 @@ fn render_hunk_lines(
 
         // Build the content portion with syntax + diff coloring
         let styled_content = if ctx.color {
+            nl_buf.clear();
+            nl_buf.push_str(content);
+            nl_buf.push('\n');
             let syntax_colored = highlight_line(
-                &format!("{content}\n"),
+                &nl_buf,
                 &mut hl_state,
                 ctx.ss,
                 style::SOFT_RESET,
@@ -429,11 +440,9 @@ fn render_hunk_lines(
         let wrappable = if ctx.color && is_changed {
             format!("{line_bg}{styled_content}")
         } else {
-            styled_content.clone()
+            styled_content // move instead of clone
         };
         let wrapped = crate::ansi::wrap_line_for_display(&wrappable, avail);
-
-        let cont_gutter = style::continuation_gutter(ctx.color);
 
         for (seg_idx, seg) in wrapped.iter().enumerate() {
             // Strip trailing reset from wrapped segment (we add our own)
@@ -448,7 +457,6 @@ fn render_hunk_lines(
                 String::new()
             };
 
-            let wrap = style::wrap_marker(ctx.color);
             let line = if seg_idx == 0 {
                 if ctx.color && is_changed {
                     format!(
@@ -481,7 +489,7 @@ fn render_hunk_lines(
 
 /// Apply diff background colors and word-level highlights to syntax-colored text.
 /// The `raw` parameter is the original uncolored content used for word range mapping.
-pub(crate) fn apply_diff_colors(
+pub fn apply_diff_colors(
     syntax_colored: &str,
     raw: &str,
     line_bg: &str,
@@ -513,35 +521,46 @@ pub(crate) fn apply_diff_colors(
     // Also build visible char index for the raw content
     let raw_chars: Vec<usize> = raw.char_indices().map(|(i, _)| i).collect();
 
-    let mut result = syntax_colored.to_string();
-    let mut insertions: Vec<(usize, String)> = Vec::new();
+    // Collect (byte_pos, priority, ansi_code) pairs for a forward pass.
+    // Priority 0 = word_bg (start highlight), 1 = line_bg (end highlight).
+    // At the same byte position, word_bg sorts before line_bg so a range
+    // ending and starting at the same point produces: end-old, start-new.
+    let mut markers: Vec<(usize, u8, &str)> = Vec::with_capacity(word_ranges.len() * 2);
 
     for &(start, end) in word_ranges {
-        // Map raw byte offsets to visible char indices
-        let vis_start = raw_chars
-            .iter()
-            .position(|&b| b >= start)
-            .unwrap_or(vis_to_byte.len().saturating_sub(1));
-        let vis_end = raw_chars
-            .iter()
-            .position(|&b| b >= end)
-            .unwrap_or(vis_to_byte.len().saturating_sub(1));
+        // Map raw byte offsets to visible char indices via binary search
+        let vis_start = {
+            let idx = raw_chars.partition_point(|&b| b < start);
+            if idx < raw_chars.len() { idx } else { vis_to_byte.len().saturating_sub(1) }
+        };
+        let vis_end = {
+            let idx = raw_chars.partition_point(|&b| b < end);
+            if idx < raw_chars.len() { idx } else { vis_to_byte.len().saturating_sub(1) }
+        };
 
         if vis_start < vis_to_byte.len() && vis_end <= vis_to_byte.len() {
             let byte_start = vis_to_byte[vis_start];
             let byte_end = vis_to_byte[vis_end.min(vis_to_byte.len() - 1)];
-            insertions.push((byte_end, line_bg.to_string()));
-            insertions.push((byte_start, word_bg.to_string()));
+            markers.push((byte_start, 0, word_bg));
+            markers.push((byte_end, 1, line_bg));
         }
     }
 
-    // Apply insertions in reverse order
-    insertions.sort_by(|a, b| b.0.cmp(&a.0));
-    for (pos, code) in insertions {
-        if pos <= result.len() {
-            result.insert_str(pos, &code);
+    markers.sort_unstable();
+
+    // Single forward pass: emit syntax_colored slices interleaved with ANSI codes
+    let total_codes_len: usize = markers.iter().map(|(_, _, code)| code.len()).sum();
+    let mut result = String::with_capacity(syntax_colored.len() + total_codes_len);
+    let mut src_pos: usize = 0;
+
+    for &(pos, _, code) in &markers {
+        if pos <= syntax_colored.len() && pos >= src_pos {
+            result.push_str(&syntax_colored[src_pos..pos]);
+            result.push_str(code);
+            src_pos = pos;
         }
     }
+    result.push_str(&syntax_colored[src_pos..]);
 
     result
 }
