@@ -19,8 +19,12 @@ function gbb --description "Print the base branch for the given or current branc
         for ref in (string split ', ' $line)
             set -l name (string replace 'HEAD -> ' '' $ref)
             contains -- "$name" $skip; and continue
-            # Found the closest ancestor branch
-            echo (string replace 'origin/' '' $name)
+            # Skip stale branches whose tip is an ancestor of the default branch
+            set -l candidate (string replace 'origin/' '' $name)
+            if test "$candidate" != "$default_branch"
+                command git merge-base --is-ancestor "$name" "$default_branch" 2>/dev/null; and continue
+            end
+            echo $candidate
             return
         end
     end
