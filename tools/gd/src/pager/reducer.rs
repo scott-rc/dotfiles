@@ -259,6 +259,38 @@ fn dispatch_normal_action(
             }
             Some(ReducerEffect::Continue)
         }
+        ActionId::CopyRelPath => {
+            let pos = state
+                .cursor_line
+                .min(state.doc.line_map.len().saturating_sub(1));
+            if !state.doc.line_map.is_empty() {
+                let path = state.doc.line_map[pos].path.clone();
+                let ok = copy_to_clipboard(&path);
+                state.status_message = if ok {
+                    format!("Copied: {path}")
+                } else {
+                    "Copy failed (pbcopy not available)".to_string()
+                };
+            }
+            Some(ReducerEffect::Continue)
+        }
+        ActionId::CopyAbsPath => {
+            let pos = state
+                .cursor_line
+                .min(state.doc.line_map.len().saturating_sub(1));
+            if !state.doc.line_map.is_empty() {
+                let rel = &state.doc.line_map[pos].path;
+                let abs = ctx.repo.join(rel);
+                let text = abs.to_string_lossy().to_string();
+                let ok = copy_to_clipboard(&text);
+                state.status_message = if ok {
+                    format!("Copied: {text}")
+                } else {
+                    "Copy failed (pbcopy not available)".to_string()
+                };
+            }
+            Some(ReducerEffect::Continue)
+        }
         ActionId::OpenEditor => {
             let pos = state
                 .cursor_line
@@ -353,6 +385,7 @@ pub(crate) fn handle_key(
     rows: u16,
     cols: u16,
     files: &[DiffFile],
+    repo: &std::path::Path,
 ) -> KeyResult {
     let event = ReducerEvent::Key(key);
     let ctx = ReducerCtx {
@@ -360,6 +393,7 @@ pub(crate) fn handle_key(
         rows,
         cols,
         files,
+        repo,
     };
     KeyResult::from(reduce(state, &event, &ctx))
 }

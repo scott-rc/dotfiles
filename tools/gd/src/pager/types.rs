@@ -108,6 +108,8 @@ pub(crate) enum ActionId {
     ToggleTree,
     VisualSelect,
     YankSelection,
+    CopyRelPath,
+    CopyAbsPath,
     OpenEditor,
     ToggleTooltip,
 }

@@ -40,6 +40,10 @@ struct Cli {
     /// Diff against auto-detected base branch
     #[arg(long, short = 'b')]
     base: bool,
+
+    /// Show whitespace-only changes (hidden by default)
+    #[arg(long, short = 'w')]
+    show_whitespace: bool,
 }
 
 fn main() {
@@ -58,6 +62,10 @@ fn main() {
     let source = if cli.base {
         let base = git::find_base_branch(&repo);
         let merge_base = git::run(&repo, &["merge-base", &base, "HEAD"])
+            .or_else(|| {
+                let remote = format!("origin/{base}");
+                git::run(&repo, &["merge-base", &remote, "HEAD"])
+            })
             .map_or_else(|| base.clone(), |s| s.trim().to_string());
         DiffSource::Range(merge_base, "HEAD".into())
     } else {
@@ -70,7 +78,10 @@ fn main() {
         }
         other => other,
     };
-    let diff_args = source.diff_args();
+    let mut diff_args = source.diff_args();
+    if !cli.show_whitespace {
+        diff_args.push("-w".into());
+    }
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
     let raw = git::run_diff(&repo, &str_args);
 
@@ -94,6 +105,7 @@ fn main() {
             repo: repo.clone(),
             source: source.clone(),
             no_untracked: cli.no_untracked,
+            ignore_whitespace: !cli.show_whitespace,
         };
         pager::run_pager(output, files, color, &diff_ctx);
     } else {

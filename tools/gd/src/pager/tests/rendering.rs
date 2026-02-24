@@ -322,7 +322,7 @@ fn format_tooltip_lines_produces_two_lines() {
 
 #[test]
 fn format_tooltip_lines_contains_key_hints() {
-    let lines = format_tooltip_lines(80);
+    let lines = format_tooltip_lines(120);
     let joined = lines.join(" ");
     let stripped = strip(&joined);
     assert!(stripped.contains("j/k"), "tooltip should mention j/k");
@@ -405,7 +405,7 @@ fn render_screen_with_tooltip() {
     let mut state = make_keybinding_state();
     state.tooltip_visible = true;
     let mut buf = Vec::new();
-    render_screen(&mut buf, &state, 80, 24);
+    render_screen(&mut buf, &state, 120, 24);
     let output = String::from_utf8_lossy(&buf);
     let visible = strip(&output);
     assert!(

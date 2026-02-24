@@ -13,11 +13,12 @@ gd --base / -b      # diff against auto-detected base branch
 gd HEAD~1           # last commit's changes
 gd main..HEAD       # range diff
 gd --no-untracked   # hide untracked files
+gd --show-whitespace / -w  # include whitespace-only changes (hidden by default)
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
 ```
 
-No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
+No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. Whitespace-only changes are hidden by default (`-w` passed to `git diff`); use `--show-whitespace` to include them. `--base`/`-b` works even if the base branch only exists as a remote tracking ref (falls back to `origin/<branch>`). In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
 
 ## Keybindings
 
@@ -59,6 +60,8 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 |-----|--------|
 | `v` | Start visual selection at cursor line |
 | `y` | Yank `path:start-end` from selection to clipboard (via `pbcopy`) |
+| `c` | Copy relative file path to clipboard |
+| `C` | Copy absolute file path to clipboard |
 
 ### Other
 

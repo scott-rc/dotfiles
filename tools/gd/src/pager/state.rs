@@ -16,6 +16,7 @@ pub(crate) struct ReducerCtx<'a> {
     pub rows: u16,
     pub cols: u16,
     pub files: &'a [DiffFile],
+    pub repo: &'a std::path::Path,
 }
 
 /// Effect emitted by the reducer. Mirrors KeyResult.
@@ -44,6 +45,7 @@ pub struct DiffContext {
     pub repo: std::path::PathBuf,
     pub source: crate::git::DiffSource,
     pub no_untracked: bool,
+    pub ignore_whitespace: bool,
 }
 
 #[derive(Debug, Clone)]

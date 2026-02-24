@@ -133,11 +133,14 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
 }
 
 fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
-    let diff_args = if full_context {
+    let mut diff_args = if full_context {
         diff_ctx.source.diff_args_full_context()
     } else {
         diff_ctx.source.diff_args()
     };
+    if diff_ctx.ignore_whitespace {
+        diff_args.push("-w".into());
+    }
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
     let raw = crate::git::run_diff(&diff_ctx.repo, &str_args);
     let mut files = crate::git::diff::parse(&raw);
@@ -214,7 +217,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         };
 
         let ch = content_height(last_size.1, &state);
-        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files);
+        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files, &diff_ctx.repo);
         match result {
             KeyResult::Quit => break,
             KeyResult::ReRender => {

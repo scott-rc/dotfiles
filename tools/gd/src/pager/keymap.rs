@@ -186,6 +186,22 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Yank selection",
         },
         KeymapEntry {
+            action: ActionId::CopyRelPath,
+            context: Normal,
+            keys: &[Key::Char('c')],
+            group: Selection,
+            key_display: "c",
+            label: "Copy relative path",
+        },
+        KeymapEntry {
+            action: ActionId::CopyAbsPath,
+            context: Normal,
+            keys: &[Key::Char('C')],
+            group: Selection,
+            key_display: "C",
+            label: "Copy absolute path",
+        },
+        KeymapEntry {
             action: ActionId::OpenEditor,
             context: Normal,
             keys: &[Key::Char('e')],
@@ -301,6 +317,7 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 2] {
         tooltip_pair(ActionId::NextMatch, ActionId::PrevMatch, "match", context),
         tooltip_single(ActionId::VisualSelect, context),
         tooltip_single(ActionId::YankSelection, context),
+        tooltip_pair(ActionId::CopyRelPath, ActionId::CopyAbsPath, "path", context),
         tooltip_single(ActionId::OpenEditor, context),
         tooltip_single(ActionId::Quit, context),
     ]
