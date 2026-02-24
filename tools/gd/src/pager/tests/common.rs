@@ -149,6 +149,7 @@ pub fn make_keybinding_state() -> PagerState {
         vec![0, 30, 60],
         vec![5, 15, 35, 45, 65, 75],
         tree_entries,
+        120,
     );
     state.cursor_line = 1;
     state
@@ -202,6 +203,7 @@ pub fn make_pager_state_for_range(
         file_starts,
         Vec::new(),
         Vec::new(),
+        120,
     );
     state.set_active_file(active_file);
     state
@@ -325,6 +327,7 @@ pub fn make_pager_state_from_files(files: &[DiffFile], tree_visible: bool) -> Pa
         output.file_starts,
         output.hunk_starts,
         tree_entries,
+        120,
     );
     state.tree_visible = tree_visible;
     state
@@ -383,6 +386,7 @@ pub fn make_mixed_content_state() -> PagerState {
         vec![0, 30, 60],
         vec![5, 15, 35, 45, 65, 75],
         tree_entries,
+        120,
     );
     state.cursor_line = 1;
     state

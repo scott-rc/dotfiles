@@ -178,7 +178,7 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
         file_starts: vec![0, 10],
         hunk_starts: vec![],
     };
-    remap_after_document_swap(&mut state, anchor, new_doc, &[]);
+    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
     assert_eq!(
         state.active_file(),
         None,
@@ -419,6 +419,7 @@ fn test_sync_tree_cursor_collapsed_parent_lands_on_directory() {
         vec![0, 5],
         vec![],
         tree_entries,
+        120,
     );
 
     assert_eq!(
@@ -471,6 +472,7 @@ fn test_sync_tree_cursor_empty_tree_no_panic() {
         vec![0],
         vec![],
         vec![],
+        120,
     );
     state.tree_visible = true;
 

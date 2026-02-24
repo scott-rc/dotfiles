@@ -90,6 +90,31 @@ pub(crate) fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std
 
 pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
     let anchor = capture_view_anchor(state);
+
+    // Pre-resolve tree layout so diff_area_width uses the final tree_width.
+    // Without this, the diff would be rendered at the old tree_width and then
+    // remap_after_document_swap would recalculate tree_width, causing overflow.
+    if state.tree_visible && !files.is_empty() {
+        use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
+        let entries = build_tree_entries(files);
+        let content_width = compute_tree_width(&entries);
+        let has_directories = entries.iter().any(|e| e.file_idx.is_none());
+        let file_count = state.doc.file_count().max(files.len());
+        // Account for scrollbar column when full_context is active
+        let effective_cols = if state.full_context {
+            (cols as usize).saturating_sub(1)
+        } else {
+            cols as usize
+        };
+        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
+            state.tree_width = w;
+            state.tree_entries = entries;
+        } else {
+            state.tree_visible = false;
+            state.tree_width = 0;
+        }
+    }
+
     let width = super::rendering::diff_area_width(
         cols,
         state.tree_width,
@@ -98,7 +123,7 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
     );
     let output = crate::render::render(files, width, color);
     let new_doc = Document::from_render_output(output);
-    remap_after_document_swap(state, anchor, new_doc, files);
+    remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
 
     debug_trace(
         "runtime:re_render",
@@ -144,6 +169,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         prev_hook(info);
     }));
 
+    let mut last_size = get_term_size();
     let tree_entries = build_tree_entries(&files);
     let mut state = PagerState::new(
         output.lines,
@@ -151,9 +177,8 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         output.file_starts,
         output.hunk_starts,
         tree_entries,
+        last_size.0 as usize,
     );
-
-    let mut last_size = get_term_size();
     re_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
@@ -189,7 +214,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         };
 
         let ch = content_height(last_size.1, &state);
-        let result = handle_key(&mut state, key, ch, last_size.1, &files);
+        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files);
         match result {
             KeyResult::Quit => break,
             KeyResult::ReRender => {

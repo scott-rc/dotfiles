@@ -4,15 +4,17 @@ use crate::render::{LineInfo, RenderOutput};
 use super::content::{next_content_line, snap_to_content};
 use super::tree::{
     TreeEntry, build_tree_entries, build_tree_lines, compute_tree_width, file_idx_to_entry_idx,
+    resolve_tree_layout,
 };
 use super::types::{FileIx, KeyResult, Mode, TreeEntryIx, ViewScope};
 
-/// Context passed into the reducer (content height, total rows, files for tree/editor).
+/// Context passed into the reducer (content height, total rows, terminal cols, files for tree/editor).
 #[derive(Debug)]
 pub(crate) struct ReducerCtx<'a> {
     pub content_height: usize,
     #[allow(dead_code)]
     pub rows: u16,
+    pub cols: u16,
     pub files: &'a [DiffFile],
 }
 
@@ -207,6 +209,7 @@ impl PagerState {
         file_starts: Vec<usize>,
         hunk_starts: Vec<usize>,
         tree_entries: Vec<TreeEntry>,
+        terminal_cols: usize,
     ) -> Self {
         let doc = Document {
             lines,
@@ -214,13 +217,21 @@ impl PagerState {
             file_starts,
             hunk_starts,
         };
-        Self::from_doc(doc, tree_entries)
+        Self::from_doc(doc, tree_entries, terminal_cols)
     }
 
-    pub(crate) fn from_doc(doc: Document, tree_entries: Vec<TreeEntry>) -> Self {
+    pub(crate) fn from_doc(
+        doc: Document,
+        tree_entries: Vec<TreeEntry>,
+        terminal_cols: usize,
+    ) -> Self {
         let entry_count = tree_entries.len();
-        let tree_width = compute_tree_width(&tree_entries);
-        let tree_visible = should_show_tree_by_default(&doc, &tree_entries);
+        let content_width = compute_tree_width(&tree_entries);
+        let has_directories = tree_entries.iter().any(|e| e.file_idx.is_none());
+        let file_count = doc.file_count();
+        let layout = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count);
+        let tree_visible = layout.is_some();
+        let tree_width = layout.unwrap_or(0);
         let tree_selection = TreeEntryIx::new(0, entry_count);
 
         let (tree_lines, tree_visible_to_entry) = if tree_visible {
@@ -244,7 +255,7 @@ impl PagerState {
             tooltip_visible: false,
             tree_visible,
             tree_selection,
-            tree_width: if tree_visible { tree_width } else { 0 },
+            tree_width,
             tree_scroll: 0,
             tree_lines,
             tree_entries,
@@ -253,15 +264,6 @@ impl PagerState {
             full_context: false,
         }
     }
-}
-
-fn should_show_tree_by_default(doc: &Document, tree_entries: &[TreeEntry]) -> bool {
-    if tree_entries.is_empty() {
-        return false;
-    }
-    let file_count = doc.file_count();
-    let has_directories = tree_entries.iter().any(|e| e.file_idx.is_none());
-    has_directories || file_count >= 4
 }
 
 #[cfg(debug_assertions)]
@@ -339,6 +341,7 @@ pub(crate) fn remap_after_document_swap(
     anchor: Option<ViewAnchor>,
     new_doc: Document,
     files: &[DiffFile],
+    terminal_cols: usize,
 ) {
     state.doc = new_doc;
 
@@ -407,17 +410,32 @@ pub(crate) fn remap_after_document_swap(
 
     if state.tree_visible && !files.is_empty() {
         state.tree_entries = build_tree_entries(files);
-        state.tree_width = compute_tree_width(&state.tree_entries);
-        let cursor_file_idx = state
-            .doc
-            .line_map
-            .get(state.cursor_line)
-            .map_or(0, |li| li.file_idx);
-        let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
-        state.set_tree_cursor(cursor_entry_idx);
-        let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
-        state.tree_lines = tl;
-        state.tree_visible_to_entry = tv;
+        let content_width = compute_tree_width(&state.tree_entries);
+        let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+        let file_count = state.doc.file_count();
+        // Account for scrollbar column when full_context is active
+        let effective_cols = if state.full_context {
+            terminal_cols.saturating_sub(1)
+        } else {
+            terminal_cols
+        };
+        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
+            state.tree_width = w;
+            let cursor_file_idx = state
+                .doc
+                .line_map
+                .get(state.cursor_line)
+                .map_or(0, |li| li.file_idx);
+            let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
+            state.set_tree_cursor(cursor_entry_idx);
+            let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+            state.tree_lines = tl;
+            state.tree_visible_to_entry = tv;
+        } else {
+            state.tree_visible = false;
+            state.tree_lines.clear();
+            state.tree_visible_to_entry.clear();
+        }
     }
 
     if !state.search_query.is_empty() {

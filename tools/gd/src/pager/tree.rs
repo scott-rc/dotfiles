@@ -91,8 +91,12 @@ pub(crate) fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
     entries
 }
 
+pub(crate) const MIN_DIFF_WIDTH: usize = 80;
+pub(crate) const MIN_TREE_WIDTH: usize = 15;
+const FISHEYE_RADIUS: usize = 2;
+
 pub(crate) fn compute_tree_width(tree_entries: &[TreeEntry]) -> usize {
-    let max_len = tree_entries
+    tree_entries
         .iter()
         .map(|e| {
             let status_extra = if e.file_idx.is_some() && e.status.is_some() {
@@ -103,8 +107,41 @@ pub(crate) fn compute_tree_width(tree_entries: &[TreeEntry]) -> usize {
             (e.depth + 1) * 4 + 2 + status_extra + e.label.len() + 2
         })
         .max()
-        .unwrap_or(0);
-    max_len.min(40)
+        .unwrap_or(0)
+}
+
+pub(crate) fn resolve_tree_layout(
+    content_width: usize,
+    terminal_cols: usize,
+    has_directories: bool,
+    file_count: usize,
+) -> Option<usize> {
+    if !has_directories && file_count < 4 {
+        return None;
+    }
+    let allocated = content_width.min(terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+    if allocated < MIN_TREE_WIDTH {
+        return None;
+    }
+    Some(allocated)
+}
+
+pub(crate) fn truncate_label(label: &str, max_width: usize) -> String {
+    if label.chars().count() <= max_width {
+        return label.to_string();
+    }
+    if max_width == 0 {
+        return String::new();
+    }
+    if max_width == 1 {
+        return ".".to_string();
+    }
+    if max_width == 2 {
+        return "..".to_string();
+    }
+    let keep = max_width.saturating_sub(2);
+    let truncated: String = label.chars().take(keep).collect();
+    format!("{truncated}..")
 }
 
 pub(crate) fn file_idx_to_entry_idx(tree_entries: &[TreeEntry], file_idx: usize) -> usize {
@@ -175,6 +212,11 @@ pub(crate) fn build_tree_lines(
         }
     }
 
+    let cursor_vis = visible_orig
+        .iter()
+        .position(|&oi| oi == cursor_entry_idx)
+        .unwrap_or(0);
+
     let mut lines = Vec::new();
 
     for (vi, &entry) in visible.iter().enumerate() {
@@ -191,7 +233,18 @@ pub(crate) fn build_tree_lines(
         } else {
             0
         };
-        let vis_len = (entry.depth + 1) * 4 + 2 + status_extra + entry.label.chars().count();
+
+        let prefix_width = (entry.depth + 1) * 4 + 2 + status_extra;
+        let label_budget = width.saturating_sub(prefix_width);
+        let expanded = vi.abs_diff(cursor_vis) <= FISHEYE_RADIUS;
+        let label = if expanded {
+            truncate_label(&entry.label, label_budget)
+        } else {
+            truncate_label(&entry.label, label_budget * 2 / 3)
+        };
+        let label_len = label.chars().count();
+
+        let vis_len = prefix_width + label_len;
         let right_pad = width.saturating_sub(vis_len);
         let guide = style::FG_TREE_GUIDE;
 
@@ -199,7 +252,6 @@ pub(crate) fn build_tree_lines(
             let reset = style::RESET;
             let fg = style::FG_FILE_HEADER;
             let bg = style::BG_TREE_CURSOR;
-            let label = &entry.label;
             let rpad = " ".repeat(right_pad);
             if entry.file_idx.is_some() {
                 if let Some(st) = entry.status {
@@ -218,7 +270,6 @@ pub(crate) fn build_tree_lines(
         } else if entry.file_idx.is_some() {
             let reset = style::RESET;
             let fg = style::FG_TREE;
-            let label = &entry.label;
             let rpad = " ".repeat(right_pad);
             if let Some(st) = entry.status {
                 let (sc, sc_color) = status_symbol(st);
@@ -231,7 +282,6 @@ pub(crate) fn build_tree_lines(
         } else {
             let reset = style::RESET;
             let fg = style::FG_TREE_DIR;
-            let label = &entry.label;
             let rpad = " ".repeat(right_pad);
             lines.push(format!(
                 "{guide}{prefix}{reset}{icon_color}{icon}{reset} {fg}{label}{rpad}{reset}"

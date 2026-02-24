@@ -15,7 +15,7 @@ use super::search::{
 };
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
 use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
-use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx};
+use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx, resolve_tree_layout, MIN_DIFF_WIDTH};
 use super::types::{ActionId, KeyContext, KeyResult, Mode};
 
 #[derive(Debug, Clone)]
@@ -149,7 +149,12 @@ fn dispatch_normal_action(
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 if state.tree_entries.is_empty() {
                     state.tree_entries = build_tree_entries(files);
-                    state.tree_width = compute_tree_width(&state.tree_entries);
+                    let content_width = compute_tree_width(&state.tree_entries);
+                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+                    let fc = state.doc.file_count();
+                    let terminal_cols = ctx.cols as usize;
+                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, fc)
+                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
                 }
                 set_view_to_file(state, file_idx, ch);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
@@ -214,7 +219,12 @@ fn dispatch_normal_action(
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 state.tree_entries = build_tree_entries(files);
-                state.tree_width = compute_tree_width(&state.tree_entries);
+                let content_width = compute_tree_width(&state.tree_entries);
+                let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+                let file_count = state.doc.file_count();
+                let terminal_cols = ctx.cols as usize;
+                state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
+                    .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
@@ -336,12 +346,14 @@ pub(crate) fn handle_key(
     key: Key,
     ch: usize,
     rows: u16,
+    cols: u16,
     files: &[DiffFile],
 ) -> KeyResult {
     let event = ReducerEvent::Key(key);
     let ctx = ReducerCtx {
         content_height: ch,
         rows,
+        cols,
         files,
     };
     KeyResult::from(reduce(state, &event, &ctx))

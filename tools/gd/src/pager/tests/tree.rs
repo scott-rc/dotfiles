@@ -4,8 +4,10 @@ use crate::git::diff::FileStatus;
 use insta::assert_debug_snapshot;
 use insta::assert_snapshot;
 
+use super::super::rendering::diff_area_width;
 use super::super::tree::{
     TreeEntry, build_tree_entries, build_tree_lines, compute_connector_prefix, compute_tree_width,
+    resolve_tree_layout, truncate_label,
 };
 use super::common::{entry, entry_with_status, make_diff_file, strip};
 use crate::git::diff::DiffFile;
@@ -100,17 +102,77 @@ fn test_compute_tree_width_empty() {
 }
 
 #[test]
-fn test_compute_tree_width_capped_at_40() {
+fn test_compute_tree_width_returns_raw_content_width() {
     let long_label = "a".repeat(60);
     let entries = vec![TreeEntry {
-        label: long_label,
+        label: long_label.clone(),
         depth: 0,
         file_idx: Some(0),
         status: Some(FileStatus::Modified),
         collapsed: false,
     }];
     let width = compute_tree_width(&entries);
-    assert_eq!(width, 40, "tree width should be capped at 40");
+    // raw formula: (depth + 1) * 4 + 2 + status_extra + label.len() + 2
+    // = (0 + 1) * 4 + 2 + 2 + 60 + 2 = 70
+    let expected = (0 + 1) * 4 + 2 + 2 + long_label.len() + 2;
+    assert_eq!(width, expected, "tree width should equal raw content width without capping");
+}
+
+#[test]
+fn test_resolve_tree_layout_hides_when_no_dirs_and_few_files() {
+    let result = resolve_tree_layout(30, 120, false, 3);
+    assert_eq!(result, None, "should hide tree when no dirs and <4 files");
+}
+
+#[test]
+fn test_resolve_tree_layout_shows_when_has_directories() {
+    let result = resolve_tree_layout(30, 120, true, 2);
+    assert_eq!(result, Some(30), "should show tree at content width when has directories");
+}
+
+#[test]
+fn test_resolve_tree_layout_shows_when_many_files() {
+    let result = resolve_tree_layout(30, 120, false, 4);
+    assert_eq!(result, Some(30), "should show tree at content width when >=4 files");
+}
+
+#[test]
+fn test_resolve_tree_layout_clamps_to_available_space() {
+    // terminal_cols=110, MIN_DIFF_WIDTH=80 => allocated = 110 - 80 - 1 = 29
+    let result = resolve_tree_layout(50, 110, true, 5);
+    assert_eq!(result, Some(29), "should clamp to available space");
+}
+
+#[test]
+fn test_resolve_tree_layout_terminal_cols_zero() {
+    let result = resolve_tree_layout(30, 0, true, 5);
+    assert_eq!(result, None, "should return None when terminal_cols is 0");
+}
+
+#[test]
+fn test_resolve_tree_layout_content_width_zero() {
+    let result = resolve_tree_layout(0, 120, true, 5);
+    assert_eq!(result, None, "should return None when content_width is 0");
+}
+
+#[test]
+fn test_resolve_tree_layout_exact_min_tree_width_boundary() {
+    use super::super::tree::{MIN_DIFF_WIDTH, MIN_TREE_WIDTH};
+    // terminal_cols such that allocated == MIN_TREE_WIDTH exactly
+    let terminal_cols = MIN_TREE_WIDTH + MIN_DIFF_WIDTH + 1;
+    let result = resolve_tree_layout(100, terminal_cols, true, 5);
+    assert_eq!(
+        result,
+        Some(MIN_TREE_WIDTH),
+        "should return Some(MIN_TREE_WIDTH) at exact boundary"
+    );
+}
+
+#[test]
+fn test_resolve_tree_layout_hides_when_terminal_too_narrow() {
+    // terminal_cols=90, allocated = 90 - 80 - 1 = 9, which is < MIN_TREE_WIDTH (15)
+    let result = resolve_tree_layout(30, 90, true, 5);
+    assert_eq!(result, None, "should hide when allocated width < MIN_TREE_WIDTH");
 }
 
 #[test]
@@ -321,4 +383,202 @@ fn snapshot_tree_lines_nested() {
     let (lines, _) = build_tree_lines(&entries, 0, width);
     let stripped: Vec<String> = lines.iter().map(|l| strip(l)).collect();
     assert_snapshot!(stripped.join("\n"));
+}
+
+#[test]
+fn test_truncate_label_no_op_when_fits() {
+    assert_eq!(truncate_label("foo.rs", 10), "foo.rs");
+}
+
+#[test]
+fn test_truncate_label_truncates_with_ellipsis() {
+    assert_eq!(truncate_label("very_long_filename.rs", 10), "very_lon..");
+}
+
+#[test]
+fn test_truncate_label_minimum_width() {
+    assert_eq!(truncate_label("abcdef", 3), "a..");
+}
+
+#[test]
+fn test_truncate_label_width_2() {
+    assert_eq!(truncate_label("abcdef", 2), "..");
+}
+
+#[test]
+fn test_truncate_label_width_1() {
+    assert_eq!(truncate_label("abcdef", 1), ".");
+}
+
+#[test]
+fn test_truncate_label_width_0() {
+    assert_eq!(truncate_label("abcdef", 0), "");
+}
+
+#[test]
+fn test_truncate_label_empty_input() {
+    assert_eq!(truncate_label("", 5), "");
+}
+
+#[test]
+fn test_truncate_label_char_boundary() {
+    assert_eq!(truncate_label("cafe_resume", 7), "cafe_..");
+}
+
+#[test]
+fn test_build_tree_lines_truncates_non_cursor_entries() {
+    let entries = vec![
+        entry("very_long_directory_name", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("extremely_long_filename_here.rs", 1, Some(2)),
+        entry("another_long_filename_here.rs", 1, Some(3)),
+    ];
+    // Cursor at entry 0 (visible index 0), fisheye radius 2 covers visible 0-2.
+    // Entries at visible indices 3 and 4 are beyond radius, should be truncated.
+    let (lines, _) = build_tree_lines(&entries, 0, 25);
+    let stripped3 = strip(&lines[3]);
+    let stripped4 = strip(&lines[4]);
+    assert!(
+        stripped3.contains(".."),
+        "entry beyond fisheye radius should be truncated: {stripped3:?}"
+    );
+    assert!(
+        stripped4.contains(".."),
+        "entry beyond fisheye radius should be truncated: {stripped4:?}"
+    );
+}
+
+#[test]
+fn test_build_tree_lines_expands_cursor_entry() {
+    // With enough width, cursor entry shows full label
+    let entries = vec![
+        entry("very_long_directory_name", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("extremely_long_filename_here.rs", 1, Some(2)),
+        entry("another_long_filename_here.rs", 1, Some(3)),
+    ];
+    let width = compute_tree_width(&entries);
+    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let stripped0 = strip(&lines[0]);
+    assert!(
+        !stripped0.contains(".."),
+        "cursor entry should NOT be truncated at full width: {stripped0:?}"
+    );
+}
+
+#[test]
+fn test_build_tree_lines_no_overflow() {
+    let entries = vec![
+        entry("very_long_directory_name", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("extremely_long_filename_here.rs", 1, Some(2)),
+        entry("another_long_filename_here.rs", 1, Some(3)),
+    ];
+    let width = 25;
+    let (lines, _) = build_tree_lines(&entries, 0, width);
+    for (i, line) in lines.iter().enumerate() {
+        let stripped = strip(line);
+        let vis_width = stripped.chars().count();
+        assert!(
+            vis_width <= width,
+            "line {i} overflows: {vis_width} > {width}: {stripped:?}"
+        );
+    }
+}
+
+#[test]
+fn test_build_tree_lines_expanded_still_truncated_when_wider_than_panel() {
+    // Panel width 20, cursor at entry 2 (fisheye covers 0-4).
+    // Even expanded entries must not exceed the panel width.
+    let entries = vec![
+        entry("a_very_very_very_long_name.rs", 0, Some(0)),
+        entry("b_very_very_very_long_name.rs", 0, Some(1)),
+        entry("c_very_very_very_long_name.rs", 0, Some(2)),
+        entry("d_very_very_very_long_name.rs", 0, Some(3)),
+        entry("e_very_very_very_long_name.rs", 0, Some(4)),
+    ];
+    let width = 20;
+    let (lines, _) = build_tree_lines(&entries, 2, width);
+    for (i, line) in lines.iter().enumerate() {
+        let stripped = strip(line);
+        let vis_width = stripped.chars().count();
+        assert!(
+            vis_width <= width,
+            "expanded line {i} overflows: {vis_width} > {width}: {stripped:?}"
+        );
+    }
+}
+
+#[test]
+fn test_build_tree_lines_fisheye_gives_more_space_near_cursor() {
+    let entries = vec![
+        entry("a_very_long_filename_000.rs", 0, Some(0)),
+        entry("b_very_long_filename_001.rs", 0, Some(1)),
+        entry("c_very_long_filename_002.rs", 0, Some(2)),
+        entry("d_very_long_filename_003.rs", 0, Some(3)),
+        entry("e_very_long_filename_004.rs", 0, Some(4)),
+        entry("f_very_long_filename_005.rs", 0, Some(5)),
+    ];
+    let width = 30;
+    let (lines, _) = build_tree_lines(&entries, 3, width);
+    // Entry 0 is far from cursor (distance 3), should be more truncated
+    let distant = strip(&lines[0]).trim_end().to_string();
+    assert!(
+        distant.contains(".."),
+        "distant entry should be truncated: {distant:?}"
+    );
+    // Cursor entry (3) should be expanded (more label budget)
+    let cursor = strip(&lines[3]).trim_end().to_string();
+    assert!(
+        cursor.len() > distant.len(),
+        "cursor entry should be wider than distant: cursor={cursor:?} distant={distant:?}"
+    );
+    // No line overflows the panel
+    for (i, line) in lines.iter().enumerate() {
+        let stripped = strip(line);
+        assert!(
+            stripped.chars().count() <= width,
+            "line {i} overflows: {stripped:?}"
+        );
+    }
+}
+
+// ---- diff_area_width ----
+
+#[test]
+fn diff_area_width_tree_hidden_returns_cols() {
+    assert_eq!(diff_area_width(120, 30, false, false), 120);
+}
+
+#[test]
+fn diff_area_width_tree_visible_subtracts_tree_and_separator() {
+    // cols - tree_width - 1 (separator)
+    assert_eq!(diff_area_width(120, 30, true, false), 89);
+}
+
+#[test]
+fn diff_area_width_tree_visible_with_scrollbar() {
+    // cols - tree_width - 1 (separator) - 1 (scrollbar)
+    assert_eq!(diff_area_width(120, 30, true, true), 88);
+}
+
+#[test]
+fn diff_area_width_scrollbar_only_no_tree() {
+    // cols - 1 (scrollbar)
+    assert_eq!(diff_area_width(120, 30, false, true), 119);
+}
+
+#[test]
+fn diff_area_width_saturates_on_small_cols() {
+    // cols=10, tree_width=30: 10 - 30 - 1 saturates to 0
+    assert_eq!(diff_area_width(10, 30, true, false), 0);
+}
+
+#[test]
+fn diff_area_width_zero_cols() {
+    assert_eq!(diff_area_width(0, 0, false, false), 0);
+    assert_eq!(diff_area_width(0, 0, true, false), 0);
 }
