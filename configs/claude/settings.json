@@ -9,6 +9,8 @@
     "allow": [
       "Bash",
       "Read",
+      "Edit",
+      "Write",
       "Skill",
       "WebFetch",
       "WebSearch",
