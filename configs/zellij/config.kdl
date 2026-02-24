@@ -449,7 +449,7 @@ advanced_mouse_actions false
 //   - true (default, enabled)
 //   - false
 //
-pane_frames true
+pane_frames false
 
 ui {
     pane_frames {
