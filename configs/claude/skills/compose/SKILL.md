@@ -1,6 +1,6 @@
 ---
 name: compose
-description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts. Decomposes large tasks into chunked execution plans. Writes handoff files for session continuity.
+description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity.
 argument-hint: "[create | review | plan | handoff] [target]"
 ---
 

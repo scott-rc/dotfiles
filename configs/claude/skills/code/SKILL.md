@@ -1,6 +1,6 @@
 ---
 name: code
-description: Coding style preferences, test-driven development, code review, and benchmark-driven workflows.
+description: Applies coding style preferences, enforces test-driven development, runs code reviews, and manages benchmark-driven workflows — use when writing, reviewing, testing, or optimizing code.
 ---
 
 # Code

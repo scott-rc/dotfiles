@@ -1,6 +1,6 @@
 ---
 name: git
-description: Git commits, PRs, rebases, worktrees, CI fixes, review submissions, and GitHub interactions.
+description: Handles git commits, PRs, rebases, worktrees, CI fixes, review submissions, and GitHub interactions — use when the user asks to commit, push, rebase, fix CI, review, or manage worktrees.
 argument-hint: "[operation or intent]"
 ---
 

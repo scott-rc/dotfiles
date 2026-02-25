@@ -14,7 +14,7 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 
 ## Structure — Skills
 
-- [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields; optional fields (`disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`, `argument-hint`, `skills`) are valid if present
+- [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields; optional fields (`disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`, `argument-hint`) are valid if present
 - [ ] **Name matches directory**: The `name` in frontmatter matches the directory name exactly
 - [ ] **Naming rules**: Skill name and all file names are lowercase with hyphens only, max 64 characters
 - [ ] **Operations section exists**: SKILL.md has an H2 "Operations" section with at least one operation

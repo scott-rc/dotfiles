@@ -3,6 +3,7 @@ name: skill-reviewer
 description: Reads a skill directory and evaluates it against structure, quality, and anti-pattern criteria. Use proactively after creating or modifying skills.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
+background: true
 maxTurns: 30
 memory: user
 ---

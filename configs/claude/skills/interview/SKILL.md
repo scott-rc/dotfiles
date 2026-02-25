@@ -1,6 +1,6 @@
 ---
 name: interview
-description: Conducts a structured interview with the user on any topic, asking probing questions to gather requirements, explore decisions, or deepen understanding, then produces a summary or enriches session context. Use when the user asks to interview, gather info, explore a topic, brainstorm, or think through something.
+description: Conducts a structured interview with the user on any topic, asking probing questions to gather requirements, explore decisions, or deepen understanding — use when the user asks to interview, gather info, explore a topic, brainstorm, or think through something.
 disable-model-invocation: true
 argument-hint: "<topic>"
 ---

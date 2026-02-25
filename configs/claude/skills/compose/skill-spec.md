@@ -25,7 +25,7 @@ description: <text>             # Required. See Description Rules below.
 ---
 ```
 
-Required fields: `name` and `description`. Optional fields (include only when needed):
+Recommended fields: `name` and `description`. The official spec treats both as optional (`name` defaults to directory name, `description` falls back to first paragraph), but this spec requires them for clarity. Optional fields (include only when needed):
 
 - `argument-hint` — autocomplete hint shown after skill name (e.g., `[issue-number]`)
 - `disable-model-invocation: true` — prevents Claude from auto-loading the skill; only the user can invoke it via `/`. Use for side-effect workflows where unintended invocation would be harmful.
@@ -35,8 +35,6 @@ Required fields: `name` and `description`. Optional fields (include only when ne
 - `context: fork` — runs the skill in a subagent (see Subagent Execution below)
 - `agent` — subagent type when `context: fork` is set (`Explore`, `Plan`, `general-purpose`, or a custom agent type). Custom agent names reference files in `.claude/agents/<name>.md`.
 - `hooks` — lifecycle hooks scoped to this skill
-- `skills` — YAML array of skill names to preload into the subagent's context when this agent runs (e.g., `skills: [git, compose]`)
-
 MUST NOT add keys not listed above.
 
 ### Description Rules

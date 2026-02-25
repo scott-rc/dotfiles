@@ -3,6 +3,7 @@ name: rules-reviewer
 description: Reads CLAUDE.md and rules files and evaluates them against structure, quality, and anti-pattern criteria. Use proactively after creating or modifying rules.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
+background: true
 maxTurns: 30
 memory: user
 ---
