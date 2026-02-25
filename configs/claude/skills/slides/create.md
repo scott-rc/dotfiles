@@ -56,8 +56,9 @@ Scaffold a new talk package inside the slides workspace.
      # Thank You
      ```
 
-4. **Install and report**:
+4. **Install and verify**:
    - Run `pnpm install` from the workspace root (`~/Code/personal/slides/`)
+   - Confirm `talks/<name>/slides.md` and `talks/<name>/package.json` exist, and that `pnpm install` exited successfully.
    - Report the new talk location and how to start the dev server:
      ```
      cd ~/Code/personal/slides/talks/<name> && pnpm dev

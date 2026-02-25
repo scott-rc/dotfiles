@@ -16,7 +16,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
 2. **Load coding preferences** (conditional):
    If the task involves writing or modifying code:
-   - MUST invoke the code skill to load coding preferences: `skill: "code"` (no routing args -- loading references only)
+   - MUST invoke the code skill to load coding preferences: `skill: "code"` (no routing args -- loading references only). If the code skill is not available, apply general TDD structure (write test first, then implementation) and skip language-specific guidelines.
    - Read from the code skill's References section: general-guidelines and the applicable language-specific guidelines (TypeScript, Go, or Shell)
    - Read test-environment for test runner detection, file placement, and build/test commands
    - Apply these during decomposition:

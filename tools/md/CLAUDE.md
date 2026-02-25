@@ -8,15 +8,7 @@ MUST NOT introduce custom error types, `Result` types, or error enums. Use `epri
 
 ---
 
-MUST NOT duplicate ANSI regex patterns. Reuse the helpers in `tui::ansi` (re-exported via `wrap.rs`).
-
----
-
 Construct styles via `Style::new(color: bool, pretty: bool)`. Palette constants live at the top of `style.rs`.
-
----
-
-Follow the three fixture systems described in README.md when adding tests.
 
 ---
 
@@ -24,4 +16,4 @@ To add a new markdown element: add a match arm in `render_tokens()` (`render.rs`
 
 ---
 
-When optimizing performance, MUST run `cargo bench` before and after changes. Use `cargo bench -- --save-baseline before` to save a baseline, then `cargo bench -- --baseline before` to compare. Use `samply record` on the release binary for flamegraph profiling.
+MUST run benchmarks before and after performance-sensitive changes.

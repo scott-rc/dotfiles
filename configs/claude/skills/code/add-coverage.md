@@ -4,7 +4,7 @@ Write characterization tests for existing untested code — documenting its curr
 
 ## Instructions
 
-1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
+1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
 
 2. **Identify target code**:
    Determine which module, function, or class to cover. If the user hasn't specified, spawn the `test-discoverer` agent in auto-discover mode. Present 1-3 untested candidates from the agent's results as AskUserQuestion options.

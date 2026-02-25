@@ -47,13 +47,10 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
 
    For multi-line comment ranges, add `start_line` and `start_side` to mark the range start.
 
-5. **Validate comment text**:
-   MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes. Use backticks for code references, code blocks for multi-line examples.
-
-6. **Submit the review**:
+5. **Submit the review**:
    ```bash
    gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --input /tmp/pr-review.json
    ```
    Clean up `/tmp/pr-review.json` after posting.
 
-7. **Report result**: Confirm the review was submitted with the verdict and number of inline comments posted.
+6. **Report result**: Confirm the review was submitted with the verdict and number of inline comments posted.

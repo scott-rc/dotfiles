@@ -41,12 +41,12 @@ MUST NOT add keys not listed above.
 
 The `description` field is how Claude discovers and matches the skill to user intent. It MUST:
 
-1. **MUST use third person**: "Handles..." / "Creates..." / "Reviews..." -- not "Handle" or "I handle"
-2. **MUST state what AND when**: First clause says what it does, second says when to use it
-3. **MUST include trigger keywords**: Verbs and nouns a user would naturally say (e.g., "commit, push, rebase" for a git skill)
-4. **MUST be a single sentence**: One sentence, no line breaks, no bullet points
-5. **MUST stay under 1024 characters**: Long descriptions get truncated in skill listings
-6. **MUST NOT contain XML tags**
+- **MUST use third person**: "Handles..." / "Creates..." / "Reviews..." -- not "Handle" or "I handle"
+- **MUST state what AND when**: First clause says what it does, second says when to use it
+- **MUST include trigger keywords**: Verbs and nouns a user would naturally say (e.g., "commit, push, rebase" for a git skill)
+- **MUST be a single sentence**: One sentence, no line breaks, no bullet points
+- **MUST stay under 1024 characters**: Long descriptions get truncated in skill listings
+- **MUST NOT contain XML tags**
 
 ### Description Budget
 

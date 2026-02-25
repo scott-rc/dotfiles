@@ -40,4 +40,6 @@ Squash all commits on the current branch into a single commit.
    ```
    Then spawn the `committer` agent with prompt: "Squash commit. Prior commits: <commit list from step 6>."
 
+10. **Report**: Show the squashed commit hash and message. Offer to push if the branch tracks a remote.
+
 See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

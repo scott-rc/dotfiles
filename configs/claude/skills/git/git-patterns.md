@@ -4,9 +4,7 @@ Shared patterns used across git skill operations. Reference this file for consis
 
 ## Script Paths
 
-| Name | Path |
-|------|------|
-| `get-pr-comments` | `~/.claude/skills/git/scripts/get-pr-comments.sh` |
+- `get-pr-comments` -- `~/.claude/skills/git/scripts/get-pr-comments.sh`
 
 ## Fish Functions
 
@@ -57,9 +55,7 @@ After fetching, reference remote branches as `origin/<branch>`.
 
 After rebase or before squash, verify the branch only contains expected changes.
 
-> **Important**: These comparisons assume the branch has been rebased onto `origin/<base>`.
-> If the branch has diverged (main advanced since the branch was created), the diff will
-> include the reversal of main's changes. Rebase first: `git rebase origin/<base>`
+**Note**: These comparisons assume the branch has been rebased onto `origin/<base>`. If the branch has diverged (main advanced since the branch was created), the diff will include the reversal of main's changes. Rebase first: `git rebase origin/<base>`
 
 ```bash
 # Show files that will be in the commit

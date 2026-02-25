@@ -4,7 +4,7 @@ Write a benchmark that captures the performance target, then write or optimize c
 
 ## Instructions
 
-1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
+1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
 
 2. **Understand the performance goal**:
    Clarify what metric matters (throughput, latency, memory, binary size) and what the target is. If the user provides a specific target (e.g., "under 50ms", "10k ops/sec"), use it directly. If the goal is vague (e.g., "make it faster"), proceed to step 3.

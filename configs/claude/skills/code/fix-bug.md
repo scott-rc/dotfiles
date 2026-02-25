@@ -4,7 +4,7 @@ Write a regression test that reproduces the bug, then fix it — ensuring the bu
 
 ## Instructions
 
-1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
+1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
 
 2. **Understand the bug**:
    Identify the expected behavior and the actual (broken) behavior. Read the relevant source code. If the bug is unclear, ask the user to describe the reproduction steps.

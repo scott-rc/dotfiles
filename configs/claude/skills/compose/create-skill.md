@@ -17,6 +17,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Any tool restrictions needed (`allowed-tools`)?
 
 2. **Determine skill name**:
+   - MUST read [skill-spec.md](skill-spec.md) before proceeding
    - MUST apply naming rules from [skill-spec.md](skill-spec.md): lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
    - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements via AskUserQuestion

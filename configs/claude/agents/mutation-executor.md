@@ -1,7 +1,7 @@
 ---
 name: mutation-executor
 description: Executes planned source code mutations against a test suite -- applies each mutation, runs tests, records killed/survived outcomes, and reverts. Returns a results table and mutation score.
-tools: Read, Edit, Bash, Grep, Glob
+tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 maxTurns: 50
 ---

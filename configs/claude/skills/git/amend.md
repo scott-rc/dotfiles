@@ -42,7 +42,7 @@ Fold outstanding changes into the last commit.
    - If no PR exists: skip to step 8
    - Reuse the file-set comparison from step 5:
      - If the file sets are identical: keep the current PR description
-     - If files were added or removed: follow the [Update Description operation](update-description.md) steps 2-4 to rewrite the title and description
+     - If files were added or removed: detect base branch per [git-patterns.md](git-patterns.md), spawn the `pr-writer` agent with mode `update`, base_branch, and pr_number, then confirm the PR was updated and show the PR URL
 
 8. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
 

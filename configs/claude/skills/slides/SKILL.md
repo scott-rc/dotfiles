@@ -38,3 +38,4 @@ See [present.md](present.md) for detailed instructions.
 These files are referenced by the operation instructions above:
 
 - [slidev-syntax.md](slidev-syntax.md) — Slidev markdown syntax, layouts, animations, and advanced features
+- [workspace-claude-template.md](workspace-claude-template.md) — CLAUDE.md template written into scaffolded workspaces

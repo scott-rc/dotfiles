@@ -48,23 +48,22 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **"plan this"** / **"design this"** / **"how should I implement this"** → MUST invoke compose immediately: `skill: "compose", args: "plan this task"`. See [plan.md](plan.md) for coding constraints to apply during the compose workflow.
-- **"implement this"** / **"add this feature"** / **"write this"** (new functionality) → New Feature
-- **"fix this bug"** / **"debug this"** → Fix Bug
-- **"refactor"** / **"clean up"** / **"rename"** / **"restructure"** → Apply (existing tests cover it)
-- **"write code"** (ambiguous) → New Feature if it involves behavior; Apply if it's config/glue/scripting
-- **"review code"** / **"review this"** / **"code review"** / **"check for issues"** / **"audit this code"** → Review
-- **"thorough review"** / **"deep review"** → Review (forces large-scope subagent decomposition path)
-- **"backfill tests"** / **"add coverage"** / **"characterize this code"** / **"write tests"** (for existing code) → Add Coverage
-- **"benchmark this"** / **"BDD this"** / **"write a benchmark first"** → Benchmark
-- **"optimize this"** (with a specific performance target) → Benchmark
-- **"optimize this"** (general cleanup, no performance target) → Apply
-- **"review and fix"** / **"review then fix the issues"** → Review, then Apply (or Fix Bug if a specific bug is found). The thorough review path offers a fix plan automatically at step 13.
-- **"fix and add coverage for the rest"** → Fix Bug, then Add Coverage
-- **"implement and benchmark"** → New Feature, then Benchmark
-- **"mutate this"** / **"mutation test"** / **"test my tests"** / **"are my tests good enough"** → Mutation Testing
-- **"add coverage then mutate"** / **"backfill and verify"** → Add Coverage, then Mutation Testing
-- **"skip tests"** / **"no tests"** / **"just the code"** → Apply (user explicitly opts out of TDD)
+- **plan / design / "how should I implement"** → MUST invoke compose: `skill: "compose", args: "plan this task"`. See [plan.md](plan.md).
+- **implement / add feature / write** (new behavior) → New Feature
+- **fix bug / debug** → Fix Bug
+- **refactor / clean up / rename / restructure** → Apply
+- **write code** (ambiguous) → New Feature if behavior; Apply if config/glue/scripting
+- **review / code review / check for issues** → Review
+- **thorough / deep review** → Review (forces subagent decomposition)
+- **backfill tests / add coverage / write tests** (existing code) → Add Coverage
+- **benchmark / optimize** (with perf target) → Benchmark
+- **optimize** (no target, general cleanup) → Apply
+- **review and fix** → Review, then Apply or Fix Bug. Thorough path offers fix plan at step 13.
+- **fix then add coverage** → Fix Bug, then Add Coverage
+- **implement and benchmark** → New Feature, then Benchmark
+- **mutate / mutation test / test my tests** → Mutation Testing
+- **add coverage then mutate** → Add Coverage, then Mutation Testing
+- **skip tests / no tests / just the code** → Apply (user opts out of TDD)
 
 **When to use Apply instead of TDD**: Refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 
@@ -76,3 +75,5 @@ Users often request multiple operations together. Handle these as follows:
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
 - [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
+- [review-template.md](review-template.md) — Subagent prompt template for code review tasks
+- [load-guidelines.md](load-guidelines.md) — Shared guideline loading checklist referenced by all TDD/coverage/benchmark/mutation operations

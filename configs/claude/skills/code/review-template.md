@@ -28,7 +28,7 @@ Read and apply these guidelines:
 
 ## Review Checklist
 
-<paste the full Review Checklist from review.md — all five sections: Test Coverage, Idiomaticity, Simplification, Correctness and Robustness, Naming and Clarity>
+<!-- Copy the five Review Checklist sections from review.md verbatim here: Test Coverage, Idiomaticity, Simplification, Correctness and Robustness, Naming and Clarity -->
 
 ## Output Format
 

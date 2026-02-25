@@ -9,9 +9,6 @@ agent: Explore
 
 # Explain Changes
 
-## Current Context
-- Branch: !`git branch --show-current`
-
 Help the user understand code changes by producing layered explanations (why, what, how) adapted to diff size.
 
 ## Operations

@@ -32,18 +32,16 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    - **transient** or **flake**: report the classification to the user (the triager already reran the job). Stop.
    - **real**: proceed to step 4 using the trimmed logs and root cause from the triager's report.
 
-4. **Load coding preferences**: MUST load the code skill (`skill: "code"`) for coding style preferences.
-
-5. **Fix the issues**:
+4. **Fix the issues**:
    - Read the relevant source files identified in the triager's logs
    - Apply fixes for the root cause
    - If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options
    - If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user
 
-6. **Verify fixes locally** (when possible):
+5. **Verify fixes locally** (when possible):
    - Test failures: run the failing tests locally
    - Lint failures: run the linter on affected files
    - Build failures: run the build locally
    - If local verification is not possible (e.g., environment-specific failure), note this to the user
 
-7. **Report to user**: Summarize what failed, why, what was fixed, and whether local verification passed. Offer to commit and push.
+6. **Report to user**: Summarize what failed, why, what was fixed, and whether local verification passed. Offer to commit and push.

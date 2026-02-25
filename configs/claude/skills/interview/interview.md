@@ -40,4 +40,4 @@ Conduct a structured, multi-round interview with the user on any topic, then pro
    If the user corrects anything, update and re-confirm.
 
 5. **Deliver results**:
-   Default to keeping the summary in context for follow-up work. If the user asks to save or share, offer: copy to clipboard (`pbcopy`), save to a file, or feed into another task (ask what task, then invoke the relevant skill with the summary as context).
+   Keep the summary in context for follow-up work. If the user asks to save or export it, write to a file they specify or copy to clipboard (`pbcopy` on macOS, `xclip` on Linux).

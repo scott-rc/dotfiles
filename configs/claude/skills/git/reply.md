@@ -7,9 +7,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 ### Auto-discover mode (no specific target provided)
 
 1. **Fetch unreplied threads**:
-   ```bash
-   ~/.claude/skills/git/scripts/get-pr-comments.sh --unreplied
-   ```
+   Run `get-pr-comments --unreplied` (path in [git-patterns.md](git-patterns.md)).
    If the script exits with an error (no PR exists), inform the user and stop.
 
 2. **If no unreplied threads**, report that all review feedback has been responded to and stop.
@@ -40,8 +38,6 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 3. **Post** (see Posting below).
 
 ### Posting
-
-MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes.
 
 Write body to a temp file and post using `-F body=@file` to avoid shell encoding issues:
 

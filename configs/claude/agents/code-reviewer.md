@@ -45,6 +45,14 @@ When the task prompt includes a review checklist, use that checklist instead of 
 - File paths are validated (no traversal attacks)
 - Permissions follow least-privilege principle
 
+### Maintainability
+
+- Names are clear and descriptive -- functions, variables, and types reveal intent
+- No unnecessary duplication -- shared logic is extracted, not copy-pasted
+- Modules have clear boundaries -- low coupling between components, high cohesion within
+- Logic is not overly nested -- deeply nested conditionals or loops are flattened or extracted
+- Functions have a single responsibility -- no "god functions" doing too many things
+
 ## Output Format
 
 Group findings into three severity levels:

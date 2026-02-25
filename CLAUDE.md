@@ -9,15 +9,7 @@
 
 ### Symlink Layout (configs/ -> target)
 
-- `configs/fish/` -> `~/.config/fish/`
-- `configs/vim/` -> `~/.config/nvim/init.lua`
-- `configs/git/` -> `~/.gitconfig`, `~/.config/git/.gitignore_global`
-- `configs/claude/` -> `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}`
-- `configs/claude/agents/` -> `~/.claude/agents/`
-- `configs/zed/` -> `~/.config/zed/{settings.json,keymap.json}`
-- `configs/ghostty/` -> `~/Library/Application Support/com.mitchellh.ghostty/config`
-- `configs/zellij/` -> `~/.config/zellij/{config.kdl,layouts}`
-- Full list of all symlinks is in README.md
+Full list of all symlinks is in README.md
 
 ### Cargo Tools
 
@@ -31,19 +23,16 @@
 ### Fish Shell
 
 - `configs/fish/conf.d/` -- auto-loaded config files; each MUST have `status is-interactive` guard
-- `configs/fish/functions/` -- one function per file, autoloaded by fish on first call
-- `configs/fish/completions/` -- custom completions
 
 ### Claude Code
 
-- Skills: `configs/claude/skills/` (symlinked to `~/.claude/skills/`)
-- Agents: `configs/claude/agents/` (symlinked to `~/.claude/agents/`)
 - Agents are stateless -- each invocation evaluates fresh, no persistent memory
+
+### Skills Locations
+
+- **Global skills** (available everywhere): `~/Code/personal/dotfiles/configs/claude/skills/`
+- **Gadget-specific skills** (only available in gadget projects): `~/Code/gadget/gadget/.claude/skills/`
 
 ---
 
 When making changes to the codebase, keep README.md in sync. Any new features, changed options, added keybindings, or modified architecture MUST be reflected in the README.
-
----
-
-After changing a tool in `tools/`, MUST run `cargo build --release` in the tool's directory. The release binary is symlinked into PATH by `apply.sh`, so a debug-only build leaves the installed binary stale. Changes to `tools/tui/` require rebuilding both `tools/md/` and `tools/gd/`, since they depend on tui as a workspace dependency.

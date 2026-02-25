@@ -33,15 +33,6 @@ Measured by total added + removed lines in `git diff --stat`:
 - **Medium** — 200–500 lines
 - **Large** — 500+ lines
 
-## Large Diff Strategy
-
-When a diff exceeds 500 lines:
-
-1. Group changed files by theme (same package, same feature, test files together)
-2. Spawn one Task subagent (subagent_type: `Explore`) per group with prompt: "Read these files and summarize what changed and why: `<file list>`"
-3. Collect subagent summaries
-4. Synthesize into a single three-layer explanation
-
 ## Output Structure
 
 ### Trivial / Small
@@ -68,5 +59,7 @@ When a diff exceeds 500 lines:
 ### How
 <Implementation details, key decisions, patterns>
 ```
+
+Cap the How section at ~300 words; prefer representative examples over exhaustive enumeration.
 
 Adapt freely within these structures — they are guidelines, not rigid templates. Shorter is better when the diff is straightforward.

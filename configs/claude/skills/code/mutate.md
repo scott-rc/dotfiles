@@ -4,7 +4,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
 
 ## Instructions
 
-1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
+1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
 
 2. **Identify target code and tests**:
    If the user specified target files, spawn the `test-discoverer` agent in targeted mode with the specified files. Otherwise, spawn the `test-discoverer` agent in auto-discover mode to identify candidates.

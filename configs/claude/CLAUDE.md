@@ -12,7 +12,7 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 
 ### Personal
 
-- `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills** (see Skills below)
+- `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills**
 - `~/Code/personal/recipe-book` — Recipe collection
 - `~/Code/personal/slides` — Slidev presentations (pnpm workspace)
 
@@ -24,7 +24,3 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 - `~/Code/gadget/global-infrastructure` — Terraform/infra for Gadget cloud
 - `~/Code/gadget/js-clients` — JavaScript client libraries
 
-### Skills Locations
-
-- **Global skills** (available everywhere): `~/Code/personal/dotfiles/configs/claude/skills/`
-- **Gadget-specific skills** (only available in gadget projects): `~/Code/gadget/gadget/.claude/skills/`

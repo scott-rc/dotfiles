@@ -20,7 +20,7 @@ Current branch and recent history:
 
 2. **Detect base**:
    Determine the comparison base:
-   - Branch diff: merge-base with the base branch. Run `fish -c 'gbb' 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` to detect it. Use `git merge-base origin/<base> HEAD`.
+   - Branch diff: merge-base with the base branch. Run `fish -c 'gbb' 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` to detect it (`gbb` walks first-parent history to find the closest ancestor branch). Use `git merge-base origin/<base> HEAD`.
    - Single commit: `<commit>~1`
    - Commit range: use the range directly
    - File-only (no commit/branch): diff against the default branch merge-base
@@ -37,7 +37,11 @@ Current branch and recent history:
 5. **Read changed files**:
    Read full files (not just diff hunks) to understand surrounding context.
    - **Small diffs** (under 500 diff lines): read each changed file inline using Read tool
-   - **Large diffs** (500+ diff lines): group files by theme (e.g., package, feature area, test vs. production), spawn one Task subagent per group to read files and summarize changes, then synthesize results. See large diff strategy in [explain-patterns.md](explain-patterns.md).
+   - **Large diffs** (500+ diff lines):
+     1. Group changed files by theme (same package, same feature, test files together)
+     2. Spawn one Task subagent (subagent_type: `Explore`) per group with prompt: "Read these files and summarize what changed and why: `<file list>`"
+     3. Collect subagent summaries
+     4. Synthesize into a single three-layer explanation
 
 6. **Compose explanation**:
    Produce three layers adapted to diff size (see thresholds in [explain-patterns.md](explain-patterns.md)):

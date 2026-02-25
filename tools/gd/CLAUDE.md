@@ -8,10 +8,6 @@ MUST NOT introduce custom error types, `Result` types, or error enums. Use `epri
 
 ---
 
-MUST NOT duplicate ANSI regex patterns. Reuse the helpers in `tui::ansi` (re-exported via `ansi.rs`).
-
----
-
 Diff color constants live at the top of `style.rs`. Use `style::` prefix everywhere, not inline ANSI codes.
 
 ---

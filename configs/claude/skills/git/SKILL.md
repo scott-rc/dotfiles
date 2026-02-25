@@ -105,6 +105,7 @@ These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
+- [watch-protocol.md](watch-protocol.md) - Detailed procedures for handling review threads and CI failures during the watch loop
 - `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 
 Scripts require the skill to be installed at `~/.claude/skills/git/` (set up by `apply.sh`).

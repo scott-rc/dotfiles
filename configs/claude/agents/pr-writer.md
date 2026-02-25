@@ -66,6 +66,8 @@ When posting multi-line content via `gh` CLI, write the body to a temp file firs
    BODY_FILE=$(mktemp /tmp/pr-body.XXXXXX.txt)
    ```
 
+   **Validate ASCII**: Before posting, scan the title and body file for non-ASCII characters. If any are found (em dashes, curly quotes, ellipsis, etc.), replace them with ASCII equivalents.
+
    **Create mode**:
    ```bash
    gh pr create --title "<title>" --base <base_branch> --body-file "$BODY_FILE"
@@ -79,8 +81,6 @@ When posting multi-line content via `gh` CLI, write the body to a temp file firs
    ```
 
    Clean up the temp file after posting.
-
-4. **Scan output for non-ASCII**: Verify the title and body contain only ASCII before submitting. If any non-ASCII characters slipped in, replace them.
 
 ## Output Format
 

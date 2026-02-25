@@ -129,7 +129,7 @@ They appear in the presenter view but not on the projected slide.
 ```
 
 - Place the comment block at the end of each slide's content
-- MUST use `<!-- -->` HTML comment syntax
+- Presenter notes require `<!-- -->` HTML comment syntax -- other comment styles are not recognized by Slidev
 - Content inside supports markdown formatting
 
 ## Click Animations

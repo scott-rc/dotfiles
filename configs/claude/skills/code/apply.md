@@ -21,4 +21,4 @@ Load the user's coding style preferences, write code, and verify it matches.
 
 6. **Run existing tests**: If the project has a test suite, run it (or the relevant subset) to confirm no regressions.
 
-7. **Present results**: Present the code to the user with a summary of which preferences were applied and any conflicts resolved.
+7. **Present results**: Present the code to the user with a summary of which preferences were applied, any conflicts resolved, and test suite status (pass/fail, number of tests run).

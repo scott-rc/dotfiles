@@ -25,7 +25,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - All files in the review scope
    - Focus: general review
    - Paths to the guidelines files loaded in step 3
-   - The full [Review Checklist](#review-checklist) below (paste all five sections into the template's checklist placeholder)
+   - The full [Review Checklist](#review-checklist) below — copy the text content of the five checklist sections verbatim into the template's checklist placeholder
 
 6. **Report findings**:
    MUST present findings grouped by severity (issues first, then suggestions, then nits). Each finding MUST include:
@@ -55,7 +55,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     - The scope's name, file list, and focus
     - Paths to the guidelines files loaded in step 7
     - Project context (repo root, conventions observed)
-    - The full [Review Checklist](#review-checklist) below (paste all five sections into the template's checklist placeholder)
+    - The full [Review Checklist](#review-checklist) below — copy the text content of the five checklist sections verbatim into the template's checklist placeholder
     - Scope-specific criteria
 
 11. **Consolidate findings**:

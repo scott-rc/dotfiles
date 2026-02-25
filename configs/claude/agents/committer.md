@@ -56,7 +56,7 @@ The caller's prompt determines the mode:
 
 4. **Stage and commit**:
    - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
-   - Amend: stage the specific changed files (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `git commit --amend -m/-F` if a new message is needed
+   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `git commit --amend -m/-F` if a new message is needed
    - Squash: changes are already staged, draft message from provided commit summaries, `git commit`
 
 5. **Handle errors after commit**:

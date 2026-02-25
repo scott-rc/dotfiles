@@ -29,3 +29,6 @@ Write or edit Slidev presentation content following Slidev markdown conventions.
    - No broken syntax (unclosed fences, malformed frontmatter, mismatched HTML tags)
    - Layout names match Slidev built-in layouts or custom components
    - Presenter notes use correct `<!-- -->` syntax
+
+5. **Report**:
+   Report the total slide count and the file path of the updated `slides.md`.
