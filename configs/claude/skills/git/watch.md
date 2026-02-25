@@ -24,7 +24,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
    - Any runs currently `in_progress`: add their IDs to `handled_runs` (avoids re-triaging reruns that are already underway)
 
    Initialize tracking state:
-   - `handled_threads`: set of comment `id` values (the last comment's `id` from each thread) from the initial snapshot -- these exist before watching started, do not act on them
+   - `handled_threads`: empty set of comment `id` values -- pre-existing unreplied threads are actionable and will be picked up on the first poll iteration
    - `handled_runs`: set of CI run database IDs already triaged (pre-seeded with in-progress runs)
    - `fix_attempts`: empty map of check name to attempt count
    - `head_sha`: current HEAD
@@ -51,9 +51,14 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
       New threads: any thread whose last comment `id` is NOT in `handled_threads`.
 
    d. **Handle new review threads** (if any):
-      Spawn a single Task subagent (type: general-purpose, model: sonnet) with:
+      MUST delegate fixes to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files and attempting fixes inline exhausts the context window. The orchestrator triages; the subagent debugs and fixes.
+
+      Subagent prompt MUST include:
       - All new thread details: file path, line number, full comment bodies, last comment `id` per thread
+      - Repository root path
       - Instruction: read each file, understand the reviewer's concern, apply the fix, run relevant tests to verify. MUST load the code skill (`skill: "code"`) for coding preferences.
+
+      MUST NOT read source files, explore the codebase, or attempt fixes inline -- all code changes happen in the subagent.
 
       After the subagent returns, check `git status --short`. If files changed:
       - Commit per [commit-guidelines.md](commit-guidelines.md), referencing the review feedback
@@ -99,10 +104,15 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
           If the same workflow name appears with a failure in the last 7 days: `gh run rerun <id> --failed`, add to `handled_runs`, log as flake rerun, continue.
 
       v. **Real failure -- fix it**:
-         Spawn a Task subagent (type: general-purpose, model: sonnet) with:
+         MUST delegate the fix to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files, analyzing code, and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages; the subagent debugs and fixes.
+
+         Subagent prompt MUST include:
          - Failure logs (relevant sections, not raw dump)
          - Workflow name and failing step
+         - Repository root path
          - Instruction: identify root cause, read relevant source files, fix the issue, run local verification if possible. MUST load the code skill (`skill: "code"`) for coding preferences.
+
+         MUST NOT read source files, explore the codebase, or attempt fixes inline -- all debugging and code changes happen in the subagent.
 
          After the subagent returns, check `git status --short`. If files changed:
          - Commit per [commit-guidelines.md](commit-guidelines.md), referencing the CI failure
