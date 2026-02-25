@@ -3,7 +3,7 @@
 # statusline - Claude Code status line with context bar + git branch
 #
 # Reads JSON from stdin (Claude Code status line protocol) and outputs:
-#   󰧑 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱  main
+#   󰧑 ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱  main  󰒡 a1b2c3d4
 #
 # Context bar is color-coded:
 #   Green:  0-39%
@@ -27,10 +27,11 @@ if ! command -v jq >/dev/null 2>&1 || [ -z "$payload" ]; then
   exit 0
 fi
 
-read -r percent dir < <(
+read -r percent dir session_id < <(
   printf '%s' "$payload" | jq -r '[
     (.context_window.used_percentage // 0 | floor),
-    (.workspace.current_dir // .workspace.project_dir // .cwd // "")
+    (.workspace.current_dir // .workspace.project_dir // .cwd // ""),
+    (.session_id // "")
   ] | @tsv'
 )
 
@@ -41,6 +42,12 @@ percent="${percent%%.*}" # truncate any decimal
 branch=""
 if [ -n "$dir" ] && [ -d "$dir" ]; then
   branch="$(cd "$dir" && git branch --show-current 2>/dev/null || true)"
+fi
+
+# Short session ID (first 8 chars)
+short_id=""
+if [ -n "$session_id" ]; then
+  short_id="${session_id:0:8}"
 fi
 
 # Color based on thresholds
@@ -62,12 +69,16 @@ bar=""
 [ "$filled" -gt 0 ] && bar="$(printf '%0.s▰' $(seq 1 "$filled"))"
 [ "$empty" -gt 0 ] && bar="${bar}$(printf '%0.s▱' $(seq 1 "$empty"))"
 
-# Output: context bar first, then git branch (if in a repo)
+# Output: context bar, then git branch, then session ID
 right=""
 if [ -n "$branch" ]; then
-  right="  $branch"
+  right="   $branch"
 fi
-printf ' 󰧑 %b%s%b%s\n' "$color" "$bar" "$reset" "$right"
+if [ -n "$short_id" ]; then
+  right="${right}  \033[2m󰒡 ${short_id}\033[0m"
+fi
+printf ' 󰧑 %b%s%b' "$color" "$bar" "$reset"
+printf '%b\n' "$right"
 
 # OSC 9;4 terminal progress bar
 if [ "$percent" -gt 0 ]; then
