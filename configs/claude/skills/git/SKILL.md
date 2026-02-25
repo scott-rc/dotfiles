@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, PRs, rebases, worktrees, CI fixes, review submissions, and GitHub interactions — use when the user asks to commit, push, rebase, fix CI, review, or manage worktrees.
+description: Handles git commits, PRs, rebases, worktrees, CI fixes, CI monitoring, review submissions, and GitHub interactions — use when the user asks to commit, push, rebase, fix CI, watch CI, review, or manage worktrees.
 argument-hint: "[operation or intent]"
 ---
 
@@ -55,6 +55,10 @@ See [fix-ci.md](fix-ci.md) for detailed instructions.
 Re-trigger failed CI jobs.
 See [rerun.md](rerun.md) for detailed instructions.
 
+### Watch
+Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
+See [watch.md](watch.md) for detailed instructions.
+
 ### Review
 Fetch unresolved PR review threads and fix the issues reviewers described.
 See [review.md](review.md) for detailed instructions.
@@ -83,7 +87,9 @@ Users often request multiple operations together. Handle these as follows:
 - **"sync"** / **"update branch"** → Same as rebase operation
 - **"check CI"** / **"CI status"** / **"why is CI failing"** / **"debug CI"** / **"fix CI"** → Run fix-ci operation
 - **"rerun CI"** / **"retry CI"** / **"re-trigger"** → Run rerun operation
-- **"rerun and watch"** → Run rerun operation, then fix-ci operation to monitor new status
+- **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
+- **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation
+- **"push and watch"** → Run push operation, then watch operation
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run review operation
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run update-description operation
 - **"reply to this comment"** / **"post a comment"** / **"answer this question on the PR"** → Run reply operation
@@ -100,7 +106,6 @@ These files are referenced by the operation instructions above:
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [commit-guidelines.md](commit-guidelines.md) - Commit message format, structure, and examples
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
-- `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads (used by Review operation)
-- `scripts/get-unreplied-comments.sh` - Fetches unreplied PR review threads (used by Reply operation)
+- `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 
 Scripts require the skill to be installed at `~/.claude/skills/git/` (set up by `apply.sh`).

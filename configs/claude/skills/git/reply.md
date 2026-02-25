@@ -8,7 +8,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 1. **Fetch unreplied threads**:
    ```bash
-   ~/.claude/skills/git/scripts/get-unreplied-comments.sh
+   ~/.claude/skills/git/scripts/get-pr-comments.sh --unreplied
    ```
    If the script exits with an error (no PR exists), inform the user and stop.
 

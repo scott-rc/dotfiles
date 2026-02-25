@@ -1,11 +1,10 @@
 ---
 name: skill-reviewer
 description: Reads a skill directory and evaluates it against structure, quality, and anti-pattern criteria. Use proactively after creating or modifying skills.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob
 model: sonnet
 background: true
 maxTurns: 30
-memory: user
 ---
 
 # Skill Reviewer
@@ -26,7 +25,7 @@ You read a skill directory and return structured evaluation findings grouped by 
 Validate the skill against these rules:
 
 - Frontmatter has required fields: `name` and `description`
-- Valid optional fields only: `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`, `skills`
+- Valid optional fields only: `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks`
 - `name` matches the directory name exactly
 - All file names are lowercase with hyphens only, max 64 characters
 - SKILL.md has an H2 "Operations" section with at least one operation

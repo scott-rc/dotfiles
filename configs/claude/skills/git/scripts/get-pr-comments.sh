@@ -3,6 +3,25 @@ set -euo pipefail
 
 # Fetch unresolved PR review threads and review summaries via GitHub GraphQL API.
 # Outputs structured JSON to stdout. Errors go to stderr.
+#
+# Usage:
+#   get-pr-comments.sh              # All unresolved threads
+#   get-pr-comments.sh --unreplied  # Only threads where the current user hasn't replied
+
+unreplied=false
+for arg in "$@"; do
+  case "$arg" in
+    --unreplied) unreplied=true ;;
+    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
+  esac
+done
+
+if [ "$unreplied" = true ]; then
+  current_user=$(gh api user --jq '.login') || {
+    echo "Error: Could not determine current GitHub user." >&2
+    exit 1
+  }
+fi
 
 pr_json=$(gh pr view --json number,url 2>/dev/null) || {
   echo "Error: No PR found for the current branch." >&2
@@ -29,6 +48,7 @@ query($owner: String!, $repo: String!, $pr: Int!) {
           diffSide
           comments(first: 50) {
             nodes {
+              databaseId
               author { login }
               body
               createdAt
@@ -50,12 +70,25 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 
 result=$(gh api graphql -F owner="$owner" -F repo="$repo" -F pr="$pr_number" -f query="$graphql_query")
 
-echo "$result" | jq --argjson prNumber "$pr_number" --arg prUrl "$pr_url" '{
-  prNumber: $prNumber,
-  prUrl: $prUrl,
+thread_filter='.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)'
+if [ "$unreplied" = true ]; then
+  thread_filter="$thread_filter | select((.comments.nodes | last | .author.login) != \$me)"
+fi
+
+echo "$result" | jq \
+  --argjson prNumber "$pr_number" \
+  --arg prUrl "$pr_url" \
+  --arg owner "$owner" \
+  --arg repo "$repo" \
+  --arg me "${current_user:-}" \
+"
+{
+  prNumber: \$prNumber,
+  prUrl: \$prUrl,
+  owner: \$owner,
+  repo: \$repo,
   unresolvedThreads: [
-    .data.repository.pullRequest.reviewThreads.nodes[]
-    | select(.isResolved == false)
+    $thread_filter
     | {
         path: .path,
         line: .line,
@@ -63,13 +96,14 @@ echo "$result" | jq --argjson prNumber "$pr_number" --arg prUrl "$pr_url" '{
         diffSide: .diffSide,
         comments: [
           .comments.nodes[]
-          | { author: .author.login, body: .body, createdAt: .createdAt }
+          | { id: .databaseId, author: .author.login, body: .body, createdAt: .createdAt }
         ]
       }
   ],
   reviewSummaries: [
     .data.repository.pullRequest.reviews.nodes[]
-    | select(.body != null and .body != "")
+    | select(.body != null and .body != \"\")
     | { author: .author.login, body: .body, state: .state, createdAt: .createdAt }
   ]
-}'
+}
+"

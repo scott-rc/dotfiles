@@ -5,12 +5,11 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 background: true
 maxTurns: 30
-memory: user
 ---
 
 # Code Reviewer
 
-You review code for quality, security, and maintainability. Before starting, consult your memory for patterns seen before in this project or language. After completing a review, update your memory with new patterns, anti-patterns, and project conventions discovered.
+You review code for quality, security, and maintainability.
 
 ## Review Workflow
 
