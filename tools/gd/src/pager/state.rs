@@ -283,10 +283,7 @@ pub(crate) fn debug_assert_valid_state(state: &PagerState) {
     );
     assert!(
         state.top_line >= rs
-            && state.top_line
-                <= re
-                    .saturating_sub(1)
-                    .min(state.doc.line_count().saturating_sub(1)),
+            && state.top_line <= re.saturating_sub(1),
         "top_line {} out of range",
         state.top_line
     );
@@ -305,11 +302,8 @@ pub(crate) fn debug_assert_valid_state(_state: &PagerState) {}
 pub(crate) fn clamp_cursor_and_top(state: &mut PagerState) {
     let (rs, re) = visible_range(state);
     let range_max = re.saturating_sub(1);
-    let max_top = range_max
-        .saturating_sub(1)
-        .min(state.doc.line_count().saturating_sub(1));
     state.cursor_line = state.cursor_line.clamp(rs, range_max);
-    state.top_line = state.top_line.clamp(rs, max_top.min(range_max));
+    state.top_line = state.top_line.clamp(rs, range_max);
 }
 
 pub(crate) fn visible_range(state: &PagerState) -> (usize, usize) {

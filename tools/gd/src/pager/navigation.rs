@@ -75,10 +75,12 @@ fn hunk_change_starts(line_map: &[LineInfo], hunk_starts: &[usize]) -> Vec<usize
 }
 
 fn du_nav_targets(state: &PagerState) -> Vec<usize> {
+    let (range_start, range_end) = visible_range(state);
     if state.full_context {
-        change_group_starts(&state.doc.line_map, 0, state.doc.line_map.len())
+        change_group_starts(&state.doc.line_map, range_start, range_end)
     } else {
-        hunk_change_starts(&state.doc.line_map, &state.doc.hunk_starts)
+        let file_hunks = targets_in_range(&state.doc.hunk_starts, range_start, range_end);
+        hunk_change_starts(&state.doc.line_map, &file_hunks)
     }
 }
 
@@ -114,13 +116,22 @@ fn file_status_message(cursor: usize, file_starts: &[usize], line_map: &[LineInf
     nav_status_message("File", cursor, file_starts, line_map)
 }
 
+pub(crate) fn bottom_padding(state: &PagerState, content_height: usize) -> usize {
+    if state.active_file().is_some() {
+        content_height / 2
+    } else {
+        0
+    }
+}
+
 pub(crate) fn viewport_bounds(
     state: &PagerState,
     content_height: usize,
 ) -> (usize, usize, usize, usize) {
     let (range_start, range_end) = visible_range(state);
     let max_line = range_end.saturating_sub(1);
-    let max_top = range_end.saturating_sub(content_height).max(range_start);
+    let pad = bottom_padding(state, content_height);
+    let max_top = (range_end + pad).saturating_sub(content_height).max(range_start);
     (range_start, range_end, max_line, max_top)
 }
 

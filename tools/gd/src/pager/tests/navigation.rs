@@ -253,7 +253,8 @@ fn test_viewport_bounds_active_file() {
     let (range_start, range_end, max_line, max_top) = viewport_bounds(&state, 40);
     assert_eq!((range_start, range_end), (30, 60));
     assert_eq!(max_line, 59);
-    assert_eq!(max_top, 30);
+    // With bottom padding (content_height/2 = 20), max_top = (60 + 20) - 40 = 40
+    assert_eq!(max_top, 40);
 }
 
 #[test]

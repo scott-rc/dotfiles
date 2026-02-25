@@ -74,7 +74,8 @@ const SCROLLOFF: usize = 8;
 pub(crate) fn enforce_scrolloff(state: &mut PagerState, content_height: usize) {
     let (range_start, range_end) = visible_range(state);
     let range_lines = range_end - range_start;
-    let max_top = range_start + range_lines.saturating_sub(content_height);
+    let pad = super::navigation::bottom_padding(state, content_height);
+    let max_top = range_start + (range_lines + pad).saturating_sub(content_height);
     let max_cursor = range_end.saturating_sub(1);
     state.cursor_line = state.cursor_line.clamp(range_start, max_cursor);
     if state.cursor_line < state.top_line + SCROLLOFF {

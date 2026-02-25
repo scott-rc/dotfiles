@@ -86,15 +86,12 @@ pub fn assert_state_invariants(state: &PagerState) {
         rs,
         range_max
     );
-    let max_top = range_max
-        .saturating_sub(1)
-        .min(line_count.saturating_sub(1));
     assert!(
-        state.top_line >= rs && state.top_line <= max_top.min(range_max),
-        "top_line {} out of range [rs={}, max_top={}]",
+        state.top_line >= rs && state.top_line <= range_max,
+        "top_line {} out of range [rs={}, max={}]",
         state.top_line,
         rs,
-        max_top
+        range_max
     );
 
     if let ViewScope::SingleFile(ix) = state.view_scope {

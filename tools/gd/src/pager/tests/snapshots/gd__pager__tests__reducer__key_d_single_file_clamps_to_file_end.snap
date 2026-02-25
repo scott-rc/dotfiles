@@ -4,7 +4,7 @@ expression: "StateSnapshot::from(&state)"
 ---
 StateSnapshot {
     cursor_line: 29,
-    top_line: 10,
+    top_line: 18,
     active_file: Some(
         0,
     ),

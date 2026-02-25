@@ -126,12 +126,14 @@ fn key_bracket_prev_hunk_from_first_content_line() {
 }
 
 #[test]
-fn key_bracket_prev_hunk_cross_file() {
+fn key_bracket_prev_hunk_single_file_stays_in_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 16);
+    // In single-file mode, hunks are scoped to file 1 only; no cross-file jump
+    assert_eq!(state.cursor_line, 36);
+    assert_eq!(state.active_file(), Some(1));
 }
 
 #[test]
@@ -297,23 +299,25 @@ fn key_brace_prev_shows_file_status_message() {
 // ---- Hunk nav in single-file mode ----
 
 #[test]
-fn key_bracket_single_file_jumps_to_next_file_hunk() {
+fn key_bracket_single_file_noop_at_last_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 16;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 36);
-    assert_eq!(state.active_file(), Some(1));
+    // No more hunks in file 0 after cursor 16 (hunks are [5, 15])
+    assert_eq!(state.cursor_line, 16);
+    assert_eq!(state.active_file(), Some(0));
 }
 
 #[test]
-fn key_bracket_single_file_jumps_to_prev_file_hunk() {
+fn key_bracket_single_file_noop_at_first_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 16);
-    assert_eq!(state.active_file(), Some(0));
+    // First hunk in file 1 starts at 35, first content line is 36 (== cursor), no-op
+    assert_eq!(state.cursor_line, 36);
+    assert_eq!(state.active_file(), Some(1));
 }
 
 #[test]
