@@ -29,7 +29,9 @@ Write a self-contained task description that captures the current session's cont
 
    If no codebase applies, MUST skip this step.
 
-3. **Confirm scope**:
+3. **Confirm scope** (conditional):
+   Confirm when scope is ambiguous -- the goal, what's done, or what remains is unclear, or the handoff would omit decisions or constraints the template sections don't naturally capture. Skip when the conversation context clearly establishes all three.
+   When this step runs:
    - MUST summarize what the handoff will contain in 2-4 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust")
    - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update, and re-confirm with the same options

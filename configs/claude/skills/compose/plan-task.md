@@ -4,15 +4,15 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
 ## Instructions
 
-1. **Gather requirements**:
-   Interview the user via AskUserQuestion about:
+1. **Gather requirements** (conditional):
+   Skip the interview only when the user's request explicitly provides the overall goal, codebase location, and any constraints or failed approaches. Interview when any of these is missing:
    - The overall goal and desired end state
    - Natural phase boundaries or milestones (if they have any in mind)
    - The codebase location and key directories
    - Build and test commands
    - Any prior decisions, constraints, or failed approaches
 
-   MUST use AskUserQuestion for all questions. MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if answers are ambiguous or incomplete.
+   MUST use AskUserQuestion for all questions. MUST batch questions into a single message. MUST skip any questions the user's initial request already answered.
 
 2. **Load coding preferences** (conditional):
    If the task involves writing or modifying code:
@@ -36,7 +36,9 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    If no codebase applies, MUST skip this step entirely.
 
-4. **Confirm understanding**:
+4. **Confirm understanding** (conditional):
+   Confirm when the agent synthesized information from multiple sources or made non-obvious inferences. Skip when the user's request was already complete and codebase exploration (step 3) added no unexpected context.
+   When this step runs:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
    - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options

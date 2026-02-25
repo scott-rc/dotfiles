@@ -24,7 +24,9 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 
    If no codebase applies, MUST skip this step entirely.
 
-3. **Confirm understanding**:
+3. **Confirm understanding** (conditional):
+   Confirm when any requirement was inferred or when multiple valid interpretations exist. Skip when the user's request already stated the goal, constraints, and output clearly.
+   When this step runs:
    - MUST summarize the goal, constraints, and planned context in 2-3 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
    - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options
