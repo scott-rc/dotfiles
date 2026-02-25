@@ -4,7 +4,7 @@
 
 ---
 
-MUST NOT introduce custom error types, `Result` types, or error enums. Use `eprintln!()` + `process::exit(1)` for fatal errors, bare unwrap where safe.
+Use bare unwrap where safe. See `.claude/rules/tools.md` for build and shared error-handling requirements.
 
 ---
 

@@ -11,7 +11,7 @@ Evaluate a session task prompt against best practices, report findings, and offe
    - If unclear, present source options via AskUserQuestion: "Paste text", "From clipboard", "From file"
 
 2. **Analyze structure**:
-   Check for these sections (per [prompt-spec.md](prompt-spec.md)):
+   Check for these sections:
    - **Goal** -- a single sentence stating what the session should accomplish
    - **Context** -- codebase details, architecture, file paths, patterns, prior decisions
    - **Requirements** -- numbered list of specific requirements and constraints

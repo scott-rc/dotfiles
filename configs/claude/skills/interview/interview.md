@@ -35,6 +35,16 @@ Conduct a structured, multi-round interview with the user on any topic, then pro
 4. **Summarize understanding**:
    Write a concise summary of everything learned (aim for 3-6 top-level headings, under 500 words unless complexity demands more). Structure it with clear headings that match the topic's natural shape (not the question order).
 
+   ```
+   ## <Topic Area>
+
+   ### <Aspect One>
+   <1-2 sentences>
+
+   ### <Aspect Two>
+   <1-2 sentences>
+   ```
+
    Announce "The interview is complete." then present the summary to the user: "Does this capture everything accurately? Anything to add or correct?"
 
    If the user corrects anything, update and re-confirm.

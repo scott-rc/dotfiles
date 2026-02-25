@@ -32,7 +32,7 @@ Fold outstanding changes into the last commit.
      git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
      ```
    - If no remote branch: skip to step 7
-   - If remote branch exists: confirm with the user, then `git push --force-with-lease`
+   - If remote branch exists: present options via AskUserQuestion: "Force push" or "Skip push". Only run `git push --force-with-lease` if the user picks "Force push".
 
 7. **Evaluate PR description**:
    - Check for an existing PR:

@@ -4,7 +4,7 @@
 
 ---
 
-MUST NOT introduce custom error types, `Result` types, or error enums. Use `eprintln!()` + `process::exit(1)` for fatal errors, `unwrap_or()` for safe defaults.
+Use `unwrap_or()` for safe defaults. See `.claude/rules/tools.md` for build and shared error-handling requirements.
 
 ---
 
@@ -16,4 +16,8 @@ To add a new markdown element: add a match arm in `render_tokens()` (`render.rs`
 
 ---
 
-MUST run benchmarks before and after performance-sensitive changes.
+MUST run benchmarks before and after performance-sensitive changes:
+- `cargo bench --bench bench -- --save-baseline before` to save a baseline
+- make changes
+- `cargo bench --bench bench -- --baseline before` to compare
+- `samply record ./target/release/md --no-pager ../../README.md` for flamegraph profiling

@@ -19,7 +19,7 @@ Squash all commits on the current branch into a single commit.
    ```bash
    git rebase origin/<base>
    ```
-   If conflicts occur, help resolve them or abort with `git rebase --abort`.
+   If conflicts occur, present options via AskUserQuestion: "Help resolve conflicts" or "Abort rebase (`git rebase --abort`)". Only run `git rebase --abort` if the user picks the abort option.
 
 6. **Analyze all commits** to understand what work was done and why:
    ```bash

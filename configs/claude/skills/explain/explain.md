@@ -26,7 +26,7 @@ Current branch and recent history:
    - File-only (no commit/branch): diff against the default branch merge-base
 
 3. **Gather commit context**:
-   Spawn the `github-context` agent with: ref_range set to `<base>..HEAD` (or the resolved range), include_pr true, include_issues true.
+   If the repo has a remote and the range includes pushed commits, spawn the `github-context` agent with: ref_range set to `<base>..HEAD` (or the resolved range), include_pr true, include_issues true. Otherwise skip this step. If the agent is unavailable or returns no results, proceed using commit messages and git log output alone.
    The agent returns: commit list, PR title/motivation, referenced issue context, and a motivation summary.
 
 4. **Get the diff**:
@@ -44,12 +44,7 @@ Current branch and recent history:
      4. Synthesize into a single three-layer explanation
 
 6. **Compose explanation**:
-   Produce three layers adapted to diff size (see thresholds in [explain-patterns.md](explain-patterns.md)):
-   - **Why** — motivation and context: what problem is being solved, what triggered the change
-   - **What** — concrete changes grouped by theme: new files, modified behavior, removed code
-   - **How** — implementation details: key algorithms, patterns used, non-obvious decisions
-
-   Apply the depth strategy from [explain-patterns.md](explain-patterns.md) based on diff size.
+   Format the output following the three-layer structure defined in [explain-patterns.md](explain-patterns.md). Apply the depth strategy from [explain-patterns.md](explain-patterns.md) based on diff size.
 
 7. **Verify completeness**:
    Check that the explanation covers all changed files from the diff stat. If any files are missing, add them. Verify the Why traces back to at least one source (PR body, issue, or commit message).

@@ -2,6 +2,8 @@
 
 ## Delegation
 
+### Behavior
+
 Delegate to a domain-specific subagent that owns the full problem-solving loop (read, analyze, design, write, verify, iterate). Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
 
 **Do NOT:**
@@ -10,7 +12,8 @@ Delegate to a domain-specific subagent that owns the full problem-solving loop (
 - Re-read files a subagent already summarized
 - Reduce a subagent to a transcriber by over-specifying the solution
 
-Route by task:
+### Routing
+
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
 - Commits — `committer`
@@ -32,13 +35,8 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 
 **Convention:** All repos live under `~/Code/{personal,gadget,scratch}/<name>`. For repos not listed here, check those directories.
 
-### Personal
-
 - `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills**
 - `~/Code/personal/slides` — Slidev presentations (pnpm workspace)
-
-### Gadget (work)
-
 - `~/Code/gadget/gadget` — Main Gadget monorepo (app platform)
 - `~/Code/gadget/ggt` — Gadget CLI tool
 - `~/Code/gadget/skipper` — Kubernetes operator for Gadget apps

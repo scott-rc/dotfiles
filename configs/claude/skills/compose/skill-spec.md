@@ -4,8 +4,6 @@ Rules specific to authoring Claude Code skills. All operations in this skill val
 
 ## Instructions
 
-These rules supplement the shared authoring rules.
-
 ### Naming
 
 - **Skill name**: MUST be lowercase, hyphens only, max 64 characters. SHOULD use gerund form when it reads naturally (e.g., `managing-deploys`, `reviewing-code`). MUST describe the skill's domain, not a single action.
@@ -69,8 +67,6 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent.
 
 Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to preload skill content into the subagent's context; list skill names as a YAML array.
-
-This only makes sense for task-oriented skills that produce a result — reference content should not use `context: fork` because it needs to augment the main conversation context, not run in isolation.
 
 ### SKILL.md Body
 

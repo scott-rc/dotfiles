@@ -8,7 +8,7 @@ Push commits and create/update PR.
    Check main branch protection per [git-patterns.md](git-patterns.md). If dotfiles repo on main, push directly and **skip PR creation** (steps 4-8). If other repo on main/master, present branch options via AskUserQuestion; if user stays on main, push directly and **skip PR creation**.
 
 2. **Check for uncommitted changes**:
-   - If changes exist, commit them first (follow commit guidelines)
+   - If changes exist, run the Commit operation first
 
 3. **Push to remote**:
    - `git push -u origin HEAD`

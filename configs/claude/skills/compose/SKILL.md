@@ -72,5 +72,4 @@ These files are referenced by the operation instructions. Operations that link t
 - [skill-template.md](skill-template.md) - Annotated templates for SKILL.md and operation files
 - [content-patterns.md](content-patterns.md) - Reusable patterns for operation steps, task skills, and dynamic context injection
 - [rules-template.md](rules-template.md) - Templates for CLAUDE.md and scoped rules files
-- [prompt-spec.md](prompt-spec.md) - Prompt structure definition (Goal, Context, Requirements, Anti-requirements, Output) and style rules
 - [plan-template.md](plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt

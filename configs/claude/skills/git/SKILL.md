@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, PRs, rebases, worktrees, CI fixes, CI monitoring, review submissions, and GitHub interactions — use when the user asks to commit, push, rebase, fix CI, watch CI, review, or manage worktrees.
+description: Handles git commits, pushes, PRs, rebases, worktrees, CI triage and monitoring, code review, and GitHub interactions.
 argument-hint: "[operation or intent]"
 ---
 
@@ -21,12 +21,7 @@ Route to the appropriate operation based on user intent.
 
 ### Commit
 Commit outstanding changes with a well-formatted message.
-
-1. **Check branch protection** per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion. If chosen, create and switch to the branch before committing.
-2. **Determine scope**: enumerate files touched by Edit, Write, or file-modifying Bash calls in this conversation -- this is the session file set. Skip this step if the user explicitly asked to "commit all", "commit everything", or provided their own file list.
-3. **Delegate to the `committer` agent**. If a session file set was determined, pass: "Stage and commit only these files: `<file list>`". Otherwise, pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously.
-4. **If the agent returns `needs-user-input`** (mixed concerns): present the groups from `## Cohesion` as AskUserQuestion options. Re-invoke the agent with: "Stage and commit only these files: `<file list>`".
-5. **Report**: show the commit hash and title from the agent's `## Commit` section.
+See [commit.md](commit.md) for detailed instructions.
 
 ### Amend
 Fold outstanding changes into the last commit.
@@ -122,7 +117,7 @@ These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
-- [watch-subops.md](watch-subops.md) - Procedures for handling review threads and CI failures during the watch loop
+- [watch-subops.md](watch-subops.md) - State file format and context management rules for the watch loop
 - `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 - `scripts/poll-pr-status.sh` - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - `scripts/get-failed-runs.sh` - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)

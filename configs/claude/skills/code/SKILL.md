@@ -1,6 +1,6 @@
 ---
 name: code
-description: Applies coding style preferences, enforces test-driven development, runs code reviews, manages benchmark-driven workflows, and evaluates test quality via mutation testing — use when writing, reviewing, testing, mutating, or optimizing code.
+description: Writes, reviews, tests, and optimizes code -- enforces TDD for new features and bug fixes, runs code review, benchmarks, and mutation testing.
 ---
 
 # Code
@@ -27,15 +27,7 @@ See [add-coverage.md](add-coverage.md) for detailed instructions.
 
 ### Plan
 Decompose a coding task into ordered chunks with TDD structure for testable behavior.
-**Delegates to the compose skill — do NOT use EnterPlanMode.**
-
-Invoke compose immediately: `skill: "compose", args: "plan this task"`. Do NOT read files, explore the codebase, or start implementing first.
-
-During the compose workflow, apply these coding constraints:
-- Read [general-guidelines.md](general-guidelines.md) and applicable language-specific guidelines
-- Read [test-environment.md](test-environment.md) for test runner, build commands, and file conventions
-- Default to TDD structure (red-green-refactor) for chunks adding testable behavior
-- Chunks that are pure refactoring, config, or glue code do not need TDD structure
+See [plan.md](plan.md) for detailed instructions.
 
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
@@ -84,4 +76,5 @@ Users often request multiple operations together. Handle these as follows:
 - [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
 - [review-template.md](review-template.md) — Subagent prompt template for code review tasks
+- [review-checklist.md](review-checklist.md) — Five-category review checklist (test coverage, idiomaticity, simplification, correctness, naming)
 - [load-guidelines.md](load-guidelines.md) — Shared guideline loading checklist referenced by all TDD/coverage/benchmark/mutation operations
