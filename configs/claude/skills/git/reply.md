@@ -39,20 +39,8 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 ### Posting
 
-Write body to a temp file and post using `-F body=@file` to avoid shell encoding issues:
+Delegate to the `github-writer` agent for each approved reply. Provide:
 
-```bash
-# Reply to a review comment thread (use last comment's id from script output)
-echo 'content' > /tmp/gh-comment-body.txt
-gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@/tmp/gh-comment-body.txt
-
-# Comment on a PR
-echo 'content' > /tmp/gh-comment-body.txt
-gh pr comment {pr_number} -F /tmp/gh-comment-body.txt
-
-# Comment on an issue
-echo 'content' > /tmp/gh-comment-body.txt
-gh issue comment {issue_number} -F /tmp/gh-comment-body.txt
-```
-
-Clean up the temp file after posting.
+- **type**: `review-reply` for review threads, `pr-comment` for PR comments, `issue-comment` for issue comments
+- **body**: the approved reply text
+- **target**: the relevant identifiers (`owner`, `repo`, `comment_id` for review replies; `pr_number` for PR comments; `issue_number` for issue comments)

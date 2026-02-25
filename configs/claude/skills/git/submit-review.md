@@ -47,10 +47,9 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
 
    For multi-line comment ranges, add `start_line` and `start_side` to mark the range start.
 
-5. **Submit the review**:
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --input /tmp/pr-review.json
-   ```
-   Clean up `/tmp/pr-review.json` after posting.
+5. **Submit the review**: Delegate to the `github-writer` agent with:
+   - **type**: `review`
+   - **body**: the JSON payload (the contents of `/tmp/pr-review.json`)
+   - **target**: `owner`, `repo`, `pr_number`
 
 6. **Report result**: Confirm the review was submitted with the verdict and number of inline comments posted.

@@ -33,23 +33,21 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - Check for existing CLAUDE.md files in parent/child directories and `.claude/rules/` files
    - Return a list of relevant files with paths and brief content summaries
 
-4. **Write the rules file**:
-   - MUST follow [rules-spec.md](rules-spec.md) and [shared-rules.md](shared-rules.md)
-   - MUST use the appropriate template from [rules-template.md](rules-template.md)
-   - MUST use `@file` references for existing documentation instead of duplicating content
-   - MUST write only instructions that teach Claude something it cannot infer on its own
-   - MUST apply the conciseness test: for each line, ask "Would removing this cause Claude to make mistakes?" Cut lines that fail this test.
-   - For scoped rules: MUST include `paths:` YAML frontmatter with glob patterns (brace expansion supported, e.g., `*.{ts,tsx}`)
-   - For unconditional rules: MUST NOT include `paths:` frontmatter
-   - SHOULD keep CLAUDE.md files under ~200 lines
-   - SHOULD use `---` separators between distinct instruction groups
+4. **Write and verify**:
+   Delegate to `rules-writer` (Task agent) with:
+   - `mode` — `create`, `replace`, or `extend` (from step 2)
+   - `file_path` — target path (from step 2)
+   - `file_type` — one of: `project-claude-md`, `global-claude-md`, `claude-local-md`, `unconditional-rule`, `scoped-rule`, `user-rule`
+   - `scope_patterns` — glob patterns (scoped rules only, from step 1)
+   - `requirements` — user's content requirements (from step 1)
+   - `existing_content` — current file content (extend mode only, from step 2)
+   - `existing_docs` — discovered docs with summaries (from step 3)
 
-5. **Validate**:
-   Spawn a Task subagent (type: rules-reviewer) with the rules file path. The rules-reviewer agent reads the file and related files, validates structure, evaluates content quality, and checks for anti-patterns. It returns findings grouped by severity with token counts.
-   MUST fix any issues found before reporting to the user.
+   The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
-6. **Report results**:
-   - MUST show the complete rules file content for user review
-   - MUST list any `@file` references and confirm they resolve correctly
+5. **Report results**:
+   Read the agent's output and present to the user:
+   - MUST show the complete rules file content for review
+   - MUST list `@file` references and their resolution status
    - SHOULD note the approximate token cost (the file loads into every conversation)
    - If scoped: MUST show the `paths:` patterns and explain which files they match

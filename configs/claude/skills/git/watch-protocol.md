@@ -16,7 +16,7 @@ Check `git status --short`. If files changed:
 - Spawn the `committer` agent with prompt: "Commit these changes. They address PR review feedback: <brief summary of threads fixed>."
 - `git push`
 - Update `head_sha` and `last_push_time`
-- Reply to each fixed thread with a brief message referencing the fix commit SHA. Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{id}/replies -f body="<message>"`. Note: `{id}` must be the REST `databaseId` (from `get-pr-comments.sh`), not the GraphQL node ID.
+- Reply to each fixed thread by spawning the `github-writer` agent with type `review-reply`, the brief message referencing the fix commit SHA as body, and target `owner`, `repo`, `comment_id` (using the REST `databaseId` from `get-pr-comments.sh`, not the GraphQL node ID).
 - Log to `actions_log`: threads fixed, files touched
 
 If the subagent reports it could not fix a thread, log it and continue -- do not block monitoring.

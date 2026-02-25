@@ -1,5 +1,21 @@
 # User Preferences
 
+## Delegation
+
+For code, commits, PR descriptions, GitHub text, rules files, skill files, and slide content — delegate to a domain-specific subagent that owns the write-verify-retry loop rather than writing directly. The main agent researches, loads context, and picks the right subagent; subagents write, verify, and iterate on failures.
+
+Route by task:
+- Code (plan chunks) — `chunk-executor`
+- Code (ad-hoc) — `code-writer`
+- Commits — `committer`
+- PR descriptions — `pr-writer`
+- GitHub text (comments, replies, reviews) — `github-writer`
+- Rules files — `rules-writer`
+- Skill files — `skill-writer`
+- Slide content — `slide-writer`
+
+---
+
 ## Path Resolution
 
 - Always resolve `tmp/` as `./tmp/` relative to the working directory, not as `/tmp/`.

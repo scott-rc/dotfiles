@@ -243,6 +243,7 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `pr-writer.md` | Writes PR titles and descriptions from git diffs following formatting guidelines, creates new PRs or updates existing ones |
 | `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |
+| `skill-writer.md` | Writes and validates skill files (SKILL.md, operations, references) in create or update mode |
 | `test-discoverer.md` | Scans a codebase to map source files to test files, identifies untested functions and coverage gaps |
 
 Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.

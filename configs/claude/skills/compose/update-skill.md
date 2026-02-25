@@ -31,58 +31,23 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    Multiple update types may apply simultaneously. Confirm all planned changes together via AskUserQuestion before proceeding. Apply them in the order listed in step 4.
 
 4. **Apply changes**:
-   For each change in the confirmed scope, apply in this order:
+   Spawn a Task subagent (type: skill-writer) in update mode. Pass:
+   - `mode`: update
+   - `skill_dir`: the skill directory path from step 1
+   - `spec`: any new requirements (name, description, operations, references, frontmatter options)
+   - `update_scope`: the confirmed changes from step 3
+   - `existing_summary`: the structure summary from step 2
 
-   **Adding an operation**:
-   - MUST read [skill-spec.md](skill-spec.md) and [skill-template.md](skill-template.md) before writing
-   - MUST read [shared-rules.md](shared-rules.md) and apply Content Rules
-   - Write the operation file following the operation file template
-   - Add the operation's H3 entry to SKILL.md's Operations section
-   - Update Combined Operations if the new operation produces output that another operation consumes, or if users would naturally request both together. Otherwise, leave Combined Operations unchanged.
-   - Add any new reference files the operation needs
-   - After writing, verify: operation file H1 matches SKILL.md operation name, all file links resolve
+   The skill-writer reads authoring specs, applies changes (add/modify/remove operations, add/update/remove references, update metadata, rename), validates against the quality checklist, and self-corrects up to 3 iterations. It returns the list of files created/modified/removed, validation status, and per-file token counts.
 
-   **Modifying an operation**:
-   - Read the existing operation file. If the file exceeds 100 lines, SHOULD spawn a Task subagent (type: Explore, model: haiku) to read it and return only the sections relevant to the requested change.
-   - Apply the requested changes using Edit, preserving the existing structure (H1, summary, numbered steps)
-   - If the operation's name or summary changed, update the matching H3 entry in SKILL.md
-   - If the operation now references new files, add them to the References section
-   - After editing, verify: H1 still matches SKILL.md operation name, all file links resolve
+   Special cases requiring user interaction before delegation:
+   - **Renaming**: confirm new name candidates via AskUserQuestion before passing to skill-writer
+   - **Removing references**: if operation files link to a reference being removed, warn the user and confirm via AskUserQuestion before proceeding
+   - **Orphaned references**: if removing an operation orphans reference files, present via AskUserQuestion: "Remove orphaned file", "Keep it"
 
-   **Removing an operation**:
-   - Delete the operation file
-   - Remove its H3 entry from SKILL.md
-   - Remove it from Combined Operations entries in SKILL.md
-   - Check if any reference files are now orphaned (not referenced by any remaining operation). If so, present orphans via AskUserQuestion: "Remove orphaned file", "Keep it"
+   MUST fix any blocking issues the skill-writer reports before proceeding.
 
-   **Adding or updating a reference file**:
-   - MUST name files descriptively: `<topic>-<type>.md` (e.g., `deploy-patterns.md`)
-   - MUST provide information, not step-by-step instructions
-   - Add the file link to SKILL.md's References section if not already listed
-
-   **Removing a reference file**:
-   - Check all operation files for links to this reference. If any exist, warn the user and confirm via AskUserQuestion before proceeding.
-   - Delete the file
-   - Remove its entry from SKILL.md's References section
-
-   **Updating SKILL.md metadata**:
-   - Edit frontmatter fields (description, argument-hint, etc.)
-   - Update the body text, Combined Operations, or References section as needed
-   - MUST keep the `name` field matching the directory name
-
-   **Renaming the skill**:
-   - Confirm the new name with the user -- suggest 1-3 candidates via AskUserQuestion
-   - MUST apply naming rules from [skill-spec.md](skill-spec.md): lowercase, hyphens, max 64 chars
-   - If the target directory already exists, present options via AskUserQuestion: "Pick a different name", "Cancel rename"
-   - Rename the directory
-   - Update the `name` field in SKILL.md frontmatter
-   - Warn the user about any external references (other skills, CLAUDE.md, agents) that may need manual updates
-
-5. **Validate**:
-   Spawn a Task subagent (type: skill-reviewer) with the updated skill directory path.
-   MUST fix any blocking issues found before reporting to the user. SHOULD present improvements and suggestions to the user via AskUserQuestion before applying.
-
-6. **Report results**:
+5. **Report results**:
    - MUST list all files added, modified, or removed with a one-line description of each change
    - MUST show the updated SKILL.md Operations section so the user can verify
    - If the description changed, show the full `description` field so the user can verify trigger keywords
