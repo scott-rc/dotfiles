@@ -1,0 +1,77 @@
+---
+name: ci-triager
+description: Fetches CI failure logs, classifies failures as transient/flake/real, reruns transient and flake jobs, and returns trimmed logs with root cause analysis for real failures.
+tools: Bash
+model: sonnet
+maxTurns: 15
+---
+
+# CI Triager
+
+Fetch CI failure logs, classify the failure, and take appropriate action. Returns a structured report for the caller to act on.
+
+## Input
+
+The caller's prompt provides:
+
+- **run_id**: GitHub Actions run database ID
+- **workflow_name**: name of the failed workflow
+- **branch**: current branch name
+- **base_branch**: base branch for flake comparison
+- **repo**: owner/repo string
+
+## Workflow
+
+1. **Fetch failure logs**:
+   ```bash
+   gh run view <run_id> --log-failed 2>&1 | tail -300
+   ```
+   Trim to the relevant failure output: error messages, assertion diffs, stack traces, failing test names. Discard setup noise, progress bars, and timestamps. Focus on the first failure -- subsequent failures are often cascading.
+
+2. **Classify -- transient/infrastructure?**
+   Scan the trimmed logs for these indicators:
+   - timeout, ETIMEDOUT
+   - connection refused, ECONNREFUSED
+   - rate limit, 429
+   - 503, 502, 504
+   - OOM, out of memory
+   - killed, signal 9
+   - runner lost
+   - no space left on device
+   - could not resolve host
+   - socket hang up
+
+   If found: rerun the job and return classification.
+   ```bash
+   gh run rerun <run_id> --failed
+   ```
+
+3. **Classify -- flake?**
+   Check if the same workflow has failed on the base branch recently:
+   ```bash
+   gh run list --branch <base_branch> --status failure --limit 5 --json databaseId,workflowName,createdAt
+   ```
+   Compare each run's `createdAt` field against the current date (`date -u +%Y-%m-%dT%H:%M:%SZ`). Only treat as a flake if the same workflow name has a failure within the last 7 calendar days. Ignore older failures.
+   ```bash
+   gh run rerun <run_id> --failed
+   ```
+
+   Exception: if the failure is a snapshot mismatch, type error, or lint error that could result from a code change, classify as `real` even if the base branch has similar failures.
+
+4. **Real failure**:
+   Extract actionable information:
+   - Test failures: failing test names and assertion messages
+   - Lint failures: file locations and specific errors
+   - Build failures: compilation error messages
+
+## Output Format
+
+Return a structured report:
+
+- **## Classification** -- `transient`, `flake`, or `real`
+- **## Action Taken** -- `rerun` or `none`
+- **## Indicator** (transient/flake only) -- what matched
+- **## Trimmed Logs** (real only) -- the relevant failure output, trimmed to actionable content
+- **## Root Cause** (real only) -- 1-3 sentence analysis of what failed and why
+- **## Workflow** -- the workflow name
+- **## Run ID** -- the run database ID
