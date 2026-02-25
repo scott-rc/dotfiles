@@ -54,4 +54,8 @@ Write a self-contained task description that captures the current session's cont
    - SHOULD keep the content under ~80 lines. If it would exceed that, the task may need Plan Task instead
    - MUST scan for non-ASCII characters and replace with ASCII equivalents before writing
 
+5. **Verify plan completeness**:
+   Verify the plan file contains at least a Goal and Remaining Work section (both are always required for a handoff). If either is missing, add it before proceeding.
+
+6. **Present for approval**:
    Call `ExitPlanMode` to present the handoff for user approval.

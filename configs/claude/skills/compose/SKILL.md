@@ -6,8 +6,6 @@ argument-hint: "[create | update | review | plan | handoff] [target]"
 
 # Composing for Claude Code
 
-Help create, update, review, and improve Claude Code skills, CLAUDE.md rules files, and session task prompts, and decompose large tasks into chunked execution plans.
-
 ## Operations
 
 ### Create Skill
