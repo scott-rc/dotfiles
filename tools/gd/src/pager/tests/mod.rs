@@ -1,5 +1,6 @@
 mod common;
 mod content;
+mod heuristics;
 mod keymap;
 mod navigation;
 mod reducer;

@@ -181,6 +181,7 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         ActionId::ToggleSingleFile => {
+            state.view_scope_user_set = true;
             if state.active_file().is_some() {
                 state.set_active_file(None);
                 state.status_message = "All files".into();
@@ -204,6 +205,7 @@ fn dispatch_normal_action(
             Some(ReducerEffect::ReRender)
         }
         ActionId::ToggleFullContext => {
+            state.full_context_user_set = true;
             state.full_context = !state.full_context;
             state.status_message = if state.full_context {
                 "Full file context".into()

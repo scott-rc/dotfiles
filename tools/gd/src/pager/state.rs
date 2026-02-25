@@ -121,7 +121,9 @@ pub(crate) struct PagerState {
     pub(crate) tree_entries: Vec<TreeEntry>,
     pub(crate) tree_visible_to_entry: Vec<usize>,
     pub(crate) view_scope: ViewScope,
+    pub(crate) view_scope_user_set: bool,
     pub(crate) full_context: bool,
+    pub(crate) full_context_user_set: bool,
 }
 
 impl PagerState {
@@ -266,8 +268,32 @@ impl PagerState {
             tree_entries,
             tree_visible_to_entry,
             view_scope: ViewScope::AllFiles,
+            view_scope_user_set: false,
             full_context: false,
+            full_context_user_set: false,
         }
+    }
+}
+
+/// Decide whether to start in full-context mode.
+/// Full context when viewing a single file with few hunks -- the entire file
+/// fits comfortably and the user likely wants surrounding code.
+pub(crate) fn default_full_context(file_count: usize, total_hunks: usize) -> bool {
+    file_count == 1 && total_hunks <= 3
+}
+
+/// Decide the initial view scope based on diff size relative to the terminal.
+/// Large diffs start in single-file mode so the user isn't overwhelmed;
+/// small diffs show everything at once.
+pub(crate) fn default_view_scope(
+    file_count: usize,
+    total_rendered_lines: usize,
+    terminal_rows: usize,
+) -> ViewScope {
+    if file_count > 5 || (file_count > 1 && total_rendered_lines > terminal_rows * 3) {
+        ViewScope::SingleFile(FileIx(0))
+    } else {
+        ViewScope::AllFiles
     }
 }
 

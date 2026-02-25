@@ -180,7 +180,31 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     }));
 
     let mut last_size = get_term_size();
+
+    // Startup heuristic: decide full_context from initial diff characteristics
+    let total_hunks: usize = files.iter().map(|f| f.hunks.len()).sum();
+    let use_full_context = super::state::default_full_context(files.len(), total_hunks);
+
+    // If full context is warranted, regenerate files with -U999999
+    if use_full_context {
+        files = regenerate_files(diff_ctx, true);
+        if files.is_empty() {
+            let _ = crossterm::terminal::disable_raw_mode();
+            let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
+            let _ = stdout.flush();
+            return;
+        }
+    }
+
     let tree_entries = build_tree_entries(&files);
+    let output = if use_full_context {
+        // Re-render with full context files
+        let width = last_size.0 as usize;
+        crate::render::render(&files, width, color)
+    } else {
+        output
+    };
+
     let mut state = PagerState::new(
         output.lines,
         output.line_map,
@@ -189,6 +213,16 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         tree_entries,
         last_size.0 as usize,
     );
+    state.full_context = use_full_context;
+
+    // Startup heuristic: decide view scope from rendered output size
+    let view_scope = super::state::default_view_scope(
+        files.len(),
+        state.doc.line_count(),
+        last_size.1 as usize,
+    );
+    state.view_scope = view_scope;
+
     re_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
