@@ -8,8 +8,4 @@ All public API changes MUST be backwards-compatible with both consumers (`md` an
 
 ---
 
-ANSI regex patterns live exclusively in `tui::ansi` and MUST NOT be duplicated in consumer crates.
-
----
-
-MUST NOT duplicate ANSI escape patterns already in `tui::ansi` — reuse existing constants and functions.
+ANSI regex patterns and escape helpers live exclusively in `tui::ansi` — consumer crates MUST reuse existing constants and functions, not duplicate them.

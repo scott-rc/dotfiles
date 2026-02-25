@@ -33,6 +33,15 @@ Full list of all symlinks is in README.md
 - **Global skills** (available everywhere): `~/Code/personal/dotfiles/configs/claude/skills/`
 - **Gadget-specific skills** (only available in gadget projects): `~/Code/gadget/gadget/.claude/skills/`
 
+### Agents
+
+- `configs/claude/agents/` -- companion subagent files, symlinked to `~/.claude/agents/`
+- Each agent owns a specific delegation domain (committing, PR writing, code review, CI triage, etc.)
+
+### Commands
+
+- `configs/claude/commands/` -- custom slash commands, symlinked to `~/.claude/commands/`
+
 ---
 
 When making changes to the codebase, keep README.md in sync. Any new features, changed options, added keybindings, or modified architecture MUST be reflected in the README.

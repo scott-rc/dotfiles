@@ -61,12 +61,8 @@ The caller's prompt provides:
 Return a structured report:
 
 - **## Baseline** -- pass/fail + test count if available
-- **## Results** -- a markdown table:
-
-  | # | Type | File | Line | Outcome | Detail |
-  |---|------|------|------|---------|--------|
-
-  Each row has the mutation index, type, file:line, outcome (killed/survived/killed-compile/skipped), and a brief detail (which test caught it, or what the compile error was).
+- **## Results** -- for each mutation:
+  - `#N` -- type, file:line, outcome (killed/survived/killed-compile/skipped), detail (which test caught it, or what the compile error was)
 - **## Score** -- `killed / total` (e.g., "12/15 -- 80%"), excluding skipped
 - **## Survivors** -- for each survived mutation: index, description, and what behavior is unguarded
 - **## Final Baseline** -- pass/fail confirmation

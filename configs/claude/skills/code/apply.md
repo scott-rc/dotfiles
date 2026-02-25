@@ -11,6 +11,7 @@ Load the user's coding style preferences, write code, and verify it matches.
 3. **Read language-specific preferences** (if available):
    - **TypeScript**: [typescript-guidelines.md](typescript-guidelines.md)
    - **Go**: [go-guidelines.md](go-guidelines.md)
+   - **Rust**: [rust-guidelines.md](rust-guidelines.md)
    - **Bash / Fish**: [shell-guidelines.md](shell-guidelines.md)
 
    If no file exists for the target language, use only the general guidelines.

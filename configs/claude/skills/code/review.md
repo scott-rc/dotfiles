@@ -16,7 +16,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 ### Small Scope (Single-Pass Review)
 
-3. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md) and [testing-guidelines.md](testing-guidelines.md). If a language-specific file exists for the target language ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load it too.
+3. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md) and [testing-guidelines.md](testing-guidelines.md). If a language-specific file exists for the target language ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [rust-guidelines.md](rust-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load it too.
 
 4. **Load review template**: Read [review-template.md](review-template.md) for the subagent prompt template.
 
@@ -37,7 +37,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 ### Large Scope (Subagent Decomposition)
 
-7. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md). If language-specific files exist for the target languages ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load them too.
+7. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md). If language-specific files exist for the target languages ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [rust-guidelines.md](rust-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load them too.
 
 8. **Decompose into review scopes**:
    Map all changes (`git diff --stat` or file list). Decompose into 2–5 independent review scopes. Each scope gets:

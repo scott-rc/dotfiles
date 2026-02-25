@@ -80,6 +80,7 @@ Users often request multiple operations together. Handle these as follows:
 - [testing-guidelines.md](testing-guidelines.md) — Test design patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
 - [typescript-guidelines.md](typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
+- [rust-guidelines.md](rust-guidelines.md) — Rust-specific error handling, type patterns, module organization, testing, and style conventions
 - [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
 - [review-template.md](review-template.md) — Subagent prompt template for code review tasks

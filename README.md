@@ -227,6 +227,14 @@ Custom CLI tools.
 | `interview/` | Conducts a structured multi-round interview on any topic — asking probing questions to gather requirements, explore decisions, or deepen understanding |
 | `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
 
+### Custom Commands
+
+Custom slash commands live in `configs/claude/commands/` (symlinked to `~/.claude/commands/`).
+
+| Command | Description |
+|---------|-------------|
+| `slack-message` | Summarizes conversation findings and writes to `tmp/slack_messages/` for sharing on Slack |
+
 ### Custom Agents
 
 Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agents/`) and are invoked by Claude Code as specialized sub-tasks.
@@ -237,13 +245,17 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `chunk-executor.md` | Executes implementation chunks from a plan, marking checkboxes as steps are completed |
 | `chunk-writer.md` | Writes plan chunk files with TDD structure and checkpoint tracking |
 | `code-reviewer.md` | Reviews code for quality, security, and maintainability |
+| `code-writer.md` | Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop |
 | `committer.md` | Analyzes uncommitted changes, drafts a commit message, stages files, and creates the commit, keeping large diffs out of the main conversation context |
 | `github-context.md` | Gathers commit history, PR details, and referenced issue context for a ref range, returns a structured motivation summary |
+| `github-writer.md` | Writes and posts GitHub text (review replies, PR comments, issue comments, review submissions) with ASCII validation |
 | `mutation-executor.md` | Executes planned source code mutations against a test suite, records killed/survived outcomes, returns results table and mutation score |
 | `pr-writer.md` | Writes PR titles and descriptions from git diffs following formatting guidelines, creates new PRs or updates existing ones |
 | `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
+| `rules-writer.md` | Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria |
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |
 | `skill-writer.md` | Writes and validates skill files (SKILL.md, operations, references) in create or update mode |
+| `slide-writer.md` | Writes and edits Slidev presentation content, verifies via slidev build, and iterates on failures |
 | `test-discoverer.md` | Scans a codebase to map source files to test files, identifies untested functions and coverage gaps |
 
 Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.

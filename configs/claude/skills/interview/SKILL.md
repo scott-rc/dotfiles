@@ -4,6 +4,10 @@ description: Conducts a structured interview with the user on any topic, asking 
 argument-hint: "<topic>"
 ---
 
+# Interview
+
+Conduct structured interviews to gather requirements, explore decisions, or deepen understanding on any topic.
+
 ## Operations
 
 ### Interview
