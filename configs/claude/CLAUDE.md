@@ -4,13 +4,22 @@
 
 ### Behavior
 
-Delegate to a domain-specific subagent that owns the full problem-solving loop (read, analyze, design, write, verify, iterate). Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
+**The orchestrator decides. Subagents do.**
+
+Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
+
+**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision. Test: "am I gathering info to choose what to do next?"
+
+**Work gets delegated** — file analysis, diff review, artifact generation, multi-step execution. Test: "does this consume context I'll need later?"
+
+User interaction and state transitions stay in the orchestrator.
 
 **Do NOT:**
 - Read source files to analyze or diagnose problems that will be delegated
 - Design implementations or prescribe code changes for subagents
 - Re-read files a subagent already summarized
 - Reduce a subagent to a transcriber by over-specifying the solution
+- Delegate trivial routing reads that inform the orchestrator's next decision
 
 ### Routing
 

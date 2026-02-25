@@ -2,6 +2,24 @@
 
 Rules specific to authoring Claude Code skills. All operations in this skill validate against these rules.
 
+## Mental Model
+
+```
+SKILL.md (router)
+├── Inline operations (linear, no refs, no branching)
+├── Operation files (conditional logic, file refs, or agent delegation)
+│   └── May link to reference files at specific steps
+├── Reference files (DRY content shared by 2+ operations, leaves only)
+├── Scripts (deterministic data extraction, reused 2+ times OR single-use with 20+ lines/piped commands)
+└── Named agents (judgment work reused 2+ times)
+```
+
+Three principles:
+
+1. **Deciding vs doing** — See the delegation rules in [CLAUDE.md](../../CLAUDE.md). Operations must respect the deciding/doing boundary.
+2. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
+3. **References are DRY leaves** — They prevent update-in-N-places problems. Operations work without them for the happy path.
+
 ## Instructions
 
 ### Naming
@@ -23,7 +41,7 @@ description: <text>             # Required. See Description Rules below.
 ---
 ```
 
-Recommended fields: `name` and `description`. The official spec treats both as optional (`name` defaults to directory name, `description` falls back to first paragraph), but this spec requires them for clarity. Optional fields (include only when needed):
+`name` and `description` are required. Optional fields (include only when needed):
 
 - `argument-hint` — autocomplete hint shown after skill name (e.g., `[issue-number]`)
 - `disable-model-invocation: true` — prevents Claude from auto-loading the skill; only the user can invoke it via `/`. Use for side-effect workflows where unintended invocation would be harmful.
@@ -66,7 +84,9 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 
 When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent.
 
-Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to preload skill content into the subagent's context; list skill names as a YAML array.
+Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to inject skill content into the subagent's system prompt before execution; list skill names as a YAML array (e.g., `skills: [git, compose]`). The skill's SKILL.md content is appended to the agent's prompt, giving it access to the skill's routing and references.
+
+**`context: fork` vs Task tool**: Use `context: fork` when the entire skill runs in a subagent -- every invocation forks. Use the Task tool inside an operation step when only one step needs delegation and the orchestrator continues afterward. If every path through the operation delegates, prefer `context: fork` on SKILL.md.
 
 ### SKILL.md Body
 
@@ -76,7 +96,7 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 - **Heading structure**: MUST have one H1 (the skill title), then H2 for sections, H3 for individual operations
 - **Required sections**: MUST have "Operations" (H2) listing each operation with a one-line summary and a link to its file
 - **Optional sections**: MAY have "Combined Operations" (H2) for multi-operation intent mapping, "References" (H2) for shared reference files
-- **No inline instructions**: MUST route, not instruct. Keep operation details in their own files.
+- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file. **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- delegate to a subagent.
 
 ### Operation Files
 
@@ -86,16 +106,21 @@ Each operation file (e.g., `create-skill.md`, `review-skill.md`) contains the fu
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
 - **Numbered steps**: MUST use numbered steps where each step has a **bold step name** followed by the instructions
 - **Cross-references**: MUST use markdown links to reference files (e.g., `[commit-guidelines.md](commit-guidelines.md)`)
+- **Step nesting**: Steps MUST NOT nest sub-steps. If a step needs sub-steps, either flatten into sequential top-level steps or extract the sub-steps into a reference file.
 - **Self-contained**: SHOULD be understandable from the operation file alone (referenced files provide detail, not essential context)
 
 ### Reference Files
 
-Reference files contain shared knowledge used by multiple operations (patterns, guidelines, templates, checklists).
+Reference files DRY content shared by two or more operations that changes together.
 
-- **One level deep**: SKILL.md and operation files can reference these files. Reference files MUST NOT reference other reference files.
+- **Leaves only**: SKILL.md and operation files can reference these files. References MUST NOT reference other reference files. If a reference grows too large, split into sibling references that operations link to independently.
+- **DRY threshold**: If content is only used by one operation, it belongs in the operation file, not a reference.
 - **Descriptive names**: MUST describe the content type (e.g., `commit-guidelines.md`, `git-patterns.md`)
 - **No operation logic**: MUST provide information, not step-by-step instructions
+- **Size cap**: Reference files SHOULD stay under 300 lines. If a reference exceeds this, split into focused sibling references that operations link to independently.
 - **Table of contents**: SHOULD include a table of contents for reference files over 100 lines
+- **Inline linking**: When a step depends on reference content, link it at that step — not in a preamble or header
+- **Operations stay executable**: Operations MUST be executable for the happy path without loading references
 
 ### Directory Structure
 
@@ -114,12 +139,6 @@ Subdirectories are optional and only needed when the skill has many files of a g
 
 ### Skill Content Rules
 
-These rules supplement the shared Content Rules:
-
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
-- **Progressive disclosure**: MUST follow progressive disclosure — SKILL.md is concise, operation files are detailed, reference files go deep
-- **Degrees of freedom**: SHOULD match instruction specificity to the task. High freedom (prose, multiple valid approaches) for creative/variable tasks. Medium freedom (pseudocode with parameters) when a preferred pattern exists. Low freedom (exact scripts, few parameters) for fragile/critical operations.
-- **Task vs reference content**: Task skills give step-by-step instructions for a specific workflow (often paired with `disable-model-invocation: true`). Reference skills add knowledge Claude applies to current work (often paired with `user-invocable: false`). Shape content to match the invocation pattern.
-- **Interview before assumptions**: Operations that act on user intent (creating, configuring, scaffolding) SHOULD begin with an interview step that gathers requirements before proceeding. The interview SHOULD ask only enough to unblock the next decision, use follow-up rounds for complexity revealed by initial answers, and summarize understanding for user confirmation before acting. Operations MUST NOT silently assume requirements the user hasn't stated when multiple valid options exist. When presenting choices or requesting values, SHOULD offer 1-3 idiomatic defaults as AskUserQuestion options rather than open-ended questions.
-- **Cross-skill delegation**: When an operation needs to run another skill's workflow or load another skill's references, MUST use the Skill tool to invoke that skill (`skill: "<name>", args: "<routing context>"`). MUST NOT reference another skill's files via relative paths (e.g., `../other-skill/file.md`) — cross-skill file references are unreliable because the other skill's context (routing, templates, transitive references) is not formally loaded. Using the Skill tool loads the other skill's SKILL.md with its full context.
-- **Subagent delegation**: Operations MUST default to delegating work to subagents rather than performing it inline. The orchestrator's context is finite and shared across the entire session -- every inline file read or verbose result is context permanently lost to later work. Subagents are cheaper (use lighter models), focused (get tightly composed instructions for their specific task), and disposable (their context is reclaimed when done). The orchestrator's role is to gather requirements, make decisions requiring user interaction, and synthesize results -- everything else goes to a subagent. Write targeted subagent prompts with all context the subagent needs (file paths, criteria, conventions) so it works autonomously. Choose appropriate types (`Explore` for search/read, `general-purpose` for multi-step work) and models (`haiku` for simple reads, `sonnet` for analysis, `opus` for deep reasoning). When the same delegation prompt appears in two or more places, extract into a named agent (`configs/claude/agents/<name>.md`).
+- **No cross-skill file references**: MUST NOT reference another skill's files via relative paths. Use the Skill tool for cross-skill delegation.
+- **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, Deciding vs Doing, and Degrees of Freedom patterns, see [content-patterns.md](content-patterns.md).
