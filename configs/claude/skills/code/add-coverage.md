@@ -4,15 +4,14 @@ Write characterization tests for existing untested code — documenting its curr
 
 ## Instructions
 
-1. **Load preferences and resolve test environment**:
-   MUST read [test-environment.md](test-environment.md), [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available. Apply these throughout.
+1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
 
 2. **Identify target code**:
    Determine which module, function, or class to cover. If the user hasn't specified, spawn the `test-discoverer` agent in auto-discover mode. Present 1-3 untested candidates from the agent's results as AskUserQuestion options.
 
 3. **Plan characterization tests**:
    If the test-discoverer was not already run in targeted mode for the chosen file, spawn it now with the target files to get a detailed coverage map (function signatures, covered/uncovered functions, notable gaps).
-   Spawn a Task subagent (type: Explore, model: sonnet) to read the target code and its callers, then return a structured analysis: branches, edge cases, error paths, and boundary conditions. Use both the coverage map and the code analysis to draft a list of test cases that document current behavior. Present the plan to the user before writing tests.
+   Spawn a Task subagent (type: Explore) to read the target code and its callers, then return a structured analysis: branches, edge cases, error paths, and boundary conditions. Use both the coverage map and the code analysis to draft a list of test cases that document current behavior. Present the plan to the user before writing tests.
 
 4. **Write tests incrementally**:
    Write tests in small batches. Every test MUST pass — these tests document what the code currently does, not what it should do.

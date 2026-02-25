@@ -1,7 +1,6 @@
 ---
 name: slides
 description: Creates and manages Slidev markdown presentations, including scaffolding workspaces, authoring slide decks, and running dev/build/export workflows — use when the user mentions create presentations, write slides, Slidev, markdown slides, deck, talk, slide deck, or presentation.
-disable-model-invocation: true
 ---
 
 # Slides
@@ -39,4 +38,3 @@ See [present.md](present.md) for detailed instructions.
 These files are referenced by the operation instructions above:
 
 - [slidev-syntax.md](slidev-syntax.md) — Slidev markdown syntax, layouts, animations, and advanced features
-- [slides-claude-md.md](slides-claude-md.md) — Template CLAUDE.md for slides workspace repos

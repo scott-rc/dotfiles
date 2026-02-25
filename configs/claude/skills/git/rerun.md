@@ -26,4 +26,4 @@ Re-trigger failed CI jobs for the current branch.
    MUST report the run ID and current status to the user.
 
 4. **Report to user**:
-   Confirm the rerun was triggered. Offer to run the check operation after a delay to monitor results.
+   Confirm the rerun was triggered. Offer to run the Watch operation after a delay to monitor results.

@@ -9,7 +9,3 @@ All public API changes MUST be backwards-compatible with both consumers (`md` an
 ---
 
 ANSI regex patterns live exclusively in `tui::ansi` and MUST NOT be duplicated in consumer crates.
-
----
-
-When making changes to the codebase, keep README.md in sync. Any new features, changed options, added keybindings, or modified architecture MUST be reflected in the README.

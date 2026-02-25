@@ -45,20 +45,6 @@ When the task prompt includes a review checklist, use that checklist instead of 
 - File paths are validated (no traversal attacks)
 - Permissions follow least-privilege principle
 
-### Naming and Clarity
-
-- Names describe purpose, not implementation
-- Abbreviations are well-known or defined nearby
-- Functions do one thing and their name says what
-- Comments explain "why", not "what"
-
-### Dead Code and Redundancy
-
-- No unreachable code paths
-- No unused imports, variables, or parameters
-- No duplicated logic that should be extracted
-- No commented-out code left behind
-
 ## Output Format
 
 Group findings into three severity levels:

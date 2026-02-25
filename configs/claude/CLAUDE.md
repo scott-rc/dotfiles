@@ -27,4 +27,4 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 ### Skills Locations
 
 - **Global skills** (available everywhere): `~/Code/personal/dotfiles/configs/claude/skills/`
-- **Gadget-specific skills**: `~/Code/gadget/gadget/.claude/skills/`
+- **Gadget-specific skills** (only available in gadget projects): `~/Code/gadget/gadget/.claude/skills/`

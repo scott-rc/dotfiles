@@ -2,6 +2,12 @@
 
 Shared patterns used across git skill operations. Reference this file for consistent implementation.
 
+## Script Paths
+
+| Name | Path |
+|------|------|
+| `get-pr-comments` | `~/.claude/skills/git/scripts/get-pr-comments.sh` |
+
 ## Fish Functions
 
 Custom fish functions (`gbb`, `gwc`, `gwt`) MUST be called via `fish -c '...'` in the Bash tool. They use fish-specific syntax and are not available in bash.

@@ -44,7 +44,7 @@ All text MUST use only ASCII characters. Use `--` instead of em dashes, straight
 
 ### Safe Posting
 
-When posting multi-line content via `gh` CLI, write the body to a temp file first and use `-F body=@file` instead of inline strings or heredocs. This avoids shell encoding issues.
+When posting multi-line content via `gh` CLI, write the body to a temp file first and use `--body-file <file>` instead of inline strings or heredocs. This avoids shell encoding issues.
 
 ## Workflow
 
@@ -68,14 +68,14 @@ When posting multi-line content via `gh` CLI, write the body to a temp file firs
 
    **Create mode**:
    ```bash
-   gh pr create --title "<title>" --base <base_branch> -F "$BODY_FILE"
+   gh pr create --title "<title>" --base <base_branch> --body-file "$BODY_FILE"
    ```
 
    **Update mode**:
    - Fetch current body: `gh pr view <pr_number> --json body -q .body`
    - If the existing body contains bot-appended content (sections not in your new description, e.g., Cursor BugBot, Dependabot), append it to the new body
    ```bash
-   gh pr edit <pr_number> --title "<title>" -F "$BODY_FILE"
+   gh pr edit <pr_number> --title "<title>" --body-file "$BODY_FILE"
    ```
 
    Clean up the temp file after posting.

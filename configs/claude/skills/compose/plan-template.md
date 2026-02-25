@@ -68,25 +68,3 @@ Execute the implementation chunk at CHUNK_FILE_PATH.
 
 ---
 ```
-
-## Chunk Writer Subagent Inputs
-
-The chunk-writer agent's system prompt is in `chunk-writer.md`. The orchestrator supplies these four sections per chunk:
-
-- **Chunk Details** — number, title, dependency, and 2-4 sentence summary
-- **High-Level Steps** — numbered list from the decomposition
-- **Codebase Context** — file paths, function/type names, patterns, conventions
-- **Build and Test** — build and test commands
-
-## Chunking Guidelines
-
-Follow these when decomposing a task into chunks:
-
-- **Refactor first** -- if the task requires new abstractions or restructuring, make chunk 01 a pure refactor with no behavior change. This gives later chunks a clean foundation.
-- **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. Do not mix unrelated changes.
-- **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
-- **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
-- **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
-- **Test first when testable** -- for chunks adding testable behavior, structure step groups as red-green-refactor: "Red" (write failing tests), "Green" (implement to pass), "Refactor" (clean up). Include explicit test-run checkboxes to confirm failure then success. Chunks that are pure refactoring, config, or glue code use plain step groups.
-- **Docs and cleanup last** -- put documentation updates, README changes, and cleanup in the final chunk. Earlier chunks focus on implementation.
-- **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks. A reviewer should be able to check one chunk in isolation.

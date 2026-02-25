@@ -4,10 +4,6 @@
 
 ---
 
-When making changes to the codebase, keep README.md in sync. Any new features, changed options, added keybindings, or modified architecture MUST be reflected in the README.
-
----
-
 MUST NOT introduce custom error types, `Result` types, or error enums. Use `eprintln!()` + `process::exit(1)` for fatal errors, `unwrap_or()` for safe defaults.
 
 ---

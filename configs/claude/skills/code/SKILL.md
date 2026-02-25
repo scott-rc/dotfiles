@@ -76,4 +76,3 @@ Users often request multiple operations together. Handle these as follows:
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
 - [shell-guidelines.md](shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
-- [review-template.md](review-template.md) — Subagent prompt template and consolidated report format for large-scope reviews

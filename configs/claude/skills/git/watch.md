@@ -19,7 +19,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 3. **Snapshot initial state**:
    - HEAD SHA: `git rev-parse HEAD`
    - Last push timestamp: `date -u +%Y-%m-%dT%H:%M:%SZ`
-   - Unreplied threads via `~/.claude/skills/git/scripts/get-pr-comments.sh --unreplied`
+   - Unreplied threads via `get-pr-comments --unreplied` (path in [git-patterns.md](git-patterns.md))
    - CI status via `gh pr checks --json name,state,startedAt,completedAt` (if CI exists)
    - Any checks with `state` equal to `IN_PROGRESS`: add their IDs to `handled_runs` (avoids re-triaging reruns that are already underway)
 
@@ -35,6 +35,8 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
 5. **Monitoring loop** (up to 90 iterations, ~45 minutes):
 
+   > **All fixes in this loop MUST be delegated to subagents** -- reading source files and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages and dispatches; subagents debug and fix. Each subagent prompt MUST include the repository root path and an instruction to load the code skill (`skill: "code"`) for coding preferences.
+
    a. **Sleep**: `sleep 30`
       If any API call in the previous iteration returned HTTP 429, double the sleep interval (up to 120s). Reset to 30s once a non-429 response is received.
 
@@ -45,20 +47,13 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
       Only consider failures where `startedAt` is after `last_push_time`. Ignore stale checks from prior commits.
 
    c. **Poll review threads**:
-      ```bash
-      ~/.claude/skills/git/scripts/get-pr-comments.sh --unreplied
-      ```
+      Run `get-pr-comments --unreplied` (path in [git-patterns.md](git-patterns.md)).
       New threads: any thread whose last comment `id` is NOT in `handled_threads`.
 
    d. **Handle new review threads** (if any):
-      MUST delegate fixes to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files and attempting fixes inline exhausts the context window. The orchestrator triages; the subagent debugs and fixes.
-
-      Subagent prompt MUST include:
+      Delegate to a Task subagent (type: general-purpose, model: sonnet) with:
       - All new thread details: file path, line number, full comment bodies, last comment `id` per thread
-      - Repository root path
-      - Instruction: read each file, understand the reviewer's concern, apply the fix, run relevant tests to verify. MUST load the code skill (`skill: "code"`) for coding preferences.
-
-      MUST NOT read source files, explore the codebase, or attempt fixes inline -- all code changes happen in the subagent.
+      - Instruction: read each file, understand the reviewer's concern, apply the fix, run relevant tests to verify
 
       After the subagent returns, add each thread's last comment `id` to `handled_threads` regardless of outcome (prevents re-dispatching on next poll).
 
@@ -89,15 +84,10 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
          - **real**: proceed to step iii.
 
       iii. **Real failure -- fix it**:
-         MUST delegate the fix to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files, analyzing code, and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages; the subagent debugs and fixes.
-
-         Subagent prompt MUST include:
+         Delegate to a Task subagent (type: general-purpose, model: sonnet) with:
          - Trimmed logs and root cause from the ci-triager's report
          - Workflow name
-         - Repository root path
-         - Instruction: identify root cause, read relevant source files, fix the issue, run local verification if possible. MUST load the code skill (`skill: "code"`) for coding preferences.
-
-         MUST NOT read source files, explore the codebase, or attempt fixes inline -- all debugging and code changes happen in the subagent.
+         - Instruction: identify root cause, read relevant source files, fix the issue, run local verification if possible
 
          After the subagent returns, check `git status --short`. If files changed:
          - Spawn the `committer` agent with prompt: "Commit these changes. They fix a CI failure in <workflow>/<step>: <brief failure summary>."
@@ -109,7 +99,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
          If the subagent reports it could not fix the issue, log it and continue.
 
    f. **Check exit conditions**:
-      - **All green**: every check passes, none pending, and `get-pr-comments.sh` returns zero unresolved threads -> report success, exit loop
+      - **All green**: every check passes, none pending, and `get-pr-comments` returns zero unresolved threads -> report success, exit loop
       - **PR closed/merged**: `gh pr view --json state` shows MERGED or CLOSED -> report, exit loop
       - **Timeout**: max iterations reached -> report current status, exit loop
 

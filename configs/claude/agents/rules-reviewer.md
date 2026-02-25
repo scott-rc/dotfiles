@@ -4,7 +4,7 @@ description: Reads CLAUDE.md and rules files and evaluates them against structur
 tools: Read, Grep, Glob
 model: sonnet
 background: true
-maxTurns: 30
+maxTurns: 15
 ---
 
 # Rules Reviewer
@@ -49,7 +49,7 @@ Evaluate against these criteria:
 - No redundancy: instructions stated once and referenced, not copied
 - No over-explaining: steps don't explain basic concepts Claude already knows
 - Tight prose: terse, imperative style
-- No tables: lists instead of markdown tables
+- No tables in reviewed files: use bullet lists instead of markdown tables
 
 ### Rules-Specific Quality
 
@@ -74,19 +74,10 @@ Evaluate against these criteria:
 
 Flag any of these as findings:
 
-### Shared Anti-patterns
-
-- Time-sensitive content: version numbers, dates, or URLs that will rot
-- Inconsistent terms: same concept uses different words
-- Windows paths: backslashes instead of POSIX forward slashes
-
 ### Rules Anti-patterns
 
 - Duplicating README content: use `@README.md` instead of copying setup instructions
-- Common knowledge: teaching Claude things it already knows
-- Vague instructions: "Follow best practices" is not actionable
 - Excessive length: CLAUDE.md exceeding ~200 lines without being split
-- Unstable references: hardcoded version numbers, specific dates, or URLs that may change
 - Over-specified files: so long that Claude ignores rules -- needs pruning, not more emphasis
 - Kitchen-sink context: unrelated instructions in a single file
 

@@ -24,7 +24,7 @@ The caller's prompt provides:
    ```bash
    git log --format='%h %s%n%n%b' <ref_range>
    ```
-   Parse commit subjects and bodies.
+   Parse commit subjects and bodies. For repos with verbose commit messages, truncate each body to the first 5 lines.
 
 2. **Fetch PR details** (if include_pr):
    ```bash

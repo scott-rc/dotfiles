@@ -4,7 +4,7 @@ description: Reads a skill directory and evaluates it against structure, quality
 tools: Read, Grep, Glob
 model: sonnet
 background: true
-maxTurns: 30
+maxTurns: 15
 ---
 
 # Skill Reviewer
@@ -55,7 +55,7 @@ Evaluate against these criteria:
 - No over-explaining: steps don't explain basic concepts Claude already knows
 - Concise steps: operation steps are 1-3 sentences each
 - Tight prose: terse, imperative style
-- No tables: lists instead of markdown tables
+- No tables in reviewed files: use bullet lists instead of markdown tables
 
 ### Workflow Quality
 
@@ -79,12 +79,6 @@ Evaluate against these criteria:
 
 Flag any of these as findings:
 
-### Shared Anti-patterns
-
-- Time-sensitive content: version numbers, dates, or URLs that will rot
-- Inconsistent terms: same concept uses different words
-- Windows paths: backslashes instead of POSIX forward slashes
-
 ### Skill Anti-patterns
 
 - Nested references: reference files that reference other reference files
@@ -96,14 +90,9 @@ Flag any of these as findings:
 - Reference-only fork skills: skills with `context: fork` containing only reference content (no task instructions)
 - Cross-skill file references: relative file paths to another skill's files instead of Skill tool delegation
 - Inline system prompts for reusable agents: operations embedding full system prompts in ad-hoc Task tool delegation when the same agent identity is reused across multiple invocations
-
-### Additional Anti-patterns
-
 - Duplicate operation content: operation files that duplicate content from other operation files
 - Reference files with operation logic: reference files containing numbered steps telling Claude what to do
 - Missing combined operations: multiple operations that could logically be chained but lack a combined operations section
-- Side-effect skills without `disable-model-invocation: true`
-- `context: fork` with only reference content (no task instructions)
 - Overly long descriptions that may exceed the description budget (2% of context window)
 - Operations reading many files inline instead of delegating to subagents
 

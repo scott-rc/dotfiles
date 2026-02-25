@@ -15,7 +15,7 @@ Conduct a structured, multi-round interview with the user on any topic, then pro
    - What kind of questions you plan to ask (scope, depth, angle)
    - Roughly how many rounds you expect (suggest 3-5, adjust based on complexity)
 
-   Ask the user to confirm or redirect before proceeding.
+   For complex or ambiguous topics, present the frame and ask the user to confirm or redirect before proceeding. For simple, clear topics, proceed directly to questioning.
 
 3. **Conduct the interview**:
    Ask questions in rounds. Each round SHOULD:

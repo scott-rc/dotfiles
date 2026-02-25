@@ -20,7 +20,7 @@ Current branch and recent history:
 
 2. **Detect base**:
    Determine the comparison base:
-   - Branch diff: merge-base with the base branch. Run `fish -c 'gbb'` to detect it. Use `git merge-base origin/(gbb) HEAD`.
+   - Branch diff: merge-base with the base branch. Run `fish -c 'gbb' 2>/dev/null || git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` to detect it. Use `git merge-base origin/<base> HEAD`.
    - Single commit: `<commit>~1`
    - Commit range: use the range directly
    - File-only (no commit/branch): diff against the default branch merge-base
@@ -45,11 +45,7 @@ Current branch and recent history:
    - **What** — concrete changes grouped by theme: new files, modified behavior, removed code
    - **How** — implementation details: key algorithms, patterns used, non-obvious decisions
 
-   Adapt depth per diff size:
-   - Trivial (< 20 lines): one paragraph combining all layers
-   - Small (20–200 lines): short Why, bulleted What, brief How
-   - Medium (200–500 lines): full three-layer treatment
-   - Large (500+ lines): full treatment with themed sub-sections under What
+   Apply the depth strategy from [explain-patterns.md](explain-patterns.md) based on diff size.
 
 7. **Verify completeness**:
    Check that the explanation covers all changed files from the diff stat. If any files are missing, add them. Verify the Why traces back to at least one source (PR body, issue, or commit message).

@@ -7,7 +7,7 @@ Create a new git worktree for the given task, or convert an existing branch into
 1. **Determine repository**:
    - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat this as "not in a git repo" and scan for other repositories instead
    - **If in a git repo** (not dotfiles): Use `git rev-parse --show-toplevel` to get the repo path
-   - **If not in a git repo**: Spawn a Task subagent (type: Explore, model: haiku) to scan `~/Code/*/*` for git repositories (excluding dotfiles), returning repo names and paths. If multiple repos found, try to infer from the task description. If ambiguous, present matching repos as AskUserQuestion options.
+   - **If not in a git repo**: List repositories with `ls -d ~/Code/*/*/.git 2>/dev/null | sed 's|/.git$||'` (excluding dotfiles). If multiple repos found, try to infer from the task description. If ambiguous, present matching repos as AskUserQuestion options.
 
 2. **Determine mode** from the user's request:
    - **Existing branch**: User names a specific branch to check out as a worktree

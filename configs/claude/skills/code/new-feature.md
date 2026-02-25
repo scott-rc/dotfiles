@@ -4,8 +4,7 @@ Build a feature through the red-green-refactor cycle: write a failing test, make
 
 ## Instructions
 
-1. **Load preferences and resolve test environment**:
-   MUST read [test-environment.md](test-environment.md), [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), and the language-specific guidelines if available. Apply these throughout.
+1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
 
 2. **Understand the feature**:
    Clarify what the feature does, its inputs, outputs, and edge cases. If the user's request is vague, ask focused questions before proceeding.

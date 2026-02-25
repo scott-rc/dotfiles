@@ -5,9 +5,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 ## Instructions
 
 1. **Fetch unresolved review threads**:
-   ```bash
-   ~/.claude/skills/git/scripts/get-pr-comments.sh
-   ```
+   Run `get-pr-comments` (path in [git-patterns.md](git-patterns.md)).
    - If the script exits with an error (no PR exists), inform the user and stop.
 
 2. **If no unresolved threads**, report that all review feedback has been addressed and stop.

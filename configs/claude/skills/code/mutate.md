@@ -4,8 +4,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
 
 ## Instructions
 
-1. **Load preferences and resolve test environment**:
-   MUST read [test-environment.md](test-environment.md), [general-guidelines.md](general-guidelines.md), and the language-specific guidelines if available. Apply these throughout.
+1. **Load coding guidelines**: Read [general-guidelines.md](general-guidelines.md), [testing-guidelines.md](testing-guidelines.md), [test-environment.md](test-environment.md), and any matching language-specific guidelines ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [shell-guidelines.md](shell-guidelines.md)). Apply these throughout.
 
 2. **Identify target code and tests**:
    If the user specified target files, spawn the `test-discoverer` agent in targeted mode with the specified files. Otherwise, spawn the `test-discoverer` agent in auto-discover mode to identify candidates.
@@ -13,7 +12,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
    If no tests exist for the target code, stop and suggest Add Coverage instead.
 
 3. **Plan mutations**:
-   Spawn a Task subagent (type: Explore, model: sonnet) to read the target code and propose 5-15 mutations. Each mutation MUST:
+   Spawn a Task subagent (type: Explore) to read the target code and propose 5-15 mutations. Each mutation MUST:
    - Be a small, single-point change (one operator, one condition, one return value)
    - Target meaningful behavior (not comments, whitespace, or unreachable code)
    - Be categorized by type: boundary (off-by-one, `<` vs `<=`), negation (`!` flip), return value (wrong constant, null/empty), operator (`+` vs `-`, `&&` vs `||`), deletion (remove a call, skip a branch), or argument swap
