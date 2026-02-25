@@ -81,6 +81,15 @@ pub fn file_header(path: &str, status: &str, width: usize) -> String {
     )
 }
 
+/// Format a hunk separator line (dim dashed line between hunks).
+pub fn hunk_separator(width: usize, color: bool) -> String {
+    if color {
+        format!("{FG_SEP}{}{RESET}", "\u{2508}".repeat(width))
+    } else {
+        "\u{00B7}".repeat(width)
+    }
+}
+
 /// Format the dual line-number gutter.
 pub fn gutter(old: Option<u32>, new: Option<u32>) -> String {
     let old_str = old.map_or(String::new(), |n| format!("{n}"));

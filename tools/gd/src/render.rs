@@ -102,7 +102,19 @@ pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
             width,
         };
 
-        for hunk in &file.hunks {
+        for (hunk_idx, hunk) in file.hunks.iter().enumerate() {
+            // Separator between hunks (not before the first)
+            if hunk_idx > 0 {
+                lines.push(style::hunk_separator(width, color));
+                line_map.push(LineInfo {
+                    file_idx,
+                    path: Rc::clone(&path_rc),
+                    new_lineno: None,
+                    old_lineno: None,
+                    line_kind: None,
+                });
+            }
+
             hunk_starts.push(lines.len());
 
             // Render diff lines with word-level highlights
