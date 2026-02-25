@@ -5,7 +5,6 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 maxTurns: 50
 permissionMode: acceptEdits
-isolation: worktree
 skills: [code]
 ---
 

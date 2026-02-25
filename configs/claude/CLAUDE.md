@@ -23,6 +23,10 @@ Delegate to a domain-specific subagent that owns the full problem-solving loop (
 - Skill files — `skill-writer`
 - Slide content — `slide-writer`
 
+### Worktrees
+
+- NEVER use `isolation: worktree` in agent configs or pass `isolation: "worktree"` to the Task tool. The user manages worktrees manually.
+
 ---
 
 ## Path Resolution
