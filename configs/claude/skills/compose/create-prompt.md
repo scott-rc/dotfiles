@@ -5,14 +5,14 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 ## Instructions
 
 1. **Gather requirements**:
-   Interview the user about:
+   Interview the user via AskUserQuestion about:
    - What goal or outcome the session should accomplish
    - Constraints or boundaries (e.g., don't change public API, stay within one file, use existing patterns)
-   - Expected output type (new feature, refactor, bug fix, migration, documentation, etc.)
+   - Expected output type -- present as AskUserQuestion options: "New feature", "Refactor", "Bug fix", "Migration", "Documentation", "Other"
    - Whether a relevant codebase exists and where it lives
    - Any prior decisions, context, or failed approaches to include
 
-   MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if the answers are ambiguous or incomplete.
+   MUST use AskUserQuestion for all questions. MUST batch related questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if the answers are ambiguous or incomplete.
 
 2. **Explore codebase context** (conditional):
    If a codebase is relevant, spawn a Task subagent (type: Explore, model: haiku) to gather context. The subagent MUST:
@@ -27,7 +27,7 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 3. **Confirm understanding**:
    - MUST summarize the goal, constraints, and planned context in 2-3 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
-   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
+   - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options
    - If the user selects "Start over", return to step 1
    - MUST NOT proceed to drafting until the user selects "Looks good"
 

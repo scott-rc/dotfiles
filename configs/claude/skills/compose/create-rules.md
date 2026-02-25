@@ -5,13 +5,13 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 ## Instructions
 
 1. **Gather requirements**:
-   Ask the user about:
-   - What type of rules file they need (project CLAUDE.md, global CLAUDE.md, CLAUDE.local.md, unconditional rule, scoped rule, or user-level rule)
+   Ask the user via AskUserQuestion about:
+   - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md", "Global CLAUDE.md", "CLAUDE.local.md", "Unconditional rule", "Scoped rule", "User-level rule"
    - What project or directory the rules are for
    - What instructions or conventions they want to encode
    - Whether existing documentation (README, CONTRIBUTING, etc.) should be referenced via `@file`
    - If scoped: which file paths or patterns the rules should apply to
-   - If personal/private: whether `CLAUDE.local.md` (per-project, auto-gitignored) or `~/.claude/rules/` (cross-project) is more appropriate
+   - If personal/private: present as AskUserQuestion options: "CLAUDE.local.md" (description: per-project, auto-gitignored), "~/.claude/rules/" (description: cross-project)
 
 2. **Determine file location and type**:
    - **Project CLAUDE.md**: `<project-root>/CLAUDE.md` or `<project-root>/.claude/CLAUDE.md` — for project-wide instructions

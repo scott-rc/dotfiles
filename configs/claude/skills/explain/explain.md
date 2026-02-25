@@ -26,11 +26,8 @@ Current branch and recent history:
    - File-only (no commit/branch): diff against the default branch merge-base
 
 3. **Gather commit context**:
-   Spawn a Task subagent (type: general-purpose, model: haiku) to gather all commit context. The subagent MUST:
-   - Run `git log --format='%h %s%n%n%b' <base>..HEAD` (or the resolved range)
-   - If a GitHub PR exists for the branch: `gh pr view --json title,body,url` -- extract motivation from the description
-   - If the PR body or commit messages reference issues (e.g., `#123`, `fixes #456`): fetch each with `gh issue view <number> --json title,body` and extract relevant context
-   - Return a concise summary: PR title/motivation, commit list with subjects, and relevant issue context. If no PR exists, return commit messages only.
+   Spawn the `github-context` agent with: ref_range set to `<base>..HEAD` (or the resolved range), include_pr true, include_issues true.
+   The agent returns: commit list, PR title/motivation, referenced issue context, and a motivation summary.
 
 4. **Get the diff**:
    - `git diff --stat <base>...<target>` for overview

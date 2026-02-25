@@ -20,8 +20,8 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
    - HEAD SHA: `git rev-parse HEAD`
    - Last push timestamp: `date -u +%Y-%m-%dT%H:%M:%SZ`
    - Unreplied threads via `~/.claude/skills/git/scripts/get-pr-comments.sh --unreplied`
-   - CI status via `gh pr checks --json name,status,conclusion,startedAt` (if CI exists)
-   - Any runs currently `in_progress`: add their IDs to `handled_runs` (avoids re-triaging reruns that are already underway)
+   - CI status via `gh pr checks --json name,state,startedAt,completedAt` (if CI exists)
+   - Any checks with `state` equal to `IN_PROGRESS`: add their IDs to `handled_runs` (avoids re-triaging reruns that are already underway)
 
    Initialize tracking state:
    - `handled_threads`: empty set of comment `id` values -- pre-existing unreplied threads are actionable and will be picked up on the first poll iteration
@@ -40,7 +40,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
    b. **Poll CI** (if CI exists):
       ```bash
-      gh pr checks --json name,status,conclusion,startedAt
+      gh pr checks --json name,state,startedAt,completedAt
       ```
       Only consider failures where `startedAt` is after `last_push_time`. Ignore stale checks from prior commits.
 
@@ -63,10 +63,10 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
       After the subagent returns, add each thread's last comment `id` to `handled_threads` regardless of outcome (prevents re-dispatching on next poll).
 
       Check `git status --short`. If files changed:
-      - Commit per [commit-guidelines.md](commit-guidelines.md), referencing the review feedback
+      - Spawn the `committer` agent with prompt: "Commit these changes. They address PR review feedback: <brief summary of threads fixed>."
       - `git push`
       - Update `head_sha` and `last_push_time`
-      - Reply to each fixed thread with a brief message referencing the fix commit SHA, per [pr-guidelines.md](pr-guidelines.md) ASCII rules. Use `gh api repos/{owner}/{repo}/pulls/comments/{id}/replies -f body="<message>"`.
+      - Reply to each fixed thread with a brief message referencing the fix commit SHA, per [pr-guidelines.md](pr-guidelines.md) ASCII rules. Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{id}/replies -f body="<message>"`. Note: `{id}` must be the REST `databaseId` (from `get-pr-comments.sh`), not the GraphQL node ID.
       - Log to `actions_log`: threads fixed, files touched
 
       If the subagent reports it could not fix a thread, log it and continue -- do not block monitoring.
@@ -76,48 +76,31 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
       i. **Guard against infinite loops**: If `fix_attempts[check_name] >= 2`, log that repeated fixes have not resolved this check, skip it, and continue. Report to the user that manual intervention may be needed.
 
-      ii. **Fetch failure logs**:
-         ```bash
-         gh run list --branch $(git branch --show-current) --status failure --limit 5 --json databaseId,workflowName
-         gh run view <run-id> --log-failed 2>&1 | tail -300
-         ```
-         Extract the failing step name and trim to the relevant failure output. Pass trimmed logs to triage steps and the subagent -- not the raw 300-line dump.
+      ii. **Triage via ci-triager agent**:
+         Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `ci-triager` agent with:
+         - run_id: the failed run's database ID
+         - workflow_name: the workflow name
+         - branch: current branch
+         - base_branch: detected base branch
+         - repo: owner/repo string
 
-      iii. **Triage -- transient/infrastructure?**
-           Scan logs for indicators:
-           - timeout, ETIMEDOUT
-           - connection refused, ECONNREFUSED
-           - rate limit, 429
-           - 503, 502, 504
-           - OOM, out of memory
-           - killed, signal 9
-           - runner lost
-           - no space left on device
-           - could not resolve host
-           - socket hang up
+         Based on the agent's classification:
+         - **transient** or **flake**: add run ID to `handled_runs`, log the classification and indicator, continue.
+         - **real**: proceed to step iii.
 
-           If found: `gh run rerun <id> --failed`, add to `handled_runs`, log as transient rerun, continue.
-
-      iv. **Triage -- flake?**
-          Detect base branch per [git-patterns.md](git-patterns.md), then check if the same workflow has failed on the base branch recently:
-          ```bash
-          gh run list --branch <base> --status failure --limit 5 --json databaseId,workflowName,createdAt
-          ```
-          If the same workflow name appears with a failure in the last 7 days: `gh run rerun <id> --failed`, add to `handled_runs`, log as flake rerun, continue.
-
-      v. **Real failure -- fix it**:
+      iii. **Real failure -- fix it**:
          MUST delegate the fix to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files, analyzing code, and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages; the subagent debugs and fixes.
 
          Subagent prompt MUST include:
-         - Trimmed failure logs from step ii
-         - Workflow name and failing step
+         - Trimmed logs and root cause from the ci-triager's report
+         - Workflow name
          - Repository root path
          - Instruction: identify root cause, read relevant source files, fix the issue, run local verification if possible. MUST load the code skill (`skill: "code"`) for coding preferences.
 
          MUST NOT read source files, explore the codebase, or attempt fixes inline -- all debugging and code changes happen in the subagent.
 
          After the subagent returns, check `git status --short`. If files changed:
-         - Commit per [commit-guidelines.md](commit-guidelines.md), referencing the CI failure
+         - Spawn the `committer` agent with prompt: "Commit these changes. They fix a CI failure in <workflow>/<step>: <brief failure summary>."
          - `git push`
          - Update `head_sha` and `last_push_time`, increment `fix_attempts[check_name]`
          - Add run ID to `handled_runs`

@@ -1,6 +1,6 @@
 ---
 name: code
-description: Applies coding style preferences, enforces test-driven development, runs code reviews, and manages benchmark-driven workflows — use when writing, reviewing, testing, or optimizing code.
+description: Applies coding style preferences, enforces test-driven development, runs code reviews, manages benchmark-driven workflows, and evaluates test quality via mutation testing — use when writing, reviewing, testing, mutating, or optimizing code.
 ---
 
 # Code
@@ -38,6 +38,10 @@ See [review.md](review.md) for detailed instructions.
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
 See [benchmark.md](benchmark.md) for detailed instructions.
 
+### Mutation Testing
+Evaluate test suite quality by mutating source code and checking whether tests catch the changes, then write tests to kill survivors.
+See [mutate.md](mutate.md) for detailed instructions.
+
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:
@@ -58,6 +62,8 @@ Users often request multiple operations together. Handle these as follows:
 - **"review and fix"** / **"review then fix the issues"** → Review, then Apply (or Fix Bug if a specific bug is found). The thorough review path offers a fix plan automatically at step 13.
 - **"fix and add coverage for the rest"** → Fix Bug, then Add Coverage
 - **"implement and benchmark"** → New Feature, then Benchmark
+- **"mutate this"** / **"mutation test"** / **"test my tests"** / **"are my tests good enough"** → Mutation Testing
+- **"add coverage then mutate"** / **"backfill and verify"** → Add Coverage, then Mutation Testing
 - **"skip tests"** / **"no tests"** / **"just the code"** → Apply (user explicitly opts out of TDD)
 
 **When to use Apply instead of TDD**: Refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.

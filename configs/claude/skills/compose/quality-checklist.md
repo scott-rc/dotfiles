@@ -62,6 +62,8 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
 - [ ] **Degrees of freedom**: Each step's specificity matches its fragility -- fragile/critical steps are prescriptive, variable/creative steps leave room
 - [ ] **RFC keyword usage**: MUST/SHOULD/MAY keywords are used to distinguish hard requirements from recommendations and optional behavior
+- [ ] **Subagent delegation**: Operations delegate work (file reading, analysis, artifact generation) to subagents rather than performing it inline in the orchestrator's context. The orchestrator handles user interaction and decision-making only.
+- [ ] **Named agents for reuse**: When the same delegation prompt appears in two or more operations, it is extracted into a named agent file rather than duplicated inline
 
 ## Rules Quality
 
@@ -95,4 +97,5 @@ Pass/fail criteria for evaluating Claude Code skills and rules files. Each item 
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content (reference content needs no fork)
 - [ ] **No cross-skill file references**: Use the Skill tool for cross-skill delegation, not relative file paths
 - [ ] **No inline system prompts for reusable agents**: Operations do not embed full system prompts in ad-hoc Task tool delegation when the same agent identity (prompt + tools + model) is reused across two or more invocations -- extract into a named agent file instead
+- [ ] **No inline heavy work**: Operations do not read many files, analyze diffs, or generate artifacts inline when a subagent could do it -- orchestrator context is for user interaction and decision-making
 

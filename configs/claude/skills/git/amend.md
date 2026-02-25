@@ -17,41 +17,33 @@ Fold outstanding changes into the last commit.
    - Record the current file set: `git diff --name-only origin/<base> HEAD`
    - Record the current commit message: `git log -1 --format=%B`
 
-4. **Stage changes**:
-   - If all changes belong together: `git add -A`
-   - If mixed changes: group files by logical change and present groups as AskUserQuestion options, then `git add <files>`
+4. **Amend the commit**: Spawn the `committer` agent with prompt: "Amend the last commit with the current changes. No-edit."
 
-5. **Amend the commit**:
-   ```bash
-   git commit --amend --no-edit
-   ```
-   If the commit fails due to a pre-commit hook: read the error output, fix the issue, re-stage changes, and retry the amend. MUST NOT use `--no-verify`.
-
-6. **Evaluate commit message**:
+5. **Evaluate commit message**:
    - Record the post-amend file set: `git diff --name-only origin/<base> HEAD`
    - Compare against the pre-amend file set from step 3
-   - If the file sets are identical: keep the original message, skip to step 7
-   - If files were added or removed: draft a new message per [commit-guidelines.md](commit-guidelines.md), present both via AskUserQuestion: the proposed new message and "Keep original message"
-   - If the user picks the new message, apply it with `git commit --amend -m` (title-only) or `--amend -F` per the Shell-Safe Application rules in [commit-guidelines.md](commit-guidelines.md).
+   - If the file sets are identical: keep the original message, skip to step 6
+   - If files were added or removed: spawn the `committer` agent with prompt: "Draft a commit message for the current HEAD commit. Return only the message, do not commit." Present both via AskUserQuestion: the proposed new message and "Keep original message"
+   - If the user picks the new message: spawn the `committer` agent with prompt: "Amend the last commit with this message: <message>"
 
-7. **Push if already pushed**:
+6. **Push if already pushed**:
    - Check if a remote tracking branch exists:
      ```bash
      git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
      ```
-   - If no remote branch: skip to step 8
+   - If no remote branch: skip to step 7
    - If remote branch exists: confirm with the user, then `git push --force-with-lease`
 
-8. **Evaluate PR description**:
+7. **Evaluate PR description**:
    - Check for an existing PR:
      ```bash
      gh pr view --json number,url,title,body 2>/dev/null
      ```
-   - If no PR exists: skip to step 9
-   - Reuse the file-set comparison from step 6:
+   - If no PR exists: skip to step 8
+   - Reuse the file-set comparison from step 5:
      - If the file sets are identical: keep the current PR description
      - If files were added or removed: follow the [Update Description operation](update-description.md) steps 2-4 to rewrite the title and description
 
-9. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
+8. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
 
 See [git-patterns.md](git-patterns.md) for base branch detection, dotfiles exception, and fetch safety patterns.

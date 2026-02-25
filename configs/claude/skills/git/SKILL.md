@@ -104,7 +104,6 @@ Users often request multiple operations together. Handle these as follows:
 These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
-- [commit-guidelines.md](commit-guidelines.md) - Commit message format, structure, and examples
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
 - `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 

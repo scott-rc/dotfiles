@@ -12,11 +12,11 @@ Write a self-contained task description that captures the current session's cont
    - What remains to be done?
    - What was tried and didn't work (if applicable)?
 
-   If the conversation context is insufficient, interview the user:
+   If the conversation context is insufficient, interview the user via AskUserQuestion:
    - What should the next session accomplish?
    - Are there constraints or gotchas the next session needs to know?
 
-   MUST batch questions into a single message. MUST skip questions the conversation history already answers.
+   MUST use AskUserQuestion for all questions. MUST batch questions into a single message. MUST skip questions the conversation history already answers.
 
 2. **Capture codebase state** (conditional):
    If the task involves a codebase, gather:
@@ -32,7 +32,7 @@ Write a self-contained task description that captures the current session's cont
 3. **Confirm scope**:
    - MUST summarize what the handoff will contain in 2-4 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust")
-   - If the user selects "Needs changes", ask what to adjust, update, and re-confirm with the same options
+   - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update, and re-confirm with the same options
    - MUST NOT proceed to writing until the user confirms
 
 4. **Deliver via plan mode**:

@@ -1,18 +1,22 @@
 ---
 name: compose
-description: Creates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity.
-argument-hint: "[create | review | plan | handoff] [target]"
+description: Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity.
+argument-hint: "[create | update | review | plan | handoff] [target]"
 ---
 
 # Composing for Claude Code
 
-Help create, review, and improve Claude Code skills, CLAUDE.md rules files, and session task prompts, and decompose large tasks into chunked execution plans.
+Help create, update, review, and improve Claude Code skills, CLAUDE.md rules files, and session task prompts, and decompose large tasks into chunked execution plans.
 
 ## Operations
 
 ### Create Skill
 Scaffold a new skill interactively, producing a complete skill directory with SKILL.md, operation files, and reference files.
 See [create-skill.md](create-skill.md) for detailed instructions.
+
+### Update Skill
+Add, modify, or remove operations, reference files, and SKILL.md content in an existing skill.
+See [update-skill.md](update-skill.md) for detailed instructions.
 
 ### Review Skill
 Evaluate an existing skill against best practices and report findings grouped by severity.
@@ -47,6 +51,8 @@ See [plan-task.md](plan-task.md) for detailed instructions.
 Users often request multiple operations together. Handle these as follows:
 
 - **"create and review"** / **"scaffold"** / **"new skill"** → Run Create Skill, then Review Skill on the new skill
+- **"update skill"** / **"add operation"** / **"modify skill"** / **"change skill"** / **"add operation to"** / **"remove operation from"** / **"rename skill"** → Run Update Skill
+- **"update and review"** → Run Update Skill, then Review Skill on the updated skill
 - **"improve skill"** / **"fix skill"** → Run Review Skill, then apply the suggested fixes
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
@@ -55,7 +61,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
 - **"hand this off"** / **"handoff"** / **"save context"** / **"continue later"** / **"write what's left"** → Run Create Handoff
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
-- **"review"** (ambiguous) → Ask the user whether they mean a skill, a rules file, or a prompt
+- **"review"** (ambiguous) → Present options via AskUserQuestion: "Review a skill", "Review a rules file", "Review a prompt"
 
 ## References
 

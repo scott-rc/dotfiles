@@ -47,6 +47,6 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - What the fix would be (specific, not vague)
 
 6. **Offer to apply fixes**:
-   - MUST ask the user about blocking fixes before applying them
+   - MUST present blocking fixes via AskUserQuestion before applying them
    - SHOULD present improvements and suggestions as AskUserQuestion options for the user to select
-   - MUST apply fixes one at a time, confirming each change
+   - MUST apply fixes one at a time, confirming each change via AskUserQuestion

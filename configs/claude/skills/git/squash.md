@@ -13,7 +13,7 @@ Squash all commits on the current branch into a single commit.
 
 3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`
 
-4. **Commit uncommitted changes** if any exist (follow commit guidelines).
+4. **Commit uncommitted changes** if any exist: spawn the `committer` agent with no additional prompt.
 
 5. **Rebase onto base branch** so all comparisons against `origin/<base>` are accurate:
    ```bash
@@ -34,10 +34,10 @@ Squash all commits on the current branch into a single commit.
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
    - MUST ask the user to confirm before proceeding
 
-9. **Squash into a single commit**: MUST follow [commit-guidelines.md](commit-guidelines.md) for the message:
+9. **Squash into a single commit**:
    ```bash
    git reset --soft origin/<base>
-   git commit
    ```
+   Then spawn the `committer` agent with prompt: "Squash commit. Prior commits: <commit list from step 6>."
 
 See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.

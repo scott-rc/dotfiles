@@ -26,11 +26,10 @@ Push commits and create/update PR.
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
 6. **If NO PR exists** (or old PR was merged/closed):
-   - Create one with `gh pr create --title "<title>" --body "<body>"`
-   - You MUST follow [pr-guidelines.md](pr-guidelines.md) for the title and body
+   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with: mode `create`, base_branch.
 
 7. **If PR exists and description needs updating**:
-   - Follow the [Update Description operation](update-description.md) steps 2-5 to rewrite the title and description
+   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with: mode `update`, base_branch, pr_number.
 
 8. **Report PR URL** to the user
 

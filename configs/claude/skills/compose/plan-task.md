@@ -5,14 +5,14 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 ## Instructions
 
 1. **Gather requirements**:
-   Interview the user about:
+   Interview the user via AskUserQuestion about:
    - The overall goal and desired end state
    - Natural phase boundaries or milestones (if they have any in mind)
    - The codebase location and key directories
    - Build and test commands
    - Any prior decisions, constraints, or failed approaches
 
-   MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if answers are ambiguous or incomplete.
+   MUST use AskUserQuestion for all questions. MUST batch questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if answers are ambiguous or incomplete.
 
 2. **Load coding preferences** (conditional):
    If the task involves writing or modifying code:
@@ -39,7 +39,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 4. **Confirm understanding**:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
-   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
+   - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options
    - If the user selects "Start over", return to step 1
    - MUST NOT proceed to decomposition until the user selects "Looks good"
 
@@ -49,7 +49,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    MUST read [plan-template.md](plan-template.md) and follow the Chunking Guidelines before decomposing.
 
    MUST present the chunk list and ask for approval via AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
-   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust, revise the list, and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
+   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the list, and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
 6. **Write chunk files via subagents**:
    For each approved chunk, spawn a Task tool subagent (type: chunk-writer) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
