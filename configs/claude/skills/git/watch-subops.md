@@ -1,6 +1,6 @@
-# Watch Protocol Reference
+# Watch Sub-Operations
 
-Detailed procedures for handling review threads and CI failures during the watch loop. Referenced by [watch.md](watch.md).
+Procedures for handling review threads and CI failures during the watch loop. Referenced by [watch.md](watch.md).
 
 All fixes MUST be delegated to subagents -- reading source files and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages and dispatches; subagents debug and fix. Each subagent prompt MUST include the repository root path.
 
@@ -51,7 +51,7 @@ Each section uses simple markdown list items for easy reading and writing. Empty
 
 Check if `./tmp/ci-watch-<pr-number>.md` already exists.
 
-**If it exists (resume):** Read the file. Use its values as the starting state. Log a resume action: `- [<timestamp>] Resumed watch from iteration <n>`. Report to the user that a previous session is being resumed.
+**If it exists (resume):** Read the file. Use its values as the starting state. Run a fresh `poll-pr-status` call (using the file's `last_push_time` and `handled_threads`) and update the "Latest Status" section so monitoring begins with current data. Log a resume action: `- [<timestamp>] Resumed watch from iteration <n>`. Report to the user that a previous session is being resumed.
 
 **If it does not exist (fresh start):** Run the initial `poll-pr-status` call, then create the file:
 
@@ -59,17 +59,17 @@ Check if `./tmp/ci-watch-<pr-number>.md` already exists.
 2. `last_push_time`: `date -u +%Y-%m-%dT%H:%M:%SZ`
 3. `iteration`: 0
 4. `started_at`: same as `last_push_time`
-5. `handled_checks`: if `ci` is not null, pre-seed with names from `ci.pendingChecks` (avoids re-triaging in-progress checks). If `ci` is null, leave empty.
+5. `handled_checks`: if `ci` is not null, pre-seed with names of currently-pending checks only (from `ci.pendingChecks`) -- this avoids re-triaging in-progress checks. Current failures are NOT pre-seeded; they will be handled in the first monitoring iteration. If `ci` is null, leave empty.
 6. `handled_threads`: empty
 7. `fix_attempts`: empty
 8. `actions_log`: one entry: `- [<timestamp>] Watch started`
 9. `latest_status`: initial CI summary line
 
-Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`).
+Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
 
 ## Handle New Review Threads
 
-Delegate to a Task subagent (type: general-purpose, model: sonnet) with:
+Delegate to a Task subagent (subagent_type: general-purpose, model: sonnet) with:
 - All new thread details: file path, line number, full comment bodies, last comment `id` per thread
 - Instruction: read each file, understand the reviewer's concern, apply the fix, run relevant tests to verify, then run the appropriate lint-fix command per [git-patterns.md](git-patterns.md) "Local Fix Commands"
 
@@ -92,7 +92,7 @@ Note: when a new commit is pushed, checks from the previous commit may appear as
 
 ### Guard against infinite loops
 
-If the "Fix Attempts" section in the state file shows `<check_name>: 2` or higher, log that repeated fixes have not resolved this check, skip it, and continue. Report to the user that manual intervention may be needed.
+If the "Fix Attempts" section in the state file shows `<check_name>: 2` or higher, log that repeated fixes have not resolved this check, skip it, and continue. Report to the user: "`<check name>` has failed after 2 fix attempts. Manual intervention may be needed. Monitoring continues for other checks."
 
 ### GitHub Actions (`ci_system == "github-actions"`)
 
@@ -132,16 +132,16 @@ Same as Buildkite: skip automated triage, treat failures as real, proceed to fix
 
 ### Fix a real failure
 
-Delegate to a Task subagent (type: general-purpose, model: sonnet) with:
+Delegate to a Task subagent (subagent_type: general-purpose, model: sonnet) with:
 - Failed check name (and trimmed logs + root cause from ci-triager, if available from the GitHub Actions path)
 - Instruction: identify root cause, read relevant source files, fix the issue, run the appropriate lint-fix and test commands per [git-patterns.md](git-patterns.md) "Local Fix Commands", run local verification if possible
 
-After the subagent returns, check `git status --short`. If files changed:
+After the subagent returns, increment the count for `<check_name>` in the "Fix Attempts" section of the state file (this counts every attempt, regardless of outcome, so the infinite-loop guard triggers after 2 total tries). Then add check NAME to the "Handled Checks" section.
+
+Check `git status --short`. If files changed:
 - Spawn the `committer` agent with prompt: "Commit these changes. They fix a CI failure in <check name>: <brief failure summary>."
 - `git push`
 - Update `head_sha` and `last_push_time` in the state file
-- Increment the count for `<check_name>` in the "Fix Attempts" section of the state file
-- Add check NAME to the "Handled Checks" section in the state file
 - Append to the "Actions Log" section: `- [<timestamp>] Fixed CI failure <check name>: <brief summary>`
 
-If the subagent reports it could not fix the issue, append to the actions log: `- [<timestamp>] Could not fix <check name>: <reason>`. Add the check name to "Handled Checks" to prevent re-dispatch. Continue.
+If the subagent reports it could not fix the issue, append to the actions log: `- [<timestamp>] Could not fix <check name>: <reason>`. Continue.
