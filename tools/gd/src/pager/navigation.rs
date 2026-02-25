@@ -46,42 +46,9 @@ pub(crate) fn change_group_starts(
     starts
 }
 
-fn hunk_change_starts(line_map: &[LineInfo], hunk_starts: &[usize]) -> Vec<usize> {
-    use crate::git::diff::LineKind;
-
-    if hunk_starts.is_empty() {
-        return Vec::new();
-    }
-
-    let mut targets = Vec::with_capacity(hunk_starts.len());
-    for (idx, &start) in hunk_starts.iter().enumerate() {
-        let end = hunk_starts
-            .get(idx + 1)
-            .copied()
-            .unwrap_or(line_map.len())
-            .min(line_map.len());
-
-        let target = (start..end)
-            .find(|&i| {
-                matches!(
-                    line_map[i].line_kind,
-                    Some(LineKind::Added | LineKind::Deleted)
-                )
-            })
-            .unwrap_or(start);
-        targets.push(target);
-    }
-    targets
-}
-
 fn du_nav_targets(state: &PagerState) -> Vec<usize> {
     let (range_start, range_end) = visible_range(state);
-    if state.full_context {
-        change_group_starts(&state.doc.line_map, range_start, range_end)
-    } else {
-        let file_hunks = targets_in_range(&state.doc.hunk_starts, range_start, range_end);
-        hunk_change_starts(&state.doc.line_map, &file_hunks)
-    }
+    change_group_starts(&state.doc.line_map, range_start, range_end)
 }
 
 pub(crate) struct NavDuResult {

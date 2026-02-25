@@ -53,6 +53,7 @@ pub(crate) struct Document {
     pub(crate) lines: Vec<String>,
     pub(crate) line_map: Vec<LineInfo>,
     pub(crate) file_starts: Vec<usize>,
+    #[allow(dead_code)]
     pub(crate) hunk_starts: Vec<usize>,
 }
 

@@ -94,6 +94,12 @@ fn dispatch_normal_action(
             if res.moved {
                 let (rs, _, _, max_top) = viewport_bounds(state, ch);
                 state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+            } else if let Some(active) = state.active_file() {
+                // At last hunk of current file -- advance to next file
+                if active + 1 < state.file_count() {
+                    set_view_to_file(state, active + 1, ch);
+                    state.status_message = "Next file".into();
+                }
             }
             sync_tree_cursor(state, ch);
             Some(ReducerEffect::Continue)
@@ -106,6 +112,12 @@ fn dispatch_normal_action(
             if res.moved {
                 let (rs, _, _, max_top) = viewport_bounds(state, ch);
                 state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+            } else if let Some(active) = state.active_file() {
+                // At first hunk of current file -- retreat to previous file
+                if active > 0 {
+                    set_view_to_file(state, active - 1, ch);
+                    state.status_message = "Previous file".into();
+                }
             }
             sync_tree_cursor(state, ch);
             Some(ReducerEffect::Continue)

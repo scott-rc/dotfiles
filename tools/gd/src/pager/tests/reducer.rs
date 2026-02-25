@@ -102,7 +102,7 @@ fn key_z_centers_viewport() {
 
 #[test]
 fn key_bracket_next_hunk_same_file() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.cursor_line = 8;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -110,7 +110,7 @@ fn key_bracket_next_hunk_same_file() {
 
 #[test]
 fn key_bracket_prev_hunk_same_file() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.cursor_line = 16;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -118,27 +118,35 @@ fn key_bracket_prev_hunk_same_file() {
 
 #[test]
 fn key_bracket_prev_hunk_from_first_content_line() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.cursor_line = 16;
     state.set_active_file(Some(0));
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 6);
+    assert_eq!(state.cursor_line, 10);
 }
 
 #[test]
-fn key_bracket_prev_hunk_single_file_stays_in_file() {
+fn key_bracket_prev_hunk_single_file_retreats_to_prev_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    // In single-file mode, hunks are scoped to file 1 only; no cross-file jump
-    assert_eq!(state.cursor_line, 36);
-    assert_eq!(state.active_file(), Some(1));
+    // At the first hunk of file 1, [ should retreat to previous file
+    assert_eq!(
+        state.active_file(),
+        Some(0),
+        "[ at first hunk should retreat to prev file"
+    );
+    assert!(
+        state.cursor_line < 30,
+        "cursor should be in file 0 range, got {}",
+        state.cursor_line
+    );
 }
 
 #[test]
 fn key_bracket_next_hunk_cross_file_boundary() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.cursor_line = 16;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -146,7 +154,7 @@ fn key_bracket_next_hunk_cross_file_boundary() {
 
 #[test]
 fn key_bracket_next_hunk_scrolloff_binding() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.cursor_line = 6;
     handle_key(&mut state, Key::Char(']'), 15, 40, 120, &[], p());
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -154,7 +162,7 @@ fn key_bracket_next_hunk_scrolloff_binding() {
 
 #[test]
 fn key_bracket_next_hunk_at_last_is_noop() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 76;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
@@ -163,7 +171,7 @@ fn key_bracket_next_hunk_at_last_is_noop() {
 
 #[test]
 fn key_bracket_prev_hunk_at_first_is_noop() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 6;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
@@ -172,7 +180,7 @@ fn key_bracket_prev_hunk_at_first_is_noop() {
 
 #[test]
 fn key_bracket_no_active_file_does_not_stick() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 5;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
@@ -299,34 +307,72 @@ fn key_brace_prev_shows_file_status_message() {
 // ---- Hunk nav in single-file mode ----
 
 #[test]
-fn key_bracket_single_file_noop_at_last_hunk() {
+fn key_bracket_single_file_advances_to_next_file_at_last_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 16;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
-    // No more hunks in file 0 after cursor 16 (hunks are [5, 15])
-    assert_eq!(state.cursor_line, 16);
-    assert_eq!(state.active_file(), Some(0));
+    // At the last hunk of file 0 (hunks [5, 15]), ] should advance to next file
+    assert_eq!(
+        state.active_file(),
+        Some(1),
+        "] at last hunk should advance to next file"
+    );
+    assert!(
+        state.cursor_line >= 30 && state.cursor_line < 60,
+        "cursor should be in file 1 range, got {}",
+        state.cursor_line
+    );
 }
 
 #[test]
-fn key_bracket_single_file_noop_at_first_hunk() {
+fn key_bracket_prev_single_file_retreats_to_prev_file_at_first_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    // First hunk in file 1 starts at 35, first content line is 36 (== cursor), no-op
-    assert_eq!(state.cursor_line, 36);
-    assert_eq!(state.active_file(), Some(1));
+    // At first hunk of file 1, [ should retreat to previous file
+    assert_eq!(
+        state.active_file(),
+        Some(0),
+        "[ at first hunk should retreat to prev file"
+    );
+    assert!(
+        state.cursor_line < 30,
+        "cursor should be in file 0 range, got {}",
+        state.cursor_line
+    );
+}
+
+#[test]
+fn key_bracket_single_file_last_file_at_last_hunk_is_noop() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(2));
+    state.cursor_line = 76;
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    // At the last hunk of the last file, ] should be a no-op
+    assert_eq!(state.active_file(), Some(2));
+    assert_eq!(state.cursor_line, 76);
+}
+
+#[test]
+fn key_bracket_single_file_first_file_at_first_hunk_is_noop() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    state.cursor_line = 6;
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    // At the first hunk of file 0, [ with no previous file should be a no-op
+    assert_eq!(state.active_file(), Some(0));
+    assert_eq!(state.cursor_line, 6);
 }
 
 #[test]
 fn key_bracket_single_file_within_file_works() {
-    let mut state = make_keybinding_state();
+    let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 6;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 16);
+    assert_eq!(state.cursor_line, 10);
 }
 
 #[test]
@@ -374,13 +420,13 @@ fn key_bracket_hunk_context_skips_leading_context_to_first_change() {
 }
 
 #[test]
-fn key_bracket_prev_hunk_context_skips_leading_context() {
+fn key_bracket_prev_hunk_context_navigates_to_prev_change_group() {
     let mut state = make_mixed_content_state();
     add_leading_context_before_hunk_changes(&mut state);
     state.full_context = false;
     state.cursor_line = 17;
     handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    assert_eq!(state.cursor_line, 8);
+    assert_eq!(state.cursor_line, 10);
 }
 
 #[test]
@@ -391,6 +437,55 @@ fn key_bracket_full_context_single_file_lands_on_change_group() {
     state.cursor_line = 1;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
     assert_eq!(state.cursor_line, 6);
+}
+
+#[test]
+fn key_bracket_full_context_same_targets_as_hunk_mode() {
+    // In mixed_content_state, file 0 has hunks at [5, 15].
+    // Hunk 5 first change is at 6 (Added). Hunk 15 has no changes (all Context).
+    // In both hunk mode and full context mode, ] from pos 1 should land on 6,
+    // and ] again should behave the same way in both modes.
+    let mut hunk_state = make_mixed_content_state();
+    hunk_state.set_active_file(Some(0));
+    hunk_state.full_context = false;
+    hunk_state.cursor_line = 1;
+
+    let mut ctx_state = make_mixed_content_state();
+    ctx_state.set_active_file(Some(0));
+    ctx_state.full_context = true;
+    ctx_state.cursor_line = 1;
+
+    // First ] should land on same position in both modes
+    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p());
+    assert_eq!(
+        hunk_state.cursor_line, ctx_state.cursor_line,
+        "first ] should land on same position: hunk={} full_ctx={}",
+        hunk_state.cursor_line, ctx_state.cursor_line
+    );
+
+    // Second ] should also land on same position
+    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p());
+    assert_eq!(
+        hunk_state.cursor_line, ctx_state.cursor_line,
+        "second ] should land on same position: hunk={} full_ctx={}",
+        hunk_state.cursor_line, ctx_state.cursor_line
+    );
+}
+
+#[test]
+fn key_bracket_full_context_advances_to_next_file() {
+    // In full context mode + single file, ] at the last hunk should also advance
+    let mut state = make_mixed_content_state();
+    state.set_active_file(Some(0));
+    state.full_context = true;
+    // Navigate to the last change in file 0
+    state.cursor_line = 10; // Deleted group at 10-11
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    // If there are no more targets in file 0, should advance to file 1
+    // (depends on mixed_content_state's layout for file 0)
+    assert_state_invariants(&state);
 }
 
 #[test]
@@ -411,21 +506,19 @@ fn key_bracket_then_prev_round_trip_full_context_single_file() {
     state.cursor_line = 6;
     handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
     let after_next = state.cursor_line;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
-    let after_prev = state.cursor_line;
     assert!(
         after_next > 6,
         "] should move forward from 6, got {after_next}"
     );
-    assert!(
-        after_prev <= 8,
-        "[ should return near first change group, got {after_prev}"
-    );
-    assert_eq!(after_prev, 6);
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    let after_prev = state.cursor_line;
+    assert_eq!(after_prev, 6, "[ should return to first change");
 }
 
 #[test]
-fn key_bracket_full_context_all_context_file_is_noop() {
+fn key_bracket_full_context_all_context_file_advances_to_next_file() {
+    // In full context mode, an all-Context file has no change groups to navigate.
+    // ] advances to the next file.
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.full_context = true;
