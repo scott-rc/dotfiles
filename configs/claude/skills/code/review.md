@@ -12,7 +12,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - **Small scope**: ≤8 changed files AND ≤500 changed lines → follow steps 3–6
    - **Large scope**: >8 changed files OR >500 changed lines → follow steps 7–13
 
-   Present the assessment via AskUserQuestion with options: "Quick review (single-pass)", "Thorough review (subagent decomposition)". The user can also force the thorough path by saying "thorough review" or "deep review".
+   For small scope, proceed directly to step 3. For large scope, present an AskUserQuestion with options: "Thorough review (subagent decomposition)", "Quick review (single-pass)". The user can also force the thorough path by saying "thorough review" or "deep review".
 
 ### Small Scope (Single-Pass Review)
 
@@ -25,7 +25,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - All files in the review scope
    - Focus: general review
    - Paths to the guidelines files loaded in step 3
-   - The full [Review Checklist](#review-checklist) below — copy the text content of the five checklist sections verbatim into the template's checklist placeholder
+   - The checklist from [review-checklist.md](review-checklist.md) — copy it into the template's checklist placeholder
 
 6. **Report findings**:
    MUST present findings grouped by severity (issues first, then suggestions, then nits). Each finding MUST include:
@@ -40,13 +40,17 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 7. **Load guidelines**: MUST load [general-guidelines.md](general-guidelines.md). If language-specific files exist for the target languages ([typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [rust-guidelines.md](rust-guidelines.md), [shell-guidelines.md](shell-guidelines.md)), load them too.
 
 8. **Decompose into review scopes**:
-   Map all changes (`git diff --stat` or file list). Decompose into 2–5 independent review scopes. Each scope gets:
-   - **Name** — short descriptive label
-   - **Files** — concrete file list (non-overlapping across scopes)
-   - **Focus** — what to pay attention to in this scope
-   - **Criteria** — scope-specific review criteria beyond the standard checklist
+   Spawn a Task subagent (type: Explore) to analyze the diff and propose review scopes. The subagent MUST:
+   - Run `git diff --stat` (or inspect the file list) to map all changed files and line counts
+   - Group related files by theme/concern (e.g., "API handler changes", "test updates", "config/infra")
+   - Propose 2–5 non-overlapping review scopes, each with:
+     - **Name** — short descriptive label
+     - **Files** — concrete file list (every changed file assigned to exactly one scope)
+     - **Focus** — what to pay attention to in this scope
+     - **Criteria** — scope-specific review criteria beyond the standard checklist
+   - Return the scopes as a structured list (not raw diff output)
 
-   Present the scopes to the user for approval before proceeding.
+   Present the proposed scopes to the user via AskUserQuestion for confirmation or adjustment before proceeding.
 
 9. **Load review template**: Read [review-template.md](review-template.md) for the subagent prompt template. Use this template when spawning each review subagent below.
 
@@ -55,7 +59,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     - The scope's name, file list, and focus
     - Paths to the guidelines files loaded in step 7
     - Project context (repo root, conventions observed)
-    - The full [Review Checklist](#review-checklist) below — copy the text content of the five checklist sections verbatim into the template's checklist placeholder
+    - The checklist from [review-checklist.md](review-checklist.md) — copy it into the template's checklist placeholder
     - Scope-specific criteria
 
 11. **Consolidate findings**:
@@ -66,37 +70,3 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 13. **Offer fix plan**:
     If any issues or suggestions were found, ask the user if they want a fix plan. If yes, delegate to compose: `skill: "compose", args: "plan fixes from the review findings"`.
-
-## Review Checklist
-
-### Test Coverage
-- Are exported/public functions covered by tests?
-- Are important edge cases tested (empty inputs, boundary values, error paths)?
-- Do tests assert behavior and outcomes, not implementation details?
-- Do tests exercise the actual code path, or do they bypass it by manually constructing expected state?
-- Are there untested error handling paths at system boundaries?
-- If no tests exist for the code under review, flag it — but distinguish between code that needs tests (business logic, parsers, state machines) and code where tests add little value (thin wrappers, config, glue code).
-
-### Idiomaticity
-- Does the code follow the loaded coding guidelines?
-- Does the code match surrounding project conventions (naming, patterns, structure)?
-- Are language-specific idioms used where appropriate (e.g., pattern matching instead of if-chains in Rust, guard clauses instead of nested ifs)?
-- Are framework/library APIs used as intended, not fought against?
-
-### Simplification
-- Can any function be split because it does multiple unrelated things?
-- Is there duplicated logic that has appeared 3+ times and should be extracted?
-- Are there premature abstractions — wrappers, helpers, or indirection layers that serve only one call site?
-- Can nested conditionals be flattened with guard clauses or early returns?
-- Is there dead code (unreachable branches, unused variables, commented-out code)?
-- Are there overly defensive checks for conditions that cannot occur internally?
-
-### Correctness and Robustness
-- Is error handling present at system boundaries (user input, API responses, file I/O)?
-- Are there race conditions, missing null checks on external data, or unhandled promise rejections?
-- Are resource cleanup paths correct (streams closed, connections released, listeners removed)?
-
-### Naming and Clarity
-- Do names communicate purpose at the call site?
-- Are there misleading names (e.g., a function named `get*` that mutates state)?
-- Are "why" comments present for non-obvious logic? Are there comments that just restate the code?

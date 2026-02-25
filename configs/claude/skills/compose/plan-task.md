@@ -46,20 +46,27 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - MUST NOT proceed to decomposition until the user selects "Looks good"
 
 5. **Decompose into chunks**:
-   Identify 2-6 chunks that partition the work. Present the chunk list with one-line descriptions for user approval.
+   Spawn a Task subagent (type: Plan, model: sonnet) to propose the chunk decomposition. Supply the subagent with:
+   - The approved requirements from step 4 (or the user's original request if step 4 was skipped)
+   - The Explore agent's codebase analysis from step 3 (if it ran)
+   - The coding preferences from step 2 (if they were loaded)
 
-   Follow these chunking guidelines when decomposing:
-   1. **Refactor first** -- if the task requires new abstractions or restructuring, make chunk 01 a pure refactor with no behavior change. This gives later chunks a clean foundation.
-   2. **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. Do not mix unrelated changes.
-   3. **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
-   4. **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
-   5. **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
-   6. **Test first when testable** -- for chunks adding testable behavior, structure step groups as red-green-refactor: "Red" (write failing tests), "Green" (implement to pass), "Refactor" (clean up). Include explicit test-run checkboxes to confirm failure then success. Chunks that are pure refactoring, config, or glue code use plain step groups.
-   7. **Docs and cleanup last** -- put documentation updates, README changes, and cleanup in the final chunk. Earlier chunks focus on implementation.
-   8. **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks. A reviewer should be able to check one chunk in isolation.
+   The Plan subagent MUST:
+   - Identify 2-6 chunks that partition the work
+   - For each chunk, provide: a one-line description, the list of files it will touch, which prior chunk it depends on (or "None"), a 2-4 sentence summary, and verification steps
+   - Follow these chunking guidelines:
+     1. **Refactor first** -- if the task requires new abstractions or restructuring, make chunk 01 a pure refactor with no behavior change. This gives later chunks a clean foundation.
+     2. **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. Do not mix unrelated changes.
+     3. **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
+     4. **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
+     5. **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
+     6. **Test first when testable** -- for chunks adding testable behavior, structure step groups as red-green-refactor: "Red" (write failing tests), "Green" (implement to pass), "Refactor" (clean up). Include explicit test-run checkboxes to confirm failure then success. Chunks that are pure refactoring, config, or glue code use plain step groups.
+     7. **Docs and cleanup last** -- put documentation updates, README changes, and cleanup in the final chunk. Earlier chunks focus on implementation.
+     8. **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks. A reviewer should be able to check one chunk in isolation.
+   - Return the proposed chunk list with all details
 
-   MUST present the chunk list and ask for approval via AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
-   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the list, and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
+   Present the Plan subagent's proposed decomposition to the user. MUST use AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
+   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the decomposition (re-running the Plan subagent if the changes are substantial), and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
 6. **Write chunk files via subagents**:
    For each approved chunk, spawn a Task tool subagent (type: chunk-writer) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.

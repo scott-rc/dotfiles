@@ -16,14 +16,13 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - Include any review summaries (these provide high-level context from the reviewer)
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
-4. **Fix each unresolved thread**:
-   When there are many threads (5+), spawn a Task subagent (type: Explore, model: sonnet) to read all referenced files and their surrounding context, returning a concise summary of the current code at each thread location. This avoids loading many files inline.
+4. **Gather context via Explore subagent**:
+   Follow the "Bulk Thread Handling" pattern in [git-patterns.md](git-patterns.md) (review variant) to spawn an Explore subagent that gathers per-thread context: read the file at the indicated line, read all comments in the thread (later replies often contain clarifications or refined requests), understand the reviewer's concern, and summarize what changed and why.
 
-   For each thread:
-   - Read all comments in the thread -- later replies often contain clarifications or refined requests
-   - Open the file at the indicated line (use the subagent's context if available)
-   - Understand the reviewer's concern and apply the fix
+   **Then fix each thread** using the subagent's context summary:
    - Group threads by file path to minimize context switching
+   - Apply the fix the reviewer requested
+   - Do not re-read files the subagent already summarized
 
 5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
 
