@@ -24,7 +24,7 @@ Detection: Check if the repo path ends with `/dotfiles`:
 ```
 
 When this applies:
-- **commit.md**: Skip the "create a branch first" prompt when on main
+- **Commit operation**: Skip the "create a branch first" prompt when on main
 - **push.md**: Push directly to main without PR creation
 - **worktree.md**: When in dotfiles repo, scan other repositories instead
 - **clean-worktrees.md**: Exclude dotfiles repo from cleanup scans

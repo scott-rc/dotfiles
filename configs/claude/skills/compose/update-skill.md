@@ -52,4 +52,4 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - MUST show the updated SKILL.md Operations section so the user can verify
    - If the description changed, show the full `description` field so the user can verify trigger keywords
    - If the skill was renamed, MUST show the old and new directory paths
-   - MUST note any blocking findings from the skill-reviewer and how they were resolved, if any were found
+   - MUST note any blocking findings from the skill-writer's validation and how they were resolved, if any were found

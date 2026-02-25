@@ -18,8 +18,8 @@ The caller's prompt provides:
 - **body**: the text content to post (or for `review` type, the JSON payload with `event`, optional `body`, and `comments` array)
 - **target**: posting details (fields depend on type)
   - `review-reply` — `owner`, `repo`, `comment_id`
-  - `pr-comment` — `pr_number`
-  - `issue-comment` — `issue_number`
+  - `pr-comment` — `owner`, `repo`, `pr_number`
+  - `issue-comment` — `owner`, `repo`, `issue_number`
   - `review` — `owner`, `repo`, `pr_number`
 
 ## Rules
@@ -51,11 +51,11 @@ The caller's prompt provides:
      ```
    - `pr-comment`:
      ```bash
-     gh pr comment {pr_number} -F "$TMPFILE"
+     gh pr comment {pr_number} --repo {owner}/{repo} -F "$TMPFILE"
      ```
    - `issue-comment`:
      ```bash
-     gh issue comment {issue_number} -F "$TMPFILE"
+     gh issue comment {issue_number} --repo {owner}/{repo} -F "$TMPFILE"
      ```
    - `review`:
      ```bash

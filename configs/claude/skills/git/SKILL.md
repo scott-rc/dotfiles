@@ -21,7 +21,11 @@ Route to the appropriate operation based on user intent.
 
 ### Commit
 Commit outstanding changes with a well-formatted message.
-See [commit.md](commit.md) for detailed instructions.
+
+1. **Check branch protection** per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion. If chosen, create and switch to the branch before committing.
+2. **Delegate to the `committer` agent**. Pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously.
+3. **If the agent returns `needs-user-input`** (mixed concerns): present the groups from `## Cohesion` as AskUserQuestion options. Re-invoke the agent with: "Stage and commit only these files: `<file list>`".
+4. **Report**: show the commit hash and title from the agent's `## Commit` section.
 
 ### Amend
 Fold outstanding changes into the last commit.
@@ -33,7 +37,12 @@ See [squash.md](squash.md) for detailed instructions.
 
 ### Rebase
 Fetch latest and rebase onto base branch.
-See [rebase.md](rebase.md) for detailed instructions.
+
+1. **Fetch**: `git fetch origin`
+2. **Detect base branch**: `fish -c 'gbb'`
+3. **Rebase**: `git rebase origin/<base>`
+4. **If conflicts**: list conflicting files (`git diff --name-only --diff-filter=U`), report to user, present options via AskUserQuestion: "Help resolve conflicts" or "Abort rebase"
+5. **If success**: verify scope per [git-patterns.md](git-patterns.md), show commit count: `git rev-list --count origin/<base>..HEAD`
 
 ### Push
 Push commits and create/update PR with title/description per guidelines.
@@ -53,7 +62,11 @@ See [fix-ci.md](fix-ci.md) for detailed instructions.
 
 ### Rerun
 Re-trigger failed CI jobs.
-See [rerun.md](rerun.md) for detailed instructions.
+
+1. **Find failed run**: `gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId,workflowName`. If none, inform user and stop.
+2. **Rerun**: `gh run rerun <run-id> --failed` (fall back to `gh run rerun <run-id>` if unsupported)
+3. **Confirm**: `gh run view <run-id> --json status`, report run ID and status
+4. Offer to run Watch to monitor results
 
 ### Watch
 Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
@@ -65,7 +78,10 @@ See [review.md](review.md) for detailed instructions.
 
 ### Update Description
 Rewrite the PR title and description to match current changes per guidelines.
-See [update-description.md](update-description.md) for detailed instructions.
+
+1. **Check for PR**: `gh pr view --json number,url,title,body 2>/dev/null`. If none, inform user and stop.
+2. **Delegate to `pr-writer` agent** with: mode `update`, base_branch (detect per [git-patterns.md](git-patterns.md)), pr_number.
+3. **Report**: confirm update, show PR URL.
 
 ### Submit Review
 Submit a PR review (approve, request changes, or comment) with optional inline comments.

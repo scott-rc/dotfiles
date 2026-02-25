@@ -4,7 +4,6 @@ description: Writes ad-hoc code changes (features, fixes, refactoring, coverage)
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 maxTurns: 50
-skills: [code]
 ---
 
 # Code Writer

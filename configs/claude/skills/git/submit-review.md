@@ -24,32 +24,18 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
 
    **Finding line numbers**: `line` is the file's line number, not a diff position. For comments on new/changed code, use the line number from the new version of the file. Read the file on the PR branch, or count from the diff hunk header's `+start` value (increment for each context and `+` line, skip `-` lines). The target line MUST appear in the diff -- GitHub rejects comments on lines outside the diff context.
 
-4. **Construct the review payload**:
-   Write a JSON file to `/tmp/pr-review.json`:
-
-   ```json
-   {
-     "event": "APPROVE",
-     "comments": [
-       {
-         "path": "src/example.ts",
-         "line": 42,
-         "side": "RIGHT",
-         "body": "Comment text here"
-       }
-     ]
-   }
-   ```
+4. **Collect review data**:
+   Assemble the structured payload (do NOT write to a file -- the agent owns file I/O):
 
    - `event` -- `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`
    - `body` -- optional top-level review summary (omit if inline comments suffice)
-   - `comments` -- array of inline comments (can be empty for a plain approval)
+   - `comments` -- array of inline comments, each with `path`, `line`, `side`, `body` (can be empty for a plain approval)
 
    For multi-line comment ranges, add `start_line` and `start_side` to mark the range start.
 
 5. **Submit the review**: Delegate to the `github-writer` agent with:
    - **type**: `review`
-   - **body**: the JSON payload (the contents of `/tmp/pr-review.json`)
+   - **body**: structured data -- `event`, optional `body`, and `comments` array
    - **target**: `owner`, `repo`, `pr_number`
 
 6. **Report result**: Confirm the review was submitted with the verdict and number of inline comments posted.
