@@ -10,56 +10,51 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
    ```
    If no PR exists, inform the user and stop.
 
-2. **Check for CI system**:
+2. **Detect CI system** per [git-patterns.md](git-patterns.md) "CI System Detection":
    ```bash
-   test -d "$(git rev-parse --show-toplevel)/.github/workflows"
+   repo_root=$(git rev-parse --show-toplevel)
    ```
-   If no `.github/workflows/`, note that CI monitoring is unavailable but continue -- review thread monitoring still works.
+   Check for `.github/workflows/` and `.buildkite/` to determine `ci_system` (`github-actions`, `buildkite`, or `unknown`). The `poll-pr-status` script detects this automatically and includes it in the `ci.ciSystem` field -- no separate detection needed at this step. Note that `ci` being null means no check runs were reported at all (rare), not that CI is unsupported.
 
-3. **Snapshot initial state**:
-   - HEAD SHA: `git rev-parse HEAD`
-   - Last push timestamp: `date -u +%Y-%m-%dT%H:%M:%SZ`
-   - Unreplied threads via `get-pr-comments --unreplied` (path in [git-patterns.md](git-patterns.md))
-   - CI status via `gh pr checks --json name,state,startedAt,completedAt` (if CI exists)
-   - Any checks with `state` equal to `IN_PROGRESS`: add their IDs to `handled_runs` (avoids re-triaging reruns that are already underway)
-
-   Initialize tracking state:
-   - `handled_threads`: empty set of comment `id` values -- pre-existing unreplied threads are actionable and will be picked up on the first poll iteration
-   - `handled_runs`: set of CI run database IDs already triaged (pre-seeded with in-progress runs)
+3. **Snapshot initial state** using `poll-pr-status` (path in [git-patterns.md](git-patterns.md)):
+   ```bash
+   poll-pr-status
+   ```
+   From the returned JSON, initialize tracking state:
+   - `handled_checks`: if `ci` is not null, pre-seed with names from `ci.pendingChecks` (avoids re-triaging in-progress checks). If `ci` is null (no check runs reported), initialize as empty.
+   - `handled_threads`: empty set -- pre-existing unreplied threads are actionable and will surface on the first poll iteration
    - `fix_attempts`: empty map of check name to attempt count
-   - `head_sha`: current HEAD
-   - `last_push_time`: current timestamp
+   - `head_sha`: current HEAD (`git rev-parse HEAD`)
+   - `last_push_time`: current timestamp (`date -u +%Y-%m-%dT%H:%M:%SZ`)
    - `actions_log`: empty list for the final summary
 
-4. **Report initial status**: CI check summary (pass/fail/pending counts), count of pre-existing unresolved threads, and that monitoring has started with 30s poll interval.
+4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with 30s poll interval.
 
 5. **Monitoring loop** (up to 90 iterations, ~45 minutes):
 
    a. **Sleep**: `sleep 30`
       If any API call in the previous iteration returned HTTP 429, double the sleep interval (up to 120s). Reset to 30s once a non-429 response is received.
 
-   b. **Poll CI** (if CI exists):
+   b. **Poll**: Run `poll-pr-status` (path in [git-patterns.md](git-patterns.md)) with current state:
       ```bash
-      gh pr checks --json name,state,startedAt,completedAt
+      poll-pr-status --last-push-time <last_push_time> --handled-threads <id1,id2,...>
       ```
-      Only consider failures where `startedAt` is after `last_push_time`. Ignore stale checks from prior commits.
+      Omit `--handled-threads` if the set is empty. The script filters stale failures (checks that started before `last_push_time`) and returns only threads not in the handled set.
 
-   c. **Poll review threads**:
-      Run `get-pr-comments --unreplied` (path in [git-patterns.md](git-patterns.md)).
-      New threads: any thread whose last comment `id` is NOT in `handled_threads`.
+   c. **Report poll result**: Log one line: `actionable=<value> new_failures=<N> new_threads=<N> pending=[<name>, ...]`. Do not dump raw JSON.
 
-   d. **Handle new review threads** (if any): Follow the "Handle New Review Threads" protocol in [watch-protocol.md](watch-protocol.md).
+   d. **Handle new review threads** (if `threads.new > 0`): Follow the "Handle New Review Threads" protocol in [watch-protocol.md](watch-protocol.md). After handling, add each thread's last comment `id` to `handled_threads`.
 
-   e. **Handle CI failures** (if any new failures not in `handled_runs`): Follow the "Handle CI Failures" protocol in [watch-protocol.md](watch-protocol.md).
+   e. **Handle CI failures** (if any failure names not in `handled_checks`): Follow the "Handle CI Failures" protocol in [watch-protocol.md](watch-protocol.md). After handling, add the check name to `handled_checks`.
 
-   f. **Check exit conditions**:
-      - **All green**: every check passes, none pending, and `get-pr-comments` returns zero unresolved threads -> report success, exit loop
-      - **PR closed/merged**: `gh pr view --json state` shows MERGED or CLOSED -> report, exit loop
+   f. **Check exit conditions** using the `exit` field from the poll response:
+      - `exit == "all_green"`: all actionable checks pass, no new threads -> report success, exit loop
+      - `exit == "pr_merged"` or `exit == "pr_closed"`: report, exit loop
+      - `exit == null`: continue loop
       - **Timeout**: max iterations reached -> report current status, exit loop
 
 6. **Summary**: Report all actions from `actions_log`:
    - Review threads addressed (count, files)
    - CI failures fixed (count, root causes)
-   - CI jobs rerun (count, reasons: transient/flake)
    - Current CI status
    - Total commits pushed

@@ -123,5 +123,7 @@ These files are referenced by the operation instructions above:
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
 - [watch-protocol.md](watch-protocol.md) - Detailed procedures for handling review threads and CI failures during the watch loop
 - `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
+- `scripts/poll-pr-status.sh` - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
+- `scripts/get-failed-runs.sh` - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-protocol.md)
 
-Scripts require the skill to be installed at `~/.claude/skills/git/` (set up by `apply.sh`).
+Scripts require the skill to be installed at `~/.claude/skills/git/`. All script paths are listed in [git-patterns.md](git-patterns.md).

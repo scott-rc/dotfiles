@@ -5,6 +5,8 @@ Shared patterns used across git skill operations. Reference this file for consis
 ## Script Paths
 
 - `get-pr-comments` -- `~/.claude/skills/git/scripts/get-pr-comments.sh`
+- `poll-pr-status` -- `~/.claude/skills/git/scripts/poll-pr-status.sh`
+- `get-failed-runs` -- `~/.claude/skills/git/scripts/get-failed-runs.sh`
 
 ## Fish Functions
 
@@ -68,3 +70,31 @@ git diff --stat origin/<base> HEAD
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
 - Offer to fix with `git rebase -i origin/<base>`
+
+## CI System Detection
+
+Detect the CI system from the repository root:
+1. `.github/workflows/` exists → `github-actions`
+2. `.buildkite/` exists → `buildkite`
+3. Neither → `unknown` (checks may still appear from external services)
+
+`gh pr checks` works for all systems. `gh run list` / `gh run view` / `get-failed-runs` / `ci-triager` only work for `github-actions`.
+
+## Local Fix Commands
+
+Detect language from the repository root and use the appropriate commands. Subagents should also consult the project's CLAUDE.md for project-specific commands.
+
+### Node.js (`package.json` exists)
+- **Lint fix**: `pnpm run lint:fix` (if the script exists in package.json)
+- **Test**: `pnpm test`
+
+### Go (`go.mod` exists)
+- **Lint fix**: if `.envrc` exists, `direnv exec . fmt`; otherwise `golangci-lint run --fix ./...`
+- **Test**: if `.envrc` exists, `direnv exec . tests -short ./...`; otherwise `go test -short ./...`
+
+### Rust (`Cargo.toml` exists)
+- **Lint fix**: `cargo clippy --fix --allow-dirty && cargo fmt`
+- **Test**: `cargo test`
+
+### Fallback
+If none of the above match, skip automated lint fixing and instruct the subagent to check for project-specific tooling.

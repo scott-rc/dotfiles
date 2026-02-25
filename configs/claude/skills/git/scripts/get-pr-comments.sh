@@ -9,10 +9,10 @@ set -euo pipefail
 #   get-pr-comments.sh --unreplied  # Only threads where the current user hasn't replied
 
 unreplied=false
-for arg in "$@"; do
-  case "$arg" in
-    --unreplied) unreplied=true ;;
-    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --unreplied) unreplied=true; shift ;;
+    *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
 
@@ -31,10 +31,15 @@ pr_json=$(gh pr view --json number,url 2>/dev/null) || {
 pr_number=$(echo "$pr_json" | jq -r '.number')
 pr_url=$(echo "$pr_json" | jq -r '.url')
 
-repo_json=$(gh repo view --json owner,name)
+repo_json=$(gh repo view --json owner,name) || {
+  echo "Error: Could not determine repository owner/name." >&2
+  exit 1
+}
 owner=$(echo "$repo_json" | jq -r '.owner.login')
 repo=$(echo "$repo_json" | jq -r '.name')
 
+# $owner, $repo, $pr below are GraphQL variables, not shell
+# shellcheck disable=SC2016
 graphql_query='
 query($owner: String!, $repo: String!, $pr: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -72,7 +77,7 @@ result=$(gh api graphql -F owner="$owner" -F repo="$repo" -F pr="$pr_number" -f 
 
 thread_filter='.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)'
 if [ "$unreplied" = true ]; then
-  thread_filter="$thread_filter | select((.comments.nodes | last | .author.login) != \$me)"
+  thread_filter="$thread_filter | select((.comments.nodes | length) > 0) | select((.comments.nodes | last | .author.login) != \$me)"
 fi
 
 echo "$result" | jq \
