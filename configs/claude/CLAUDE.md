@@ -2,7 +2,13 @@
 
 ## Delegation
 
-For code, commits, PR descriptions, GitHub text, rules files, skill files, and slide content — delegate to a domain-specific subagent that owns the write-verify-retry loop rather than writing directly. The main agent researches, loads context, and picks the right subagent; subagents write, verify, and iterate on failures.
+Delegate to a domain-specific subagent that owns the full problem-solving loop (read, analyze, design, write, verify, iterate). Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
+
+**Do NOT:**
+- Read source files to analyze or diagnose problems that will be delegated
+- Design implementations or prescribe code changes for subagents
+- Re-read files a subagent already summarized
+- Reduce a subagent to a transcriber by over-specifying the solution
 
 Route by task:
 - Code (plan chunks) — `chunk-executor`
@@ -29,7 +35,6 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 ### Personal
 
 - `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills**
-- `~/Code/personal/recipe-book` — Recipe collection
 - `~/Code/personal/slides` — Slidev presentations (pnpm workspace)
 
 ### Gadget (work)
@@ -38,5 +43,4 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 - `~/Code/gadget/ggt` — Gadget CLI tool
 - `~/Code/gadget/skipper` — Kubernetes operator for Gadget apps
 - `~/Code/gadget/global-infrastructure` — Terraform/infra for Gadget cloud
-- `~/Code/gadget/js-clients` — JavaScript client libraries
 
