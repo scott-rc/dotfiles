@@ -2,7 +2,7 @@ use tui::pager::{Key, copy_to_clipboard};
 
 use crate::git::diff::DiffFile;
 
-use super::content::{is_content_line, next_content_line, prev_content_line, snap_to_content};
+use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
 use super::navigation::{
     nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line, sync_active_file_to_cursor,
@@ -26,9 +26,11 @@ pub(crate) enum ReducerEvent {
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
     state.set_active_file(Some(file_idx));
     if let Some(start) = state.file_start(file_idx) {
-        let file_end = state.file_end(file_idx).saturating_sub(1);
         state.top_line = start;
-        state.cursor_line = snap_to_content(&state.doc.line_map, state.top_line, start, file_end);
+        // Keep cursor at file header so ] can find the first change group.
+        // snap_to_content would land on a change line when there's no leading
+        // context, making jump_next (strictly >) unable to find that target.
+        state.cursor_line = start;
         let (_, _, _, max_top) = viewport_bounds(state, ch);
         state.top_line = recenter_top_line(state.cursor_line, ch, start, max_top);
     }
@@ -98,7 +100,16 @@ fn dispatch_normal_action(
                 // At last hunk of current file -- advance to next file
                 if active + 1 < state.file_count() {
                     set_view_to_file(state, active + 1, ch);
-                    state.status_message = "Next file".into();
+                    // Jump to the first change group in the new file
+                    let fwd = nav_du_down(state);
+                    if fwd.moved {
+                        state.cursor_line = fwd.cursor_line;
+                        state.status_message.clone_from(&fwd.status_message);
+                        let (rs, _, _, max_top) = viewport_bounds(state, ch);
+                        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+                    } else {
+                        state.status_message = "Next file".into();
+                    }
                 }
             }
             sync_tree_cursor(state, ch);
@@ -116,7 +127,24 @@ fn dispatch_normal_action(
                 // At first hunk of current file -- retreat to previous file
                 if active > 0 {
                     set_view_to_file(state, active - 1, ch);
-                    state.status_message = "Previous file".into();
+                    // Jump to the last change group in the new file
+                    let targets = super::navigation::du_nav_targets(state);
+                    if let Some(&last_target) = targets.last() {
+                        let max_line = state.doc.line_map.len().saturating_sub(1);
+                        state.cursor_line = super::content::next_content_line(
+                            &state.doc.line_map, last_target, max_line,
+                        );
+                        state.status_message = super::navigation::nav_status_message(
+                            if state.full_context { "Change" } else { "Hunk" },
+                            state.cursor_line,
+                            &targets,
+                            &state.doc.line_map,
+                        );
+                        let (rs, _, _, max_top) = viewport_bounds(state, ch);
+                        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+                    } else {
+                        state.status_message = "Previous file".into();
+                    }
                 }
             }
             sync_tree_cursor(state, ch);

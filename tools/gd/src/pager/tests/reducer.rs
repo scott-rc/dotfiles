@@ -5,7 +5,6 @@ use insta::assert_debug_snapshot;
 use tui::pager::Key;
 use tui::search::{find_matches, find_nearest_match};
 
-use super::super::content::is_content_line;
 use super::super::reducer::handle_key;
 use super::super::runtime::re_render;
 use super::super::state::visible_range;
@@ -385,6 +384,49 @@ fn key_bracket_single_file_clamps_top_line_to_active_file_range() {
     assert!(state.top_line >= range_start);
 }
 
+#[test]
+fn key_bracket_next_advance_lands_on_first_change_group() {
+    // When ] advances to the next file, cursor should land on the first
+    // change group of that file, not the file header.
+    let mut state = make_mixed_content_state();
+    state.set_active_file(Some(0));
+    // Position at the last change group of file 0 (Deleted at 10-11)
+    state.cursor_line = 10;
+    // First ] stays within file 0 -- no more change groups after 10
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    // Should advance to file 1 and land on first change group (Added at 36)
+    assert_eq!(
+        state.active_file(),
+        Some(1),
+        "] should advance to next file"
+    );
+    assert_eq!(
+        state.cursor_line, 36,
+        "cursor should land on first change group of new file (Added at 36), not file header"
+    );
+}
+
+#[test]
+fn key_bracket_prev_retreat_lands_on_last_change_group() {
+    // When [ retreats to the previous file, cursor should land on the last
+    // change group of that file, not the file header.
+    let mut state = make_mixed_content_state();
+    state.set_active_file(Some(1));
+    // Position at the first change group of file 1 (Added at 36)
+    state.cursor_line = 36;
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    // Should retreat to file 0 and land on last change group (Deleted at 10)
+    assert_eq!(
+        state.active_file(),
+        Some(0),
+        "[ should retreat to prev file"
+    );
+    assert_eq!(
+        state.cursor_line, 10,
+        "cursor should land on last change group of prev file (Deleted at 10), not file header"
+    );
+}
+
 // ---- Full context ----
 
 #[test]
@@ -556,13 +598,15 @@ fn key_s_still_toggles_single_file() {
 }
 
 #[test]
-fn normal_s_toggle_on_snaps_cursor_to_content() {
+fn normal_s_toggle_on_lands_on_file_header() {
     let mut state = make_keybinding_state();
     state.cursor_line = 31;
     handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
-    assert!(
-        is_content_line(&state.doc.line_map, state.cursor_line),
-        "cursor_line {} is not a content line",
+    // Cursor lands on file header so ] (jump_next, strictly >) can find the first change group
+    let file_start = state.file_start(state.active_file().unwrap()).unwrap();
+    assert_eq!(
+        state.cursor_line, file_start,
+        "cursor should land on file header (start of file range), got {}",
         state.cursor_line
     );
 }

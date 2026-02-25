@@ -46,7 +46,7 @@ pub(crate) fn change_group_starts(
     starts
 }
 
-fn du_nav_targets(state: &PagerState) -> Vec<usize> {
+pub(crate) fn du_nav_targets(state: &PagerState) -> Vec<usize> {
     let (range_start, range_end) = visible_range(state);
     change_group_starts(&state.doc.line_map, range_start, range_end)
 }

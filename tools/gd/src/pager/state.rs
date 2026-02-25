@@ -401,7 +401,13 @@ pub(crate) fn remap_after_document_swap(
         state.cursor_line = state.top_line.min(range_max);
         state.top_line = state.top_line.clamp(rs, range_max);
         state.cursor_line = state.cursor_line.clamp(rs, range_max);
-        state.cursor_line = snap_to_content(&state.doc.line_map, state.cursor_line, rs, range_max);
+        // In single file mode, keep cursor at the file header (range start)
+        // so ] can find the first change group via jump_next (strictly >).
+        // In all-files mode, snap to the nearest content line as usual.
+        if state.cursor_line != rs || state.active_file().is_none() {
+            state.cursor_line =
+                snap_to_content(&state.doc.line_map, state.cursor_line, rs, range_max);
+        }
     } else {
         state.top_line = 0;
         state.cursor_line = 0;
