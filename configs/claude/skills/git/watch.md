@@ -60,11 +60,12 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
       MUST NOT read source files, explore the codebase, or attempt fixes inline -- all code changes happen in the subagent.
 
-      After the subagent returns, check `git status --short`. If files changed:
+      After the subagent returns, add each thread's last comment `id` to `handled_threads` regardless of outcome (prevents re-dispatching on next poll).
+
+      Check `git status --short`. If files changed:
       - Commit per [commit-guidelines.md](commit-guidelines.md), referencing the review feedback
       - `git push`
       - Update `head_sha` and `last_push_time`
-      - Add each thread's last comment `id` to `handled_threads`
       - Reply to each fixed thread with a brief message referencing the fix commit SHA, per [pr-guidelines.md](pr-guidelines.md) ASCII rules. Use `gh api repos/{owner}/{repo}/pulls/comments/{id}/replies -f body="<message>"`.
       - Log to `actions_log`: threads fixed, files touched
 
@@ -80,6 +81,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
          gh run list --branch $(git branch --show-current) --status failure --limit 5 --json databaseId,workflowName
          gh run view <run-id> --log-failed 2>&1 | tail -300
          ```
+         Extract the failing step name and trim to the relevant failure output. Pass trimmed logs to triage steps and the subagent -- not the raw 300-line dump.
 
       iii. **Triage -- transient/infrastructure?**
            Scan logs for indicators:
@@ -107,7 +109,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
          MUST delegate the fix to a Task subagent (type: general-purpose, model: sonnet). The watch loop is long-running -- reading source files, analyzing code, and attempting fixes inline exhausts the context window and causes the loop to lose track of its monitoring state. The orchestrator triages; the subagent debugs and fixes.
 
          Subagent prompt MUST include:
-         - Failure logs (relevant sections, not raw dump)
+         - Trimmed failure logs from step ii
          - Workflow name and failing step
          - Repository root path
          - Instruction: identify root cause, read relevant source files, fix the issue, run local verification if possible. MUST load the code skill (`skill: "code"`) for coding preferences.
