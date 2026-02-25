@@ -16,8 +16,12 @@
       "WebSearch",
       "mcp__gadget-admin__*",
       "mcp__gopls__*",
-      "mcp__claude_ai_Slack__slack_read_thread",
-      "mcp__claude_ai_Linear__get_issue"
+      "mcp__claude_ai_Slack__slack_read_*",
+      "mcp__claude_ai_Slack__slack_search_*",
+      "mcp__claude_ai_Linear__get_*",
+      "mcp__claude_ai_Linear__list_*",
+      "mcp__claude_ai_Linear__search_*",
+      "mcp__claude_ai_Linear__extract_*"
     ],
     "defaultMode": "default",
     "additionalDirectories": [
