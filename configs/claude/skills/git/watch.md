@@ -29,15 +29,15 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
 
    Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
 
-4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (10s–300s, starting at 30s). If resuming, note the previous iteration count and any prior actions.
+4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (30s–300s, starting at 60s). If resuming, note the previous iteration count and any prior actions.
 
-5. **Monitoring loop** (up to 90 iterations, ~45 minutes):
+5. **Monitoring loop** (up to 30 iterations, ~90 minutes):
 
    AIMD parameters:
-   - `min_interval`: 10s
+   - `min_interval`: 30s
    - `max_interval`: 300s
-   - `initial_interval`: 30s
-   - `additive_increase`: 5s — added each idle iteration
+   - `initial_interval`: 60s
+   - `additive_increase`: 30s — added each idle iteration
    - `multiplicative_decrease`: 0.5 — multiplied when an event occurs
 
    a. **Read state**: Read the state file to load `sleep_interval`, `handled_checks`, `handled_threads`, `fix_attempts`, `head_sha`, `last_push_time`, `started_at`, and `iteration` count.
