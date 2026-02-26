@@ -91,8 +91,8 @@ keybind = cmd+shift+z=unbind
 keybind = cmd+shift+equal=unbind
 keybind = cmd+shift+minus=unbind
 keybind = cmd+shift+backslash=unbind
-keybind = cmd+shift+comma=unbind
-keybind = cmd+shift+period=unbind
+keybind = cmd+shift+comma=text:\x1b[44;10u
+keybind = cmd+shift+period=text:\x1b[46;10u
 keybind = cmd+shift+down=unbind
 keybind = cmd+shift+up=unbind
 keybind = cmd+shift+left_bracket=text:\x1b[91;10u

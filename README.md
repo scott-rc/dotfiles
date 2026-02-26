@@ -118,7 +118,7 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+F` | Toggle fullscreen |
 | `Cmd+Shift+Z` | Toggle pane frames |
 | `Cmd+Shift+\\` | Toggle floating panes |
-| `Cmd+Shift+,/.` | Previous/next swap layout |
+| `Cmd+Shift+,/.` | Previous/next swap layout (floating: staggered/enlarged/fullscreen/spread) |
 | `Cmd+Shift+[/]` | Previous/next Zellij tab |
 | `Cmd+Shift+I/O` | Move tab left/right |
 | `Cmd+Shift+X` | Close pane (alt) |
