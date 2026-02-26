@@ -102,7 +102,7 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 
 Each operation file (e.g., `create-skill.md`, `review-skill.md`) contains the full instructions for one operation.
 
-- **H1 heading**: MUST start with the operation name from SKILL.md (e.g., `# Commit Operation` for a `### Commit` entry)
+- **H1 heading**: MUST start with the operation name from SKILL.md. MAY append a descriptive word or phrase for clarity (e.g., `# Commit` or `# Apply Coding Preferences` for a `### Apply` entry). Do NOT use a generic "Operation" suffix — prefer standalone names or descriptive phrases.
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
 - **Numbered steps**: MUST use numbered steps where each step has a **bold step name** followed by the instructions
 - **Cross-references**: MUST use markdown links to reference files (e.g., `[commit-guidelines.md](commit-guidelines.md)`)

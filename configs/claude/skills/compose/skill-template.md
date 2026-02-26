@@ -49,7 +49,7 @@ These files are referenced by the operation instructions above:
 ## Operation File Template
 
 ```markdown
-# <Operation Name>
+# <Name> (or # <Descriptive Phrase> starting with the operation name)
 
 <One sentence describing what this operation does and its outcome.>
 

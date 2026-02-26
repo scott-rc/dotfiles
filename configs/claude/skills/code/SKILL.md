@@ -41,6 +41,10 @@ See [benchmark.md](benchmark.md) for detailed instructions.
 Evaluate test suite quality by mutating source code and checking whether tests catch the changes, then write tests to kill survivors.
 See [mutate.md](mutate.md) for detailed instructions.
 
+### Implement
+Build with TDD, harden with mutation testing, and review-fix until converged — end-to-end verification loop.
+See [implement.md](implement.md) for detailed instructions.
+
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:
@@ -48,7 +52,8 @@ Users often request multiple operations together. Handle these as follows:
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
 - **plan / design / "how should I implement"** → Plan (see [plan.md](plan.md))
-- **implement / add feature / write** (new behavior) → New Feature
+- **add feature / write** (new behavior) → New Feature
+- **implement and review / full cycle / build and verify / implement with mutation testing** → Implement
 - **fix bug / debug** → Fix Bug
 - **refactor / clean up / rename / restructure** → Apply
 - **write code** (ambiguous) → New Feature if behavior; Apply if config/glue/scripting

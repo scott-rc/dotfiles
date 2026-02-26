@@ -50,7 +50,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 
 ### Suggestions
 
-- [ ] **H1 naming conventions**: Operation file H1s follow the pattern `# <Name> Operation`
+- [ ] **H1 naming conventions**: Operation file H1s start with the operation name. Prefer standalone names (`# Review`, `# Benchmark`) or descriptive phrases (`# Mutation Testing`, `# Apply Coding Preferences`) over a generic "Operation" suffix.
 - [ ] **Section heading consistency**: All operation files use the same heading structure
 - [ ] **Tight prose**: Terse, imperative style
 - [ ] **No tables**: Lists instead of markdown tables
