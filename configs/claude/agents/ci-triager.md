@@ -47,11 +47,11 @@ The caller's prompt provides:
    ```
 
 3. **Classify -- flake?**
-   Check if the same workflow has failed on the base branch recently:
+   Check if the same workflow has failed on the base branch within the last 7 days:
    ```bash
    gh run list --branch <base_branch> --status failure --limit 5 --json databaseId,workflowName,createdAt
    ```
-   Compare each run's `createdAt` field against the current date (`date -u +%Y-%m-%dT%H:%M:%SZ`). Only treat as a flake if the same workflow name has a failure within the last 7 calendar days. Ignore older failures.
+   If a matching workflow name has a recent failure, classify as flake and rerun:
    ```bash
    gh run rerun <run_id> --failed
    ```

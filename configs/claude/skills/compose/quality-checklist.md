@@ -3,10 +3,10 @@
 Pass/fail criteria for evaluating Claude Code skills and rules files. Items are tiered by severity.
 
 - **Blocking** — MUST pass. Breaks functionality if violated.
-- **Important** — SHOULD fix. Degrades quality.
-- **Cosmetic** — MAY fix. Consistency polish.
+- **Improvements** — SHOULD fix. Degrades quality.
+- **Suggestions** — MAY fix. Consistency polish.
 
-Only blocking items can fail a review. Important items are flagged. Cosmetic items are noted.
+Only blocking items can fail a review. Improvements are flagged. Suggestions are noted.
 
 ## Structure — Skills
 
@@ -32,7 +32,7 @@ Only blocking items can fail a review. Important items are flagged. Cosmetic ite
 - [ ] **Error handling (state-mutating)**: State-mutating operations (commit, deploy, write files) handle likely failure modes (missing files, invalid input, conflicts) rather than failing silently
 - [ ] **No inline heavy work**: Operations do not read many files, analyze diffs, or generate artifacts inline when a subagent could do it
 
-### Important
+### Improvements
 
 - [ ] **Verification step (non-mutating)**: Read-only or informational operations include a step for verifying results where practical
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
@@ -48,7 +48,7 @@ Only blocking items can fail a review. Important items are flagged. Cosmetic ite
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
 
-### Cosmetic
+### Suggestions
 
 - [ ] **H1 naming conventions**: Operation file H1s follow the pattern `# <Name> Operation`
 - [ ] **Section heading consistency**: All operation files use the same heading structure
@@ -65,7 +65,7 @@ Only blocking items can fail a review. Important items are flagged. Cosmetic ite
 - [ ] **@file references resolve**: Every `@filename` reference points to a file that exists
 - [ ] **Flat heading hierarchy**: Headings do not go deeper than H3
 
-### Important
+### Improvements
 
 - [ ] **No content duplication**: Information in referenced files (`@README.md`, etc.) is not repeated in the rules file
 - [ ] **Scoped rules have paths**: Files in `.claude/rules/` intended to be path-specific have `paths:` frontmatter with valid glob patterns
@@ -78,7 +78,7 @@ Only blocking items can fail a review. Important items are flagged. Cosmetic ite
 
 ## Content Efficiency
 
-### Important
+### Improvements
 
 - [ ] **Token justification**: Every file contributes unique information — no file exists just for organizational aesthetics
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
@@ -89,19 +89,19 @@ Only blocking items can fail a review. Important items are flagged. Cosmetic ite
 
 ## Scripts (if applicable, Skills only)
 
-### Important
+### Improvements
 
 - [ ] **Error handling**: Scripts check for failure conditions and provide useful error messages rather than failing silently
 - [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for Claude to interpret
 - [ ] **Dependencies declared**: Required tools are documented in the skill
 
-### Cosmetic
+### Suggestions
 
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
 
 ## Testing (Skills only)
 
-### Important
+### Improvements
 
 - [ ] **Tested with target models**: The skill has been tested with the models it targets
 - [ ] **Evaluation cases exist**: At least one test scenario per operation exists to verify correct behavior

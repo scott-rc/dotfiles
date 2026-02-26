@@ -44,16 +44,26 @@ See [create-handoff.md](create-handoff.md) for detailed instructions.
 Decompose a large task into ordered chunks with orchestrated subagent execution.
 See [plan-task.md](plan-task.md) for detailed instructions.
 
+## Delegation
+
+All writing in compose operations MUST go through `skill-writer` or `rules-writer`. MUST NOT delegate to `code-writer` — it lacks skill/rules validation and its code-oriented workflows (TDD, build, lint) are meaningless for markdown skill files.
+
+- Skill files (operations, references, SKILL.md) — `skill-writer` (supports both create and update modes)
+- Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
+- Review-fix cycles — same agents: `skill-writer` for skill fixes, `rules-writer` for rules fixes
+
+Full loop mechanics (cycle count, pass criteria, disagreement handling): [multi-perspective-review.md](multi-perspective-review.md)
+
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:
 
 - **"create and review"** / **"scaffold"** / **"new skill"** → Run Create Skill, then Review Skill on the new skill
 - **"update skill"** / **"add operation"** / **"modify skill"** / **"change skill"** / **"add operation to"** / **"remove operation from"** / **"rename skill"** → Run Update Skill
-- **"update and review"** → Run Update Skill, then Review Skill on the updated skill
-- **"improve skill"** / **"fix skill"** → Run Review Skill, then apply the suggested fixes
+- **"update and review"** → Run Update Skill (includes review loop)
+- **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until all 3 agents pass
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
-- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, then apply fixes
+- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until all 3 agents pass
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
@@ -72,4 +82,5 @@ These files are referenced by the operation instructions. Operations that link t
 - [skill-template.md](skill-template.md) - Annotated templates for SKILL.md and operation files
 - [content-patterns.md](content-patterns.md) - Reusable patterns for operation steps, task skills, and dynamic context injection
 - [rules-template.md](rules-template.md) - Templates for CLAUDE.md and scoped rules files
+- [multi-perspective-review.md](multi-perspective-review.md) - Three-agent parallel review loop (Sonnet/Opus/Haiku) with convergence criteria
 - [plan-template.md](plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt

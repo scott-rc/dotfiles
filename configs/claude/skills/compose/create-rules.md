@@ -45,8 +45,11 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 
    The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
-5. **Report results**:
-   Read the agent's output and present to the user:
+5. **Review and iterate**:
+   Run the multi-perspective review loop per [multi-perspective-review.md](multi-perspective-review.md) using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete.
+
+6. **Report results**:
+   Present results to the user:
    - MUST show the complete rules file content for review
    - MUST list `@file` references and their resolution status
    - SHOULD note the approximate token cost (the file loads into every conversation)

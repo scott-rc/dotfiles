@@ -5,21 +5,13 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
 ## Instructions
 
 1. **Verify CI system**:
-   ```bash
-   test -d "$(git rev-parse --show-toplevel)/.github/workflows"
-   ```
-   If `.github/workflows/` does not exist, inform the user that no supported CI system was found and stop.
+   Check for `.github/workflows/` (github-actions) or `.buildkite/` (buildkite) at the repository root.
+   If neither exists, inform the user that no supported CI system was found and stop.
 
 2. **Check CI status**:
-   - If a PR exists (`gh pr view --json number,url 2>/dev/null`):
-     ```bash
-     gh pr checks
-     ```
-   - Otherwise check branch runs:
-     ```bash
-     gh run list --branch $(git branch --show-current) --limit 5
-     ```
-   Summarize: group checks by status (failed, pending, passed). If all pass, report success and stop. If pending, report which are still running and stop.
+   - If a PR exists (`gh pr view --json number,url 2>/dev/null`): run `gh pr checks`
+   - Otherwise check branch runs: run `gh run list --branch $(git branch --show-current) --limit 5`
+   - Summarize: group checks by status (failed, pending, passed). If all pass, report success and stop. If pending, report which are still running and stop.
 
 3. **Triage via ci-triager agent**:
    Get all failed run IDs and workflow names:
@@ -33,10 +25,9 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    - **real**: proceed to step 4 using the trimmed logs and root cause from the triager's report.
 
 4. **Fix the issues**:
-   Delegate to a Task subagent (subagent_type: general-purpose, model: sonnet) with:
-   - The triager's root cause analysis and trimmed logs
-   - Relevant file paths identified by the triager
-   - Instruction: identify root cause, read relevant source files, fix the issue, run the appropriate lint-fix and test commands per [git-patterns.md](git-patterns.md) "Local Fix Commands", and run local verification if possible (failing tests, linter on affected files, or build)
+   Forward the triager's full report as-is to a Task subagent (subagent_type: general-purpose, model: sonnet). Do not read source files or diagnose the issue yourself -- the subagent receives:
+   - The triager's complete output (root cause analysis, trimmed logs, relevant file paths)
+   - Instruction: read relevant source files, fix the issue, run the appropriate lint-fix and test commands per [git-patterns.md](git-patterns.md) "Local Fix Commands", and run local verification if possible (failing tests, linter on affected files, or build)
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 

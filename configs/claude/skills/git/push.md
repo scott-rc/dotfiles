@@ -12,7 +12,7 @@ Push commits and create/update PR.
 
 3. **Push to remote**:
    - `git push -u origin HEAD`
-   - If push is rejected (non-fast-forward), present options via AskUserQuestion: "Rebase onto remote", "Force push (--force-with-lease)"
+   - If push is rejected (non-fast-forward), present options via AskUserQuestion: "Rebase onto remote", "Force push (--force-with-lease)", "Abort push"
 
 4. **Check for existing PR** on this branch:
    ```bash
@@ -28,8 +28,8 @@ Push commits and create/update PR.
 6. **If NO PR exists** (or old PR was merged/closed):
    Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with: mode `create`, base_branch.
 
-7. **If PR exists and description needs updating**:
-   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with: mode `update`, base_branch, pr_number.
+7. **If PR exists and new commits were pushed that aren't reflected in the current description**:
+   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with: mode `update`, base_branch, pr_number. If no new commits were pushed (e.g., force push of same content), skip the update.
 
 8. **Report PR URL** to the user
 

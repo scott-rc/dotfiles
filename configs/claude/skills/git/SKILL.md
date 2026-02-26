@@ -15,7 +15,7 @@ Route to the appropriate operation based on user intent.
 
 ## GitHub Text Rule
 
-**Any text sent to GitHub** (PR descriptions, PR comments, review replies, issue comments, etc.) MUST follow the "All GitHub Text" section of [pr-guidelines.md](pr-guidelines.md) -- ASCII only, no em dashes, no curly quotes. This applies to ALL operations below and to ad-hoc GitHub interactions.
+All GitHub-facing text MUST follow [pr-guidelines.md](pr-guidelines.md).
 
 ## Operations
 
@@ -33,12 +33,7 @@ See [squash.md](squash.md) for detailed instructions.
 
 ### Rebase
 Fetch latest and rebase onto base branch.
-
-1. **Fetch**: `git fetch origin`
-2. **Detect base branch**: `fish -c 'gbb'`
-3. **Rebase**: `git rebase origin/<base>`
-4. **If conflicts**: list conflicting files (`git diff --name-only --diff-filter=U`), report to user, present options via AskUserQuestion: "Help resolve conflicts" or "Abort rebase"
-5. **If success**: verify scope per [git-patterns.md](git-patterns.md), show commit count: `git rev-list --count origin/<base>..HEAD`
+See [rebase.md](rebase.md) for detailed instructions.
 
 ### Push
 Push commits and create/update PR with title/description per guidelines.
@@ -61,7 +56,7 @@ Re-trigger failed CI jobs.
 
 1. **Find failed run**: `gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId,workflowName`. If none, inform user and stop.
 2. **Rerun**: `gh run rerun <run-id> --failed` (fall back to `gh run rerun <run-id>` if unsupported)
-3. **Confirm**: `gh run view <run-id> --json status`, report run ID and status
+3. **Confirm**: `gh run view <run-id> --json status`, report run ID and status. If the returned status is still `failed` (not `queued` or `in_progress`), report the error to the user.
 4. Offer to run Watch to monitor results
 
 ### Watch
@@ -117,9 +112,9 @@ These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
 - [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
-- [watch-subops.md](watch-subops.md) - State file format and context management rules for the watch loop
-- `scripts/get-pr-comments.sh` - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
-- `scripts/poll-pr-status.sh` - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
-- `scripts/get-failed-runs.sh` - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)
+- [watch-subops.md](watch-subops.md) - State file format for the watch loop
+- [get-pr-comments.sh](scripts/get-pr-comments.sh) - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
+- [poll-pr-status.sh](scripts/poll-pr-status.sh) - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
+- [get-failed-runs.sh](scripts/get-failed-runs.sh) - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)
 
 Scripts require the skill to be installed at `~/.claude/skills/git/`. All script paths are listed in [git-patterns.md](git-patterns.md).

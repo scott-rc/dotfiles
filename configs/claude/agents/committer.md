@@ -26,13 +26,10 @@ The caller's prompt determines the mode:
 
 ### Commit Message Rules
 
-- Title: imperative mood, under 72 characters, specific
-- Body (optional for trivial changes): explain *why*, keep it concise, backticks for code references
+- Imperative mood, under 72 chars, explain *why* not *what*
 - Match the style of recent commits in the repo
-- MUST use only ASCII characters -- no em-dashes, smart quotes, curly apostrophes, or any non-ASCII Unicode. Use `--`, `"`, and `'` instead.
-- For title-only: `git commit -m "<title>"`
-- For multi-line: write the full message to a temp file and `git commit -F <file>`. MUST NOT use repeated `-m` arguments.
-- Same rules apply to `--amend -m` and `--amend -F`.
+- ASCII only -- use `--`, `"`, `'` (no em dashes, smart quotes, curly apostrophes)
+- Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
 
 ## Workflow
 

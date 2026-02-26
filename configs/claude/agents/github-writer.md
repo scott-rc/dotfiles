@@ -51,11 +51,11 @@ The caller's prompt provides:
      ```
    - `pr-comment`:
      ```bash
-     gh pr comment {pr_number} --repo {owner}/{repo} -F "$TMPFILE"
+     gh pr comment {pr_number} --repo {owner}/{repo} --body-file "$TMPFILE"
      ```
    - `issue-comment`:
      ```bash
-     gh issue comment {issue_number} --repo {owner}/{repo} -F "$TMPFILE"
+     gh issue comment {issue_number} --repo {owner}/{repo} --body-file "$TMPFILE"
      ```
    - `review`:
      ```bash
@@ -72,6 +72,6 @@ The caller's prompt provides:
 
 ## Output Format
 
-- **Action** — what was posted (e.g., "replied to review comment", "submitted APPROVE review")
-- **Content** — the text that was posted
-- **Target** — URL or identifier (PR number, comment ID)
+- **## Action** — what was posted (e.g., "replied to review comment", "submitted APPROVE review")
+- **## Content** — the text that was posted
+- **## Target** — URL or identifier (PR number, comment ID)

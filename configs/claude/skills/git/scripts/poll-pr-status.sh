@@ -8,12 +8,14 @@ set -euo pipefail
 #   poll-pr-status.sh
 #   poll-pr-status.sh --last-push-time 2026-02-25T10:00:00Z
 #   poll-pr-status.sh --handled-threads 123,456,789
-#   poll-pr-status.sh --last-push-time 2026-02-25T10:00:00Z --handled-threads 123,456
+#   poll-pr-status.sh --handled-checks check1,check2
+#   poll-pr-status.sh --last-push-time 2026-02-25T10:00:00Z --handled-threads 123,456 --handled-checks check1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 last_push_time=""
 handled_threads=""
+handled_checks=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -23,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --handled-threads)
       handled_threads="$2"
+      shift 2
+      ;;
+    --handled-checks)
+      handled_checks="$2"
       shift 2
       ;;
     *)
@@ -80,6 +86,7 @@ if [[ -n "$repo_root" ]]; then
     ci_json=$(echo "$checks_raw" | jq \
       --arg lastPush "$last_push_time" \
       --arg ciSystem "$ci_system" \
+      --arg handledChecks "$handled_checks" \
     '
       # Classify each check
       def classify:
@@ -97,12 +104,23 @@ if [[ -n "$repo_root" ]]; then
         .state as $s |
         ($s != "SKIPPED" and $s != "CANCELLED" and $s != "NEUTRAL" and $s != "STALE");
 
-      # A failure is "new" if it started after last_push_time (or if no last_push_time given)
-      # Lexicographic comparison works because both timestamps use identical UTC
-      # format (YYYY-MM-DDTHH:MM:SSZ) — last_push_time from `date -u`, startedAt from GitHub.
+      # Build the set of handled check names from comma-separated string
+      ($handledChecks | split(",") | map(select(. != ""))) as $handled_set |
+
+      # A failure is "new" if:
+      # - When --handled-checks is provided: the check name is NOT in the handled set
+      # - When --handled-checks is omitted: falls back to timestamp filtering
+      #   (started after last_push_time, or no last_push_time given)
+      # The --handled-checks approach is preferred because it decouples freshness
+      # from timestamps, which is critical for Buildkite where startedAt reflects
+      # the original job start time, not retries.
       def is_new_failure:
         .state == "FAILURE" and
-        ($lastPush == "" or (.startedAt >= $lastPush));
+        (if ($handledChecks != "") then
+          (.name | IN($handled_set[]) | not)
+        else
+          ($lastPush == "" or (.startedAt >= $lastPush))
+        end);
 
       def is_pending:
         .state == "IN_PROGRESS" or .state == "PENDING" or .state == "QUEUED";

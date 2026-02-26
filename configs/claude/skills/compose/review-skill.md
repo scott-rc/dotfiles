@@ -1,6 +1,6 @@
 # Review Skill
 
-Evaluate a Claude Code skill against best practices, report findings grouped by severity, and offer to fix issues.
+Evaluate a Claude Code skill against best practices using multi-perspective review, report findings grouped by severity, and iterate fixes until clean.
 
 ## Instructions
 
@@ -10,43 +10,25 @@ Evaluate a Claude Code skill against best practices, report findings grouped by 
    - If neither, discover available skills and present them as AskUserQuestion options
    - Confirm the skill directory exists and contains a SKILL.md file
 
-2. **Evaluate skill via subagent**:
-   Spawn a Task subagent (type: skill-reviewer) with the skill directory path. The skill-reviewer agent reads all files, validates structure, evaluates content quality, and checks for anti-patterns. It returns findings grouped by severity with per-file token counts.
+2. **Multi-perspective review**:
+   Spawn 3 Task subagents in parallel (all type: skill-reviewer) per [multi-perspective-review.md](multi-perspective-review.md):
 
-3. **Review skill-reviewer findings**:
-   The skill-reviewer has already evaluated structure, content quality, and anti-patterns. MUST cross-reference findings against any project-specific context the agent would not have (e.g., project conventions from CLAUDE.md, skill interdependencies). Only re-read individual files inline when a finding needs verification.
+   - **Sonnet** — checklist compliance: structure validation, required fields, file links, anti-patterns from the checklist
+   - **Opus** — principle consistency: progressive disclosure, workflow quality, degrees of freedom, cross-file coherence
+   - **Haiku** — token efficiency: redundancy, over-explaining, tight prose, token justification, splitting candidates
+
+   Each agent receives the skill directory path and its lens as focus. Each returns findings grouped by Blocking/Improvements/Suggestions with per-file token counts.
+
+3. **Synthesize findings**:
+   Merge results from all 3 agents into a single deduplicated list grouped by severity (Blocking > Improvements > Suggestions). Where agents disagree on severity, note the disagreement and use the higher severity. Cross-reference findings against project-specific context the agents would not have (CLAUDE.md conventions, skill interdependencies).
 
 4. **Estimate token usage**:
-   - Use the token counts from the skill-reviewer's output
+   - Use the token counts from the agents' output
    - Flag files over 2000 tokens as candidates for splitting
    - Flag total skill size over 5000 tokens as potentially too large for SKILL.md
 
 5. **Present findings**:
-   Group results by severity:
+   Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
-   **Blocking** (MUST fix):
-   - Missing required frontmatter fields
-   - Broken file links
-   - Missing operation files
-   - Anti-patterns from the checklist
-
-   **Improvements** (SHOULD fix):
-   - Vague description lacking trigger keywords
-   - Missing error handling in operations
-   - Redundant content between files
-   - Missing combined operations section
-
-   **Suggestions** (MAY fix):
-   - Better file naming
-   - Additional examples
-   - Token optimization opportunities
-
-   For each finding, state:
-   - What the issue is
-   - Which file it's in
-   - What the fix would be (specific, not vague)
-
-6. **Offer to apply fixes**:
-   - MUST present blocking fixes via AskUserQuestion before applying them
-   - SHOULD present improvements and suggestions as AskUserQuestion options for the user to select
-   - MUST apply fixes one at a time, confirming each change via AskUserQuestion
+6. **Review-fix loop**:
+   MUST present blocking fixes via AskUserQuestion before applying them. SHOULD present improvements and suggestions as AskUserQuestion options for the user to select. Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).

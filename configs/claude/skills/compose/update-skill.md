@@ -47,9 +47,13 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
 
    MUST fix any blocking issues the skill-writer reports before proceeding.
 
-5. **Report results**:
+5. **Review and iterate**:
+   Run the multi-perspective review loop per [multi-perspective-review.md](multi-perspective-review.md). Iterate until all 3 agents pass or 4 cycles complete.
+
+6. **Report results**:
    - MUST list all files added, modified, or removed with a one-line description of each change
    - MUST show the updated SKILL.md Operations section so the user can verify
    - If the description changed, show the full `description` field so the user can verify trigger keywords
    - If the skill was renamed, MUST show the old and new directory paths
    - MUST note any blocking findings from the skill-writer's validation and how they were resolved, if any were found
+   - MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items)

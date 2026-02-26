@@ -14,10 +14,11 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 3. **Present a summary**: Total count of unreplied threads, grouped by file path with line number and a one-line preview of each reviewer comment. Include review summaries for high-level context.
 
-4. **Gather context via Explore subagent**:
-   Follow the "Bulk Thread Handling" pattern in [git-patterns.md](git-patterns.md) (reply variant) to spawn an Explore subagent that gathers per-thread context: read all comments in each thread (later replies often contain clarifications), check `git diff` for relevant files, and summarize what changed and whether the feedback was addressed.
+4. **Gather context and draft replies**:
+   - If fewer than 5 threads: read all comments in each thread inline (later replies often contain clarifications), check `git diff` for relevant files, and draft replies directly.
+   - If 5 or more threads: spawn an Explore subagent per the "Bulk Thread Handling" pattern in [git-patterns.md](git-patterns.md) (reply variant) to gather per-thread context. Then draft replies using the subagent's context summary.
 
-   **Then draft replies** using the subagent's context summary:
+   For each reply:
    - If code was changed to address the feedback, reference what was done
    - If the feedback was already addressed, say so concisely
    - If the feedback needs discussion, draft a thoughtful response

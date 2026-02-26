@@ -36,6 +36,9 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
    MUST fix any blocking issues the skill-writer reports before proceeding.
 
-5. **Report results**:
+5. **Review and iterate**:
+   Run the multi-perspective review loop per [multi-perspective-review.md](multi-perspective-review.md). Iterate until all 3 agents pass or 4 cycles complete.
+
+6. **Report results**:
    - MUST list all files created with a one-line description of each
    - MUST show the full `description` field so the user can verify trigger keywords

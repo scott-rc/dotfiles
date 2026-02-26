@@ -18,7 +18,7 @@ Create a new git worktree for the given task, or convert an existing branch into
    - Otherwise, use the current branch from gitStatus at conversation start
 
 4. **Generate branch slug** (new branch mode only):
-   - You are an LLM — generate a concise 2-4 word kebab-case slug yourself
+   - Generate a concise 2-4 word kebab-case slug
    - Pass the slug words as positional args to `gwt` (it will kebab-case them)
    - Example: task "fix the login page redirect bug" → args: `fix login redirect`
 

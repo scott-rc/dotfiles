@@ -32,9 +32,14 @@ User interaction and state transitions stay in the orchestrator.
 - Skill files — `skill-writer`
 - Slide content — `slide-writer`
 
+### Background Agents
+
+- Run subagents in **foreground** (default) when you need results before continuing
+- If you use `run_in_background: true`, use `TaskOutput` with `block: true` to wait — do NOT attempt to `resume` a running agent (it errors with "Cannot resume agent: it is still running")
+
 ### Worktrees
 
-- NEVER use `isolation: worktree` in agent configs or pass `isolation: "worktree"` to the Task tool. The user manages worktrees manually.
+- MUST NOT use `isolation: worktree` in agent configs or pass `isolation: "worktree"` to the Task tool. The user manages worktrees manually.
 
 ---
 
