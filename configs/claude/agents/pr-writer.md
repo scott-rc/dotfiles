@@ -35,12 +35,29 @@ All text MUST use only ASCII characters. Use `--` instead of em dashes, straight
 
 - **The diff is the source of truth.** Base the description on `git diff`, NOT on commit history.
 - **Write prose, not bullets**: Default format is readable paragraphs. Only use bullets when listing genuinely unrelated items.
-- **No rigid templates**: Do NOT use fill-in-the-blank sections like `## Summary` + bullets. Write naturally.
+- **No markdown headers in the PR body.** Do NOT use `#`, `##`, `###`, or any header syntax. No `## Summary`, no `## Test plan`, no `## Changes`. Plain paragraphs only.
 - **MUST NOT wrap lines**: Do NOT wrap text to 72 characters. Write each thought as one continuous line. GitHub handles wrapping.
 - **Describe the net change, not the journey**: If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug.
 - **Focus on the "why"**: Explain motivation and reasoning, not just what changed.
-- **Include testing context** as part of the narrative, not as a separate checklist.
+- **Testing woven into the narrative**: Mention test coverage inline as part of the prose. Do NOT put it in a separate section or checklist.
 - **Link issues**: Use "Fixes #123" to auto-close; use "Related to #456" for referenced-but-not-fixed issues.
+
+**Bad** (headers, separate test checklist):
+```
+## Summary
+
+Updates the Go toolchain from 1.25 to 1.26 and fixes two compatibility issues.
+
+## Test plan
+
+- TestBodyClosedAfterServeHTTP passes.
+- Existing router tests continue to pass.
+```
+
+**Good** (pure prose, testing woven in):
+```
+This PR upgrades the Go toolchain from 1.25 to 1.26 and fixes two compatibility issues that surfaced with the upgrade. The defer in the HTTP handler now fires correctly even when the transport does not close the body, confirmed by TestBodyClosedAfterServeHTTP. Existing router tests pass unchanged.
+```
 
 ### Safe Posting
 
@@ -84,6 +101,8 @@ When posting multi-line content via `gh` CLI, write the body to a temp file firs
 
 ## Output Format
 
-- **## Action** -- `created` or `updated`
-- **## Title** -- the title applied
-- **## URL** -- the PR URL
+Report back to the caller (not the PR body) with:
+
+- **Action** -- `created` or `updated`
+- **Title** -- the title applied
+- **URL** -- the PR URL
