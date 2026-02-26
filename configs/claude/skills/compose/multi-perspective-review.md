@@ -1,6 +1,6 @@
 # Multi-Perspective Review
 
-Three-agent review loop for evaluating skill and rules file quality from complementary angles.
+Three-agent review loop for evaluating skill and rules file quality from complementary angles. This is a multi-evaluator instance of the general loop pattern (see Delegation > Loops in CLAUDE.md), specialized for skill and rules file quality.
 
 ## The Pattern
 

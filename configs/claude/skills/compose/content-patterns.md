@@ -7,7 +7,7 @@ Reusable patterns for structuring operation steps, task skills, and dynamic cont
 Use these patterns inside operation files when they fit the task:
 
 - **Checklist pattern**: Give Claude a checklist to copy and track progress through multi-step work. Useful when steps can partially succeed.
-- **Feedback loop pattern**: Run validator/linter/tests, fix errors, repeat until clean. Dramatically improves output quality for code-generation or formatting tasks.
+- **Feedback loop pattern**: Run validator/linter/tests, fix errors, repeat until clean. A single-evaluator instance of the general loop pattern. Dramatically improves output quality for code-generation or formatting tasks.
 - **Template pattern**: Provide a strict output template (low freedom) or a flexible one with optional sections (medium freedom).
 - **Examples pattern**: Show 1-2 input/output pairs when the desired style or format is ambiguous.
 - **Conditional routing pattern**: "If X, go to step N. If Y, go to step M." Use when an operation has meaningfully different paths.
@@ -17,7 +17,7 @@ Use these patterns inside operation files when they fit the task:
 - **Scripts vs agents pattern**: Scripts handle deterministic data extraction (fetch, parse, pipe — output is structured data). Agents handle work requiring judgment (triage, analysis, classification, writing — output is a decision or artifact). One-off work stays inline. Work reused 2+ times in the same skill gets extracted to `scripts/` (scripts) or a named agent (agents). Full workflows from another skill use the Skill tool.
 - **Cross-skill delegation pattern**: When an operation needs functionality from another skill, use the Skill tool (`skill: "<name>", args: "<routing context>"`). MUST NOT reference another skill's files via relative paths — the other skill's routing and transitive references are not loaded.
 - **Subagent delegation pattern**: Subagents get their own context window, reduce orchestrator load, and enable cheaper models. When writing a delegation step, include all context the subagent needs for autonomous work (file paths, conventions, criteria, examples). Choose the right type: `Explore` for search/read, `general-purpose` for multi-step work. Choose the right model: `haiku` for straightforward reads, `sonnet` for analysis and writing, `opus` only for deep reasoning. Subagents return concise results — not raw file contents.
-- **Multi-perspective review pattern**: After applying changes, spawn 3 review agents in parallel with distinct perspectives (Sonnet/practical, Opus/consistency, Haiku/efficiency), synthesize findings, fix issues, re-review until all pass. See [multi-perspective-review.md](multi-perspective-review.md) for the full loop mechanics, pass criteria, and prompt templates.
+- **Multi-perspective review pattern**: A multi-evaluator instance of the general loop pattern, running Sonnet/practical, Opus/consistency, and Haiku/efficiency reviewers in parallel. See [multi-perspective-review.md](multi-perspective-review.md) for the full loop mechanics, pass criteria, and prompt templates.
 
 ## Task Skill Pattern
 
