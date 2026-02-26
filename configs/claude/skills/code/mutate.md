@@ -35,13 +35,13 @@ Evaluate test suite quality by introducing mutations into source code and checki
    If all mutants were killed, report the clean result and stop -- the test suite is solid for this code.
 
 6. **Write tests to kill survivors**:
-   MUST read [testing-guidelines.md](testing-guidelines.md) before writing tests. For each surviving mutant:
+   Apply [testing-guidelines.md](testing-guidelines.md) (loaded in step 1). For each surviving mutant:
    - Write a test case that would fail against the mutant but pass against the original
    - Run the new test to confirm it passes on the original code
    - Apply the mutation again and run the new test to confirm it fails (the mutant is now killed)
    - Revert the mutation
 
-   If a survivor cannot be killed with a unit test (e.g., requires integration-level verification), note it in the report rather than forcing a test.
+   If a survivor requires integration-level verification to kill, note it in the report rather than forcing a unit test.
 
 7. **Report results**:
    MUST report to the user:

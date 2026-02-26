@@ -1,8 +1,18 @@
-# Load Coding Guidelines
+# Coding Guidelines Index
 
-MUST load before writing or reviewing code. Read all of the following and apply throughout:
+Reference files for coding and testing conventions, loaded by TDD, coverage, benchmark, and mutation operations.
 
-- [general-guidelines.md](general-guidelines.md) — language-agnostic conventions
-- [testing-guidelines.md](testing-guidelines.md) — test design patterns
-- [test-environment.md](test-environment.md) — runner detection, file placement, framework setup
-- Language-specific (load if applicable): [typescript-guidelines.md](typescript-guidelines.md), [go-guidelines.md](go-guidelines.md), [rust-guidelines.md](rust-guidelines.md), [shell-guidelines.md](shell-guidelines.md)
+## Core Guidelines (all operations)
+
+- `general-guidelines.md` — language-agnostic naming, comments, error handling, control flow, abstractions, and string conventions
+- `testing-guidelines.md` — test design patterns: parameterization, data separation, exhaustiveness, special cases, failure readability, and snapshot testing
+- `test-environment.md` — test and benchmark runner detection, file placement conventions, and framework setup
+
+## Language-Specific Guidelines (load if applicable)
+
+- `typescript-guidelines.md` — TypeScript type annotations, function style, and imports
+- `go-guidelines.md` — Go naming, error handling, interfaces, structs, concurrency, and testing
+- `rust-guidelines.md` — Rust error handling, type patterns, module organization, and testing
+- `shell-guidelines.md` — Bash and Fish conventions, shellcheck enforcement
+
+For languages without a dedicated guideline file (Python, Java, Ruby, etc.), apply general-guidelines.md and infer conventions from the project's existing code.

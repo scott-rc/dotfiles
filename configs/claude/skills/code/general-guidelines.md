@@ -35,13 +35,7 @@ function process(input: Input): Result {
 
 ## Abstractions
 
-Inline-first. Repeat code up to 3 times before extracting. When you do extract, the abstraction MUST have a clear interface and a name that describes what it does, not how it's used.
-
-## Testing
-
-- Test behavior, not implementation
-- Minimal mocking — prefer integration-style tests with real dependencies where practical
-- Descriptive test names that state the scenario and expected outcome
+Inline-first. Repeat code up to 3 times before extracting. Extracted abstractions MUST have a clear interface and a name that describes what they do, not how they're used.
 
 ## Strings
 

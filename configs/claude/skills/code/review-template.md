@@ -1,4 +1,4 @@
-# Review Templates
+# Review Template
 
 Templates for review subagent prompts. Replace `<...>` placeholders with actual content.
 
@@ -28,7 +28,7 @@ Read and apply these guidelines:
 
 ## Review Checklist
 
-<!-- Copy the five Review Checklist sections from review.md verbatim here: Test Coverage, Idiomaticity, Simplification, Correctness and Robustness, Naming and Clarity -->
+<contents of review-checklist.md>
 
 ## Output Format
 

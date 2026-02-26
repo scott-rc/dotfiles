@@ -13,11 +13,11 @@ Load and apply the user's coding style preferences when producing or reviewing c
 Load preferences, write code, and verify output matches the guidelines.
 See [apply.md](apply.md) for detailed instructions.
 
-### New Feature (TDD)
+### New Feature
 Full red-green-refactor cycle for building a feature test-first.
 See [new-feature.md](new-feature.md) for detailed instructions.
 
-### Fix Bug (TDD)
+### Fix Bug
 Write a regression test that captures the bug, then fix it.
 See [fix-bug.md](fix-bug.md) for detailed instructions.
 
@@ -33,7 +33,7 @@ See [plan.md](plan.md) for detailed instructions.
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
 See [review.md](review.md) for detailed instructions.
 
-### Benchmark (BDD)
+### Benchmark
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
 See [benchmark.md](benchmark.md) for detailed instructions.
 
@@ -47,7 +47,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **plan / design / "how should I implement"** → MUST invoke compose: `skill: "compose", args: "plan this task"`. See Plan operation above.
+- **plan / design / "how should I implement"** → Plan (see [plan.md](plan.md))
 - **implement / add feature / write** (new behavior) → New Feature
 - **fix bug / debug** → Fix Bug
 - **refactor / clean up / rename / restructure** → Apply
@@ -68,7 +68,7 @@ Users often request multiple operations together. Handle these as follows:
 
 ## References
 
-- [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, testing, and string conventions
+- [general-guidelines.md](general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, and string conventions
 - [testing-guidelines.md](testing-guidelines.md) — Test design patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
 - [typescript-guidelines.md](typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
 - [go-guidelines.md](go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
@@ -77,4 +77,4 @@ Users often request multiple operations together. Handle these as follows:
 - [test-environment.md](test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
 - [review-template.md](review-template.md) — Subagent prompt template for code review tasks
 - [review-checklist.md](review-checklist.md) — Five-category review checklist (test coverage, idiomaticity, simplification, correctness, naming)
-- [load-guidelines.md](load-guidelines.md) — Shared guideline loading checklist referenced by all TDD/coverage/benchmark/mutation operations
+- [load-guidelines.md](load-guidelines.md) — Index of all coding guideline files with descriptions, referenced by TDD/coverage/benchmark/mutation operations
