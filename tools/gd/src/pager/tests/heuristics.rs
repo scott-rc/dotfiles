@@ -36,6 +36,24 @@ mod full_context {
     fn single_file_zero_hunks() {
         assert!(default_full_context(1, 0));
     }
+
+    #[test]
+    fn five_files_no_full_context() {
+        // 5 files is the boundary — not enough for single-file view
+        assert!(!default_full_context(5, 10));
+    }
+
+    #[test]
+    fn six_files_enables_full_context() {
+        // >5 files triggers single-file view, so full context is useful
+        assert!(default_full_context(6, 10));
+    }
+
+    #[test]
+    fn many_files_enables_full_context() {
+        // Large diff like 74 files should get full context
+        assert!(default_full_context(74, 200));
+    }
 }
 
 mod view_scope {

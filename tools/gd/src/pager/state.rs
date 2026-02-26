@@ -276,10 +276,11 @@ impl PagerState {
 }
 
 /// Decide whether to start in full-context mode.
-/// Full context when viewing a single file with few hunks -- the entire file
-/// fits comfortably and the user likely wants surrounding code.
+/// Full context when viewing a single file with few hunks (the entire file
+/// fits comfortably), or when there are enough files to trigger single-file
+/// view (>5) -- viewing one file at a time benefits from full context.
 pub(crate) fn default_full_context(file_count: usize, total_hunks: usize) -> bool {
-    file_count == 1 && total_hunks <= 3
+    (file_count == 1 && total_hunks <= 3) || file_count > 5
 }
 
 /// Decide the initial view scope based on diff size relative to the terminal.
