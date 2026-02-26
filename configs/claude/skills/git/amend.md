@@ -9,7 +9,7 @@ Fold outstanding changes into the last commit.
    git fetch origin
    ```
 
-2. **Check current branch**: Check main branch protection per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion.
+2. **Check current branch**: Check main branch protection per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion; suggested branch names MUST follow the `sc/` prefix convention from git-patterns.md.
 
 3. **Check for changes to amend**: Run `git status`, `git diff --staged`, and `git diff`. If there are no staged or unstaged changes, inform the user there is nothing to amend and stop.
 

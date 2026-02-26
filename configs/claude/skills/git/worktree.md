@@ -20,7 +20,8 @@ Create a new git worktree for the given task, or convert an existing branch into
 4. **Generate branch slug** (new branch mode only):
    - Generate a concise 2-4 word kebab-case slug
    - Pass the slug words as positional args to `gwt` (it will kebab-case them)
-   - Example: task "fix the login page redirect bug" → args: `fix login redirect`
+   - `gwt` automatically prefixes the branch with `sc/` -- do NOT add the prefix yourself
+   - Example: task "fix the login page redirect bug" → args: `fix login redirect` → branch: `sc/fix-login-redirect`
 
 5. **Run `gwt`** via `fish -c '...'` with the appropriate flags:
    - Repo outside cwd: `-C <repo-path>`

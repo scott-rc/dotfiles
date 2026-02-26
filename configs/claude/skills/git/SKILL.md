@@ -116,5 +116,3 @@ These files are referenced by the operation instructions above:
 - [get-pr-comments.sh](scripts/get-pr-comments.sh) - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 - [poll-pr-status.sh](scripts/poll-pr-status.sh) - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - [get-failed-runs.sh](scripts/get-failed-runs.sh) - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)
-
-Scripts require the skill to be installed at `~/.claude/skills/git/`. All script paths are listed in [git-patterns.md](git-patterns.md).

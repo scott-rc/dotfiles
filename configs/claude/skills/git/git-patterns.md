@@ -40,6 +40,15 @@ Before committing or pushing on main/master:
 2. If yes, check for dotfiles exception (above)
 3. If not dotfiles, ask user before proceeding
 
+## Branch Naming
+
+All new branches MUST use the `sc/` prefix, e.g. `sc/fix-login-redirect`.
+
+- Do NOT use other prefixes (`scott/`, `gadget--scott/`, etc.)
+- When suggesting or creating branch names, MUST use `sc/<kebab-case-slug>`
+- The `gwt` fish function adds the `sc/` prefix automatically for worktrees -- do not add it when calling `gwt`
+- This rule applies to all other branch creation or suggestion contexts
+
 ## Fetch Safety
 
 Always use:
