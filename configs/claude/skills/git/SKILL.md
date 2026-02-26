@@ -15,7 +15,7 @@ Route to the appropriate operation based on user intent.
 
 ## GitHub Text Rule
 
-All GitHub-facing text MUST follow [pr-guidelines.md](pr-guidelines.md).
+All GitHub-facing text MUST follow [github-text.md](github-text.md).
 
 ## Operations
 
@@ -69,10 +69,7 @@ See [review.md](review.md) for detailed instructions.
 
 ### Update Description
 Rewrite the PR title and description to match current changes per guidelines.
-
-1. **Check for PR**: `gh pr view --json number,url,title,body 2>/dev/null`. If none, inform user and stop.
-2. **Delegate to `pr-writer` agent** with: mode `update`, base_branch (detect per [git-patterns.md](git-patterns.md)), pr_number.
-3. **Report**: confirm update, show PR URL.
+See [update-description.md](update-description.md) for detailed instructions.
 
 ### Submit Review
 Submit a PR review (approve, request changes, or comment) with optional inline comments.
@@ -111,7 +108,7 @@ Users often request multiple operations together. Handle these as follows:
 These files are referenced by the operation instructions above:
 
 - [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
-- [pr-guidelines.md](pr-guidelines.md) - Formatting rules for all GitHub-facing text (PR descriptions, comments, reviews)
+- [github-text.md](github-text.md) - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
 - [watch-subops.md](watch-subops.md) - State file format for the watch loop
 - [get-pr-comments.sh](scripts/get-pr-comments.sh) - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 - [poll-pr-status.sh](scripts/poll-pr-status.sh) - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
