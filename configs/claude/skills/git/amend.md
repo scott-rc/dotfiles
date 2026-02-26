@@ -33,7 +33,7 @@ Fold outstanding changes into the last commit.
     ```bash
     gh pr view --json number,url,title,body 2>/dev/null
     ```
-    If no PR exists, skip to step 11. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description. If files were added or removed, detect base branch per [git-patterns.md](git-patterns.md), spawn the `pr-writer` agent with mode `update`, base_branch, and pr_number, then confirm the PR was updated and show the PR URL.
+    If no PR exists, skip to step 11. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description. If files were added or removed, detect base branch per [git-patterns.md](git-patterns.md), spawn the `pr-writer` agent with mode `update`, base_branch, and pr_number. Pass only the documented input parameters — do NOT include formatting rules or style guidance (the agent owns its own rules). If the agent fails, re-spawn it once — if it fails again, report the error to the user. Do NOT write the PR description yourself. Confirm the PR was updated and show the PR URL.
 
 11. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
 

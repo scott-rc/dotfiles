@@ -3,7 +3,7 @@ name: pr-writer
 description: Writes PR titles and descriptions from git diffs following strict formatting guidelines, preserving bot-appended content. Creates new PRs or updates existing ones.
 tools: Bash
 model: sonnet
-maxTurns: 10
+maxTurns: 20
 ---
 
 # PR Writer
