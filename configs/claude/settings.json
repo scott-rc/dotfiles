@@ -29,8 +29,10 @@
       "/tmp",
       "~/.cargo/bin",
       "~/.cargo/registry",
+      "~/.claude/projects",
       "~/.config/atuin",
       "~/.config/bat",
+      "~/.config/claude",
       "~/.config/direnv",
       "~/.config/fish",
       "~/.config/git",
@@ -39,7 +41,6 @@
       "~/.config/nix",
       "~/.config/nvim",
       "~/.config/zed",
-      "~/.config/claude",
       "~/.config/zellij",
       "~/.rustup",
       "~/go/pkg/mod"
@@ -69,6 +70,7 @@
     "code-simplifier@claude-plugins-official": true
   },
   "spinnerTipsEnabled": false,
+  "autoMemoryEnabled": false,
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
     "/Users/scott/Code/personal"
