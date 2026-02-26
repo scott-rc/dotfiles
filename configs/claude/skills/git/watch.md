@@ -87,11 +87,18 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
       **Buildkite (`ci_system == "buildkite"`):** `gh run list` and `ci-triager` do not work for Buildkite. Note the failed check name from the poll response. Skip automated triage -- treat all Buildkite failures as real and proceed to fix.
 
       To get failure logs from Buildkite, use the project-local `buildkite` CLI script (a Node.js script that queries the Buildkite API for failed jobs and their logs; locate it under the project's `.ai/skills/ci/` directory if it exists -- see [git-patterns.md](git-patterns.md)):
-      1. Get the build URL: `gh pr checks --json name,state,detailsUrl | jq -r '.[] | select(.state == "FAILURE") | .detailsUrl'`
+      1. Get the build URL: `gh pr checks --json name,state,link | jq -r '.[] | select(.state == "FAILURE") | .link'`
       2. Parse the org, pipeline, and build number from the URL (format: `https://buildkite.com/<org>/<pipeline>/builds/<number>...`)
       3. List failed jobs: `direnv exec . <buildkite-script-path> failed <org> <pipeline> <build-number>`
-      4. Get logs for all failed jobs: `direnv exec . <buildkite-script-path> failed-logs <org> <pipeline> <build-number>`
-      5. Pass the trimmed failure logs and root cause to the fix subagent, same as the GitHub Actions path
+         The output includes `retried` (boolean) and `retried_in_job_id` fields on each job.
+      4. **If `failed` returns `[]` (empty):** Buildkite auto-retries can mask failures -- the original job's state changes when retried, causing `failed` to miss it. Re-query with `--include-retried` to find jobs that failed and were automatically retried:
+         `direnv exec . <buildkite-script-path> failed --include-retried <org> <pipeline> <build-number>`
+         - If ALL returned jobs have `retried: true`: these failures were auto-retried by Buildkite. Classify as **auto-retried flake** -- log the job names to the actions log (`- [<timestamp>] Auto-retried flake in <check name>: <job names>`), add the check to handled_checks, and continue. Do NOT attempt to fix.
+         - If some returned jobs have `retried: false`: these are real, non-retried failures. Fall through to step 5 using `failed-logs --include-retried` to fetch logs (since the base `failed-logs` would also return empty).
+         - If still empty after `--include-retried`: the FAILURE status is stale or from a different commit. Log it (`- [<timestamp>] Stale FAILURE status for <check name>, no failed or retried jobs found`), add to handled_checks, and continue.
+      5. Get logs for failed jobs: `direnv exec . <buildkite-script-path> failed-logs <org> <pipeline> <build-number>`
+         If step 4's `--include-retried` fallback was triggered (i.e., `failed` without the flag returned empty), use `failed-logs --include-retried` instead so logs are not also empty. Truncate output to the last 200 lines per job before passing to the subagent.
+      6. Pass the trimmed failure logs and root cause to the fix subagent, same as the GitHub Actions path
 
       **Important:** Buildkite runs sharded checks (e.g. ~80 parallel "node-api" jobs) that share the same check name in GitHub. A single failed shard gets masked by subsequent passing shards because GitHub reports the latest check result per name, not the worst. The `failed` count in the poll response correctly counts all failures, but `gh pr checks` may show the check as passing. Always use the `buildkite` script to inspect the actual build when the poll shows `failed > 0`, even if all named checks appear green.
 
