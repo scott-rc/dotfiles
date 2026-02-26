@@ -31,6 +31,5 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    Group results by severity (Blocking, Improvements, Suggestions) per [quality-checklist.md](quality-checklist.md). For each finding, state: what the issue is, which file and line/section it's in, what the fix would be.
 
 6. **Review-fix loop**:
-   - MUST present blocking fixes via AskUserQuestion before applying them
-   - SHOULD present improvements and suggestions as AskUserQuestion options for the user to select
+   - Fix Blocking and Improvements immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
    - Delegate fixes to a `rules-writer` subagent, then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).

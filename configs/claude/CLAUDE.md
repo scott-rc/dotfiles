@@ -55,18 +55,16 @@ An evaluate-fix cycle that repeats until convergence. The orchestrator drives; e
 
 **Structure** (repeat until converged or max iterations reached):
 
-1. **Evaluate** — run one or more evaluator agents to assess current state; run multiple evaluators in parallel
-2. **Synthesize** — merge findings; categorize as **Blocking** / **Improvements** / **Suggestions**
-3. **Fix** — delegate to the agent that owns the file type per the routing table, passing findings as the problem
-4. **Re-evaluate** — run the same evaluators on updated state
-5. **Converge** — stop when pass criteria are met or max iterations (default: 4) reached
+1. **Evaluate** — run evaluator agents in parallel; each finding MUST be `file:line — severity — one sentence`
+2. **Fix** — immediately delegate all Blocking and Improvement findings to the appropriate fixer; no confirmation, no pause
+3. **Re-evaluate** — run the same evaluators on updated state
+4. **Converge** — stop when pass criteria are met or max iterations (default: 4) reached
 
 **Rules:**
 
-- Each iteration MUST make progress — if the same finding recurs after a fix attempt, escalate to the user
-- **Blocking** findings MUST be presented to the user before fixing
-- **Improvements** — fix; escalate to user if the fix requires a design decision
-- **Suggestions** — fix if quick (fewer than 3 per file); otherwise note and move on; do not block convergence
+- MUST proceed through evaluate → fix → re-evaluate without pausing to ask the user
+- **Blocking** / **Improvements** — fix immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt
+- **Suggestions** — fix if quick (fewer than 3 per file); otherwise skip; do not block convergence
 - When max iterations complete without convergence, present remaining findings with status and let the user decide
 
 ---

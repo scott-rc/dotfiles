@@ -148,6 +148,7 @@ keybinds clear-defaults=true {
         bind "Super Shift =" { Resize "Increase"; }
         bind "Super Shift ," { PreviousSwapLayout; }
         bind "Super Shift \\" { ToggleFloatingPanes; }
+        bind "Super Shift /" { ToggleFloatingPanes; }
         bind "Super Shift ." { NextSwapLayout; }
         bind "Super Shift i" { MoveTab "left"; }
         bind "Super Shift o" { MoveTab "right"; }

@@ -31,4 +31,6 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
 6. **Review-fix loop**:
-   MUST present blocking fixes via AskUserQuestion before applying them. SHOULD present improvements and suggestions as AskUserQuestion options for the user to select. Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).
+   - Fix immediately without pausing to ask the user. Escalate only when a fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
+   - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
+   - Iterate until all findings pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).
