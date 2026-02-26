@@ -29,13 +29,13 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
 
    Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
 
-4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (10s–120s, starting at 30s). If resuming, note the previous iteration count and any prior actions.
+4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (10s–300s, starting at 30s). If resuming, note the previous iteration count and any prior actions.
 
 5. **Monitoring loop** (up to 90 iterations, ~45 minutes):
 
    AIMD parameters:
    - `min_interval`: 10s
-   - `max_interval`: 120s
+   - `max_interval`: 300s
    - `initial_interval`: 30s
    - `additive_increase`: 5s — added each idle iteration
    - `multiplicative_decrease`: 0.5 — multiplied when an event occurs
@@ -130,7 +130,7 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
 
       **Compute new `sleep_interval`:**
 
-      If any API call this iteration returned HTTP 429: set `sleep_interval = max_interval` (120s).
+      If any API call this iteration returned HTTP 429: set `sleep_interval = max_interval` (300s).
 
       Otherwise, determine whether this was an event iteration or idle iteration:
       - **Event**: new failures were handled, OR new review threads were handled, OR a push was made

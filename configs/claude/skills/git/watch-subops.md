@@ -12,7 +12,7 @@ State file format for the watch loop. Referenced by [watch.md](watch.md). Contex
 - last_push_time: <iso timestamp>
 - iteration: <n>
 - started_at: <iso timestamp>
-- sleep_interval: <seconds> — AIMD poll interval (10–120); see watch.md step 5
+- sleep_interval: <seconds> — AIMD poll interval (10–300); see watch.md step 5
 
 ## Handled Checks
 - <check name 1>
