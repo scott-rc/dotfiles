@@ -69,7 +69,7 @@ keybind = performable:cmd+ctrl+seven=goto_tab:7
 keybind = performable:cmd+ctrl+eight=goto_tab:8
 keybind = performable:cmd+ctrl+nine=goto_tab:9
 keybind = cmd+shift+d=unbind
-keybind = cmd+shift+e=unbind
+keybind = cmd+shift+e=text:\x1b[101;10u
 keybind = cmd+shift+f=text:\x1b[102;10u
 keybind = cmd+shift+g=unbind
 keybind = cmd+shift+h=unbind

@@ -115,6 +115,7 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+N` | New pane |
 | `Cmd+Shift+W` | Close pane |
 | `Cmd+Shift+H/J/K/L` | Focus left/down/up/right |
+| `Cmd+Shift+E` | Toggle embed/float pane |
 | `Cmd+Shift+F` | Toggle fullscreen |
 | `Cmd+Shift+Z` | Toggle pane frames |
 | `Cmd+Shift+\\` | Toggle floating panes |
