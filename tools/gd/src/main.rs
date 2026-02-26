@@ -90,6 +90,14 @@ fn main() {
     git::sort_files_for_display(&mut files);
 
     if files.is_empty() {
+        if !cli.show_whitespace {
+            let base_args = source.diff_args();
+            let base_str: Vec<&str> = base_args.iter().map(String::as_str).collect();
+            let raw_with_ws = git::run_diff(&repo, &base_str);
+            if !raw_with_ws.is_empty() {
+                eprintln!("gd: only whitespace changes found (use -w to show)");
+            }
+        }
         return;
     }
 
