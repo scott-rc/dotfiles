@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME\"/.claude/hooks/wrap-with-direnv.sh"
+            "command": "\"$HOME/.claude/hooks/wrap-with-direnv.sh\""
           }
         ]
       }
