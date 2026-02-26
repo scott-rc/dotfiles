@@ -4,7 +4,7 @@ cursor-style = bar
 cursor-style-blink = false
 font-family = MonoLisa
 font-family = MonaspiceAr Nerd Font Mono
-font-size = 14
+font-size = 16
 font-thicken = true
 keybind = cmd+q=unbind
 keybind = cmd+h=unbind
