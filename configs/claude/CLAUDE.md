@@ -27,6 +27,8 @@ User interaction and state transitions stay in the orchestrator.
 
 ### Routing
 
+**Skills take precedence.** When the user's intent maps to a skill (with or without `/`), invoke it via the Skill tool — MUST NOT route directly to its subagents. Skills orchestrate subagent dispatch; the table below is what skills use internally.
+
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
 - Commits — `committer`
