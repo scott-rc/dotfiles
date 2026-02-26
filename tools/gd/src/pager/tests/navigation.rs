@@ -1,6 +1,6 @@
 //! Navigation, viewport, content-line and scrollbar tests.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::render::LineInfo;
 
@@ -170,7 +170,7 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
         line_map: vec![
             LineInfo {
                 file_idx: 0,
-                path: Rc::from(""),
+                path: Arc::from(""),
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
@@ -357,7 +357,7 @@ fn test_scrollbar_no_crash_on_zero_range() {
     let line_map: Vec<LineInfo> = (0..5)
         .map(|_| LineInfo {
             file_idx: 0,
-            path: Rc::from(""),
+            path: Arc::from(""),
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
@@ -519,7 +519,7 @@ fn test_scrollbar_no_panic_on_vis_end_less_than_vis_start() {
     let line_map: Vec<LineInfo> = (0..20)
         .map(|_| LineInfo {
             file_idx: 0,
-            path: Rc::from(""),
+            path: Arc::from(""),
             new_lineno: None,
             old_lineno: None,
             line_kind: None,

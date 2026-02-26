@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use similar::TextDiff;
 use tui::highlight::{
@@ -13,7 +13,7 @@ use crate::style;
 #[derive(Debug, Clone)]
 pub struct LineInfo {
     pub file_idx: usize,
-    pub path: Rc<str>,
+    pub path: Arc<str>,
     /// Source line number in the new file (for editor jump), if applicable.
     pub new_lineno: Option<u32>,
     /// Source line number in the old file (for deleted lines), if applicable.
@@ -31,7 +31,7 @@ pub struct RenderOutput {
 
 struct HunkRenderContext<'a> {
     file_idx: usize,
-    path_rc: Rc<str>,
+    path: Arc<str>,
     syntax: &'a SyntaxReference,
     ss: &'a SyntectSyntaxSet,
     theme: &'a SyntectTheme,
@@ -39,92 +39,176 @@ struct HunkRenderContext<'a> {
     width: usize,
 }
 
-pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
-    let cap: usize = files
-        .iter()
-        .map(|f| f.hunks.iter().map(|h| h.lines.len()).sum::<usize>())
-        .sum::<usize>()
-        + files.len();
+/// Render a single file and return its lines, line_map, and local hunk_start offsets.
+fn render_file(
+    file_idx: usize,
+    file: &DiffFile,
+    width: usize,
+    color: bool,
+) -> (Vec<String>, Vec<LineInfo>, Vec<usize>) {
+    let path = file.path();
+    let arc_path: Arc<str> = Arc::from(path);
+    let status_label = match file.status {
+        FileStatus::Modified => "Modified",
+        FileStatus::Added => "Added",
+        FileStatus::Deleted => "Deleted",
+        FileStatus::Renamed => "Renamed",
+        FileStatus::Untracked => "Untracked",
+    };
+    // File header
+    let header = if color {
+        style::file_header(path, status_label, width)
+    } else {
+        let label = format!(" {path} ({status_label}) ");
+        let bar_len = width.saturating_sub(2 + label.len());
+        format!(
+            "{}{}{}",
+            "\u{2500}".repeat(2),
+            label,
+            "\u{2500}".repeat(bar_len)
+        )
+    };
+
+    let cap = file.hunks.iter().map(|h| h.lines.len()).sum::<usize>() + 1;
     let mut lines = Vec::with_capacity(cap);
     let mut line_map = Vec::with_capacity(cap);
-    let mut file_starts = Vec::new();
     let mut hunk_starts = Vec::new();
 
-    for (file_idx, file) in files.iter().enumerate() {
-        file_starts.push(lines.len());
-        let path = file.path();
-        let path_rc: Rc<str> = Rc::from(path);
-        let status_label = match file.status {
-            FileStatus::Modified => "Modified",
-            FileStatus::Added => "Added",
-            FileStatus::Deleted => "Deleted",
-            FileStatus::Renamed => "Renamed",
-            FileStatus::Untracked => "Untracked",
+    lines.push(header);
+    line_map.push(LineInfo {
+        file_idx,
+        path: Arc::clone(&arc_path),
+        new_lineno: None,
+        old_lineno: None,
+        line_kind: None,
+    });
+
+    // Syntax highlighter for this file's extension
+    let syntax = SYNTAX_SET
+        .find_syntax_by_extension(
+            std::path::Path::new(path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or(""),
+        )
+        .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
+    let render_ctx = HunkRenderContext {
+        file_idx,
+        path: Arc::clone(&arc_path),
+        syntax,
+        ss: &SYNTAX_SET,
+        theme: &THEME,
+        color,
+        width,
+    };
+
+    for (hunk_idx, hunk) in file.hunks.iter().enumerate() {
+        // Separator between hunks (not before the first)
+        if hunk_idx > 0 {
+            lines.push(style::hunk_separator(width, color));
+            line_map.push(LineInfo {
+                file_idx,
+                path: Arc::clone(&arc_path),
+                new_lineno: None,
+                old_lineno: None,
+                line_kind: None,
+            });
+        }
+
+        hunk_starts.push(lines.len());
+
+        // Render diff lines with word-level highlights
+        render_hunk_lines(hunk, &render_ctx, &mut lines, &mut line_map);
+    }
+
+    (lines, line_map, hunk_starts)
+}
+
+pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
+    let thread_count = std::thread::available_parallelism()
+        .map_or(1, std::num::NonZero::get)
+        .min(files.len())
+        .max(1);
+
+    // No-color render skips syntect highlighting (the expensive part),
+    // so threading overhead would dominate. Only parallelize with color.
+    if thread_count <= 1 || !color {
+        // Sequential path: no threading overhead
+        let cap: usize = files
+            .iter()
+            .map(|f| f.hunks.iter().map(|h| h.lines.len()).sum::<usize>())
+            .sum::<usize>()
+            + files.len();
+        let mut all_lines = Vec::with_capacity(cap);
+        let mut all_line_map = Vec::with_capacity(cap);
+        let mut file_starts = Vec::new();
+        let mut hunk_starts = Vec::new();
+
+        for (file_idx, file) in files.iter().enumerate() {
+            let offset = all_lines.len();
+            file_starts.push(offset);
+            let (fl, fm, fh) = render_file(file_idx, file, width, color);
+            for hs in &fh {
+                hunk_starts.push(hs + offset);
+            }
+            all_lines.extend(fl);
+            all_line_map.extend(fm);
+        }
+
+        return RenderOutput {
+            lines: all_lines,
+            line_map: all_line_map,
+            file_starts,
+            hunk_starts,
         };
-        // File header
-        let header = if color {
-            style::file_header(path, status_label, width)
-        } else {
-            let label = format!(" {path} ({status_label}) ");
-            let bar_len = width.saturating_sub(2 + label.len());
-            format!(
-                "{}{}{}",
-                "\u{2500}".repeat(2),
-                label,
-                "\u{2500}".repeat(bar_len)
-            )
-        };
-        lines.push(header);
-        line_map.push(LineInfo {
-            file_idx,
-            path: Rc::clone(&path_rc),
-            new_lineno: None,
-            old_lineno: None,
-            line_kind: None,
+    }
+
+    // Parallel path: render files across threads, then merge in order
+    let file_results: Vec<(Vec<String>, Vec<LineInfo>, Vec<usize>)> =
+        std::thread::scope(|s| {
+            let chunk_size = files.len().div_ceil(thread_count);
+            let handles: Vec<_> = files
+                .chunks(chunk_size)
+                .enumerate()
+                .map(|(chunk_idx, chunk)| {
+                    let base_file_idx = chunk_idx * chunk_size;
+                    s.spawn(move || {
+                        let mut results = Vec::with_capacity(chunk.len());
+                        for (i, file) in chunk.iter().enumerate() {
+                            results.push(render_file(base_file_idx + i, file, width, color));
+                        }
+                        results
+                    })
+                })
+                .collect();
+
+            let mut all_results = Vec::with_capacity(files.len());
+            for handle in handles {
+                all_results.extend(handle.join().unwrap());
+            }
+            all_results
         });
 
-        // Syntax highlighter for this file's extension
-        let syntax = SYNTAX_SET
-            .find_syntax_by_extension(
-                std::path::Path::new(path)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or(""),
-            )
-            .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
-        let render_ctx = HunkRenderContext {
-            file_idx,
-            path_rc: Rc::clone(&path_rc),
-            syntax,
-            ss: &SYNTAX_SET,
-            theme: &THEME,
-            color,
-            width,
-        };
+    // Merge results in file order
+    let total_lines: usize = file_results.iter().map(|(l, _, _)| l.len()).sum();
+    let mut all_lines = Vec::with_capacity(total_lines);
+    let mut all_line_map = Vec::with_capacity(total_lines);
+    let mut file_starts = Vec::with_capacity(files.len());
+    let mut hunk_starts = Vec::new();
 
-        for (hunk_idx, hunk) in file.hunks.iter().enumerate() {
-            // Separator between hunks (not before the first)
-            if hunk_idx > 0 {
-                lines.push(style::hunk_separator(width, color));
-                line_map.push(LineInfo {
-                    file_idx,
-                    path: Rc::clone(&path_rc),
-                    new_lineno: None,
-                    old_lineno: None,
-                    line_kind: None,
-                });
-            }
-
-            hunk_starts.push(lines.len());
-
-            // Render diff lines with word-level highlights
-            render_hunk_lines(hunk, &render_ctx, &mut lines, &mut line_map);
+    for (fl, fm, fh) in file_results {
+        let offset = all_lines.len();
+        file_starts.push(offset);
+        for hs in &fh {
+            hunk_starts.push(hs + offset);
         }
+        all_lines.extend(fl);
+        all_line_map.extend(fm);
     }
 
     RenderOutput {
-        lines,
-        line_map,
+        lines: all_lines,
+        line_map: all_line_map,
         file_starts,
         hunk_starts,
     }
@@ -490,7 +574,7 @@ fn render_hunk_lines(
             lines.push(line);
             line_map.push(LineInfo {
                 file_idx: ctx.file_idx,
-                path: Rc::clone(&ctx.path_rc),
+                path: Arc::clone(&ctx.path),
                 new_lineno: diff_line.new_lineno,
                 old_lineno: diff_line.old_lineno,
                 line_kind: Some(diff_line.kind),
@@ -1353,5 +1437,30 @@ diff --git a/foo.txt b/foo.txt
                 "continuation line should have added bg: {cont:?}"
             );
         }
+    }
+
+    #[test]
+    fn render_parallel_matches_sequential() {
+        let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,1 +1,2 @@
+ ctx
++added
+diff --git a/b.rs b/b.rs
+--- a/b.rs
++++ b/b.rs
+@@ -1,1 +1,2 @@
+ ctx
++added2
+";
+        let files = diff::parse(raw);
+        let color_output = render(&files, 80, true);
+        let plain_output = render(&files, 80, false);
+        // Structural shape must match regardless of rendering path
+        assert_eq!(color_output.file_starts, plain_output.file_starts);
+        assert_eq!(color_output.hunk_starts, plain_output.hunk_starts);
+        assert_eq!(color_output.line_map.len(), plain_output.line_map.len());
     }
 }

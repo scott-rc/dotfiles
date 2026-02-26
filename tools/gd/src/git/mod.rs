@@ -1,13 +1,16 @@
 pub mod diff;
 
+use std::io::BufRead;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone)]
 pub enum DiffSource {
     WorkingTree,
     Staged,
     Commit(String),
+    /// Two-sided range. Right side may be empty for single-argument forms
+    /// like `main...HEAD` (git triple-dot merge-base syntax).
     Range(String, String),
 }
 
@@ -20,7 +23,11 @@ impl DiffSource {
             Self::Commit(_) => unreachable!("Commit is resolved to Range in main"),
             Self::Range(l, r) => {
                 args.push(l.clone());
-                args.push(r.clone());
+                // Right side is empty when l already encodes a triple-dot range
+                // (e.g. "main...HEAD"), which git diff accepts as a single argument.
+                if !r.is_empty() {
+                    args.push(r.clone());
+                }
             }
         }
         args
@@ -119,43 +126,88 @@ pub(crate) fn parse_first_parent_base(log_output: &str, skip: &[&str]) -> Option
     None
 }
 
-/// Detect the base branch by walking first-parent history and finding the first
-/// ancestor commit decorated with another branch. Mirrors the `gbb` fish function.
-pub fn find_base_branch(repo: &Path) -> String {
-    let current = run(repo, &["branch", "--show-current"])
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-
-    let default = run(repo, &["rev-parse", "--abbrev-ref", "origin/HEAD"])
-        .map(|s| s.trim().trim_start_matches("origin/").to_string())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "main".to_string());
-
-    if current.is_empty() || current == default {
-        return default;
-    }
-
-    let skip_head = format!("HEAD -> {current}");
-    let skip_origin = format!("origin/{current}");
-    let skip = [skip_head.as_str(), current.as_str(), skip_origin.as_str()];
-
-    if let Some(log_output) = run(
-        repo,
-        &[
+/// Stream `git log --first-parent --format=%D` and return the first matching
+/// ancestor branch. Kills the git process as soon as a match is found, avoiding
+/// the cost of reading the entire log output.
+fn find_base_from_log(repo: &Path, branch: &str, skip: &[&str]) -> Option<String> {
+    let mut child = Command::new("git")
+        .args([
             "log",
             "--first-parent",
             "--format=%D",
             "--decorate-refs=refs/heads/",
             "--decorate-refs=refs/remotes/origin/",
-            &current,
-        ],
-    ) {
-        if let Some(base) = parse_first_parent_base(&log_output, &skip) {
-            return base;
+            branch,
+        ])
+        .current_dir(repo)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+
+    let stdout = child.stdout.take()?;
+    let reader = std::io::BufReader::new(stdout);
+
+    for line in reader.lines() {
+        let Ok(line) = line else { break };
+        if line.is_empty() {
+            continue;
+        }
+        if let Some(base) = parse_first_parent_base(&line, skip) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Some(base);
         }
     }
 
-    default
+    let _ = child.kill();
+    let _ = child.wait();
+    None
+}
+
+/// Phase 1: detect current and default branches. Works from any directory in
+/// the repo, so it can run in parallel with `repo_root`.
+pub fn base_branch_init(from: &Path) -> (String, String) {
+    std::thread::scope(|s| {
+        let current_h = s.spawn(|| {
+            run(from, &["branch", "--show-current"])
+                .map(|s| s.trim().to_string())
+                .unwrap_or_default()
+        });
+        let default_h = s.spawn(|| {
+            run(from, &["rev-parse", "--abbrev-ref", "origin/HEAD"])
+                .map(|s| s.trim().trim_start_matches("origin/").to_string())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "main".to_string())
+        });
+        (current_h.join().unwrap(), default_h.join().unwrap())
+    })
+}
+
+/// Phase 2: find the base branch using streaming git log. Requires the repo
+/// root for correctness (log decorations are relative to it).
+pub fn base_branch_finish(repo: &Path, current: &str, default: &str) -> String {
+    if current.is_empty() || current == default {
+        return default.to_string();
+    }
+
+    let skip_head = format!("HEAD -> {current}");
+    let skip_origin = format!("origin/{current}");
+    let skip = [skip_head.as_str(), current, skip_origin.as_str()];
+
+    if let Some(base) = find_base_from_log(repo, current, &skip) {
+        return base;
+    }
+
+    default.to_string()
+}
+
+/// Detect the base branch by walking first-parent history and finding the first
+/// ancestor commit decorated with another branch. Mirrors the `gbb` fish function.
+#[cfg(test)]
+pub fn find_base_branch(repo: &Path) -> String {
+    let (current, default) = base_branch_init(repo);
+    base_branch_finish(repo, &current, &default)
 }
 
 /// List untracked files (respecting .gitignore).

@@ -8,6 +8,8 @@ use std::io::{self, IsTerminal, Write};
 
 use clap::Parser;
 
+use tui::highlight::{SYNTAX_SET, THEME};
+
 use crate::git::{DiffSource, resolve_commit_parent, resolve_source};
 
 #[derive(Parser)]
@@ -50,26 +52,41 @@ fn main() {
     let cli = Cli::parse();
     let staged = cli.staged || cli.cached;
 
+    // Eagerly initialize syntax highlighting statics in the background,
+    // overlapping with git command execution.
+    let syntax_init = std::thread::spawn(|| {
+        let _ = &*SYNTAX_SET;
+        let _ = &*THEME;
+    });
+
     let cwd = std::env::current_dir().unwrap_or_else(|e| {
         eprintln!("gd: {e}");
         std::process::exit(1);
     });
-    let repo = git::repo_root(&cwd).unwrap_or_else(|| {
-        eprintln!("gd: not a git repository");
-        std::process::exit(1);
-    });
 
-    let source = if cli.base {
-        let base = git::find_base_branch(&repo);
-        let merge_base = git::run(&repo, &["merge-base", &base, "HEAD"])
-            .or_else(|| {
-                let remote = format!("origin/{base}");
-                git::run(&repo, &["merge-base", &remote, "HEAD"])
-            })
-            .map_or_else(|| base.clone(), |s| s.trim().to_string());
-        DiffSource::Range(merge_base, "HEAD".into())
+    // When using -b, overlap repo_root with base branch detection phase 1
+    // (both are independent git commands that work from any directory).
+    let (repo, source) = if cli.base {
+        let (repo_opt, init) = std::thread::scope(|s| {
+            let repo_h = s.spawn(|| git::repo_root(&cwd));
+            let init_h = s.spawn(|| git::base_branch_init(&cwd));
+            (repo_h.join().unwrap(), init_h.join().unwrap())
+        });
+        let repo = repo_opt.unwrap_or_else(|| {
+            eprintln!("gd: not a git repository");
+            std::process::exit(1);
+        });
+        let (current, default) = init;
+        let base = git::base_branch_finish(&repo, &current, &default);
+        // Use triple-dot merge-base syntax to avoid a separate `git merge-base` call
+        (repo, DiffSource::Range(format!("{base}...HEAD"), String::new()))
     } else {
-        resolve_source(staged, &cli.source)
+        let repo = git::repo_root(&cwd).unwrap_or_else(|| {
+            eprintln!("gd: not a git repository");
+            std::process::exit(1);
+        });
+        let source = resolve_source(staged, &cli.source);
+        (repo, source)
     };
     let source = match source {
         DiffSource::Commit(ref_str) => {
@@ -100,6 +117,8 @@ fn main() {
         }
         return;
     }
+
+    syntax_init.join().unwrap();
 
     let is_tty = io::stdout().is_terminal();
     let color = !cli.no_color && is_tty;

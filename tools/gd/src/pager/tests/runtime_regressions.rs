@@ -1,6 +1,6 @@
 //! Runtime regression tests: resolve_path, re_render, document swap, resize.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::git::diff::LineKind;
 use crate::render;
@@ -362,7 +362,7 @@ fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
         line_map: vec![
             LineInfo {
                 file_idx: 0,
-                path: Rc::from(""),
+                path: Arc::from(""),
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
@@ -461,7 +461,7 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
         line_map: vec![
             LineInfo {
                 file_idx: 0,
-                path: Rc::from(""),
+                path: Arc::from(""),
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
