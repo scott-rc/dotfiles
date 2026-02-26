@@ -2,10 +2,22 @@ use regex::Regex;
 use std::sync::LazyLock;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
+pub const REVERSE: &str = "\x1b[7m";
+pub const NO_REVERSE: &str = "\x1b[27m";
+pub const RESET: &str = "\x1b[0m";
+pub const DIM: &str = "\x1b[2m";
+pub const NO_DIM: &str = "\x1b[22m";
+pub const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
+pub const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
+
 /// Matches ANSI SGR escape sequences (e.g., `\x1b[0m`, `\x1b[38;2;100;200;50m`)
 /// and OSC 8 hyperlink sequences (e.g., `\x1b]8;;url\x07`).
 pub static ANSI_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\x1b\[[0-9;]*m|\x1b\][^\x07]*\x07").unwrap());
+
+/// Matches OSC 8 hyperlink sequences, capturing the URL.
+pub static OSC8_CAPTURE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\x1b\]8;;([^\x07]*)\x07").unwrap());
 
 /// Tracks active ANSI styling state across text segments.
 ///
@@ -23,6 +35,15 @@ const ATTR_ITALIC: u8 = 1 << 2;
 const ATTR_UNDERLINE: u8 = 1 << 3;
 
 impl AnsiState {
+    /// Build an `AnsiState` by replaying all ANSI codes in a line.
+    pub fn from_line(line: &str) -> Self {
+        let mut state = Self::default();
+        for m in ANSI_RE.find_iter(line) {
+            state.update(m.as_str());
+        }
+        state
+    }
+
     fn set_attr(&mut self, attr: u8, enabled: bool) {
         if enabled {
             self.attrs |= attr;
@@ -444,5 +465,46 @@ mod tests {
         state.update("\x1b[24m");
         assert!(!state.is_underline(), "underline should be cleared after code 24");
         assert!(!state.to_codes().contains("\x1b[4m"), "to_codes should not include underline after reset");
+    }
+
+    // ── from_line tests ──────────────────────────────────
+
+    #[test]
+    fn from_line_plain_text() {
+        let state = AnsiState::from_line("hello world");
+        assert!(!state.is_active(), "plain text should have no active state");
+    }
+
+    #[test]
+    fn from_line_bold_and_fg() {
+        let state = AnsiState::from_line("\x1b[1m\x1b[38;2;100;200;50mhello");
+        assert!(state.is_bold());
+        assert!(state.fg.is_some());
+        assert!(!state.is_italic());
+    }
+
+    #[test]
+    fn from_line_reset_mid_stream() {
+        let state = AnsiState::from_line("\x1b[1m\x1b[3mhello\x1b[0m\x1b[4mworld");
+        assert!(!state.is_bold(), "bold should be cleared by reset");
+        assert!(!state.is_italic(), "italic should be cleared by reset");
+        assert!(state.is_underline(), "underline set after reset");
+    }
+
+    // ── OSC8_CAPTURE_RE tests ────────────────────────────
+
+    #[test]
+    fn osc8_capture_re_extracts_url() {
+        let text = "\x1b]8;;https://example.com\x07click\x1b]8;;\x07";
+        let caps: Vec<_> = OSC8_CAPTURE_RE.captures_iter(text).collect();
+        assert_eq!(caps.len(), 2);
+        assert_eq!(&caps[0][1], "https://example.com");
+        assert_eq!(&caps[1][1], "", "close sequence has empty URL");
+    }
+
+    #[test]
+    fn osc8_capture_re_no_match_plain() {
+        let text = "plain text with no links";
+        assert!(OSC8_CAPTURE_RE.captures(text).is_none());
     }
 }

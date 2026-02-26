@@ -25,18 +25,24 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
 
    **If it exists (resume):** Read the file. Use its values as the starting state. Run a fresh `poll-pr-status` call (using the file's `last_push_time` and `handled_threads`) and update the "Latest Status" section so monitoring begins with current data. Log a resume action: `- [<timestamp>] Resumed watch from iteration <n>`. Report to the user that a previous session is being resumed.
 
-   **If it does not exist (fresh start):** Run the initial `poll-pr-status` call, then create the file with the fields defined in [watch-subops.md](watch-subops.md). Populate `head_sha` from `git rev-parse HEAD`, set `last_push_time` and `started_at` to the current UTC timestamp, `iteration` to 0, and `actions_log` with a single `Watch started` entry. For `handled_checks`: on `github-actions` CI, if `ci` is not null, pre-seed with names of currently-pending checks (from `ci.pendingChecks`) to avoid re-triaging in-progress checks -- current failures are NOT pre-seeded. On `buildkite` and `unknown` CI, start with empty `handled_checks` (pre-seeding the Buildkite umbrella check name while pending would mark it as handled if it later fails). If `ci` is null, leave empty.
+   **If it does not exist (fresh start):** Run the initial `poll-pr-status` call, then create the file with the fields defined in [watch-subops.md](watch-subops.md). Populate `head_sha` from `git rev-parse HEAD`, set `last_push_time` and `started_at` to the current UTC timestamp, `iteration` to 0, `sleep_interval` to `initial_interval` (30), and `actions_log` with a single `Watch started` entry. For `handled_checks`: on `github-actions` CI, if `ci` is not null, pre-seed with names of currently-pending checks (from `ci.pendingChecks`) to avoid re-triaging in-progress checks -- current failures are NOT pre-seeded. On `buildkite` and `unknown` CI, start with empty `handled_checks` (pre-seeding the Buildkite umbrella check name while pending would mark it as handled if it later fails). If `ci` is null, leave empty.
 
    Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
 
-4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with 30s poll interval. If resuming, note the previous iteration count and any prior actions.
+4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (10s–120s, starting at 30s). If resuming, note the previous iteration count and any prior actions.
 
 5. **Monitoring loop** (up to 90 iterations, ~45 minutes):
 
-   a. **Sleep**: `sleep 30`
-      If any API call in the previous iteration returned HTTP 429, double the sleep interval (up to 120s). Reset to 30s once a non-429 response is received.
+   AIMD parameters:
+   - `min_interval`: 10s
+   - `max_interval`: 120s
+   - `initial_interval`: 30s
+   - `additive_increase`: 5s — added each idle iteration
+   - `multiplicative_decrease`: 0.5 — multiplied when an event occurs
 
-   b. **Read state**: Read the state file to load current `handled_checks`, `handled_threads`, `fix_attempts`, `head_sha`, `last_push_time`, `started_at`, and `iteration` count.
+   a. **Read state**: Read the state file to load `sleep_interval`, `handled_checks`, `handled_threads`, `fix_attempts`, `head_sha`, `last_push_time`, `started_at`, and `iteration` count.
+
+   b. **Sleep**: Run `sleep <sleep_interval>`.
 
    c. **Poll**: Run `poll-pr-status` (path in [git-patterns.md](git-patterns.md)) with current state:
       ```bash
@@ -113,7 +119,19 @@ All fixes MUST be delegated to subagents -- reading source files and attempting 
 
       **Buildkite umbrella check:** When `ciSystem == "buildkite"`, the umbrella parent check (e.g. `buildkite/gadget`) often stays in FAILURE state even after all child jobs pass on retry. If `exit` is null and the only failing check is the umbrella parent, and all other actionable checks are passing, treat it as effectively `all_green`. To detect this: check if `ci.failed == 1` and the single failure name matches `^buildkite/[^/]+$` (exactly two slash-separated components -- e.g. `buildkite/gadget` matches, but `buildkite/gadget/node-api` does not). Add the umbrella check to handled_checks so it does not block future iterations either.
 
-   h. **Write state** (MANDATORY every iteration): Increment `iteration`, update the "Latest Status" line, and write ALL state back to the file. This MUST happen at the end of EVERY iteration, even if nothing changed -- no exceptions. At minimum, the iteration counter and Latest Status line must be updated. This ensures resume-after-crash loses at most one iteration of progress, and enables the context-discard rule (see Context Management above: once state is written, raw poll data can be discarded).
+   h. **Write state** (MUST happen every iteration): Increment `iteration`, update the "Latest Status" line, compute the new `sleep_interval`, and write ALL state back to the file. This MUST happen at the end of EVERY iteration, even if nothing changed -- no exceptions. At minimum, the iteration counter, Latest Status line, and sleep_interval must be updated. This ensures resume-after-crash loses at most one iteration of progress, and enables the context-discard rule (see Context Management above: once state is written, raw poll data can be discarded).
+
+      **Compute new `sleep_interval`:**
+
+      If any API call this iteration returned HTTP 429: set `sleep_interval = max_interval` (120s).
+
+      Otherwise, determine whether this was an event iteration or idle iteration:
+      - **Event**: new failures were handled, OR new review threads were handled, OR a push was made
+      - **Idle**: none of the above occurred
+
+      Apply the formula:
+      - Event: `sleep_interval = max(sleep_interval * multiplicative_decrease, min_interval)`
+      - Idle: `sleep_interval = min(sleep_interval + additive_increase, max_interval)`
 
 6. **Summary**: Read the actions log from the state file and report:
    - Review threads addressed (count, files)

@@ -93,7 +93,7 @@ pub fn copy_to_clipboard(text: &str) -> bool {
     child.wait().is_ok()
 }
 
-pub fn open_in_editor(path: &str, line: Option<u32>, read_only: bool) {
+pub fn open_in_editor(path: &str, line: Option<usize>, read_only: bool) {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nvim".to_string());
     let basename = editor.rsplit('/').next().unwrap_or(&editor);
     let is_vim = basename == "vim" || basename == "nvim";

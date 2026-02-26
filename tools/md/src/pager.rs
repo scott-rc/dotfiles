@@ -3,33 +3,21 @@ use std::path::Path;
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyEventKind};
-use regex::Regex;
-use std::sync::LazyLock;
 
+use tui::ansi::{DIM, NO_DIM, NO_REVERSE, OSC8_CAPTURE_RE, RESET, REVERSE, STATUS_BG, STATUS_FG};
 use tui::pager::{
     ALT_SCREEN_OFF, ALT_SCREEN_ON, CLEAR_LINE, CURSOR_HIDE, CURSOR_SHOW, copy_to_clipboard,
-    get_term_size, move_to,
+    get_term_size, move_to, open_in_editor,
 };
 use tui::search::{
-    find_matches, find_nearest_match, highlight_search, max_scroll, word_boundary_left,
-    word_boundary_right,
+    find_matches, find_nearest_match, highlight_search, map_scroll_position, map_to_source_line,
+    max_scroll, word_boundary_left, word_boundary_right,
 };
 
 use unicode_width::UnicodeWidthChar;
 
 use crate::wrap::{split_ansi, wrap_line_for_display};
 
-/// Matches OSC 8 hyperlink open sequences: \x1b]8;;URL\x07
-static OSC8_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\x1b\]8;;([^\x07]*)\x07").unwrap());
-
-const REVERSE: &str = "\x1b[7m";
-const NO_REVERSE: &str = "\x1b[27m";
-const RESET: &str = "\x1b[0m";
-const DIM: &str = "\x1b[2m";
-const NO_DIM: &str = "\x1b[22m";
-const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
-const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
 const LINK_HIGHLIGHT_BG: &str = "\x1b[48;2;22;30;48m";
 
 pub use tui::pager::Key;
@@ -82,7 +70,7 @@ pub fn extract_links(lines: &[String]) -> Vec<LinkInfo> {
     let mut result = Vec::new();
     for (i, line) in lines.iter().enumerate() {
         let mut seen = std::collections::HashSet::new();
-        for cap in OSC8_RE.captures_iter(line) {
+        for cap in OSC8_CAPTURE_RE.captures_iter(line) {
             let url = cap[1].to_string();
             if !url.is_empty() && seen.insert(url.clone()) {
                 result.push(LinkInfo { line: i, url });
@@ -192,23 +180,6 @@ fn content_height(rows: u16, state: &PagerState) -> usize {
 }
 
 pub use tui::pager::crossterm_to_key as crossterm_key_to_key;
-
-pub fn map_scroll_position(old_top: usize, old_count: usize, new_count: usize) -> usize {
-    if old_count <= 1 || new_count <= 1 {
-        return 0;
-    }
-    let ratio = old_top as f64 / (old_count - 1) as f64;
-    (ratio * (new_count - 1) as f64).round() as usize
-}
-
-pub fn map_to_source_line(top_line: usize, rendered_line_count: usize, raw_content: &str) -> usize {
-    let source_count = raw_content.lines().count();
-    if rendered_line_count == 0 {
-        return 1;
-    }
-    let ratio = top_line as f64 / rendered_line_count as f64;
-    (ratio * source_count as f64).round() as usize + 1
-}
 
 pub fn format_help_lines(cols: usize, content_height: usize) -> Vec<String> {
     let help = [
@@ -434,10 +405,6 @@ pub fn handle_search_key(state: &mut PagerState, key: &Key) {
         }
         _ => {}
     }
-}
-
-fn open_in_editor(file_path: &str, line: Option<usize>, read_only: bool) {
-    tui::pager::open_in_editor(file_path, line.map(|l| l as u32), read_only);
 }
 
 /// Follow a link URL: open local .md files stacked in the pager, or open external URLs in browser.
@@ -792,10 +759,13 @@ pub fn run_pager(
                     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
                     let _ = stdout.flush();
 
-                    let line = state
-                        .raw_content
-                        .as_ref()
-                        .map(|raw| map_to_source_line(state.top_line, state.lines.len(), raw));
+                    let line = state.raw_content.as_ref().map(|raw| {
+                        map_to_source_line(
+                            state.top_line,
+                            state.lines.len(),
+                            raw.lines().count(),
+                        )
+                    });
                     open_in_editor(&fp, line, read_only);
 
                     // Re-enter pager
@@ -981,7 +951,7 @@ mod tests {
             let result = map_to_source_line(
                 case.input.top_line,
                 case.input.rendered_line_count,
-                &case.input.raw_content,
+                case.input.raw_content.lines().count(),
             );
             assert_eq!(result, case.expected, "map_to_source_line: {}", case.name);
         }

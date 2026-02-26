@@ -89,7 +89,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `style.rs` -- Diff color palette (GitHub Dark-inspired) and ANSI helpers
 - `pager/mod.rs` -- Pager entrypoint and shared wiring
 - `pager/content.rs` -- Pure line-map helpers (next_content_line, snap_to_content, etc.)
-- `pager/text.rs` -- Char-boundary helpers for search input
+
 - `pager/types.rs` -- Typed pager enums/newtypes and action identifiers
 - `pager/keymap.rs` -- Keybinding table + help-line generation
 - `pager/state.rs` -- Pager/document state model and remap helpers

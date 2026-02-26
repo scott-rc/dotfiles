@@ -6,7 +6,7 @@ mod rendering;
 mod runtime;
 mod search;
 mod state;
-mod text;
+
 pub mod tree;
 mod types;
 

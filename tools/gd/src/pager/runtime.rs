@@ -76,7 +76,7 @@ fn format_debug_state(state: &PagerState) -> String {
 }
 
 fn open_in_editor(path: &str, line: Option<u32>) {
-    tui::pager::open_in_editor(path, line, false);
+    tui::pager::open_in_editor(path, line.map(|l| l as usize), false);
 }
 
 pub(crate) fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std::path::PathBuf {

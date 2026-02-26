@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use tui::pager::{CLEAR_LINE, move_to};
-use tui::search::max_scroll;
+use tui::search::{clamp_cursor_to_boundary, max_scroll};
 
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
@@ -9,7 +9,6 @@ use crate::style;
 
 use super::keymap::keymap_tooltip_lines;
 use super::state::{PagerState, visible_range};
-use super::text::clamp_cursor_to_boundary;
 use super::types::Mode;
 
 pub(crate) fn diff_area_width(

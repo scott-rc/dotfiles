@@ -7,6 +7,6 @@ mod reducer;
 mod rendering;
 mod runtime_regressions;
 mod search;
-mod text;
+
 mod tree;
 mod types;

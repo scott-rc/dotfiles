@@ -1,7 +1,4 @@
-use crate::ansi::{split_ansi, strip_ansi};
-
-const REVERSE: &str = "\x1b[7m";
-const NO_REVERSE: &str = "\x1b[27m";
+use crate::ansi::{split_ansi, strip_ansi, NO_REVERSE, REVERSE};
 
 /// Highlight all occurrences of `query` in `line` with reverse video,
 /// preserving existing ANSI codes. Case-insensitive matching.
@@ -133,6 +130,74 @@ pub fn max_scroll(line_count: usize, content_height: usize) -> usize {
     } else {
         0
     }
+}
+
+/// Move to the previous UTF-8 char boundary, clamped to string length.
+pub fn prev_char_boundary(s: &str, pos: usize) -> usize {
+    let mut pos = pos.min(s.len());
+    if pos == 0 {
+        return 0;
+    }
+    pos -= 1;
+    while pos > 0 && !s.is_char_boundary(pos) {
+        pos -= 1;
+    }
+    pos
+}
+
+/// Move to the next UTF-8 char boundary, clamped to string length.
+pub fn next_char_boundary(s: &str, pos: usize) -> usize {
+    let mut pos = pos.min(s.len());
+    if pos == s.len() {
+        return pos;
+    }
+    pos += 1;
+    while pos < s.len() && !s.is_char_boundary(pos) {
+        pos += 1;
+    }
+    pos
+}
+
+/// Clamp a cursor position to a valid UTF-8 char boundary.
+pub fn clamp_cursor_to_boundary(s: &str, cursor: usize) -> usize {
+    let mut cursor = cursor.min(s.len());
+    while cursor > 0 && !s.is_char_boundary(cursor) {
+        cursor -= 1;
+    }
+    cursor
+}
+
+/// Map a scroll position proportionally when line count changes.
+/// Returns 0 for degenerate cases (count <= 1).
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+pub fn map_scroll_position(old_top: usize, old_count: usize, new_count: usize) -> usize {
+    if old_count <= 1 || new_count <= 1 {
+        return 0;
+    }
+    let ratio = old_top as f64 / (old_count - 1) as f64;
+    (ratio * (new_count - 1) as f64).round() as usize
+}
+
+/// Map a rendered line position to an approximate source line number (1-indexed).
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+pub fn map_to_source_line(
+    top_line: usize,
+    rendered_line_count: usize,
+    source_line_count: usize,
+) -> usize {
+    if rendered_line_count == 0 {
+        return 1;
+    }
+    let ratio = top_line as f64 / rendered_line_count as f64;
+    (ratio * source_line_count as f64).round() as usize + 1
 }
 
 #[cfg(test)]
@@ -270,5 +335,101 @@ mod tests {
     fn test_max_scroll_odd_content_height() {
         // 50 - 25 + 12 = 37
         assert_eq!(max_scroll(50, 25), 37);
+    }
+
+    // ---- char boundary helpers ----
+
+    #[test]
+    fn test_prev_char_boundary_at_start() {
+        assert_eq!(prev_char_boundary("hello", 0), 0);
+    }
+
+    #[test]
+    fn test_prev_char_boundary_ascii() {
+        assert_eq!(prev_char_boundary("hello", 3), 2);
+    }
+
+    #[test]
+    fn test_prev_char_boundary_multibyte() {
+        // "café" = [99, 97, 102, 195, 169] — 'é' starts at byte 3, ends at 5
+        let s = "café";
+        assert_eq!(prev_char_boundary(s, 5), 3); // from end of é -> start of é
+        assert_eq!(prev_char_boundary(s, 4), 3); // from mid-é -> start of é
+    }
+
+    #[test]
+    fn test_next_char_boundary_at_end() {
+        let s = "hello";
+        assert_eq!(next_char_boundary(s, s.len()), s.len());
+    }
+
+    #[test]
+    fn test_next_char_boundary_ascii() {
+        assert_eq!(next_char_boundary("hello", 1), 2);
+    }
+
+    #[test]
+    fn test_next_char_boundary_multibyte() {
+        let s = "café";
+        // 'é' starts at byte 3, is 2 bytes — next boundary from 3 should be 5
+        assert_eq!(next_char_boundary(s, 3), 5);
+    }
+
+    #[test]
+    fn test_clamp_cursor_valid() {
+        assert_eq!(clamp_cursor_to_boundary("hello", 3), 3);
+    }
+
+    #[test]
+    fn test_clamp_cursor_invalid_boundary() {
+        let s = "café";
+        // byte 4 is inside the 'é' — should clamp back to 3
+        assert_eq!(clamp_cursor_to_boundary(s, 4), 3);
+    }
+
+    #[test]
+    fn test_clamp_cursor_beyond_length() {
+        assert_eq!(clamp_cursor_to_boundary("hi", 100), 2);
+    }
+
+    // ---- scroll mapping ----
+
+    #[test]
+    fn test_map_scroll_position_at_top() {
+        assert_eq!(map_scroll_position(0, 100, 200), 0);
+    }
+
+    #[test]
+    fn test_map_scroll_position_at_bottom() {
+        assert_eq!(map_scroll_position(99, 100, 200), 199);
+    }
+
+    #[test]
+    fn test_map_scroll_position_middle() {
+        // 50/99 ratio applied to 199 -> ~100
+        assert_eq!(map_scroll_position(50, 100, 200), 101);
+    }
+
+    #[test]
+    fn test_map_scroll_position_degenerate() {
+        assert_eq!(map_scroll_position(0, 1, 100), 0);
+        assert_eq!(map_scroll_position(0, 100, 1), 0);
+        assert_eq!(map_scroll_position(5, 0, 100), 0);
+    }
+
+    #[test]
+    fn test_map_to_source_line_at_top() {
+        assert_eq!(map_to_source_line(0, 100, 50), 1);
+    }
+
+    #[test]
+    fn test_map_to_source_line_proportional() {
+        // 50/100 ratio * 50 = 25 + 1 = 26
+        assert_eq!(map_to_source_line(50, 100, 50), 26);
+    }
+
+    #[test]
+    fn test_map_to_source_line_empty_content() {
+        assert_eq!(map_to_source_line(10, 0, 0), 1);
     }
 }

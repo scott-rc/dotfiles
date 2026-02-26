@@ -48,12 +48,7 @@ pub const FG_STATUS_UNTRACKED: &str = "\x1b[38;2;110;118;129m";
 pub const BG_SCROLLBAR_TRACK: &str = "\x1b[48;2;30;33;38m";
 /// Scrollbar viewport thumb background (brighter gray)
 pub const BG_SCROLLBAR_THUMB: &str = "\x1b[48;2;55;60;68m";
-/// Status bar background (dark blue-gray)
-pub const STATUS_BG: &str = "\x1b[48;2;28;33;40m";
-/// Status bar foreground (muted gray)
-pub const STATUS_FG: &str = "\x1b[38;2;139;148;158m";
-
-pub const RESET: &str = "\x1b[0m";
+pub use tui::ansi::{DIM, NO_DIM, RESET, STATUS_BG, STATUS_FG};
 
 /// Wrap continuation marker for long lines.
 pub fn wrap_marker(color: bool) -> String {
@@ -65,8 +60,6 @@ pub fn wrap_marker(color: bool) -> String {
 }
 /// Reset bold/italic/fg but preserve background color.
 pub const SOFT_RESET: &str = "\x1b[22;23;39m";
-pub const DIM: &str = "\x1b[2m";
-pub const NO_DIM: &str = "\x1b[22m";
 
 /// Format a file header separator line.
 pub fn file_header(path: &str, status: &str, width: usize) -> String {

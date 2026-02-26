@@ -1,8 +1,10 @@
 use tui::pager::Key;
-use tui::search::{find_matches, find_nearest_match};
+use tui::search::{
+    clamp_cursor_to_boundary, find_matches, find_nearest_match, next_char_boundary,
+    prev_char_boundary,
+};
 
 use super::state::PagerState;
-use super::text::{clamp_cursor_to_boundary, next_char_boundary, prev_char_boundary};
 use super::types::Mode;
 
 pub(crate) fn submit_search(state: &mut PagerState) {

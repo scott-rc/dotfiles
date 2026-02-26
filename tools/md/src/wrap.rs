@@ -8,15 +8,6 @@ pub use tui::ansi::visible_width as visible_length;
 static BACKTICK_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$").unwrap());
 
-/// Build an `AnsiState` by scanning all ANSI codes in a line.
-fn ansi_state_from_line(line: &str) -> AnsiState {
-    let mut state = AnsiState::default();
-    for m in ANSI_RE.find_iter(line) {
-        state.update(m.as_str());
-    }
-    state
-}
-
 /// Word-wrap text to a given width, optionally prepending an indent to each line.
 /// ANSI escape codes are not counted toward visible width.
 pub fn word_wrap(text: &str, width: usize, indent: &str) -> String {
@@ -158,7 +149,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                     if let Some(m) = BACKTICK_RE.find(&line_to_save) {
                         let captured = m.as_str().to_string();
                         line_to_save = line_to_save[..m.start()].trim_end().to_string();
-                        let save_state = ansi_state_from_line(&line_to_save);
+                        let save_state = AnsiState::from_line(&line_to_save);
                         if !strip_ansi(&line_to_save).trim().is_empty() {
                             if save_state.is_active() {
                                 line_to_save.push_str("\x1b[0m");
@@ -177,7 +168,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                         let pulled = line_to_save[split_pos..].to_string();
                         line_to_save = line_to_save[..split_pos].trim_end().to_string();
                         if !strip_ansi(&line_to_save).trim().is_empty() {
-                            let save_state = ansi_state_from_line(&line_to_save);
+                            let save_state = AnsiState::from_line(&line_to_save);
                             if save_state.is_active() {
                                 line_to_save.push_str("\x1b[0m");
                             }
