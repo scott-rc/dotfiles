@@ -767,8 +767,26 @@ fn diag_single_file_tree_width_change() {
     use std::path::Path;
     use tui::pager::Key;
 
-    // Build a diff with files that have directories (triggers tree auto-show)
+    // Build a diff with files that have directories (triggers tree auto-show).
+    // Files must be sorted by path (lib/ < src/) because build_tree_entries
+    // requires sorted input and parse() preserves diff order.
     let raw = "\
+diff --git a/lib/baz.txt b/lib/baz.txt
+--- a/lib/baz.txt
++++ b/lib/baz.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++gamma
+ delta
+diff --git a/src/bar.txt b/src/bar.txt
+--- a/src/bar.txt
++++ b/src/bar.txt
+@@ -1,3 +1,3 @@
+ keep
+-remove
++added
+ end
 diff --git a/src/foo.txt b/src/foo.txt
 --- a/src/foo.txt
 +++ b/src/foo.txt
@@ -786,22 +804,6 @@ diff --git a/src/foo.txt b/src/foo.txt
  line12
  line13
  line14
-diff --git a/src/bar.txt b/src/bar.txt
---- a/src/bar.txt
-+++ b/src/bar.txt
-@@ -1,3 +1,3 @@
- keep
--remove
-+added
- end
-diff --git a/lib/baz.txt b/lib/baz.txt
---- a/lib/baz.txt
-+++ b/lib/baz.txt
-@@ -1,3 +1,3 @@
- alpha
--beta
-+gamma
- delta
 ";
     let files = crate::git::diff::parse(raw);
     // Start WITHOUT tree visible, at a width where the tree might auto-show on s-toggle

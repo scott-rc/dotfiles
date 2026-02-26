@@ -4,7 +4,7 @@ use super::super::rendering::*;
 use super::super::types::Mode;
 use super::common::{
     make_keybinding_state, make_line_map, make_pager_state_for_range, make_pager_state_from_files,
-    make_two_file_diff, strip,
+    make_two_file_diff, scrollbar_thumb_range, strip,
 };
 use crate::git::diff::LineKind;
 use crate::render::LineInfo;
@@ -60,6 +60,16 @@ fn bar_visible_tooltip_visible() {
     let mut state = make_keybinding_state();
     state.tooltip_visible = true;
     assert!(bar_visible(&state), "tooltip_visible should show bar");
+}
+
+#[test]
+fn bar_visible_single_file_mode() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    assert!(
+        bar_visible(&state),
+        "bar should be visible in single file mode so file count is shown"
+    );
 }
 
 // -- content_height --
@@ -245,6 +255,26 @@ fn render_scrollbar_cell_added_and_deleted_indicators() {
 }
 
 #[test]
+fn render_scrollbar_cell_thumb_capped_at_content_height() {
+    // When the viewport is taller than the document content, the thumb must
+    // not extend beyond the content area. With range=30 in a 40-row viewport,
+    // the thumb should span at most 30 rows (proportional to the content),
+    // not overflow to all 40 rows.
+    // Regression: thumb_end was content_height^2/range (uncapped), producing
+    // a thumb taller than the scrollbar track itself.
+    let content_height = 40;
+    let range = 30;
+    let top = 0;
+    let (first, last) = scrollbar_thumb_range(content_height, range, top, 0);
+    assert_eq!(first, 0, "thumb should start at row 0 at top");
+    assert!(
+        last < content_height - 1,
+        "thumb must not fill the entire track when range < content_height: \
+         last={last}, content_height={content_height}, range={range}"
+    );
+}
+
+#[test]
 fn render_scrollbar_cell_zero_range_returns_track() {
     let map = make_line_map(&[Some(LineKind::Context)]);
     let cell = render_scrollbar_cell(0, 20, 5, 5, 5, &map);
@@ -303,8 +333,156 @@ fn format_status_bar_single_file() {
     let bar = format_status_bar(&state, 20, 80);
     let visible = strip(&bar);
     assert!(
-        visible.contains("Single:"),
-        "should show single file indicator: {visible:?}"
+        visible.contains("\u{e7a8}"),
+        "should contain Rust file icon: {visible:?}"
+    );
+    assert!(
+        visible.contains("a.rs"),
+        "should contain file path: {visible:?}"
+    );
+    assert!(
+        visible.contains("< 1/3 >"),
+        "should contain chevron counter: {visible:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_single_file_no_single_label() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
+    assert!(
+        !visible.contains("Single:"),
+        "should NOT contain old Single: label: {visible:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_single_file_path_dimmed() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    let bar = format_status_bar(&state, 20, 80);
+    // DIM must appear before the path; NO_DIM must appear after it
+    let dim_pos = bar.find(style::DIM).expect("DIM escape not found");
+    let nodim_pos = bar.find(style::NO_DIM).expect("NO_DIM escape not found");
+    assert!(
+        dim_pos < nodim_pos,
+        "DIM should come before NO_DIM in raw bar: {bar:?}"
+    );
+    let path_pos = bar.find("a.rs").expect("path not found in raw bar");
+    assert!(
+        dim_pos < path_pos && path_pos < nodim_pos,
+        "path should be between DIM and NO_DIM: dim={dim_pos}, path={path_pos}, nodim={nodim_pos}"
+    );
+}
+
+#[test]
+fn format_status_bar_single_file_counter_not_dimmed() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    let bar = format_status_bar(&state, 20, 80);
+    let nodim_pos = bar.find(style::NO_DIM).expect("NO_DIM escape not found");
+    let counter_pos = bar.find("< 1/3 >").expect("counter not found in raw bar");
+    assert!(
+        nodim_pos < counter_pos,
+        "counter should appear after NO_DIM (at normal brightness): nodim={nodim_pos}, counter={counter_pos}"
+    );
+}
+
+#[test]
+fn format_status_bar_narrow_cols() {
+    let mut state = make_keybinding_state();
+    state.set_active_file(Some(0));
+    // Very narrow terminal: left side should be dropped gracefully
+    let cols = 20usize;
+    let bar = format_status_bar(&state, 20, cols);
+    let visible = strip(&bar);
+    assert!(
+        visible.chars().count() <= cols,
+        "visible width must be <= cols on narrow terminal: {visible:?}"
+    );
+    // Should not panic and should still show a position indicator
+    assert!(
+        visible.contains("TOP") || visible.contains("END") || visible.contains('%'),
+        "narrow bar should still show position: {visible:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_all_files_right_side_simplified() {
+    // All-files mode (no active file): right side should show only a position
+    // indicator (TOP/END/%) with no line range like "1-20/90"
+    let state = make_keybinding_state();
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
+    assert!(
+        visible.contains("TOP") || visible.contains("END") || visible.contains('%'),
+        "all-files bar should contain a position indicator: {visible:?}"
+    );
+    assert!(
+        !visible.contains('-'),
+        "simplified right side should not contain a line range dash: {visible:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_right_side_is_position_only() {
+    // At top (top_line = 0), the right portion should show "TOP" with no range like "1-20/90".
+    let state = make_keybinding_state(); // top_line=0 by default
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
+    // The right-side portion should NOT contain a dash (the range separator in "1-20/90").
+    // Split on whitespace and check the rightmost token.
+    let right_token = visible.trim_end().split_whitespace().last().unwrap_or("");
+    assert_eq!(right_token, "TOP", "right side should be position only: {visible:?}");
+    assert!(
+        !visible.contains('-'),
+        "right side should not contain a range separator '-': {visible:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_right_side_no_dim_escapes() {
+    // Mid-scroll: the raw bar should NOT contain DIM escape sequences on the right side.
+    let mut state = make_keybinding_state(); // 90 lines, 3 files
+    state.top_line = 10;
+    state.cursor_line = 10;
+    let bar = format_status_bar(&state, 20, 80);
+    // The right portion is everything after left padding. Since no active_file and no visual,
+    // left is empty so the entire content is padding + right.
+    assert!(
+        !bar.contains(style::DIM),
+        "right side should not contain DIM escape: {bar:?}"
+    );
+    assert!(
+        !bar.contains(style::NO_DIM),
+        "right side should not contain NO_DIM escape: {bar:?}"
+    );
+}
+
+#[test]
+fn format_status_bar_right_side_percentage_no_range() {
+    // Mid-scroll with 90 lines: should show percentage, not a "10-30/90" range.
+    let mut state = make_keybinding_state(); // 90 lines
+    state.top_line = 10;
+    state.cursor_line = 10;
+    let bar = format_status_bar(&state, 20, 80);
+    let visible = strip(&bar);
+    assert!(
+        visible.contains('%'),
+        "mid-scroll should show percentage: {visible:?}"
+    );
+    // Must NOT contain the range pattern like "11-30/90".
+    let has_range = visible
+        .split_whitespace()
+        .any(|tok| {
+            let parts: Vec<&str> = tok.split('/').collect();
+            parts.len() == 2 && parts[0].contains('-') && parts[1].chars().all(|c| c.is_ascii_digit())
+        });
+    assert!(
+        !has_range,
+        "should not contain a range pattern like N-N/N: {visible:?}"
     );
 }
 

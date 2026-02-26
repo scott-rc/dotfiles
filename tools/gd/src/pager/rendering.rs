@@ -39,8 +39,16 @@ pub(crate) fn render_scrollbar_cell(
         return format!("{} {}", style::BG_SCROLLBAR_TRACK, style::RESET);
     }
 
-    let line_start = (vis_start + (row * range) / content_height).min(line_map.len());
-    let line_end = (vis_start + ((row + 1) * range) / content_height).min(line_map.len());
+    // Cap the scrollbar track height to the content range so the scrollbar
+    // never extends below the last line of content.
+    let track = content_height.min(range);
+
+    if row >= track {
+        return format!("{} {}", style::RESET, style::RESET);
+    }
+
+    let line_start = (vis_start + (row * range) / track).min(line_map.len());
+    let line_end = (vis_start + ((row + 1) * range) / track).min(line_map.len());
 
     let mut change: Option<LineKind> = None;
     for li in &line_map[line_start..line_end] {
@@ -50,8 +58,9 @@ pub(crate) fn render_scrollbar_cell(
         }
     }
 
-    let thumb_start = (top.saturating_sub(vis_start)) * content_height / range;
-    let thumb_end = (thumb_start + content_height * content_height / range).max(thumb_start + 1);
+    let thumb_start = (top.saturating_sub(vis_start)) * track / range;
+    let thumb_size = (track * track / range).max(1);
+    let thumb_end = (thumb_start + thumb_size).min(track);
     let in_thumb = row >= thumb_start && row < thumb_end;
 
     let bg = if in_thumb {
@@ -97,7 +106,10 @@ pub(crate) fn viewport_bounds(
 pub(crate) const TOOLTIP_HEIGHT: usize = 2;
 
 pub(crate) fn bar_visible(state: &PagerState) -> bool {
-    matches!(state.mode, Mode::Search) || !state.status_message.is_empty() || state.tooltip_visible
+    matches!(state.mode, Mode::Search)
+        || !state.status_message.is_empty()
+        || state.tooltip_visible
+        || state.active_file().is_some()
 }
 
 pub(crate) fn content_height(rows: u16, state: &PagerState) -> usize {
@@ -192,16 +204,8 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
             (end as f64 / line_count as f64 * 100.0).round() as usize
         )
     };
-    let right = format!(
-        "{}{}-{}/{}{} {}",
-        style::DIM,
-        top + 1,
-        end,
-        line_count,
-        style::NO_DIM,
-        position
-    );
-    let right_vis = format!("{}-{}/{} {}", top + 1, end, line_count, position).len();
+    let right = position;
+    let right_vis = right.len();
 
     let left = if let Some(idx) = state.active_file() {
         let path = state
@@ -209,17 +213,20 @@ pub(crate) fn format_status_bar(state: &PagerState, content_height: usize, cols:
             .line_map
             .get(state.cursor_line)
             .map_or("", |li| &li.path);
+        let (icon, icon_color) = style::file_icon(path);
+        let counter = format!("{}/{}", idx + 1, state.doc.file_count());
         format!(
-            "Single: {path} (file {}/{})",
-            idx + 1,
-            state.doc.file_count()
+            "{icon_color}{icon}{} {}{path}{}  < {counter} >",
+            style::STATUS_FG,
+            style::DIM,
+            style::NO_DIM,
         )
     } else if state.visual_anchor.is_some() {
         "-- VISUAL --".to_string()
     } else {
         String::new()
     };
-    let left_vis = left.len();
+    let left_vis = crate::ansi::visible_width(&left);
 
     let total_vis = left_vis + right_vis;
     if total_vis >= cols {
