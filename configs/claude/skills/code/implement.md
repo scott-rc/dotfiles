@@ -1,6 +1,6 @@
 # Implement
 
-Run a full TDD → mutation testing → code review convergence loop: build test-first, harden with mutation testing, then review-fix until converged.
+Run a full TDD → code review convergence loop: build test-first, then review-fix until converged. Mutation testing is available as an opt-in hardening step.
 
 ## Instructions
 
@@ -18,21 +18,20 @@ Run a full TDD → mutation testing → code review convergence loop: build test
 3. **Confirm Phase 1 complete**:
    Verify all tests pass. Capture the file list before proceeding.
 
-### Phase 2 — Harden with Mutation Testing (conditional)
+### Phase 2 — Harden with Mutation Testing (opt-in)
 
-4. **Assess mutation testing viability**:
-   Skip mutation testing if any of these apply:
-   - Code is trivial (config, glue, one-liner)
-   - User opted out ("no mutation testing", "skip MT")
-   - No meaningful mutations are possible (pure I/O wiring, constants only)
+4. **Decide whether to run mutation testing**:
+   Skip by default. Run mutation testing only when:
+   - User explicitly requests it ("with mutation testing", "run MT", "harden")
+   - Code has complex branching logic where TDD alone may leave weak assertions
 
-   If skipping, note the reason and proceed to step 6.
+   If skipping, proceed directly to Phase 3.
 
 5. **Follow the Mutation Testing operation**:
    Follow mutate.md, scoping it to the files tracked in step 2.
 
-6. **Report Phase 2 status**:
-   Report to the user: mutation testing outcome (score before/after, survivors killed) or reason skipped. Confirm all tests pass before proceeding to review.
+6. **Report mutation testing outcome**:
+   Report to the user: score before/after, survivors killed. Confirm all tests pass before proceeding to review.
 
 ### Phase 3 — Review-Fix Convergence Loop
 
@@ -50,6 +49,6 @@ Run a full TDD → mutation testing → code review convergence loop: build test
 9. **Report results**:
    MUST report to the user:
    - Implementation summary: tests written, behaviors covered, TDD approach used (red-green-refactor or regression-first), files created/modified
-   - Mutation testing: score before new tests (killed/total), score after (if survivors were killed), or reason skipped
+   - Mutation testing: score before/after (if run)
    - Review cycles completed and final status (converged or remaining findings with categories)
    - Deferred items: edge cases noted during TDD, integration-level mutation survivors, unaddressed suggestions
