@@ -14,7 +14,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 
 - [ ] **Valid frontmatter**: SKILL.md has YAML frontmatter with required `name` and `description` fields and only valid optional fields
 - [ ] **Name matches directory**: The `name` in frontmatter matches the directory name exactly
-- [ ] **Naming rules**: Names follow [skill-spec.md](skill-spec.md) naming rules
+- [ ] **Naming rules**: Names follow skill-spec.md naming rules
 - [ ] **Operations section exists**: SKILL.md has an H2 "Operations" section with at least one operation
 - [ ] **Operation files exist**: Every operation listed in SKILL.md that links to a file has a corresponding `.md` file
 - [ ] **Reference files exist**: Every file linked from SKILL.md or operation files exists
@@ -37,13 +37,13 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **Verification step (non-mutating)**: Read-only or informational operations include a step for verifying results where practical
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
 - [ ] **Examples where needed**: Operations that produce formatted output (commit messages, PR descriptions, file scaffolds) include at least one example
-- [ ] **DRY references**: Reference files meet the DRY threshold in [skill-spec.md](skill-spec.md)
+- [ ] **DRY references**: Reference files meet the DRY threshold in skill-spec.md
 - [ ] **Terminology consistency**: The same concept uses the same word everywhere (e.g., always "operation" or always "command", never both)
 - [ ] **Description specificity**: The `description` field names concrete actions and triggers, not vague capabilities (FAIL: "Helps with various tasks")
 - [ ] **RFC keyword usage**: Operations use MUST/SHOULD/MAY to distinguish requirement levels. Neither all-MUST (overuse) nor all-plain-prose (under-use).
 - [ ] **Sequential steps**: Operations use numbered steps that flow logically from start to finish
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
-- [ ] **Self-contained operations**: Operation files are understandable on their own; referenced files provide detail, not essential context (per [skill-spec.md](skill-spec.md))
+- [ ] **Self-contained operations**: Operation files are understandable on their own; referenced files provide detail, not essential context (per skill-spec.md)
 - [ ] **Invocation control**: Skills with side effects use `disable-model-invocation: true`; background-knowledge skills use `user-invocable: false`; default is appropriate for dual-invocation skills
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do

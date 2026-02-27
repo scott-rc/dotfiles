@@ -32,5 +32,6 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
 
 6. **Review-fix loop**:
    - Fix immediately without pausing to ask the user. Escalate only when a fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
+   - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
    - Iterate until all findings pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).

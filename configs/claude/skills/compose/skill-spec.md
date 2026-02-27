@@ -16,7 +16,7 @@ SKILL.md (router)
 
 Three principles:
 
-1. **Deciding vs doing** — See the delegation rules in [CLAUDE.md](../../CLAUDE.md). Operations must respect the deciding/doing boundary.
+1. **Deciding vs doing** — See Delegation > Behavior in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
 2. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
 3. **References are DRY leaves** — They prevent update-in-N-places problems. Operations work without them for the happy path.
 
@@ -141,4 +141,4 @@ Subdirectories are optional and only needed when the skill has many files of a g
 
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **No cross-skill file references**: MUST NOT reference another skill's files via relative paths. Use the Skill tool for cross-skill delegation.
-- **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, Deciding vs Doing, and Degrees of Freedom patterns, see [content-patterns.md](content-patterns.md).
+- **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, Deciding vs Doing, and Degrees of Freedom patterns, see content-patterns.md.

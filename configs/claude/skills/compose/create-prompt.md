@@ -5,14 +5,12 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 ## Instructions
 
 1. **Gather requirements**:
-   Interview the user via AskUserQuestion about:
+   Follow the interview pattern from [content-patterns.md](content-patterns.md). Ask the user via AskUserQuestion about:
    - What goal or outcome the session should accomplish
    - Constraints or boundaries (e.g., don't change public API, stay within one file, use existing patterns)
    - Expected output type -- present as AskUserQuestion options: "New feature", "Refactor", "Bug fix", "Migration", "Documentation", "Other"
    - Whether a relevant codebase exists and where it lives
    - Any prior decisions, context, or failed approaches to include
-
-   MUST use AskUserQuestion for all questions. MUST batch related questions into a single message. MUST skip any questions the user's initial request already answered. SHOULD ask follow-ups only if the answers are ambiguous or incomplete.
 
 2. **Explore codebase context** (conditional):
    If a codebase is relevant, spawn a Task subagent (type: Explore, model: haiku) to gather context. The subagent MUST:

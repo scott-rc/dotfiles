@@ -46,7 +46,7 @@ See [plan-task.md](plan-task.md) for detailed instructions.
 
 ## Delegation
 
-All writing in compose operations MUST go through `skill-writer` or `rules-writer`. MUST NOT delegate to `code-writer` — it lacks skill/rules validation and its code-oriented workflows (TDD, build, lint) are meaningless for markdown skill files.
+Within compose, all writing MUST go through `skill-writer` or `rules-writer`. MUST NOT delegate to `code-writer` — it lacks skill/rules validation and its code-oriented workflows (TDD, build, lint) are meaningless for markdown skill files.
 
 - Skill files (operations, references, SKILL.md) — `skill-writer` (supports both create and update modes)
 - Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
@@ -72,8 +72,6 @@ Users often request multiple operations together. Handle these as follows:
 - **"review"** (ambiguous) → Present options via AskUserQuestion: "Review a skill", "Review a rules file", "Review a prompt"
 
 ## References
-
-These files are referenced by the operation instructions. Operations that link to a reference file MUST read it before proceeding.
 
 - [shared-rules.md](shared-rules.md) - Shared authoring rules (keyword conventions, content rules) for both skills and rules files
 - [skill-spec.md](skill-spec.md) - Specification for authoring Claude Code skills (naming, frontmatter, structure, content rules)

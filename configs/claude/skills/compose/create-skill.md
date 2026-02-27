@@ -5,7 +5,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 ## Instructions
 
 1. **Gather requirements**:
-   Ask the user via AskUserQuestion about:
+   Follow the interview pattern from [content-patterns.md](content-patterns.md). Ask the user via AskUserQuestion about:
    - What the skill does (purpose and domain)
    - What triggers it (user phrases that should invoke it)
    - What operations it needs (distinct tasks the skill should handle)

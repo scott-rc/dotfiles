@@ -5,7 +5,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 ## Instructions
 
 1. **Gather requirements**:
-   Ask the user via AskUserQuestion about:
+   Follow the interview pattern from [content-patterns.md](content-patterns.md). Ask the user via AskUserQuestion about:
    - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md", "Global CLAUDE.md", "CLAUDE.local.md", "Unconditional rule", "Scoped rule", "User-level rule"
    - What project or directory the rules are for
    - What instructions or conventions they want to encode

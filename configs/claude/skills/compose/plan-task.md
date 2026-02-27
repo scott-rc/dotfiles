@@ -5,26 +5,15 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 ## Instructions
 
 1. **Gather requirements** (conditional):
-   Skip the interview only when the user's request explicitly provides the overall goal, codebase location, and any constraints or failed approaches. Interview when any of these is missing:
+   Follow the interview pattern from [content-patterns.md](content-patterns.md). Skip the interview only when the user's request explicitly provides the overall goal, codebase location, and any constraints or failed approaches. Interview when any of these is missing:
    - The overall goal and desired end state
    - Natural phase boundaries or milestones (if they have any in mind)
    - The codebase location and key directories
    - Build and test commands
    - Any prior decisions, constraints, or failed approaches
 
-   MUST use AskUserQuestion for all questions. MUST batch questions into a single message. MUST skip any questions the user's initial request already answered.
-
 2. **Load coding preferences** (conditional):
-   If the task involves writing or modifying code:
-   - MUST invoke the code skill to load coding preferences: `skill: "code"` (no routing args -- loading references only). If the code skill is not available, apply general TDD structure (write test first, then implementation) and skip language-specific guidelines.
-   - Read from the code skill's References section: general-guidelines and the applicable language-specific guidelines (TypeScript, Go, or Shell)
-   - Read test-environment for test runner detection, file placement, and build/test commands
-   - Apply these during decomposition:
-     - Default to TDD structure (red-green-refactor) for chunks adding testable behavior
-     - Chunks that are pure refactoring, config, or glue code do not need TDD structure
-     - Include build and test commands in chunk context
-
-   If no code changes are involved, MUST skip this step.
+   If the task involves code changes, invoke the code skill to load coding preferences. Otherwise, skip.
 
 3. **Explore codebase context**:
    If a codebase is relevant, spawn a Task subagent (type: Explore, model: sonnet) to gather context. The subagent MUST:
@@ -83,7 +72,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    Decision point: If all chunks receive their full context from the parent prompt (the typical case), launch all subagents in parallel. If a chunk's writer prompt says "read chunk-NN for context," that chunk must wait for chunk-NN's subagent to finish.
 
-   After all subagents complete, read each chunk file and verify it matches the chunk-writer agent's Output Format (correct sections, checkboxes, TDD structure where appropriate). Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
+   After all subagents complete, spawn a Task subagent (type: Explore, model: haiku) to read all chunk files and verify each matches the chunk-writer Output Format (correct sections, checkboxes, TDD structure where appropriate). The subagent MUST return a pass/fail summary per chunk. Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
 
 7. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](plan-template.md).

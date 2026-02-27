@@ -30,6 +30,8 @@ CLAUDE.md files cascade: global, then project root, then subdirectories. More sp
 
 ## Content Guidelines
 
+These guidelines supplement the shared authoring rules in [shared-rules.md](shared-rules.md).
+
 **What to include:**
 - Project-specific conventions Claude cannot infer (e.g., "use bun, not npm", "tests go in `__tests__/`")
 - Build, test, and lint commands (e.g., "run `make check` before committing")
@@ -38,10 +40,7 @@ CLAUDE.md files cascade: global, then project root, then subdirectories. More sp
 - References to key documentation via `@file` (e.g., `@README.md`, `@CONTRIBUTING.md`)
 
 **What NOT to include:**
-- Common knowledge Claude already has (language syntax, standard library usage, well-known framework patterns)
 - Information already in referenced files (don't duplicate `@README.md` content)
-- Time-sensitive content (version numbers, dates, URLs that may rot)
-- Vague guidance ("write clean code", "follow best practices") — be specific or omit
 
 ### Conciseness Test
 

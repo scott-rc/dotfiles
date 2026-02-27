@@ -32,4 +32,5 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
 
 6. **Review-fix loop**:
    - Fix Blocking and Improvements immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
+   - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `rules-writer` subagent, then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).
