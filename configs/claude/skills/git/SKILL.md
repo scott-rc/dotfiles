@@ -13,10 +13,6 @@ argument-hint: "[operation or intent]"
 
 Route to the appropriate operation based on user intent.
 
-## GitHub Text Rule
-
-All GitHub-facing text MUST follow references/github-text.md.
-
 ## Operations
 
 ### Commit
@@ -43,7 +39,7 @@ See push.md for detailed instructions.
 Create a new git worktree for a task or convert an existing branch.
 See worktree.md for detailed instructions.
 
-### Clean
+### Clean Worktrees
 Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
 See clean-worktrees.md for detailed instructions.
 
@@ -89,7 +85,8 @@ Users often request multiple operations together. Handle these as follows:
 - **"squash and push"** → Run squash operation, then push operation
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
-- **"check CI"** / **"CI status"** / **"why is CI failing"** / **"debug CI"** / **"fix CI"** → Run fix-ci operation
+- **"check CI"** / **"CI status"** → Run fix-ci operation in status-only mode: fetch CI state and report pass/fail/pending counts, but do not triage failures or apply any fixes
+- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full, including fix)
 - **"rerun CI"** / **"retry CI"** / **"re-trigger"** → Run rerun operation
 - **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
 - **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation
@@ -105,11 +102,15 @@ Users often request multiple operations together. Handle these as follows:
 
 ## References
 
-These files are referenced by the operation instructions above:
-
-- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
+Reference files:
+- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
 - references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
-- references/watch-subops.md - State file format for the watch loop
+- references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
+- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Review and Reply operations)
+- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch operation)
+- references/watch-subops.md - State file format and monitoring loop protocol for the watch loop
+
+Scripts:
 - scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 - scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
-- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)
+- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation)

@@ -1,4 +1,4 @@
-# Reply Operation
+# Reply
 
 Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment on a GitHub PR or issue.
 
@@ -15,8 +15,8 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 3. **Present a summary**: Total count of unreplied threads, grouped by file path with line number and a one-line preview of each reviewer comment. Include review summaries for high-level context.
 
 4. **Gather context and draft replies**:
-   - If fewer than 5 threads: read all comments in each thread inline (later replies often contain clarifications), check `git diff` for relevant files, and draft replies directly.
-   - If 5 or more threads: spawn an Explore subagent per the "Bulk Thread Handling" pattern in references/git-patterns.md (reply variant) to gather per-thread context. Then draft replies using the subagent's context summary.
+   - Check the bulk threshold defined in references/bulk-threads.md. If below the threshold: read all comments in each thread inline (later replies often contain clarifications), check `git diff` for relevant files, and draft replies directly.
+   - If at or above the threshold: spawn an Explore subagent per references/bulk-threads.md (reply variant) to gather per-thread context. Then draft replies using the subagent's context summary.
 
    For each reply:
    - If code was changed to address the feedback, reference what was done
@@ -39,7 +39,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 ### Posting
 
-Delegate to the `github-writer` agent for each approved reply. Provide:
+All posted text MUST follow references/github-text.md. Delegate to the `github-writer` agent for each approved reply. Provide:
 
 - **type**: `review-reply` for review threads, `pr-comment` for PR comments, `issue-comment` for issue comments
 - **body**: the approved reply text

@@ -1,10 +1,10 @@
-# Clean Operation
+# Clean
 
 Remove merged, squash-merged, and orphaned worktrees using the `gwc` fish function.
 
 ## Instructions
 
-1. **Determine repositories to scan**:
+1. **Determine repositories to scan** (see references/git-patterns.md for dotfiles exception pattern):
    - **If in a git repo**: Use only the current repository (unless it's the dotfiles repo)
    - **If in the dotfiles repo** (repo path ends with `/dotfiles`): Treat as "not in a git repo" and scan other repositories
    - **If not in a git repo**: Scan all repositories in `~/Code/*/*`, excluding the dotfiles repo
@@ -21,9 +21,8 @@ Remove merged, squash-merged, and orphaned worktrees using the `gwc` fish functi
 5. **Confirm deletion**: MUST confirm with the user before removing.
 
 6. **Delete** by piping confirmation: `fish -c 'printf y\n | gwc <repo>/.worktrees'`
+   (`gwc` prompts for confirmation in interactive use; piping `y\n` automates the response since the user has already confirmed in step 5)
 
 7. **Prune stale references**: `git -C <repo> worktree prune`
 
 8. **Report summary** of what was cleaned up across all repositories.
-
-See references/git-patterns.md for dotfiles exception pattern.

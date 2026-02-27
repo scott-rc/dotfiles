@@ -21,9 +21,12 @@ The caller's prompt provides:
 
 ## Rules
 
-### ASCII Only
+### ASCII and Posting
 
-All text MUST use only ASCII characters. Use `--` instead of em dashes, straight quotes instead of curly quotes, and `...` instead of ellipsis characters. Non-ASCII characters get corrupted when passed through `gh` CLI commands.
+All GitHub-facing text MUST follow these rules:
+- ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII corrupts through the `gh` CLI.
+- Backticks for code references, fenced code blocks for multi-line examples.
+- Write multi-line bodies to a temp file and use `-F body=@file` instead of inline strings or heredocs.
 
 ### Title
 
@@ -58,10 +61,6 @@ Updates the Go toolchain from 1.25 to 1.26 and fixes two compatibility issues.
 ```
 This PR upgrades the Go toolchain from 1.25 to 1.26 and fixes two compatibility issues that surfaced with the upgrade. The defer in the HTTP handler now fires correctly even when the transport does not close the body, confirmed by TestBodyClosedAfterServeHTTP. Existing router tests pass unchanged.
 ```
-
-### Safe Posting
-
-When posting multi-line content via `gh` CLI, write the body to a temp file first and use `--body-file <file>` instead of inline strings or heredocs. This avoids shell encoding issues.
 
 ## Workflow
 

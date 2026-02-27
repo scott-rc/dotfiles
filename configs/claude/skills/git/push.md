@@ -1,4 +1,4 @@
-# Push Operation
+# Push
 
 Push commits and create/update PR.
 
@@ -26,26 +26,22 @@ Push commits and create/update PR.
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
 6. **If NO PR exists** (or old PR was merged/closed):
-   Detect base branch per references/git-patterns.md. Spawn the `pr-writer` agent with:
+   Detect base branch per references/git-patterns.md. Spawn the `pr-writer` agent per references/pr-writer-rules.md with:
    - `mode`: `create`
    - `base_branch`: detected base branch
-   - `context` (optional): one sentence of motivation — the "why," not the "what"
-
-   Do NOT include diff summaries, file lists, change descriptions, pre-drafted PR text, workflow commands, or references to skill/reference files in the prompt — the agent gathers its own diff and owns its own rules. If the agent fails, re-spawn it once — if it fails again, report the error to the user. Do NOT write the PR description yourself.
+   - `context` (optional): one sentence of motivation -- the "why," not the "what"
 
    Example prompt: "mode: create, base_branch: main. Context: updates table references from v1 to v2 ahead of a follow-up drop migration."
 
 7. **If PR exists and new commits were pushed that aren't reflected in the current description**:
-   Detect base branch per references/git-patterns.md. Spawn the `pr-writer` agent with:
+   Detect base branch per references/git-patterns.md. Spawn the `pr-writer` agent per references/pr-writer-rules.md with:
    - `mode`: `update`
    - `base_branch`: detected base branch
    - `pr_number`: from step 4
-   - `context` (optional): one sentence describing what changed since the last update — the "why," not the "what"
+   - `context` (optional): one sentence describing what changed since the last update
 
-   Do NOT include diff summaries, file lists, change descriptions, pre-drafted PR text, workflow commands, or references to skill/reference files in the prompt — the agent gathers its own diff and owns its own rules. If the agent fails, re-spawn it once — if it fails again, report the error to the user. Do NOT write the PR description yourself. If no new commits were pushed (e.g., force push of same content), skip the update.
+   If no new commits were pushed (e.g., force push of same content), skip the update.
 
    Example prompt: "mode: update, base_branch: main, pr_number: 123. Context: removed two tables from the migration after discovering they're still referenced elsewhere."
 
-8. **Report PR URL** to the user
-
-See references/git-patterns.md for base branch detection and dotfiles exception patterns.
+8. **Report PR URL** to the user. PR descriptions MUST follow references/github-text.md.

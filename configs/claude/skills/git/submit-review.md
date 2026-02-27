@@ -1,4 +1,4 @@
-# Submit Review Operation
+# Submit Review
 
 Submit a PR review with a verdict (approve, request changes, or comment) and optional inline comments.
 
@@ -20,7 +20,7 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
    - `path` -- file path relative to repo root
    - `line` -- line number in the file (MUST be within the PR diff)
    - `side` -- `RIGHT` for lines in the new file version (added or context lines), `LEFT` for removed lines. Default `RIGHT`.
-   - `body` -- the comment text
+   - `body` -- the comment text (MUST follow references/github-text.md)
 
    **Finding line numbers**: `line` is the file's line number, not a diff position. For comments on new/changed code, use the line number from the new version of the file. Read the file on the PR branch, or count from the diff hunk header's `+start` value (increment for each context and `+` line, skip `-` lines). The target line MUST appear in the diff -- GitHub rejects comments on lines outside the diff context.
 

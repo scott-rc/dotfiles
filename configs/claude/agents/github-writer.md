@@ -24,8 +24,10 @@ The caller's prompt provides:
 
 ## Rules
 
-- ASCII only: no em dashes (use `--`), no curly quotes (use `"` and `'`), no ellipsis character (use `...`). Non-ASCII gets corrupted by `gh` CLI.
-- Backticks for code references, code blocks with language IDs
+All text MUST follow these rules:
+- ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII corrupts through the `gh` CLI.
+- Backticks for code references, fenced code blocks for multi-line examples.
+- Write multi-line bodies to a temp file and use `-F body=@file` instead of inline strings or heredocs.
 - MUST NOT wrap lines -- GitHub handles wrapping
 - Concise, direct text
 

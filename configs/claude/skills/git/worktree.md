@@ -1,4 +1,4 @@
-# Worktree Operation
+# Worktree
 
 Create a new git worktree for the given task, or convert an existing branch into a worktree. Delegates the mechanical work to the `gwt` fish function.
 
@@ -35,5 +35,3 @@ Create a new git worktree for the given task, or convert an existing branch into
    - **2**: Branch exists and is not merged -- present options via AskUserQuestion: "Use existing branch", "Delete and start fresh", "Choose a different name"
 
 7. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.
-
-See references/git-patterns.md for dotfiles exception pattern.

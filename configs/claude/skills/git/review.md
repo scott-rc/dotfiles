@@ -1,4 +1,4 @@
-# Review Operation
+# Review
 
 Fetch unresolved PR review threads and fix the issues reviewers described.
 
@@ -17,8 +17,8 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
 4. **Gather context and fix each thread**:
-   - If fewer than 5 threads and touching 3 or fewer distinct files: read the relevant files inline at the indicated lines, read all comments in each thread (later replies often contain clarifications), and fix each thread directly.
-   - Otherwise (5+ threads, or fewer than 5 threads but touching more than 3 distinct files): spawn an Explore subagent per the "Bulk Thread Handling" pattern in references/git-patterns.md (review variant) to gather per-thread context. Then fix each thread using the subagent's context summary -- do not re-read files the subagent already summarized.
+   - Check the bulk threshold defined in references/bulk-threads.md. If below the threshold: read the relevant files inline at the indicated lines, read all comments in each thread (later replies often contain clarifications), and fix each thread directly.
+   - If at or above the threshold: spawn an Explore subagent per references/bulk-threads.md (review variant) to gather per-thread context. Then fix each thread using the subagent's context summary.
 
    In both cases, group threads by file path to minimize context switching and apply the fix the reviewer requested.
 

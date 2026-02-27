@@ -1,6 +1,8 @@
-# Fix CI Operation
+# Fix CI
 
 Check CI status for the current branch. If failures exist, fetch logs, identify root cause, and fix the issues.
+
+When invoked for status-only (e.g., "check CI", "CI status"), stop after step 2 — report the current state without triaging or fixing failures.
 
 ## Instructions
 
@@ -25,9 +27,10 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    - **real**: proceed to step 4 using the trimmed logs and root cause from the triager's report.
 
 4. **Fix the issues**:
-   Forward the triager's full report as-is to a Task subagent (subagent_type: general-purpose, model: sonnet). Do not read source files or diagnose the issue yourself -- the subagent receives:
+   Resolve the local fix commands from references/git-patterns.md "Local Fix Commands" section and pass them inline in the subagent prompt. Forward the triager's full report as-is to a Task subagent (subagent_type: general-purpose, model: sonnet). The subagent receives:
    - The triager's complete output (root cause analysis, trimmed logs, relevant file paths)
-   - Instruction: read relevant source files, fix the issue, run the appropriate lint-fix and test commands per references/git-patterns.md "Local Fix Commands", and run local verification if possible (failing tests, linter on affected files, or build)
+   - Instruction: read relevant source files, fix the issue, run the resolved lint and test commands for the detected language, and run local verification if possible.
+   - Also instruct it to consult the project's CLAUDE.md for project-specific commands.
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 

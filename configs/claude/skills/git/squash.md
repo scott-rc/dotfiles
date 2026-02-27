@@ -1,4 +1,4 @@
-# Squash Operation
+# Squash
 
 Squash all commits on the current branch into a single commit.
 
@@ -25,4 +25,4 @@ Squash all commits on the current branch into a single commit.
 
 9. **Squash into a single commit**: `git reset --soft origin/<base>`. Then spawn the `committer` agent with prompt: "Squash commit. Prior commits: <commit list from step 6>."
 
-10. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, offer to push. If no remote tracking branch, just report the result.
+10. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. If no remote tracking branch, just report the result.

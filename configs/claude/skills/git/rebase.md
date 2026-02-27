@@ -1,4 +1,4 @@
-# Rebase Operation
+# Rebase
 
 Fetch latest and rebase onto base branch.
 
@@ -20,4 +20,3 @@ Fetch latest and rebase onto base branch.
 
 5. **If success**: Verify scope per references/git-patterns.md, show commit count: `git rev-list --count origin/<base>..HEAD`.
 
-See references/git-patterns.md for base branch detection and scope verification patterns.
