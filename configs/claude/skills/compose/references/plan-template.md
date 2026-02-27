@@ -11,8 +11,8 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 ## Chunks
 
-1. [chunk-01-<slug>.md](chunk-01-<slug>.md) -- <one-line description>
-2. [chunk-02-<slug>.md](chunk-02-<slug>.md) -- <one-line description>
+1. chunk-01-<slug>.md -- <one-line description>
+2. chunk-02-<slug>.md -- <one-line description>
 ...
 ```
 

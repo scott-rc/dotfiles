@@ -13,4 +13,4 @@ Conduct structured interviews to gather requirements, explore decisions, or deep
 
 ### Interview
 Conduct a multi-round interview on a topic, then deliver results based on context.
-See [interview.md](interview.md) for detailed instructions.
+See interview.md for detailed instructions.

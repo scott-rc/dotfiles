@@ -4,7 +4,7 @@ Load the user's coding style preferences, write code, and verify it matches.
 
 ## Instructions
 
-1. **Load guidelines**: Read [references/general-guidelines.md](references/general-guidelines.md). If a language-specific file exists for the target language ([references/typescript-guidelines.md](references/typescript-guidelines.md), [references/go-guidelines.md](references/go-guidelines.md), [references/rust-guidelines.md](references/rust-guidelines.md), [references/shell-guidelines.md](references/shell-guidelines.md)), load it too. For languages without a dedicated file, infer conventions from the project's existing code.
+1. **Load guidelines**: Read references/general-guidelines.md. If a language-specific file exists for the target language (references/typescript-guidelines.md, references/go-guidelines.md, references/rust-guidelines.md, references/shell-guidelines.md), load it too. For languages without a dedicated file, infer conventions from the project's existing code.
 
 2. **Write the code**: Apply the loaded preferences. When they conflict with existing project conventions (linter config, formatter, existing patterns), SHOULD follow project conventions.
 

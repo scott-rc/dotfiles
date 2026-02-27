@@ -1,6 +1,6 @@
 # Watch State Reference
 
-State file format for the watch loop. Referenced by [watch.md](watch.md). Context management rules and behavioral instructions live in watch.md.
+State file format for the watch loop. Referenced by watch.md. Context management rules and behavioral instructions live in watch.md.
 
 ## State File Format
 

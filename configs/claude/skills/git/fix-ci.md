@@ -18,7 +18,7 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
    ```bash
    gh run list --branch $(git branch --show-current) --status failure --limit 5 --json databaseId,workflowName
    ```
-   Detect base branch per [git-patterns.md](references/git-patterns.md). Spawn a `ci-triager` agent for each distinct failed run with: run_id, workflow_name, branch, base_branch, and repo.
+   Detect base branch per references/git-patterns.md. Spawn a `ci-triager` agent for each distinct failed run with: run_id, workflow_name, branch, base_branch, and repo.
 
    Based on the agent's classification:
    - **transient** or **flake**: report the classification to the user (the triager already reran the job). Stop.
@@ -27,7 +27,7 @@ Check CI status for the current branch. If failures exist, fetch logs, identify 
 4. **Fix the issues**:
    Forward the triager's full report as-is to a Task subagent (subagent_type: general-purpose, model: sonnet). Do not read source files or diagnose the issue yourself -- the subagent receives:
    - The triager's complete output (root cause analysis, trimmed logs, relevant file paths)
-   - Instruction: read relevant source files, fix the issue, run the appropriate lint-fix and test commands per [git-patterns.md](references/git-patterns.md) "Local Fix Commands", and run local verification if possible (failing tests, linter on affected files, or build)
+   - Instruction: read relevant source files, fix the issue, run the appropriate lint-fix and test commands per references/git-patterns.md "Local Fix Commands", and run local verification if possible (failing tests, linter on affected files, or build)
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 

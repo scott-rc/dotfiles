@@ -11,39 +11,39 @@ Load and apply the user's coding style preferences when producing or reviewing c
 
 ### Apply
 Load preferences, write code, and verify output matches the guidelines.
-See [apply.md](apply.md) for detailed instructions.
+See apply.md for detailed instructions.
 
 ### New Feature
 Full red-green-refactor cycle for building a feature test-first.
-See [new-feature.md](new-feature.md) for detailed instructions.
+See new-feature.md for detailed instructions.
 
 ### Fix Bug
 Write a regression test that captures the bug, then fix it.
-See [fix-bug.md](fix-bug.md) for detailed instructions.
+See fix-bug.md for detailed instructions.
 
 ### Add Coverage
 Write characterization tests for existing untested code.
-See [add-coverage.md](add-coverage.md) for detailed instructions.
+See add-coverage.md for detailed instructions.
 
 ### Plan
 Decompose a coding task into ordered chunks with TDD structure for testable behavior.
-See [plan.md](plan.md) for detailed instructions.
+See plan.md for detailed instructions.
 
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
-See [review.md](review.md) for detailed instructions.
+See review.md for detailed instructions.
 
 ### Benchmark
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
-See [benchmark.md](benchmark.md) for detailed instructions.
+See benchmark.md for detailed instructions.
 
 ### Mutation Testing
 Evaluate test suite quality by mutating source code and checking whether tests catch the changes, then write tests to kill survivors.
-See [mutate.md](mutate.md) for detailed instructions.
+See mutate.md for detailed instructions.
 
 ### Implement
 Build with TDD, harden with mutation testing, and review-fix until converged — end-to-end verification loop.
-See [implement.md](implement.md) for detailed instructions.
+See implement.md for detailed instructions.
 
 ## Combined Operations
 
@@ -51,7 +51,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **plan / design / "how should I implement"** → Plan (see [plan.md](plan.md))
+- **plan / design / "how should I implement"** → Plan (see plan.md)
 - **add feature / write** (new behavior) → New Feature
 - **implement and review / full cycle / build and verify / implement with mutation testing** → Implement
 - **fix bug / debug** → Fix Bug
@@ -73,13 +73,13 @@ Users often request multiple operations together. Handle these as follows:
 
 ## References
 
-- [references/general-guidelines.md](references/general-guidelines.md) — Language-agnostic naming, comments, error handling, control flow, abstractions, and string conventions
-- [references/testing-guidelines.md](references/testing-guidelines.md) — Test design patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
-- [references/typescript-guidelines.md](references/typescript-guidelines.md) — TypeScript-specific type annotations, function style, and imports
-- [references/go-guidelines.md](references/go-guidelines.md) — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
-- [references/rust-guidelines.md](references/rust-guidelines.md) — Rust-specific error handling, type patterns, module organization, testing, and style conventions
-- [references/shell-guidelines.md](references/shell-guidelines.md) — Bash and Fish conventions, shellcheck enforcement
-- [references/test-environment.md](references/test-environment.md) — Test and benchmark runner detection, file placement conventions, and framework setup
-- [references/review-template.md](references/review-template.md) — Subagent prompt template for code review tasks
-- [references/review-checklist.md](references/review-checklist.md) — Five-category review checklist (test coverage, idiomaticity, simplification, correctness, naming)
-- [references/load-guidelines.md](references/load-guidelines.md) — Index of all coding guideline files with descriptions, referenced by TDD/coverage/benchmark/mutation operations
+- references/general-guidelines.md — Language-agnostic naming, comments, error handling, control flow, abstractions, and string conventions
+- references/testing-guidelines.md — Test design patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
+- references/typescript-guidelines.md — TypeScript-specific type annotations, function style, and imports
+- references/go-guidelines.md — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
+- references/rust-guidelines.md — Rust-specific error handling, type patterns, module organization, testing, and style conventions
+- references/shell-guidelines.md — Bash and Fish conventions, shellcheck enforcement
+- references/test-environment.md — Test and benchmark runner detection, file placement conventions, and framework setup
+- references/review-template.md — Subagent prompt template for code review tasks
+- references/review-checklist.md — Five-category review checklist (test coverage, idiomaticity, simplification, correctness, naming)
+- references/load-guidelines.md — Index of all coding guideline files with descriptions, referenced by TDD/coverage/benchmark/mutation operations

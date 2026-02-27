@@ -7,7 +7,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 ### Auto-discover mode (no specific target provided)
 
 1. **Fetch unreplied threads**:
-   Run `get-pr-comments --unreplied` (path in [git-patterns.md](references/git-patterns.md)).
+   Run `get-pr-comments --unreplied` (path in references/git-patterns.md).
    If the script exits with an error (no PR exists), inform the user and stop.
 
 2. **If no unreplied threads**, report that all review feedback has been responded to and stop.
@@ -16,7 +16,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 4. **Gather context and draft replies**:
    - If fewer than 5 threads: read all comments in each thread inline (later replies often contain clarifications), check `git diff` for relevant files, and draft replies directly.
-   - If 5 or more threads: spawn an Explore subagent per the "Bulk Thread Handling" pattern in [git-patterns.md](references/git-patterns.md) (reply variant) to gather per-thread context. Then draft replies using the subagent's context summary.
+   - If 5 or more threads: spawn an Explore subagent per the "Bulk Thread Handling" pattern in references/git-patterns.md (reply variant) to gather per-thread context. Then draft replies using the subagent's context summary.
 
    For each reply:
    - If code was changed to address the feedback, reference what was done

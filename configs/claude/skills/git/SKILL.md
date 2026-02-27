@@ -15,41 +15,41 @@ Route to the appropriate operation based on user intent.
 
 ## GitHub Text Rule
 
-All GitHub-facing text MUST follow [github-text.md](references/github-text.md).
+All GitHub-facing text MUST follow references/github-text.md.
 
 ## Operations
 
 ### Commit
 Commit outstanding changes with a well-formatted message.
-See [commit.md](commit.md) for detailed instructions.
+See commit.md for detailed instructions.
 
 ### Amend
 Fold outstanding changes into the last commit.
-See [amend.md](amend.md) for detailed instructions.
+See amend.md for detailed instructions.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
-See [squash.md](squash.md) for detailed instructions.
+See squash.md for detailed instructions.
 
 ### Rebase
 Fetch latest and rebase onto base branch.
-See [rebase.md](rebase.md) for detailed instructions.
+See rebase.md for detailed instructions.
 
 ### Push
 Push commits and create/update PR with title/description per guidelines.
-See [push.md](push.md) for detailed instructions.
+See push.md for detailed instructions.
 
 ### Worktree
 Create a new git worktree for a task or convert an existing branch.
-See [worktree.md](worktree.md) for detailed instructions.
+See worktree.md for detailed instructions.
 
 ### Clean
 Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
-See [clean-worktrees.md](clean-worktrees.md) for detailed instructions.
+See clean-worktrees.md for detailed instructions.
 
 ### Fix CI
 Check CI status, fetch failure logs, identify root cause, and fix the issues.
-See [fix-ci.md](fix-ci.md) for detailed instructions.
+See fix-ci.md for detailed instructions.
 
 ### Rerun
 Re-trigger failed CI jobs.
@@ -61,23 +61,23 @@ Re-trigger failed CI jobs.
 
 ### Watch
 Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
-See [watch.md](watch.md) for detailed instructions.
+See watch.md for detailed instructions.
 
 ### Review
 Fetch unresolved PR review threads and fix the issues reviewers described.
-See [review.md](review.md) for detailed instructions.
+See review.md for detailed instructions.
 
 ### Update Description
 Rewrite the PR title and description to match current changes per guidelines.
-See [update-description.md](update-description.md) for detailed instructions.
+See update-description.md for detailed instructions.
 
 ### Submit Review
 Submit a PR review (approve, request changes, or comment) with optional inline comments.
-See [submit-review.md](submit-review.md) for detailed instructions.
+See submit-review.md for detailed instructions.
 
 ### Reply
 Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment.
-See [reply.md](reply.md) for detailed instructions.
+See reply.md for detailed instructions.
 
 ## Combined Operations
 
@@ -107,9 +107,9 @@ Users often request multiple operations together. Handle these as follows:
 
 These files are referenced by the operation instructions above:
 
-- [git-patterns.md](references/git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
-- [github-text.md](references/github-text.md) - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
-- [watch-subops.md](references/watch-subops.md) - State file format for the watch loop
-- [get-pr-comments.sh](scripts/get-pr-comments.sh) - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
-- [poll-pr-status.sh](scripts/poll-pr-status.sh) - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
-- [get-failed-runs.sh](scripts/get-failed-runs.sh) - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)
+- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
+- references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
+- references/watch-subops.md - State file format for the watch loop
+- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
+- scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
+- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)

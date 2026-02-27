@@ -27,11 +27,11 @@ Each operation runs in a subagent after input is resolved inline above.
 
 ### Investigate
 Open-ended research of a question or topic; collects findings and writes them to `tmp/evidence-<slug>.md`.
-See [investigate.md](investigate.md) for detailed instructions.
+See investigate.md for detailed instructions.
 
 ### Build Case
 Structured argument for or against a claim; collects supporting and contradicting evidence and writes to `tmp/case-<slug>.md`.
-See [build-case.md](build-case.md) for detailed instructions.
+See build-case.md for detailed instructions.
 
 ## Combined Operations
 

@@ -5,7 +5,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from [content-patterns.md](references/content-patterns.md). Ask the user via AskUserQuestion about:
+   Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
    - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md", "Global CLAUDE.md", "CLAUDE.local.md", "Unconditional rule", "Scoped rule", "User-level rule"
    - What project or directory the rules are for
    - What instructions or conventions they want to encode
@@ -46,7 +46,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
 5. **Review and iterate**:
-   Run the multi-perspective review loop per [multi-perspective-review.md](references/multi-perspective-review.md) using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete.
+   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete.
 
 6. **Report results**:
    Present results to the user:

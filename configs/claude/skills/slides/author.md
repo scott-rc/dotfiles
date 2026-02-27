@@ -13,4 +13,4 @@ Write and edit slide content using Slidev markdown syntax, layouts, and animatio
 
 ## References
 
-Read [slidev-syntax.md](references/slidev-syntax.md) for Slidev markdown syntax reference.
+Read references/slidev-syntax.md for Slidev markdown syntax reference.

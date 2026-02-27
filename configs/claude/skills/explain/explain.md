@@ -13,7 +13,7 @@ Current branch and recent history:
 ## Instructions
 
 1. **Parse arguments**:
-   Classify each argument in `$ARGUMENTS` using the rules in [explain-patterns.md](references/explain-patterns.md).
+   Classify each argument in `$ARGUMENTS` using the rules in references/explain-patterns.md.
    - No arguments = explain full branch diff against base
    - Ambiguous argument = present possible interpretations as AskUserQuestion options
    - Multiple arguments compose per the combination rules in references/explain-patterns.md
@@ -44,7 +44,7 @@ Current branch and recent history:
      4. Synthesize into a single three-layer explanation
 
 6. **Compose explanation**:
-   Format the output following the three-layer structure defined in [explain-patterns.md](references/explain-patterns.md). Apply the depth strategy from [explain-patterns.md](references/explain-patterns.md) based on diff size.
+   Format the output following the three-layer structure defined in references/explain-patterns.md. Apply the depth strategy from references/explain-patterns.md based on diff size.
 
 7. **Verify completeness**:
    Check that the explanation covers all changed files from the diff stat. If any files are missing, add them. Verify the Why traces back to at least one source (PR body, issue, or commit message).

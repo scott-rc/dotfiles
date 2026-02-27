@@ -30,7 +30,7 @@ CLAUDE.md files cascade: global, then project root, then subdirectories. More sp
 
 ## Content Guidelines
 
-These guidelines supplement the shared authoring rules in [shared-rules.md](shared-rules.md).
+These guidelines supplement the shared authoring rules in shared-rules.md.
 
 **What to include:**
 - Project-specific conventions Claude cannot infer (e.g., "use bun, not npm", "tests go in `__tests__/`")

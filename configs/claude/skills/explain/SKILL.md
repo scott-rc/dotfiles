@@ -15,10 +15,10 @@ Help the user understand code changes by producing layered explanations (why, wh
 
 ### Explain
 Parse arguments, gather context, read changed files, and produce a layered explanation.
-See [explain.md](explain.md) for detailed instructions.
+See explain.md for detailed instructions.
 
 ## References
 
 These files are referenced by the operation instructions:
 
-- [explain-patterns.md](references/explain-patterns.md) - Argument classification, diff size thresholds, large diff strategy, output format
+- references/explain-patterns.md - Argument classification, diff size thresholds, large diff strategy, output format

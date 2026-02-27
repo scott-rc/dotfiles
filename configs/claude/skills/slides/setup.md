@@ -33,7 +33,7 @@ Scaffold the `~/Code/personal/slides/` pnpm workspace for Slidev presentations.
      ```
 
 3. **Write CLAUDE.md**:
-   Read [workspace-claude-template.md](references/workspace-claude-template.md) and write its contents to `CLAUDE.md` in the workspace root.
+   Read references/workspace-claude-template.md and write its contents to `CLAUDE.md` in the workspace root.
 
 4. **Initialize repo**:
    - `git init`

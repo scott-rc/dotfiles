@@ -36,4 +36,4 @@ Create a new git worktree for the given task, or convert an existing branch into
 
 7. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.
 
-See [git-patterns.md](references/git-patterns.md) for dotfiles exception pattern.
+See references/git-patterns.md for dotfiles exception pattern.

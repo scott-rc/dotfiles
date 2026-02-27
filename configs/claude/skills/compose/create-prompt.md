@@ -5,7 +5,7 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from [content-patterns.md](references/content-patterns.md). Ask the user via AskUserQuestion about:
+   Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
    - What goal or outcome the session should accomplish
    - Constraints or boundaries (e.g., don't change public API, stay within one file, use existing patterns)
    - Expected output type -- present as AskUserQuestion options: "New feature", "Refactor", "Bug fix", "Migration", "Documentation", "Other"
@@ -53,4 +53,4 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    - SHOULD verify that every line adds information Claude would not have without the prompt
 
 6. **Deliver**:
-   MUST follow the delivery pattern from [content-patterns.md](references/content-patterns.md). The deliverable is the final prompt.
+   MUST follow the delivery pattern from references/content-patterns.md. The deliverable is the final prompt.

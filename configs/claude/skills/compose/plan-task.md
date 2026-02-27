@@ -5,7 +5,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 ## Instructions
 
 1. **Gather requirements** (conditional):
-   Follow the interview pattern from [content-patterns.md](references/content-patterns.md). Skip the interview only when the user's request explicitly provides the overall goal, codebase location, and any constraints or failed approaches. Interview when any of these is missing:
+   Follow the interview pattern from references/content-patterns.md. Skip the interview only when the user's request explicitly provides the overall goal, codebase location, and any constraints or failed approaches. Interview when any of these is missing:
    - The overall goal and desired end state
    - Natural phase boundaries or milestones (if they have any in mind)
    - The codebase location and key directories
@@ -75,7 +75,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    After all subagents complete, spawn a Task subagent (type: Explore, model: haiku) to read all chunk files and verify each matches the chunk-writer Output Format (correct sections, checkboxes, TDD structure where appropriate). The subagent MUST return a pass/fail summary per chunk. Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
 
 7. **Write master plan**:
-   Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from [plan-template.md](references/plan-template.md).
+   Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from references/plan-template.md.
 
 8. **Validate**:
    - MUST verify all chunk file paths in plan.md resolve to actual files
@@ -85,6 +85,6 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - MUST scan all files for non-ASCII characters and replace with ASCII equivalents
 
 9. **Deliver via plan mode**:
-   Enter plan mode via `EnterPlanMode` if not already in it. Write the orchestrator prompt to the plan file specified by the plan mode system message, using the Orchestrator Prompt Template from [plan-template.md](references/plan-template.md) with all `<...>` placeholders filled in. MUST scan the orchestrator prompt content for non-ASCII characters and replace with ASCII equivalents before writing.
+   Enter plan mode via `EnterPlanMode` if not already in it. Write the orchestrator prompt to the plan file specified by the plan mode system message, using the Orchestrator Prompt Template from references/plan-template.md with all `<...>` placeholders filled in. MUST scan the orchestrator prompt content for non-ASCII characters and replace with ASCII equivalents before writing.
 
    Call `ExitPlanMode` to present the plan for user approval. MUST also list all created chunk files with their paths.

@@ -4,7 +4,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
 
 ## Instructions
 
-1. **Load coding guidelines**: Follow [references/load-guidelines.md](references/load-guidelines.md).
+1. **Load coding guidelines**: Follow references/load-guidelines.md.
 
 2. **Identify target code and tests**:
    If the user specified target files, spawn the `test-discoverer` agent in targeted mode with the specified files. Otherwise, spawn the `test-discoverer` agent in auto-discover mode to identify candidates.
@@ -35,7 +35,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
    If all mutants were killed, report the clean result and stop -- the test suite is solid for this code.
 
 6. **Write tests to kill survivors**:
-   Apply [references/testing-guidelines.md](references/testing-guidelines.md) (loaded in step 1). For each surviving mutant:
+   Apply references/testing-guidelines.md (loaded in step 1). For each surviving mutant:
    - Write a test case that would fail against the mutant but pass against the original
    - Run the new test to confirm it passes on the original code
    - Apply the mutation again and run the new test to confirm it fails (the mutant is now killed)

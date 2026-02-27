@@ -7,7 +7,7 @@ Rewrite the PR title and description to match current changes per guidelines.
 1. **Check for PR**: `gh pr view --json number,url,title,body 2>/dev/null`. If none, inform user and stop.
 2. **Delegate to `pr-writer` agent** with:
    - `mode`: `update`
-   - `base_branch`: detect per [git-patterns.md](references/git-patterns.md)
+   - `base_branch`: detect per references/git-patterns.md
    - `pr_number`: from step 1
    - `context` (optional): one sentence if the user specified a reason for the update — the "why," not the "what"
 

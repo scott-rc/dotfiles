@@ -5,7 +5,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 ## Instructions
 
 1. **Fetch unresolved review threads**:
-   Run `get-pr-comments` (path in [git-patterns.md](references/git-patterns.md)).
+   Run `get-pr-comments` (path in references/git-patterns.md).
    - If the script exits with an error (no PR exists), inform the user and stop.
 
 2. **If no unresolved threads**, report that all review feedback has been addressed and stop.
@@ -18,7 +18,7 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 4. **Gather context and fix each thread**:
    - If fewer than 5 threads and touching 3 or fewer distinct files: read the relevant files inline at the indicated lines, read all comments in each thread (later replies often contain clarifications), and fix each thread directly.
-   - Otherwise (5+ threads, or fewer than 5 threads but touching more than 3 distinct files): spawn an Explore subagent per the "Bulk Thread Handling" pattern in [git-patterns.md](references/git-patterns.md) (review variant) to gather per-thread context. Then fix each thread using the subagent's context summary -- do not re-read files the subagent already summarized.
+   - Otherwise (5+ threads, or fewer than 5 threads but touching more than 3 distinct files): spawn an Explore subagent per the "Bulk Thread Handling" pattern in references/git-patterns.md (review variant) to gather per-thread context. Then fix each thread using the subagent's context summary -- do not re-read files the subagent already summarized.
 
    In both cases, group threads by file path to minimize context switching and apply the fix the reviewer requested.
 

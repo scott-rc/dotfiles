@@ -26,11 +26,11 @@ description: <Third-person sentence. What it does AND when to use it. Include tr
 
 ### <Operation Name>
 <One-line summary of what this operation does.>
-See [<operation-file>.md](<operation-file>.md) for detailed instructions.
+See <operation-file>.md for detailed instructions.
 
 ### <Operation Name>
 <One-line summary.>
-See [<operation-file>.md](<operation-file>.md) for detailed instructions.
+See <operation-file>.md for detailed instructions.
 
 ## Combined Operations
 
@@ -43,7 +43,7 @@ Users often request multiple operations together. Handle these as follows:
 
 These files are referenced by the operation instructions above:
 
-- [<reference-file>.md](references/<reference-file>.md) - <One-line description>
+- references/<reference-file>.md - <One-line description>
 ```
 
 ## Operation File Template
@@ -65,7 +65,7 @@ These files are referenced by the operation instructions above:
 
 3. **<Step name>**:
    <What to do. Reference shared knowledge:>
-   MUST read [<reference-file>.md](references/<reference-file>.md) for <what detail> before proceeding.
+   MUST read references/<reference-file>.md for <what detail> before proceeding.
 
 4. **<Step name>**:
    MUST report results to the user. <Specify what to include.>

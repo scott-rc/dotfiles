@@ -10,8 +10,8 @@ Run a full TDD → mutation testing → code review convergence loop: build test
    Determine whether this is new behavior (feature, endpoint, function) or a bug fix. If ambiguous, ask focused questions before proceeding.
 
 2. **Follow the TDD operation**:
-   - New behavior → Follow [new-feature.md](new-feature.md)
-   - Bug fix → Follow [fix-bug.md](fix-bug.md)
+   - New behavior → Follow new-feature.md
+   - Bug fix → Follow fix-bug.md
 
    Track all files created or modified during this phase for use in Phases 2 and 3.
 
@@ -29,7 +29,7 @@ Run a full TDD → mutation testing → code review convergence loop: build test
    If skipping, note the reason and proceed to step 6.
 
 5. **Follow the Mutation Testing operation**:
-   Follow [mutate.md](mutate.md), scoping it to the files tracked in step 2.
+   Follow mutate.md, scoping it to the files tracked in step 2.
 
 6. **Report Phase 2 status**:
    Report to the user: mutation testing outcome (score before/after, survivors killed) or reason skipped. Confirm all tests pass before proceeding to review.
@@ -37,12 +37,12 @@ Run a full TDD → mutation testing → code review convergence loop: build test
 ### Phase 3 — Review-Fix Convergence Loop
 
 7. **Follow the Review operation**:
-   Follow [review.md](review.md) on all files written or modified across Phases 1 and 2.
+   Follow review.md on all files written or modified across Phases 1 and 2.
 
 8. **Drive the fix-review loop**:
    After review reports findings, implement.md owns the convergence loop (up to 4 iterations):
    - If Blocking findings are reported, MUST present them to the user before fixing.
-   - Fix findings, then re-follow [review.md](review.md) on the same file set.
+   - Fix findings, then re-follow review.md on the same file set.
    - Stop when review reports no remaining findings or 4 iterations are reached.
 
 ### Phase 4 — Report

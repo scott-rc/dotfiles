@@ -33,15 +33,15 @@ Operations customize these fragments with file paths and skill names.
 
 **Sonnet prompt:**
 ```
-Read [skill-spec.md], [quality-checklist.md], then read all files in <target>. You are Claude executing these instructions. Evaluate: checklist compliance, contradictions between files, correct tier assignments, under-explained or over-explained areas. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
+Read references/skill-spec.md, references/quality-checklist.md, then read all files in <target>. You are Claude executing these instructions. Evaluate: checklist compliance, contradictions between files, correct tier assignments, under-explained or over-explained areas. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
 ```
 
 **Opus prompt:**
 ```
-Read [skill-spec.md], [quality-checklist.md], then read all files in <target>. Evaluate internal consistency: principle interactions, missing guidance, edge cases where rules contradict or leave Claude without a clear path. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
+Read references/skill-spec.md, references/quality-checklist.md, then read all files in <target>. Evaluate internal consistency: principle interactions, missing guidance, edge cases where rules contradict or leave Claude without a clear path. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
 ```
 
 **Haiku prompt:**
 ```
-Read [skill-spec.md], [quality-checklist.md], then read all files in <target>. Evaluate token efficiency: what can be cut without causing mistakes? Flag redundant items, over-specification, and content that teaches Claude what it already knows. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
+Read references/skill-spec.md, references/quality-checklist.md, then read all files in <target>. Evaluate token efficiency: what can be cut without causing mistakes? Flag redundant items, over-specification, and content that teaches Claude what it already knows. Quote file names and line numbers. Format each finding as `file:line — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
 ```

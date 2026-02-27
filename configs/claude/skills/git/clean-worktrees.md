@@ -26,4 +26,4 @@ Remove merged, squash-merged, and orphaned worktrees using the `gwc` fish functi
 
 8. **Report summary** of what was cleaned up across all repositories.
 
-See [git-patterns.md](git-patterns.md) for dotfiles exception pattern.
+See references/git-patterns.md for dotfiles exception pattern.
