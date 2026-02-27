@@ -4,7 +4,7 @@ Write characterization tests for existing untested code — documenting its curr
 
 ## Instructions
 
-1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
+1. **Load coding guidelines**: Follow [references/load-guidelines.md](references/load-guidelines.md).
 
 2. **Identify target code**:
    Determine which module, function, or class to cover. If the user hasn't specified what to cover, ask them before proceeding.

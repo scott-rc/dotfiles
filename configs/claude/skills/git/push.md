@@ -5,7 +5,7 @@ Push commits and create/update PR.
 ## Instructions
 
 1. **Check current branch**:
-   Check main branch protection per [git-patterns.md](git-patterns.md). If dotfiles repo on main, push directly and **skip PR creation** (steps 4-8). If other repo on main/master, present branch options via AskUserQuestion; suggested branch names MUST follow the `sc/` prefix convention from git-patterns.md. If user stays on main, push directly and **skip PR creation**.
+   Check main branch protection per [git-patterns.md](references/git-patterns.md). If dotfiles repo on main, push directly and **skip PR creation** (steps 4-8). If other repo on main/master, present branch options via AskUserQuestion; suggested branch names MUST follow the `sc/` prefix convention from git-patterns.md. If user stays on main, push directly and **skip PR creation**.
 
 2. **Check for uncommitted changes**:
    - If changes exist, run the Commit operation first
@@ -26,7 +26,7 @@ Push commits and create/update PR.
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
 6. **If NO PR exists** (or old PR was merged/closed):
-   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with:
+   Detect base branch per [git-patterns.md](references/git-patterns.md). Spawn the `pr-writer` agent with:
    - `mode`: `create`
    - `base_branch`: detected base branch
    - `context` (optional): one sentence of motivation — the "why," not the "what"
@@ -36,7 +36,7 @@ Push commits and create/update PR.
    Example prompt: "mode: create, base_branch: main. Context: updates table references from v1 to v2 ahead of a follow-up drop migration."
 
 7. **If PR exists and new commits were pushed that aren't reflected in the current description**:
-   Detect base branch per [git-patterns.md](git-patterns.md). Spawn the `pr-writer` agent with:
+   Detect base branch per [git-patterns.md](references/git-patterns.md). Spawn the `pr-writer` agent with:
    - `mode`: `update`
    - `base_branch`: detected base branch
    - `pr_number`: from step 4
@@ -48,4 +48,4 @@ Push commits and create/update PR.
 
 8. **Report PR URL** to the user
 
-See [git-patterns.md](git-patterns.md) for base branch detection and dotfiles exception patterns.
+See [git-patterns.md](references/git-patterns.md) for base branch detection and dotfiles exception patterns.

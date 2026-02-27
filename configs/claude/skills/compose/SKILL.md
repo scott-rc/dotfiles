@@ -52,7 +52,7 @@ Within compose, all writing MUST go through `skill-writer` or `rules-writer`. MU
 - Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
 - Review-fix cycles — same agents: `skill-writer` for skill fixes, `rules-writer` for rules fixes
 
-Full loop mechanics (cycle count, pass criteria, disagreement handling): [multi-perspective-review.md](multi-perspective-review.md)
+Full loop mechanics (cycle count, pass criteria, disagreement handling): [multi-perspective-review.md](references/multi-perspective-review.md)
 
 ## Combined Operations
 
@@ -73,12 +73,12 @@ Users often request multiple operations together. Handle these as follows:
 
 ## References
 
-- [shared-rules.md](shared-rules.md) - Shared authoring rules (keyword conventions, content rules) for both skills and rules files
-- [skill-spec.md](skill-spec.md) - Specification for authoring Claude Code skills (naming, frontmatter, structure, content rules)
-- [rules-spec.md](rules-spec.md) - Specification for authoring CLAUDE.md and `.claude/rules/` rules files (locations, structure, content guidelines)
-- [quality-checklist.md](quality-checklist.md) - Pass/fail evaluation criteria for skills and rules files
-- [skill-template.md](skill-template.md) - Annotated templates for SKILL.md and operation files
-- [content-patterns.md](content-patterns.md) - Reusable patterns for operation steps, task skills, and dynamic context injection
-- [rules-template.md](rules-template.md) - Templates for CLAUDE.md and scoped rules files
-- [multi-perspective-review.md](multi-perspective-review.md) - Three-agent parallel review loop (Sonnet/Opus/Haiku) with convergence criteria
-- [plan-template.md](plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt
+- [shared-rules.md](references/shared-rules.md) - Shared authoring rules (keyword conventions, content rules) for both skills and rules files
+- [skill-spec.md](references/skill-spec.md) - Specification for authoring Claude Code skills (naming, frontmatter, structure, content rules)
+- [rules-spec.md](references/rules-spec.md) - Specification for authoring CLAUDE.md and `.claude/rules/` rules files (locations, structure, content guidelines)
+- [quality-checklist.md](references/quality-checklist.md) - Pass/fail evaluation criteria for skills and rules files
+- [skill-template.md](references/skill-template.md) - Annotated templates for SKILL.md and operation files
+- [content-patterns.md](references/content-patterns.md) - Reusable patterns for operation steps, task skills, and dynamic context injection
+- [rules-template.md](references/rules-template.md) - Templates for CLAUDE.md and scoped rules files
+- [multi-perspective-review.md](references/multi-perspective-review.md) - Three-agent parallel review loop (Sonnet/Opus/Haiku) with convergence criteria
+- [plan-template.md](references/plan-template.md) - Templates for plan artifacts: master plan, chunk files, orchestrator prompt

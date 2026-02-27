@@ -35,5 +35,5 @@ See [present.md](present.md) for detailed instructions.
 
 ## References
 
-- [slidev-syntax.md](slidev-syntax.md) — Slidev markdown syntax, layouts, animations, and advanced features
-- [workspace-claude-template.md](workspace-claude-template.md) — CLAUDE.md template written into scaffolded workspaces
+- [slidev-syntax.md](references/slidev-syntax.md) — Slidev markdown syntax, layouts, animations, and advanced features
+- [workspace-claude-template.md](references/workspace-claude-template.md) — CLAUDE.md template written into scaffolded workspaces

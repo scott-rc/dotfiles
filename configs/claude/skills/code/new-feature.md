@@ -4,13 +4,13 @@ Build a feature through the red-green-refactor cycle: write a failing test, make
 
 ## Instructions
 
-1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
+1. **Load coding guidelines**: Follow [references/load-guidelines.md](references/load-guidelines.md).
 
 2. **Understand the feature**:
    Clarify what the feature does, its inputs, outputs, and edge cases. If the user's request is vague, ask focused questions before proceeding.
 
 3. **Plan test cases**:
-   Draft 2–5 test cases covering the core behavior and important edge cases. Apply the special cases checklist from [testing-guidelines.md](testing-guidelines.md) to catch boundary conditions. Present the list to the user for confirmation before writing any code. Adjust based on their feedback.
+   Draft 2–5 test cases covering the core behavior and important edge cases. Apply the special cases checklist from [references/testing-guidelines.md](references/testing-guidelines.md) to catch boundary conditions. Present the list to the user for confirmation before writing any code. Adjust based on their feedback.
 
 4. **Red — write a failing test**:
    Write the first test case. It MUST assert the expected behavior of the feature. The test SHOULD fail because the implementation doesn't exist yet.

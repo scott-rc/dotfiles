@@ -51,4 +51,4 @@ Evaluate a session task prompt against best practices, report findings, and offe
 
 5. **Offer to rewrite**:
    - MUST present options via AskUserQuestion: "Apply all fixes", "Apply blocking fixes only", "No changes"
-   - If approved, apply the selected fixes and deliver the improved prompt following the delivery pattern from [content-patterns.md](content-patterns.md)
+   - If approved, apply the selected fixes and deliver the improved prompt following the delivery pattern from [content-patterns.md](references/content-patterns.md)

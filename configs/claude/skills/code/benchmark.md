@@ -4,7 +4,7 @@ Write a benchmark that captures the performance target, then write or optimize c
 
 ## Instructions
 
-1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
+1. **Load coding guidelines**: Follow [references/load-guidelines.md](references/load-guidelines.md).
 
 2. **Understand the performance goal**:
    Clarify what metric matters (throughput, latency, memory, binary size) and what the target is. If the user provides a specific target (e.g., "under 50ms", "10k ops/sec"), use it directly. If the goal is vague (e.g., "make it faster"), proceed to step 3.

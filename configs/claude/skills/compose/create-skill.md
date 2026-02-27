@@ -5,7 +5,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from [content-patterns.md](content-patterns.md). Ask the user via AskUserQuestion about:
+   Follow the interview pattern from [content-patterns.md](references/content-patterns.md). Ask the user via AskUserQuestion about:
    - What the skill does (purpose and domain)
    - What triggers it (user phrases that should invoke it)
    - What operations it needs (distinct tasks the skill should handle)
@@ -17,8 +17,8 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Any tool restrictions needed (`allowed-tools`)?
 
 2. **Determine skill name**:
-   - MUST read [skill-spec.md](skill-spec.md) before proceeding
-   - MUST apply naming rules from [skill-spec.md](skill-spec.md): lowercase, hyphens, max 64 chars
+   - MUST read [skill-spec.md](references/skill-spec.md) before proceeding
+   - MUST apply naming rules from [skill-spec.md](references/skill-spec.md): lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
    - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements via AskUserQuestion
 
@@ -37,7 +37,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    MUST fix any blocking issues the skill-writer reports before proceeding.
 
 5. **Review and iterate**:
-   Run the multi-perspective review loop per [multi-perspective-review.md](multi-perspective-review.md). Iterate until all 3 agents pass or 4 cycles complete.
+   Run the multi-perspective review loop per [multi-perspective-review.md](references/multi-perspective-review.md). Iterate until all 3 agents pass or 4 cycles complete.
 
 6. **Report results**:
    - MUST list all files created with a one-line description of each

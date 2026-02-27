@@ -128,14 +128,13 @@ Reference files DRY content shared by two or more operations that changes togeth
 <skill-name>/
 ├── SKILL.md           # Hub (required)
 ├── <operation>.md     # One per operation (required, at least one)
-├── <reference>.md     # Shared knowledge (optional)
+├── references/        # Shared knowledge files (optional)
 ├── scripts/           # Executable scripts (optional)
-├── references/        # Additional reference material (optional, for large skills)
 ├── agents/            # Companion agent files (optional)
 └── assets/            # Non-text files (optional)
 ```
 
-Subdirectories are optional and only needed when the skill has many files of a given type.
+Reference files go in the `references/` subdirectory. Operation files stay top-level alongside SKILL.md.
 
 ### Skill Content Rules
 

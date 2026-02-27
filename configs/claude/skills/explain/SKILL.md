@@ -21,4 +21,4 @@ See [explain.md](explain.md) for detailed instructions.
 
 These files are referenced by the operation instructions:
 
-- [explain-patterns.md](explain-patterns.md) - Argument classification, diff size thresholds, large diff strategy, output format
+- [explain-patterns.md](references/explain-patterns.md) - Argument classification, diff size thresholds, large diff strategy, output format

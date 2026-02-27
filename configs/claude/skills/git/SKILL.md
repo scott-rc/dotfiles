@@ -15,7 +15,7 @@ Route to the appropriate operation based on user intent.
 
 ## GitHub Text Rule
 
-All GitHub-facing text MUST follow [github-text.md](github-text.md).
+All GitHub-facing text MUST follow [github-text.md](references/github-text.md).
 
 ## Operations
 
@@ -107,9 +107,9 @@ Users often request multiple operations together. Handle these as follows:
 
 These files are referenced by the operation instructions above:
 
-- [git-patterns.md](git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
-- [github-text.md](github-text.md) - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
-- [watch-subops.md](watch-subops.md) - State file format for the watch loop
+- [git-patterns.md](references/git-patterns.md) - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification
+- [github-text.md](references/github-text.md) - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
+- [watch-subops.md](references/watch-subops.md) - State file format for the watch loop
 - [get-pr-comments.sh](scripts/get-pr-comments.sh) - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
 - [poll-pr-status.sh](scripts/poll-pr-status.sh) - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - [get-failed-runs.sh](scripts/get-failed-runs.sh) - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation via watch-subops.md)

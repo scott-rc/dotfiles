@@ -4,7 +4,7 @@ Write a regression test that reproduces the bug, then fix it — ensuring the bu
 
 ## Instructions
 
-1. **Load coding guidelines**: Follow [load-guidelines.md](load-guidelines.md).
+1. **Load coding guidelines**: Follow [references/load-guidelines.md](references/load-guidelines.md).
 
 2. **Understand the bug**:
    MUST identify the expected behavior and the actual (broken) behavior. Read the relevant source code. If the bug is unclear, ask the user to describe the reproduction steps.

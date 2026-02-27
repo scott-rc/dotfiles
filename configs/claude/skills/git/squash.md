@@ -16,7 +16,7 @@ Squash all commits on the current branch into a single commit.
 
 6. **Analyze all commits** to understand what work was done and why: `git log origin/<base>..HEAD --format="%h %s%n%b"`. Note the overall purpose for crafting the squash message.
 
-7. **Verify scope before squashing**: MUST follow the scope verification pattern in [git-patterns.md](git-patterns.md).
+7. **Verify scope before squashing**: MUST follow the scope verification pattern in [git-patterns.md](references/git-patterns.md).
 
 8. **Confirm before squashing**:
    - Show the commits that will be squashed (from step 3)
@@ -27,4 +27,4 @@ Squash all commits on the current branch into a single commit.
 
 10. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, offer to push. If no remote tracking branch, just report the result.
 
-See [git-patterns.md](git-patterns.md) for base branch detection and scope verification patterns.
+See [git-patterns.md](references/git-patterns.md) for base branch detection and scope verification patterns.

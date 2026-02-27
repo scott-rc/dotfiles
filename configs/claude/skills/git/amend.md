@@ -9,7 +9,7 @@ Fold outstanding changes into the last commit.
    git fetch origin
    ```
 
-2. **Check current branch**: Check main branch protection per [git-patterns.md](git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion; suggested branch names MUST follow the `sc/` prefix convention from git-patterns.md.
+2. **Check current branch**: Check main branch protection per [git-patterns.md](references/git-patterns.md). If on main/master and not dotfiles, present branch options via AskUserQuestion; suggested branch names MUST follow the `sc/` prefix convention from git-patterns.md.
 
 3. **Check for changes to amend**: Run `git status`, `git diff --staged`, and `git diff`. If there are no staged or unstaged changes, inform the user there is nothing to amend and stop.
 
@@ -33,7 +33,7 @@ Fold outstanding changes into the last commit.
     ```bash
     gh pr view --json number,url,title,body 2>/dev/null
     ```
-    If no PR exists, skip to step 11. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description. If files were added or removed, detect base branch per [git-patterns.md](git-patterns.md), spawn the `pr-writer` agent with:
+    If no PR exists, skip to step 11. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description. If files were added or removed, detect base branch per [git-patterns.md](references/git-patterns.md), spawn the `pr-writer` agent with:
     - `mode`: `update`
     - `base_branch`: detected base branch
     - `pr_number`: from the PR view above
@@ -43,4 +43,4 @@ Fold outstanding changes into the last commit.
 
 11. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
 
-See [git-patterns.md](git-patterns.md) for base branch detection, dotfiles exception, and fetch safety patterns.
+See [git-patterns.md](references/git-patterns.md) for base branch detection, dotfiles exception, and fetch safety patterns.

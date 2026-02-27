@@ -43,7 +43,7 @@ Users often request multiple operations together. Handle these as follows:
 
 These files are referenced by the operation instructions above:
 
-- [<reference-file>.md](<reference-file>.md) - <One-line description>
+- [<reference-file>.md](references/<reference-file>.md) - <One-line description>
 ```
 
 ## Operation File Template
@@ -65,7 +65,7 @@ These files are referenced by the operation instructions above:
 
 3. **<Step name>**:
    <What to do. Reference shared knowledge:>
-   MUST read [<reference-file>.md](<reference-file>.md) for <what detail> before proceeding.
+   MUST read [<reference-file>.md](references/<reference-file>.md) for <what detail> before proceeding.
 
 4. **<Step name>**:
    MUST report results to the user. <Specify what to include.>

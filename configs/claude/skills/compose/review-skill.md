@@ -11,7 +11,7 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Multi-perspective review**:
-   Spawn 3 Task subagents in parallel (all type: skill-reviewer) per [multi-perspective-review.md](multi-perspective-review.md):
+   Spawn 3 Task subagents in parallel (all type: skill-reviewer) per [multi-perspective-review.md](references/multi-perspective-review.md):
 
    - **Sonnet** — checklist compliance: structure validation, required fields, file links, anti-patterns from the checklist
    - **Opus** — principle consistency: progressive disclosure, workflow quality, degrees of freedom, cross-file coherence
@@ -34,4 +34,4 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Fix immediately without pausing to ask the user. Escalate only when a fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
    - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
-   - Iterate until all findings pass or 4 cycles complete per [multi-perspective-review.md](multi-perspective-review.md).
+   - Iterate until all findings pass or 4 cycles complete per [multi-perspective-review.md](references/multi-perspective-review.md).
