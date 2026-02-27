@@ -26,11 +26,11 @@ description: <Third-person sentence. What it does AND when to use it. Include tr
 
 ### <Operation Name>
 <One-line summary of what this operation does.>
-See <operation-file>.md for detailed instructions.
+See operations/<operation-file>.md for detailed instructions.
 
 ### <Operation Name>
 <One-line summary.>
-See <operation-file>.md for detailed instructions.
+See operations/<operation-file>.md for detailed instructions.
 
 ## Combined Operations
 

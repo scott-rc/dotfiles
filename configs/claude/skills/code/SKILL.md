@@ -11,39 +11,39 @@ Load and apply the user's coding style preferences when producing or reviewing c
 
 ### Apply
 Load preferences, write code, and verify output matches the guidelines.
-See apply.md for detailed instructions.
+See operations/apply.md for detailed instructions.
 
 ### New Feature
 Full red-green-refactor cycle for building a feature test-first.
-See new-feature.md for detailed instructions.
+See operations/new-feature.md for detailed instructions.
 
 ### Fix Bug
 Write a regression test that captures the bug, then fix it.
-See fix-bug.md for detailed instructions.
+See operations/fix-bug.md for detailed instructions.
 
 ### Add Coverage
 Write characterization tests for existing untested code.
-See add-coverage.md for detailed instructions.
+See operations/add-coverage.md for detailed instructions.
 
 ### Plan
 Decompose a coding task into ordered chunks with TDD structure for testable behavior.
-See plan.md for detailed instructions.
+See operations/plan.md for detailed instructions.
 
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
-See review.md for detailed instructions.
+See operations/review.md for detailed instructions.
 
 ### Benchmark
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
-See benchmark.md for detailed instructions.
+See operations/benchmark.md for detailed instructions.
 
 ### Mutation Testing
 Evaluate test suite quality by mutating source code and checking whether tests catch the changes, then write tests to kill survivors.
-See mutate.md for detailed instructions.
+See operations/mutate.md for detailed instructions.
 
 ### Implement
 Build with TDD, harden with mutation testing, and review-fix until converged — end-to-end verification loop.
-See implement.md for detailed instructions.
+See operations/implement.md for detailed instructions.
 
 ## Combined Operations
 
@@ -51,7 +51,7 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
-- **plan / design / "how should I implement"** → Plan (see plan.md)
+- **plan / design / "how should I implement"** → Plan (see operations/plan.md)
 - **add feature / write** (new behavior) → New Feature
 - **implement and review / full cycle / build and verify / implement with mutation testing** → Implement
 - **fix bug / debug** → Fix Bug

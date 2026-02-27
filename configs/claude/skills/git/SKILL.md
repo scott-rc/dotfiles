@@ -17,35 +17,35 @@ Route to the appropriate operation based on user intent.
 
 ### Commit
 Commit outstanding changes with a well-formatted message.
-See commit.md for detailed instructions.
+See operations/commit.md for detailed instructions.
 
 ### Amend
 Fold outstanding changes into the last commit.
-See amend.md for detailed instructions.
+See operations/amend.md for detailed instructions.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
-See squash.md for detailed instructions.
+See operations/squash.md for detailed instructions.
 
 ### Rebase
 Fetch latest and rebase onto base branch.
-See rebase.md for detailed instructions.
+See operations/rebase.md for detailed instructions.
 
 ### Push
 Push commits and create/update PR with title/description per guidelines.
-See push.md for detailed instructions.
+See operations/push.md for detailed instructions.
 
 ### Worktree
 Create a new git worktree for a task or convert an existing branch.
-See worktree.md for detailed instructions.
+See operations/worktree.md for detailed instructions.
 
 ### Clean Worktrees
 Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
-See clean-worktrees.md for detailed instructions.
+See operations/clean-worktrees.md for detailed instructions.
 
 ### Fix CI
 Check CI status, fetch failure logs, identify root cause, and fix the issues.
-See fix-ci.md for detailed instructions.
+See operations/fix-ci.md for detailed instructions.
 
 ### Rerun
 Re-trigger failed CI jobs.
@@ -57,23 +57,23 @@ Re-trigger failed CI jobs.
 
 ### Watch
 Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
-See watch.md for detailed instructions.
+See operations/watch.md for detailed instructions.
 
 ### Review
 Fetch unresolved PR review threads and fix the issues reviewers described.
-See review.md for detailed instructions.
+See operations/review.md for detailed instructions.
 
 ### Update Description
 Rewrite the PR title and description to match current changes per guidelines.
-See update-description.md for detailed instructions.
+See operations/update-description.md for detailed instructions.
 
 ### Submit Review
 Submit a PR review (approve, request changes, or comment) with optional inline comments.
-See submit-review.md for detailed instructions.
+See operations/submit-review.md for detailed instructions.
 
 ### Reply
 Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment.
-See reply.md for detailed instructions.
+See operations/reply.md for detailed instructions.
 
 ## Combined Operations
 

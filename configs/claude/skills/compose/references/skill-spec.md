@@ -6,12 +6,13 @@ Rules specific to authoring Claude Code skills. All operations in this skill val
 
 ```
 SKILL.md (router)
-├── Inline operations (linear, no refs, no branching)
-├── Operation files (conditional logic, file refs, or agent delegation)
-│   └── May link to reference files at specific steps
-├── Reference files (DRY content shared by 2+ operations, leaves only)
-├── Scripts (deterministic data extraction, reused 2+ times OR single-use with 20+ lines/piped commands)
-└── Named agents (judgment work reused 2+ times)
+│   Inline operations (linear, no refs, no branching — stay in SKILL.md)
+├── operations/            # Operation files (conditional logic, file refs, or agent delegation)
+│   └── <operation>.md     # May link to reference files at specific steps
+├── references/            # DRY content shared by 2+ operations (leaves only)
+│   └── <reference>.md
+├── scripts/               # Deterministic data extraction, reused 2+ times OR single-use with 20+ lines/piped commands
+└── agents/                # Judgment work reused 2+ times
 ```
 
 Three principles:
@@ -100,7 +101,7 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 
 ### Operation Files
 
-Each operation file (e.g., `create-skill.md`, `review-skill.md`) contains the full instructions for one operation.
+Each operation file (e.g., `operations/create-skill.md`, `operations/review-skill.md`) lives in the `operations/` subdirectory and contains the full instructions for one operation.
 
 - **H1 heading**: MUST start with the operation name from SKILL.md. MAY append a descriptive word or phrase for clarity (e.g., `# Commit` or `# Apply Coding Preferences` for a `### Apply` entry). Do NOT use a generic "Operation" suffix — prefer standalone names or descriptive phrases.
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
@@ -126,15 +127,17 @@ Reference files DRY content shared by two or more operations that changes togeth
 
 ```
 <skill-name>/
-├── SKILL.md           # Hub (required)
-├── <operation>.md     # One per operation (required, at least one)
-├── references/        # Shared knowledge files (optional)
-├── scripts/           # Executable scripts (optional)
-├── agents/            # Companion agent files (optional)
-└── assets/            # Non-text files (optional)
+├── SKILL.md              # Hub (required)
+├── operations/           # One file per operation (required, at least one)
+│   └── <operation>.md
+├── references/           # Shared knowledge files (optional)
+│   └── <reference>.md
+├── scripts/              # Executable scripts (optional)
+├── agents/               # Companion agent files (optional)
+└── assets/               # Non-text files (optional)
 ```
 
-Reference files go in the `references/` subdirectory. Operation files stay top-level alongside SKILL.md.
+Operation files go in the `operations/` subdirectory. Reference files go in the `references/` subdirectory.
 
 ### Skill Content Rules
 

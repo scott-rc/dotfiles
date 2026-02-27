@@ -10,8 +10,8 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
    Determine whether this is new behavior (feature, endpoint, function) or a bug fix. If ambiguous, ask focused questions before proceeding.
 
 2. **Follow the TDD operation**:
-   - New behavior → Follow new-feature.md
-   - Bug fix → Follow fix-bug.md
+   - New behavior → Follow operations/new-feature.md
+   - Bug fix → Follow operations/fix-bug.md
 
    Track all files created or modified during this phase for use in Phases 2 and 3.
 
@@ -28,7 +28,7 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
    If skipping, proceed directly to Phase 3.
 
 5. **Follow the Mutation Testing operation**:
-   Follow mutate.md, scoping it to the files tracked in step 2.
+   Follow operations/mutate.md, scoping it to the files tracked in step 2.
 
 6. **Report mutation testing outcome**:
    Report to the user: score before/after, survivors killed. Confirm all tests pass before proceeding to review.
@@ -36,13 +36,15 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
 ### Phase 3 — Review-Fix Convergence Loop
 
 7. **Follow the Review operation**:
-   Follow review.md on all files written or modified across Phases 1 and 2.
+   Follow operations/review.md on all files written or modified across Phases 1 and 2. Skip review.md's fix-plan offer (step 13) — this phase owns the convergence loop.
 
 8. **Drive the fix-review loop**:
-   After review reports findings, implement.md owns the convergence loop (up to 4 iterations):
-   - If Blocking findings are reported, MUST present them to the user before fixing.
-   - Fix findings, then re-follow review.md on the same file set.
-   - Stop when review reports no remaining findings or 4 iterations are reached.
+   This phase owns the convergence loop (up to 4 iterations):
+   - Blocking and Improvement findings — fix immediately. Escalate only when the fix has multiple plausible approaches and no available context disambiguates.
+   - Suggestions — fix if quick (fewer than 3 per file); otherwise record and include in the Phase 4 report.
+   - Recurring findings — if the same finding recurs after a fix attempt, escalate to the user or record as "acknowledged, not addressed" with rationale.
+   - Fix findings, then re-follow operations/review.md on the same file set.
+   - Stop when review reports no remaining findings or 4 iterations are reached. At max iterations, hand off remaining findings to the Phase 4 report.
 
 ### Phase 4 — Report
 

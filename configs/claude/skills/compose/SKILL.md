@@ -10,39 +10,39 @@ argument-hint: "[create | update | review | plan | handoff] [target]"
 
 ### Create Skill
 Scaffold a new skill interactively, producing a complete skill directory with SKILL.md, operation files, and reference files.
-See create-skill.md for detailed instructions.
+See operations/create-skill.md for detailed instructions.
 
 ### Update Skill
 Add, modify, or remove operations, reference files, and SKILL.md content in an existing skill.
-See update-skill.md for detailed instructions.
+See operations/update-skill.md for detailed instructions.
 
 ### Review Skill
 Evaluate an existing skill against best practices and report findings grouped by severity.
-See review-skill.md for detailed instructions.
+See operations/review-skill.md for detailed instructions.
 
 ### Create Rules
 Write a CLAUDE.md or scoped rules file, producing clear instructions that configure Claude's behavior for a project.
-See create-rules.md for detailed instructions.
+See operations/create-rules.md for detailed instructions.
 
 ### Review Rules
 Evaluate a CLAUDE.md or scoped rules file against best practices and report findings grouped by severity.
-See review-rules.md for detailed instructions.
+See operations/review-rules.md for detailed instructions.
 
 ### Create Prompt
 Craft a session task prompt interactively, producing a polished prompt ready to paste into a new Claude Code session.
-See create-prompt.md for detailed instructions.
+See operations/create-prompt.md for detailed instructions.
 
 ### Review Prompt
 Evaluate a session task prompt against best practices, report findings, and offer to improve it.
-See review-prompt.md for detailed instructions.
+See operations/review-prompt.md for detailed instructions.
 
 ### Create Handoff
 Write a self-contained handoff and deliver via plan mode so the user can accept and continue in a fresh context.
-See create-handoff.md for detailed instructions.
+See operations/create-handoff.md for detailed instructions.
 
 ### Plan Task
 Decompose a large task into ordered chunks with orchestrated subagent execution.
-See plan-task.md for detailed instructions.
+See operations/plan-task.md for detailed instructions.
 
 ## Delegation
 

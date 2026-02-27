@@ -196,10 +196,21 @@ Custom CLI tools.
 |-------|-------------|
 | `code/` | Applies coding style preferences, enforces TDD, runs code reviews, manages benchmarks, and evaluates test quality via mutation testing |
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity |
+| `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
 | `explain/` | Explains code changes — branch diffs, individual commits, specific files, or commit ranges |
 | `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, and GitHub interactions |
 | `interview/` | Conducts a structured multi-round interview on any topic — asking probing questions to gather requirements, explore decisions, or deepen understanding |
 | `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
+
+Each skill follows this directory structure:
+
+```
+<skill-name>/
+├── SKILL.md           # Hub/router — routes input to operations
+├── operations/        # Operation files (one per workflow)
+├── references/        # Shared knowledge and guidelines (optional)
+└── scripts/           # Shell scripts (optional)
+```
 
 ### Custom Commands
 

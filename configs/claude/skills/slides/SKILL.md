@@ -11,19 +11,19 @@ Help Claude create and manage Slidev markdown presentations from scaffolding thr
 
 ### Setup
 Scaffold a new Slidev workspace with pnpm, shared dependencies, and directory structure.
-See setup.md for detailed instructions.
+See operations/setup.md for detailed instructions.
 
 ### Create
 Create a new talk within an existing workspace, generating `slides.md` and `package.json`.
-See create.md for detailed instructions.
+See operations/create.md for detailed instructions.
 
 ### Author
 Write and edit slide content using Slidev markdown syntax, layouts, and animations.
-See author.md for detailed instructions.
+See operations/author.md for detailed instructions.
 
 ### Present
 Run dev server, build static output, or export to PDF/PNG.
-See present.md for detailed instructions.
+See operations/present.md for detailed instructions.
 
 ## Combined Operations
 

@@ -15,7 +15,7 @@ Help the user understand code changes by producing layered explanations (why, wh
 
 ### Explain
 Parse arguments, gather context, read changed files, and produce a layered explanation.
-See explain.md for detailed instructions.
+See operations/explain.md for detailed instructions.
 
 ## References
 
