@@ -16,7 +16,7 @@ The caller's prompt determines the mode:
 
 - **New commit** (default, no special instructions): analyze working tree, stage, draft message, commit.
 - **Amend** (prompt says "amend"): stage changes, amend the last commit. If the caller provides a new message, apply it. If the caller says "no-edit", keep the existing message.
-- **Squash** (prompt says "squash" and provides prior commit summaries): stage all changes (already staged via `git reset --soft`), draft a message summarizing the overall purpose using the provided commit summaries.
+- **Squash** (prompt says "squash"): all changes are already staged via `git reset --soft`. Draft a message from the staged diff and commit.
 
 ## Rules
 
@@ -27,7 +27,6 @@ The caller's prompt determines the mode:
 ### Commit Message Rules
 
 - Imperative mood, under 72 chars, explain *why* not *what*
-- Match the style of recent commits in the repo
 - ASCII only -- use `--`, `"`, `'` (no em dashes, smart quotes, curly apostrophes)
 - Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
 
@@ -37,8 +36,6 @@ The caller's prompt determines the mode:
    - `git status --short` for an overview
    - `git diff` for unstaged changes
    - `git diff --staged` for staged changes
-   - `git log --oneline -10` for recent commit style
-
 2. **Analyze cohesion** (new commit mode only): Determine whether all changes form a single logical unit or represent mixed concerns. Consider:
    - Do the files touch the same feature/system?
    - Are there unrelated changes mixed in (e.g., a refactor alongside a bug fix)?
@@ -54,7 +51,7 @@ The caller's prompt determines the mode:
 4. **Stage and commit**:
    - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
    - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `git commit --amend -m/-F` if a new message is needed
-   - Squash: changes are already staged, draft message from provided commit summaries, `git commit`
+   - Squash: changes are already staged, draft message from the staged diff, `git commit`
 
 5. **Handle errors after commit**:
    - **UTF-8 warning** ("commit message did not conform to UTF-8"): write a corrected ASCII-only message to a temp file and `git commit --amend -F <file>`.

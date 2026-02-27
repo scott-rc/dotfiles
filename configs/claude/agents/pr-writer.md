@@ -28,19 +28,24 @@ All GitHub-facing text MUST follow these rules:
 - Backticks for code references, fenced code blocks for multi-line examples.
 - Write multi-line bodies to a temp file and use `-F body=@file` instead of inline strings or heredocs.
 
+### Cardinal Rules
+
+These override everything else. Every title and description MUST follow them.
+
+1. **The diff is the source of truth.** Base both the title and description on `git diff`, NOT on commit messages or history. Commit messages are hints at best -- the diff is what ships.
+2. **Describe the net change, not the journey.** If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug. The PR describes the end state, not intermediate steps.
+
 ### Title
 
-- Match the first commit's subject as a starting point
 - Imperative mood, under 70 characters
 - Specific: name the feature, fix, or change
+- Derived from the diff, not copied from commit subjects
 
 ### Description
 
-- **The diff is the source of truth.** Base the description on `git diff`, NOT on commit history.
 - **Write prose, not bullets**: Default format is readable paragraphs. Only use bullets when listing genuinely unrelated items.
 - **No markdown headers in the PR body.** Do NOT use `#`, `##`, `###`, or any header syntax. No `## Summary`, no `## Test plan`, no `## Changes`. Plain paragraphs only.
 - **MUST NOT wrap lines**: Do NOT wrap text to 72 characters. Write each thought as one continuous line. GitHub handles wrapping.
-- **Describe the net change, not the journey**: If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug.
 - **Focus on the "why"**: Explain motivation and reasoning, not just what changed.
 - **Testing woven into the narrative**: Mention test coverage inline as part of the prose. Do NOT put it in a separate section or checklist.
 - **Link issues**: Use "Fixes #123" to auto-close; use "Related to #456" for referenced-but-not-fixed issues.
@@ -68,7 +73,6 @@ This PR upgrades the Go toolchain from 1.25 to 1.26 and fixes two compatibility 
    ```bash
    git diff --stat origin/<base_branch>..HEAD
    git diff origin/<base_branch>..HEAD
-   git log --oneline origin/<base_branch>..HEAD
    ```
    If the diff is large (>500 lines), use `--stat` for overview and read selectively.
 
