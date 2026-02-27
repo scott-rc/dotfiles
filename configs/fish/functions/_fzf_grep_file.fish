@@ -10,4 +10,8 @@ function _fzf_grep_file --description "Ctrl+G: rg content search picker"
     set -l line (string split -m2 : -- $selection)[2]
     commandline -t -- (string escape -- "$file:$line")
     commandline -f repaint
+    # Auto-execute if there's already a command on the line (e.g. `v <ctrl+g>`)
+    if test (count (commandline -o)) -gt 1
+        commandline -f execute
+    end
 end
