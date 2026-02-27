@@ -23,15 +23,13 @@ Use these patterns inside operation files when they fit the task:
 
 Skills that run a specific workflow (deploys, migrations, data transforms) rather than augmenting knowledge. Combine `context: fork` for isolation with `disable-model-invocation: true` for safety.
 
-A `context: fork` skill runs as its own orchestrator scope -- user interaction (AskUserQuestion, interview steps) is valid inside it because the forked agent owns the full deciding-and-doing loop for its task.
+A `context: fork` skill runs in an isolated subagent. AskUserQuestion is NOT available inside the fork — any user interaction MUST happen before forking. If the skill needs interactive input, resolve it inline in SKILL.md (where AskUserQuestion works), then dispatch the resolved input to the fork via the Task tool.
 
 ```markdown
 ---
 name: run-migration
 description: Runs database migrations against the target environment when the user asks to migrate, apply migrations, or update the schema.
 disable-model-invocation: true
-context: fork
-agent: general-purpose
 ---
 
 # Run Migration
@@ -40,9 +38,7 @@ Run pending database migrations for $ARGUMENTS.
 
 1. **Check current state**: Run `db migrate status` and report pending migrations
 2. **Confirm with user**: List migrations that will run and confirm via AskUserQuestion
-3. **Apply**: Run `db migrate up` and capture output
-4. **Verify**: Run `db migrate status` again to confirm all migrations applied
-5. **Report**: Show applied migrations and any errors
+3. **Apply**: Dispatch migration to a Task subagent (general-purpose): run `db migrate up`, verify with `db migrate status`, report results
 ```
 
 ## Delivery Pattern
