@@ -135,33 +135,6 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+R` | Resize mode |
 | `Cmd+Shift+M` | Move mode |
 
-#### Neovim Git Diff
-
-Global diff mode toggle with inline hunk preview, stage/unstage, and file navigation. Uses gitsigns + neo-tree git_status panel. Features read-only mode for historical diffs, active `.git/index` watching for real-time refresh, and a CLI entry point (`vd`).
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+G` / `Ctrl+G` | Focus/toggle git changes panel (enables/disables diff highlights) |
-| `Space gd` | Toggle diff mode (highlights + panel) |
-| `Space gc` | Changed files vs base branch (read-only) |
-| `Space gw` | Working tree diff (unstaged changes) |
-| `Space gi` | Staged changes (vs HEAD) |
-| `Space gB` | Diff against branch (telescope picker, read-only) |
-| `Space gD` | Diff source picker (branches, commits, working tree, staged) |
-| `Space gX` | Diff against arbitrary ref (freeform input) |
-| `]c` / `[c` | Next/prev hunk |
-| `]C` / `[C` | Last/first hunk |
-| `]f` / `[f` | Next/prev changed file |
-| `Space gs` | Stage hunk (visual: stage selected lines) |
-| `Space gu` | Undo stage hunk |
-| `Space gS` | Stage entire buffer |
-| `Space gr` | Reset hunk (visual: reset selected lines) |
-| `Space gR` | Reset entire buffer |
-| `Space gp` | Preview hunk inline (shows deleted lines) |
-| `Space gb` | Blame line |
-| `Space yh` | Copy hunk to clipboard (visual: copy selection) |
-| `ih` | Hunk text object (e.g., `dih`, `vih`, `yih`) |
-
 #### Zed Git Diff
 
 Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors the Neovim workflow where possible.
@@ -284,7 +257,4 @@ Codex runtime/session files remain machine-local and are not source-controlled: 
 | `./apply.sh` | Run setup |
 | `LOG_LEVEL=debug ./apply.sh` | Verbose setup |
 | `reload` | Restart fish shell |
-| `vd` | Open Neovim diff viewer (vs base branch) |
-| `vd --staged` | Diff viewer for staged changes |
-| `vd <ref>` | Diff viewer against a specific ref or commit |
 | `/slides` | Manage Slidev presentations (create, dev, build, deploy, export) |
