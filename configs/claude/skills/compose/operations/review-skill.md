@@ -28,7 +28,7 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Flag SKILL.md over 5000 tokens as exceeding the hub size limit
 
 5. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
-   Run `alloy exec -f -o /tmp/alloy-output <spec-path>` for each `.als` file. If any check returns SAT (counterexample found), add as a Blocking finding — the skill violates a behavioral invariant. Include the assertion name and counterexample in the finding.
+   Run the verification procedure from references/alloy-verification.md. Add any failures as Blocking findings — include the assertion name and counterexample or conformance mismatch.
 
 6. **Present findings**:
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.

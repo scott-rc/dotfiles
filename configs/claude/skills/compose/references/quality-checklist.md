@@ -24,7 +24,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **No nested references**: Reference files MUST NOT reference other reference files
 - [ ] **No circular references**: No file directly or indirectly references itself
 - [ ] **Line count**: SKILL.md is under 500 lines and under 5000 tokens
-- [ ] **Companion agent files exist**: Every agent name referenced in an operation's Task tool call (via `agent:` field) has a corresponding file in `configs/claude/agents/<name>.md`
+- [ ] **Companion agent files exist**: Every custom agent name referenced in an operation's Task tool call has a corresponding file in `configs/claude/agents/<name>.md`. Built-in subagent types (`Explore`, `Plan`, `general-purpose`, `skill-writer`, `rules-writer`, `skill-reviewer`, `rules-reviewer`, `code-writer`, `committer`, `pr-writer`, `github-writer`, `chunk-writer`, `chunk-executor`, etc.) are exempt.
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No SKILL.md inline complexity**: SKILL.md MAY contain simple inline operations (linear, no file refs, no branching). Complex operations with conditional logic, file references, or agent delegation MUST be in their own files.
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content
@@ -32,6 +32,8 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **Error handling (state-mutating)**: State-mutating operations (commit, deploy, write files) handle likely failure modes (missing files, invalid input, conflicts) rather than failing silently
 - [ ] **Combined operation preconditions**: Combined operations that chain state-mutating operations note when a later operation has independent preconditions the orchestrator must not skip
 - [ ] **No inline heavy work**: Operations do not read more than 3 files, analyze large diffs, or generate multi-file artifacts inline when a subagent could do it
+- [ ] **Alloy spec passes**: If the skill has a `specs/` directory with `.als` files, all checks MUST return UNSAT
+- [ ] **Alloy structural conformance**: Operation step sequences, delegation, routing, and review perspectives MUST match the Alloy spec declarations (see references/alloy-verification.md)
 
 ### Improvements
 

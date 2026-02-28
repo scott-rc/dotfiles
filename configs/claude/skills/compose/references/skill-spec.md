@@ -141,9 +141,20 @@ Reference files DRY content shared by two or more operations that changes togeth
 
 Operation files go in the `operations/` subdirectory. Reference files go in the `references/` subdirectory.
 
+### Alloy Behavioral Specs
+
+Skills MAY include formal behavioral specifications in a `specs/` directory as Alloy `.als` files. When present:
+
+- Operations MUST conform to the spec's state machines (StepBinding facts define step order)
+- Delegation MUST match the spec's operation declarations (writesThrough, reviewsWith, perspectives)
+- SKILL.md routing MUST match the spec's Intent routing
+- The spec MUST pass formal verification (`alloy exec` with all checks UNSAT)
+
+See references/alloy-verification.md for the full verification procedure.
+
 ### Skill Content Rules
 
 - **No tables**: MUST use lists instead of markdown tables. Tables add significant token overhead (pipes, header separators, padding) with no benefit for LLM comprehension. Use bulleted lists with `—` separators for key-value pairs, or split into labeled sub-lists for multi-column data.
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **No cross-skill file references**: MUST NOT reference another skill's files via relative paths. Use the Skill tool for cross-skill delegation.
-- **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, Deciding vs Doing, and Degrees of Freedom patterns, see content-patterns.md.
+- **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, and Deciding vs Doing patterns, see content-patterns.md.

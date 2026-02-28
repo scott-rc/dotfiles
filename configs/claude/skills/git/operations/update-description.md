@@ -9,6 +9,7 @@ Rewrite the PR title and description to match current changes per guidelines.
    - `mode`: `update`
    - `base_branch`: detect per references/git-patterns.md
    - `pr_number`: from step 1
+   - `commit_messages`: read via `git log origin/<base>..HEAD --format=%B`
    - `context` (optional): one sentence if the user specified a reason for the update
 
    PR text MUST follow references/github-text.md.

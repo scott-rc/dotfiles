@@ -1,4 +1,4 @@
-# Clean
+# Clean Worktrees
 
 Remove merged, squash-merged, and orphaned worktrees using the `gwc` fish function.
 

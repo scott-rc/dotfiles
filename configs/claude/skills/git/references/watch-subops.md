@@ -2,6 +2,14 @@
 
 State file format and monitoring loop protocol for the watch loop. Referenced by watch.md.
 
+These rules apply within the watch loop context only. The standalone review operation handles simple cases inline; the watch loop always delegates to preserve long-running context.
+
+## Delegation Pattern
+
+The watch loop uses a two-level delegation pattern: the orchestrator reads state, triages, and dispatches; subagents debug and fix. Each subagent prompt includes the repository root path. All fixes go to subagents -- attempting fixes inline in the loop exhausts the context window and causes the loop to lose monitoring state.
+
+State is persisted to the state file at `./tmp/ci-watch-<pr-number>.md` after each iteration. Raw poll data, subagent results, and intermediate JSON are discarded once relevant data is extracted and written to the state file.
+
 ## State File Format
 
 ```markdown

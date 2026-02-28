@@ -16,12 +16,6 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - Include any review summaries (these provide high-level context from the reviewer)
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
-4. **Gather context and fix each thread**:
-   - Check the bulk threshold defined in references/bulk-threads.md. If below the threshold: read the relevant files inline at the indicated lines, read all comments in each thread (later replies often contain clarifications), and fix each thread directly.
-   - If at or above the threshold: spawn an Explore subagent per references/bulk-threads.md (review variant) to gather per-thread context. Then fix each thread using the subagent's context summary.
+4. **Gather context and fix each thread** per references/bulk-threads.md. Group threads by file path to minimize context switching and apply the fix the reviewer requested.
 
-   In both cases, group threads by file path to minimize context switching and apply the fix the reviewer requested.
-
-5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread.
-
-6. **After all fixes, offer follow-up actions** via AskUserQuestion: "Commit changes", "Commit and push", "Done (no commit)"
+5. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete, return to step 4 for that thread. Report which threads were fixed and which files changed.

@@ -58,7 +58,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
 6. **Review and iterate**:
-   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents.
+   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items) in the report.
 
 7. **Report results**:
    Present results to the user:

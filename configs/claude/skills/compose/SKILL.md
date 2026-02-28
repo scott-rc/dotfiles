@@ -84,3 +84,4 @@ Users often request multiple operations together. Handle these as follows:
 - references/rules-template.md - Templates for CLAUDE.md and scoped rules files
 - references/multi-perspective-review.md - Three-agent parallel review loop (Sonnet/Opus/Haiku) with convergence criteria
 - references/plan-template.md - Templates for plan artifacts: master plan, chunk files, orchestrator prompt
+- references/alloy-verification.md - Alloy behavioral spec verification procedure (formal check and structural conformance)

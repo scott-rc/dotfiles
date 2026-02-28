@@ -1,6 +1,6 @@
 # Multi-Perspective Review
 
-Three-agent review loop for evaluating skill and rules file quality from complementary angles. This is a multi-evaluator instance of the general loop pattern (see the evaluate-fix loops rule in `~/.claude/rules/`), specialized for skill and rules file quality.
+Three-agent review loop for evaluating skill and rules file quality from complementary angles. This is a multi-evaluator instance of the evaluate-fix loop pattern, specialized for skill and rules file quality.
 
 ## The Pattern
 
@@ -14,7 +14,7 @@ After applying changes, spawn three review agents in parallel with distinct pers
 
 The loop runs until all three agents pass or 4 cycles complete. Each cycle: all three agents review in parallel, findings are synthesized into Blocking / Improvements / Suggestions tiers, Blocking and Improvements issues are fixed, then all three agents re-review the updated files. Suggestions: fix if quick (fewer than 3 per file), otherwise note and move on. If 4 cycles complete without all agents passing, present remaining findings to the user with "acknowledged, not addressed" status and let the user decide.
 
-**Fix delegation**: MUST use `skill-writer` (update mode) for skill file fixes and `rules-writer` for rules file fixes. MUST NOT use `code-writer` — it has no skill/rules validation and its code workflows do not apply to markdown files. Pass the review findings as the problem; let the writer agent determine the implementation.
+**Fix delegation**: MUST use `skill-writer` (update mode) for skill file fixes and `rules-writer` for rules file fixes. Pass the review findings as the problem; let the writer agent determine the implementation. See the Delegation section in SKILL.md for agent constraints.
 
 ## Pass Criteria
 
@@ -29,7 +29,7 @@ The loop runs until all three agents pass or 4 cycles complete. Each cycle: all 
 
 ## Agent Prompt Templates
 
-Operations customize these fragments with file paths and skill names.
+Operations customize these fragments with file paths and skill names. Resolve `references/` paths relative to the compose skill directory.
 
 **Sonnet prompt:**
 ```

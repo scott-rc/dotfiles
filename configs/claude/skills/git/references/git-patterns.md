@@ -15,7 +15,7 @@ Custom fish functions (`gbb`, `gwc`, `gwt`) MUST be called via `fish -c '...'` i
 
 ## Base Branch Detection
 
-Run `fish -c 'gbb'` to get the base branch. Returns the nearest fork-point branch (handles stacked branches), falling back to the default branch (`main`/`master`). Accepts an optional branch argument: `fish -c 'gbb [branch]'`.
+Run `fish -c 'gbb'` to get the base branch. Accepts an optional branch argument: `fish -c 'gbb [branch]'`.
 
 ## Dotfiles Exception
 
@@ -84,6 +84,16 @@ Ask the user to verify these files match the branch's intended scope. If unexpec
 ## CI System Detection
 
 CI system is detected automatically by `poll-pr-status` and reported in `ci.ciSystem`. For `fix-ci.md` standalone use, detect by checking `.github/workflows/` (github-actions) or `.buildkite/` (buildkite). `gh pr checks` works for all systems; `gh run list` / `gh run view` / `get-failed-runs` / `ci-triager` only work for `github-actions`.
+
+## Fix Subagent Dispatch
+
+When a real CI failure or review thread needs fixing, spawn a general-purpose subagent (model: sonnet) with:
+
+- The task context: triager's full report (root cause, trimmed logs, relevant file paths) for CI failures, or thread details (file path, line number, full comment bodies) for review threads
+- The local fix commands resolved from "Local Fix Commands" below, passed inline in the prompt
+- Instruction to read relevant source files, apply the fix, run the resolved lint and test commands, and consult the project's CLAUDE.md for project-specific commands
+
+One subagent handles all threads in a batch (review) or one failed check (CI).
 
 ## Local Fix Commands
 

@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, worktrees, CI triage and monitoring, code review, and GitHub interactions.
+description: Handles git commits, pushes, PRs, rebases, worktrees, CI triage and monitoring, code review, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, or manage worktrees.
 argument-hint: "[operation or intent]"
 ---
 
@@ -49,11 +49,7 @@ See operations/fix-ci.md for detailed instructions.
 
 ### Rerun
 Re-trigger failed CI jobs.
-
-1. **Find failed run**: `gh run list --branch $(git branch --show-current) --status failure --limit 1 --json databaseId,workflowName`. If none, inform user and stop.
-2. **Rerun**: `gh run rerun <run-id> --failed` (fall back to `gh run rerun <run-id>` if unsupported)
-3. **Confirm**: `gh run view <run-id> --json status`, report run ID and status. If the returned status is still `failed` (not `queued` or `in_progress`), report the error to the user.
-4. Offer to run Watch to monitor results
+See operations/rerun.md for detailed instructions.
 
 ### Watch
 Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
@@ -81,12 +77,12 @@ Users often request multiple operations together. Handle these as follows:
 
 - **"commit and push"** → Run commit operation, then push operation
 - **"amend"** / **"fold into last commit"** / **"add to last commit"** → Run amend operation
-- **"amend and push"** → Run amend operation, then push operation
-- **"squash and push"** → Run squash operation, then push operation
+- **"amend and push"** → Run amend operation, then push operation (note: amend's step 9 may already force-push, so push may be a no-op)
+- **"squash and push"** → Run squash operation, then push operation (note: push's uncommitted-changes check is redundant after squash)
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
-- **"check CI"** / **"CI status"** → Run fix-ci operation in status-only mode: fetch CI state and report pass/fail/pending counts, but do not triage failures or apply any fixes
-- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full, including fix)
+- **"check CI"** / **"CI status"** → Run fix-ci operation in status-only mode
+- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full mode, including fix)
 - **"rerun CI"** / **"retry CI"** / **"re-trigger"** → Run rerun operation
 - **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
 - **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation

@@ -2,6 +2,7 @@ updated_at
 configs/fish/fish_variables
 configs/nu/history.txt
 tmp/
+receipt.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,windows,visualstudiocode,jetbrains+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,windows,visualstudiocode,jetbrains+all

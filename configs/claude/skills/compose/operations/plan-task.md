@@ -62,7 +62,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - **Codebase Context** -- file paths, function names, types, and patterns discovered during exploration
    - **Build and Test** -- build and test commands
 
-   Output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md`
+   Output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md` (relative to working directory)
 
    Run chunk writer subagents in parallel when chunks have no dependency on each other's files. Run sequentially only when a chunk's writer prompt references content from an earlier chunk file.
 
