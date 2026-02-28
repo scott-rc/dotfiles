@@ -24,8 +24,8 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
 
 4. **Estimate token usage**:
    - Use the token counts from the agents' output
-   - Flag files over 2000 tokens as candidates for splitting
-   - Flag total skill size over 5000 tokens as potentially too large for SKILL.md
+   - Flag individual files over 2000 tokens as candidates for splitting
+   - Flag SKILL.md over 5000 tokens as exceeding the hub size limit
 
 5. **Present findings**:
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.

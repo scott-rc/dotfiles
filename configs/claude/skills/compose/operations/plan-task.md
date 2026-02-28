@@ -12,10 +12,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - Build and test commands
    - Any prior decisions, constraints, or failed approaches
 
-2. **Load coding preferences** (conditional):
-   If the task involves code changes, invoke the code skill to load coding preferences. Otherwise, skip.
-
-3. **Explore codebase context**:
+2. **Explore codebase context**:
    If a codebase is relevant, spawn a Task subagent (type: Explore, model: sonnet) to gather context. The subagent MUST:
    - Map key file paths, directory structure, and architecture
    - Identify naming conventions, types, and patterns the chunks will reference
@@ -25,8 +22,8 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    If no codebase applies, MUST skip this step entirely.
 
-4. **Confirm understanding** (conditional):
-   Confirm when the agent synthesized information from multiple sources or made non-obvious inferences. Skip when the user's request was already complete and codebase exploration (step 3) added no unexpected context.
+3. **Confirm understanding** (conditional):
+   Confirm when the agent synthesized information from multiple sources or made non-obvious inferences. Skip when the user's request was already complete and codebase exploration (step 2) added no unexpected context.
    When this step runs:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
    - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
@@ -34,11 +31,10 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - If the user selects "Start over", return to step 1
    - MUST NOT proceed to decomposition until the user selects "Looks good"
 
-5. **Decompose into chunks**:
+4. **Decompose into chunks**:
    Spawn a Task subagent (type: Plan, model: sonnet) to propose the chunk decomposition. Supply the subagent with:
-   - The approved requirements from step 4 (or the user's original request if step 4 was skipped)
-   - The Explore agent's codebase analysis from step 3 (if it ran)
-   - The coding preferences from step 2 (if they were loaded)
+   - The approved requirements from step 3 (or the user's original request if step 3 was skipped)
+   - The Explore agent's codebase analysis from step 2 (if it ran)
 
    The Plan subagent MUST:
    - Identify 2-6 chunks that partition the work
@@ -57,7 +53,7 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    Present the Plan subagent's proposed decomposition to the user. MUST use AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
    If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the decomposition (re-running the Plan subagent if the changes are substantial), and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
-6. **Write chunk files via subagents**:
+5. **Write chunk files via subagents**:
    For each approved chunk, spawn a Task tool subagent (type: chunk-writer) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
 
    Supply these four sections per chunk to the chunk-writer subagent:
@@ -74,17 +70,17 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
 
    After all subagents complete, spawn a Task subagent (type: Explore, model: haiku) to read all chunk files and verify each matches the chunk-writer Output Format (correct sections, checkboxes, TDD structure where appropriate). The subagent MUST return a pass/fail summary per chunk. Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
 
-7. **Write master plan**:
+6. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from references/plan-template.md.
 
-8. **Validate**:
+7. **Validate**:
    - MUST verify all chunk file paths in plan.md resolve to actual files
    - MUST verify dependency links between chunks are correct and acyclic
    - MUST verify chunk numbering is sequential with no gaps
    - MUST verify every chunk has at least one checkbox in both Implementation Steps and Verification
    - MUST scan all files for non-ASCII characters and replace with ASCII equivalents
 
-9. **Deliver via plan mode**:
+8. **Deliver via plan mode**:
    Enter plan mode via `EnterPlanMode` if not already in it. Write the orchestrator prompt to the plan file specified by the plan mode system message, using the Orchestrator Prompt Template from references/plan-template.md with all `<...>` placeholders filled in. MUST scan the orchestrator prompt content for non-ASCII characters and replace with ASCII equivalents before writing.
 
    Call `ExitPlanMode` to present the plan for user approval. MUST also list all created chunk files with their paths.

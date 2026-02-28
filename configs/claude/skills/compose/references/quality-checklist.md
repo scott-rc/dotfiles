@@ -30,7 +30,8 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content
 - [ ] **Verification step (state-mutating)**: State-mutating operations (commit, deploy, write files) include a step for verifying results (run tests, check output, compare before/after)
 - [ ] **Error handling (state-mutating)**: State-mutating operations (commit, deploy, write files) handle likely failure modes (missing files, invalid input, conflicts) rather than failing silently
-- [ ] **No inline heavy work**: Operations do not read many files, analyze diffs, or generate artifacts inline when a subagent could do it
+- [ ] **Combined operation preconditions**: Combined operations that chain state-mutating operations note when a later operation has independent preconditions the orchestrator must not skip
+- [ ] **No inline heavy work**: Operations do not read more than 3 files, analyze large diffs, or generate multi-file artifacts inline when a subagent could do it
 
 ### Improvements
 
@@ -43,7 +44,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **RFC keyword usage**: Operations use MUST/SHOULD/MAY to distinguish requirement levels. Neither all-MUST (overuse) nor all-plain-prose (under-use).
 - [ ] **Sequential steps**: Operations use numbered steps that flow logically from start to finish
 - [ ] **Decision points**: Conditional branches are explicit ("If X, do Y. Otherwise, do Z.")
-- [ ] **Self-contained operations**: Operation files are understandable on their own; referenced files provide detail, not essential context (per skill-spec.md)
+- [ ] **Readable standalone**: Operation files are understandable on their own — intent and flow are clear without loading references (per skill-spec.md)
 - [ ] **Invocation control**: Skills with side effects use `disable-model-invocation: true`; background-knowledge skills use `user-invocable: false`; default is appropriate for dual-invocation skills
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do

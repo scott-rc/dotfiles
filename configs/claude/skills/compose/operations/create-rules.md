@@ -6,7 +6,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 
 1. **Gather requirements**:
    Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
-   - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md", "Global CLAUDE.md", "CLAUDE.local.md", "Unconditional rule", "Scoped rule", "User-level rule"
+   - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md" (description: project root, loads every conversation), "Global CLAUDE.md" (description: `~/.claude/CLAUDE.md`, user-wide across all projects), "CLAUDE.local.md" (description: private per-project, auto-gitignored), "Unconditional rule" (description: `.claude/rules/<name>.md` without `paths:`, always loads), "Scoped rule" (description: `.claude/rules/<name>.md` with `paths:`, loads for matching files), "User-level rule" (description: `~/.claude/rules/<name>.md`, personal across all projects), "Managed policy" (description: org-wide, requires IT/DevOps deployment)
    - What project or directory the rules are for
    - What instructions or conventions they want to encode
    - Whether existing documentation (README, CONTRIBUTING, etc.) should be referenced via `@file`
@@ -46,7 +46,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
 5. **Review and iterate**:
-   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete.
+   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents.
 
 6. **Report results**:
    Present results to the user:

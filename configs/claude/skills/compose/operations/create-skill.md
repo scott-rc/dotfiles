@@ -17,7 +17,6 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Any tool restrictions needed (`allowed-tools`)?
 
 2. **Determine skill name**:
-   - MUST read references/skill-spec.md before proceeding
    - MUST apply naming rules from references/skill-spec.md: lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
    - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements via AskUserQuestion
@@ -32,7 +31,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - `skill_dir`: the absolute path from step 3
    - `spec`: the gathered requirements from steps 1-2 (name, description, operations, references, frontmatter options, delegation boundaries)
 
-   The skill-writer reads authoring specs, writes all files (SKILL.md, operations, references), validates against the quality checklist, and self-corrects up to 3 iterations. It returns the list of files created, validation status, and per-file token counts.
+   Expect back: list of files created, validation status, and per-file token counts.
 
    MUST fix any blocking issues the skill-writer reports before proceeding.
 

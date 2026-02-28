@@ -20,5 +20,4 @@ Write these keywords in ALL CAPS when used with their RFC meaning. Use lowercase
 - **Consistent terminology**: MUST pick one term and use it everywhere (e.g., "operation" not sometimes "command" and sometimes "action")
 - **POSIX paths**: MUST use forward slashes. No backslashes, no Windows paths.
 - **Markdown only**: All skill and rules files MUST be markdown. Use code blocks for shell commands.
-- **No tables**: MUST use lists instead of markdown tables. Tables add significant token overhead (pipes, header separators, padding) with no benefit for LLM comprehension. Use bulleted lists with `—` separators for key-value pairs, or split into labeled sub-lists for multi-column data.
 - **RFC 2119 keywords**: SHOULD use MUST, SHOULD, and MAY (capitalized) per the Keyword Conventions section above. Reserve MUST for rules where violation breaks the outcome.

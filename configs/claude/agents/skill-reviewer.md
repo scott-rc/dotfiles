@@ -62,6 +62,7 @@ Evaluate against these criteria:
 - Sequential steps: operations use numbered steps that flow logically
 - Decision points: conditional branches are explicit
 - Error cases: operations handle likely failure modes
+- Combined operation preconditions: combined operations that chain state-mutating operations note when later operations have independent preconditions
 - Feedback to user: operations tell Claude when to report progress or results
 - Feedback loops: quality-critical operations include a validate-fix-repeat loop
 - Degrees of freedom: instruction specificity matches task fragility

@@ -34,3 +34,6 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - Fix Blocking and Improvements immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
    - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `rules-writer` subagent, then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per references/multi-perspective-review.md.
+
+7. **Report outcomes**:
+   Present a summary of what was reviewed, what was fixed, and what remains. List any unresolved findings with their severity and the reason they were not fixed (escalated, recurring, or max iterations reached). If all findings were resolved, say so explicitly.

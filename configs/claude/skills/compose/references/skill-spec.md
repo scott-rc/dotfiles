@@ -19,7 +19,7 @@ Three principles:
 
 1. **Deciding vs doing** — See Delegation > Behavior in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
 2. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
-3. **References are DRY leaves** — They prevent update-in-N-places problems. Operations work without them for the happy path.
+3. **References are DRY leaves** — They prevent update-in-N-places problems. Operations link to them at the steps where their content is needed.
 
 ## Instructions
 
@@ -83,7 +83,7 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 
 ### Subagent Execution
 
-When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent.
+When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent. `AskUserQuestion` is NOT available inside a fork — any user interaction MUST happen before forking.
 
 Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to inject skill content into the subagent's system prompt before execution; list skill names as a YAML array (e.g., `skills: [git, compose]`). The skill's SKILL.md content is appended to the agent's prompt, giving it access to the skill's routing and references.
 
@@ -97,7 +97,7 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 - **Heading structure**: MUST have one H1 (the skill title), then H2 for sections, H3 for individual operations
 - **Required sections**: MUST have "Operations" (H2) listing each operation with a one-line summary and a link to its file
 - **Optional sections**: MAY have "Combined Operations" (H2) for multi-operation intent mapping, "References" (H2) for shared reference files
-- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file. **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- delegate to a subagent.
+- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file. **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- move it to its own operation file with a delegation step rather than keeping it inline.
 
 ### Operation Files
 
@@ -107,8 +107,8 @@ Each operation file (e.g., `operations/create-skill.md`, `operations/review-skil
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
 - **Numbered steps**: MUST use numbered steps where each step has a **bold step name** followed by the instructions
 - **Cross-references**: MUST reference files as plain text paths (e.g., references/commit-guidelines.md). Do NOT use markdown link syntax or backtick-wrapped paths.
-- **Step nesting**: Steps MUST NOT nest sub-steps. If a step needs sub-steps, either flatten into sequential top-level steps or extract the sub-steps into a reference file.
-- **Self-contained**: SHOULD be understandable from the operation file alone (referenced files provide detail, not essential context)
+- **Step nesting**: Steps MUST NOT nest numbered sub-steps. Informational bullet points under a step are acceptable. If a step needs nested numbered sub-steps, flatten into sequential top-level steps or extract into a reference file.
+- **Readable standalone**: SHOULD be understandable from the operation file alone — intent and flow are clear without loading references, but correct execution depends on referenced content
 
 ### Reference Files
 
@@ -121,14 +121,14 @@ Reference files DRY content shared by two or more operations that changes togeth
 - **Size cap**: Reference files SHOULD stay under 300 lines. If a reference exceeds this, split into focused sibling references that operations link to independently.
 - **Table of contents**: SHOULD include a table of contents for reference files over 100 lines
 - **Inline linking**: When a step depends on reference content, link it at that step — not in a preamble or header
-- **Operations stay executable**: Operations MUST be executable for the happy path without loading references
+- **References are dependencies**: When an operation inline-links a reference, that reference's content is required for correct execution — not optional supplementary detail
 
 ### Directory Structure
 
 ```
 <skill-name>/
 ├── SKILL.md              # Hub (required)
-├── operations/           # One file per operation (required, at least one)
+├── operations/           # One file per operation (when not inline)
 │   └── <operation>.md
 ├── references/           # Shared knowledge files (optional)
 │   └── <reference>.md
@@ -141,6 +141,7 @@ Operation files go in the `operations/` subdirectory. Reference files go in the 
 
 ### Skill Content Rules
 
+- **No tables**: MUST use lists instead of markdown tables. Tables add significant token overhead (pipes, header separators, padding) with no benefit for LLM comprehension. Use bulleted lists with `—` separators for key-value pairs, or split into labeled sub-lists for multi-column data.
 - **MCP tool names**: SHOULD use fully qualified `ServerName:tool_name` format when referencing MCP tools
 - **No cross-skill file references**: MUST NOT reference another skill's files via relative paths. Use the Skill tool for cross-skill delegation.
 - **Patterns**: For Scripts vs Agents, Cross-skill Delegation, Named Agents, Interview, Deciding vs Doing, and Degrees of Freedom patterns, see content-patterns.md.
