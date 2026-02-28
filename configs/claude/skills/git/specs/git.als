@@ -409,6 +409,9 @@ fact reviewSteps {
 
 -- Reply: gather(0) -> report(1) -> confirm(2) -> publish(3) -> report(4)
 -- ReportK appears at both position 1 (present drafts) and position 4 (summary).
+-- PublishK (not DelegateK) at position 3: github-writer posting is modeled as
+-- PublishK to enforce INV-P2 (confirm-before-publish). SubmitReview uses DelegateK
+-- because the user's explicit verdict serves as implicit confirmation.
 fact replySteps {
     #{ sb: StepBinding | sb.forOp = Reply } = 5
     one sb: StepBinding | sb.forOp = Reply and sb.kind = GatherK  and sb.position = 0
@@ -467,6 +470,11 @@ assert exploreSubagentMatchesBulkThreads {
             op in BulkThreads.consumedBy
 }
 
+-- INV-D5: Every mutated artifact type is also produced
+assert mutatesSubsetOfProduces {
+    all op: Operation | op.mutates in op.produces
+}
+
 -- INV-P1: PublishK always preceded by GatherK in the same operation
 assert publishPrecededByGather {
     all op: Operation |
@@ -517,6 +525,32 @@ assert confirmPrecedesWrite {
                 implies sc.position < sw.position
 }
 
+-- INV-SM-4: Operations that delegate must have an action step
+assert delegationImpliesActionStep {
+    all op: Operation |
+        some op.delegatesTo implies
+            some sb: StepBinding |
+                sb.forOp = op and sb.kind in (DelegateK + PublishK + LoopK)
+}
+
+-- INV-SM-5: Operations that mutate must have an action step
+assert mutationImpliesActionStep {
+    all op: Operation |
+        some op.mutates implies
+            some sb: StepBinding |
+                sb.forOp = op and sb.kind in (WriteK + DelegateK + PublishK + LoopK)
+}
+
+-- INV-SM-6: Domain-empty operations have no internal mutation steps
+-- PublishK is allowed — it covers external triggers like CI re-runs
+-- that don't produce local artifacts (e.g. Rerun).
+assert domainEmptyOpsHaveNoMutationSteps {
+    all op: Operation |
+        (no op.produces and no op.delegatesTo and no op.mutates) implies
+            all sb: StepBinding |
+                sb.forOp = op implies sb.kind in (GatherK + ReportK + PublishK)
+}
+
 -- INV-ROUTE-1: Every operation is reachable from at least one intent
 assert allOpsReachable {
     all op: Operation | some i: Intent | op in i.routesTo
@@ -554,6 +588,7 @@ check committerDelegatedCorrectly        for 5 but 55 StepBinding, 4 Int
 check prWriterDelegatedCorrectly         for 5 but 55 StepBinding, 4 Int
 check githubWriterDelegatedCorrectly     for 5 but 55 StepBinding, 4 Int
 check exploreSubagentMatchesBulkThreads  for 5 but 55 StepBinding, 4 Int
+check mutatesSubsetOfProduces            for 5 but 55 StepBinding, 4 Int
 
 -- Publish safety
 check publishPrecededByGather            for 5 but 55 StepBinding, 4 Int
@@ -563,6 +598,9 @@ check confirmPrecedesPublish             for 5 but 55 StepBinding, 4 Int
 check allOpsStartWithGather              for 5 but 55 StepBinding, 4 Int
 check allOpsEndWithReport                for 5 but 55 StepBinding, 4 Int
 check confirmPrecedesWrite               for 5 but 55 StepBinding, 4 Int
+check delegationImpliesActionStep        for 5 but 55 StepBinding, 4 Int
+check mutationImpliesActionStep          for 5 but 55 StepBinding, 4 Int
+check domainEmptyOpsHaveNoMutationSteps  for 5 but 55 StepBinding, 4 Int
 
 -- Routing
 check allOpsReachable                    for 5 but 55 StepBinding, 4 Int
@@ -587,4 +625,11 @@ run showMutatingOps {
 -- Show all operations that delegate to agents
 run showDelegatingOps {
     some op: Operation | some op.delegatesTo
+} for 5 but 55 StepBinding, 4 Int
+
+-- Show operations with confirm-before-publish safety
+run showConfirmBeforePublish {
+    some op: Operation |
+        (some sb: StepBinding | sb.forOp = op and sb.kind = ConfirmK) and
+        (some sb: StepBinding | sb.forOp = op and sb.kind = PublishK)
 } for 5 but 55 StepBinding, 4 Int
