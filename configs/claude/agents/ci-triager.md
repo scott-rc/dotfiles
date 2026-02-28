@@ -28,6 +28,13 @@ The caller's prompt provides:
    ```
    Trim to the relevant failure output: error messages, assertion diffs, stack traces, failing test names. Discard setup noise, progress bars, and timestamps. Focus on the first failure -- subsequent failures are often cascading.
 
+   **Fallback when the run is still in progress** (`--log-failed` exits non-zero or the output indicates logs are unavailable -- contains "still in progress", "not completed", "logs will be available when it is complete", or similar):
+   - Fetch failed job details: `gh run view <run_id> --json jobs --jq '.jobs[] | select(.conclusion == "failure") | {name, conclusion}'`
+   - Fetch human-readable annotations: `gh run view <run_id>` -- scan output for annotation lines that include file paths, line numbers, and error descriptions (e.g., `File is not properly formatted (gofumpt) lint: internal/router/router.go#12`)
+   - Parse annotation lines for: file paths, line numbers, error descriptions
+   - Use the collected job info and annotations as the "trimmed logs" for classification and root cause analysis -- annotations are available even when full logs are not, and often contain enough detail to classify and fix the failure (especially lint and formatting errors)
+   - If failed jobs are found but zero annotation lines are parsed, report the job names and conclusions as the trimmed logs with a note that full detail is pending. Proceed with classification using the job name alone -- it often indicates the category (lint, test, build).
+
 2. **Classify -- transient/infrastructure?**
    Scan the trimmed logs for these indicators:
    - timeout, ETIMEDOUT

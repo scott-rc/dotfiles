@@ -12,7 +12,8 @@ Fetch CI failure logs, triage via ci-triager, and fix the issues.
    - Summarize: group checks by status (failed, pending, passed). If all pass, report success and stop. If pending, report which are still running and stop.
 
 3. **Triage via ci-triager agent**:
-   Get all failed run IDs and workflow names using the `get-failed-runs` script path from references/git-patterns.md.
+   Get all failed run IDs and workflow names using the `get-failed-runs` script path from references/git-patterns.md. `get-failed-runs` returns both runs with status=failure and in-progress runs that have at least one failed job; ci-triager uses its annotation fallback for the latter since full logs are unavailable until the run completes.
+   If the script returns an empty array but step 2 found failures, the runs may still be initializing -- report to the user that CI is still in progress and suggest retrying shortly or using `/watch` to monitor automatically.
    Detect base branch per references/git-patterns.md. MUST use `ci-triager` for GitHub Actions. Spawn a `ci-triager` agent for each distinct failed run with: run_id, workflow_name, branch, base_branch, and repo.
 
    Based on the agent's classification:
