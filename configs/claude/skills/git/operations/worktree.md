@@ -30,8 +30,13 @@ Create a new git worktree for the given task, or convert an existing branch into
    - Example: `fish -c 'gwt -C ~/Code/gadget/gadget --from main fix login redirect'`
 
 6. **Handle exit codes**:
-   - **0**: Success -- proceed to step 7
+   - **0**: Success -- proceed to step 8
    - **1**: Error -- report the output to the user
    - **2**: Branch exists and is not merged -- present options via AskUserQuestion: "Use existing branch", "Delete and start fresh", "Choose a different name"
 
-7. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.
+7. **Re-run `gwt`** based on the user's choice from step 6:
+   - "Use existing branch": re-run with `--branch <name>` to check out the existing branch as a worktree
+   - "Delete and start fresh": re-run with `--force` to delete the existing branch and create a fresh one
+   - "Choose a different name": prompt for a new name, then re-run with the new slug words
+
+8. **Report success**: Tell the user the `cd` command is on their clipboard and exit Claude so they can paste it.

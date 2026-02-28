@@ -30,6 +30,7 @@ Push commits and create/update PR.
    - `base_branch`: detected base branch
    - `commit_messages`: all branch commit messages verbatim
    - `context` (optional): one sentence of motivation -- the "why," not the "what"
+   - PR text MUST follow references/github-text.md.
 
 7. **If PR exists and new commits were pushed that aren't reflected in the current description**:
    Detect base branch per references/git-patterns.md. Read all branch commit messages: `git log origin/<base>..HEAD --format=%B`. Spawn the `pr-writer` agent per references/pr-writer-rules.md with:
@@ -38,6 +39,7 @@ Push commits and create/update PR.
    - `pr_number`: from step 4
    - `commit_messages`: all branch commit messages verbatim
    - `context` (optional): one sentence describing what changed since the last update
+   - PR text MUST follow references/github-text.md.
 
    If no new commits were pushed (e.g., force push of same content), skip the update.
 

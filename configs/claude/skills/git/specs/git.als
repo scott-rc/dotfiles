@@ -2,7 +2,7 @@
  * Git Skill Behavioral Specification
  *
  * Verifies delegation correctness, routing completeness, step-sequence
- * invariants, and reference coverage for the git skill.
+ * invariants, composition safety, and reference coverage for the git skill.
  *
  * Run:
  *   alloy exec -f -o /tmp/alloy-output \
@@ -36,58 +36,68 @@ abstract sig Reference {
 
 /**
  * Each operation declares what it produces, who it delegates to,
- * and whether it mutates persistent artifacts.
+ * whether it mutates persistent artifacts, and which other operations
+ * it can invoke as sub-operations.
  *
  * - produces:     artifact types this operation outputs (empty for read-only ops)
  * - delegatesTo:  which delegate agents handle subwork
  * - mutates:      artifact types modified on disk or remote (empty = read-only)
+ * - invokes:      other operations this operation can trigger inline
  */
 abstract sig Operation {
     produces:    set ArtifactType,
     delegatesTo: set DelegateAgent,
-    mutates:     set ArtifactType
+    mutates:     set ArtifactType,
+    invokes:     set Operation
 }
 
 one sig Commit extends Operation {} {
     produces    = CommitArt
     delegatesTo = Committer
     mutates     = CommitArt
+    invokes     = none
 }
 
 one sig Amend extends Operation {} {
     produces    = CommitArt + PRArt
     delegatesTo = Committer + PRWriter
     mutates     = CommitArt + PRArt
+    invokes     = none
 }
 
 one sig Squash extends Operation {} {
     produces    = CommitArt
     delegatesTo = Committer
     mutates     = CommitArt
+    invokes     = Push
 }
 
 one sig Rebase extends Operation {} {
     produces    = CommitArt
     delegatesTo = none
     mutates     = CommitArt
+    invokes     = none
 }
 
 one sig Push extends Operation {} {
-    produces    = PRArt
-    delegatesTo = PRWriter
-    mutates     = PRArt
+    produces    = CommitArt + PRArt
+    delegatesTo = Committer + PRWriter
+    mutates     = CommitArt + PRArt
+    invokes     = Commit
 }
 
 one sig Worktree extends Operation {} {
     produces    = WorktreeArt
     delegatesTo = none
     mutates     = WorktreeArt
+    invokes     = none
 }
 
 one sig CleanWorktrees extends Operation {} {
     produces    = WorktreeArt
     delegatesTo = none
     mutates     = WorktreeArt
+    invokes     = none
 }
 
 -- CheckCI is the status-only mode: gather state, report results.
@@ -96,12 +106,16 @@ one sig CheckCI extends Operation {} {
     produces    = none
     delegatesTo = none
     mutates     = none
+    invokes     = none
 }
 
+-- CITriager delegation is GitHub-Actions-specific; for Buildkite,
+-- the triager is bypassed and FixSubagent handles everything directly.
 one sig FixCI extends Operation {} {
     produces    = CommitArt
     delegatesTo = CITriager + FixSubagent
     mutates     = CommitArt
+    invokes     = none
 }
 
 -- Rerun triggers a CI re-run via gh; no local artifacts or delegation.
@@ -109,38 +123,46 @@ one sig Rerun extends Operation {} {
     produces    = none
     delegatesTo = none
     mutates     = none
+    invokes     = Watch
 }
 
 -- Watch is a meta-operation: its loop internally invokes fix and commit
 -- patterns. The outer structure is gather -> report -> loop -> report.
+-- CITriager delegation is GitHub-Actions-specific; for Buildkite,
+-- the triager is bypassed and FixSubagent handles everything directly.
 one sig Watch extends Operation {} {
     produces    = WatchStateArt + CommitArt + GitHubTextArt
     delegatesTo = CITriager + FixSubagent + Committer + GitHubWriter
     mutates     = WatchStateArt + CommitArt
+    invokes     = none
 }
 
 one sig Review extends Operation {} {
     produces    = CommitArt
     delegatesTo = FixSubagent + ExploreSubagent
     mutates     = CommitArt
+    invokes     = none
 }
 
 one sig Reply extends Operation {} {
     produces    = GitHubTextArt
     delegatesTo = GitHubWriter + ExploreSubagent
     mutates     = none
+    invokes     = none
 }
 
 one sig SubmitReview extends Operation {} {
     produces    = GitHubTextArt
     delegatesTo = GitHubWriter
     mutates     = none
+    invokes     = none
 }
 
 one sig UpdateDescription extends Operation {} {
     produces    = PRArt
     delegatesTo = PRWriter
     mutates     = PRArt
+    invokes     = none
 }
 
 
@@ -149,9 +171,13 @@ one sig UpdateDescription extends Operation {} {
 -- Named reference instances. Each constrains its consumedBy set.
 
 one sig GitPatterns extends Reference {} {
+    -- Consumed by most operations. Rerun, SubmitReview, and CheckCI are
+    -- intentional exceptions: Rerun uses only gh CLI directly; SubmitReview
+    -- delegates entirely to github-writer with no branch/scope/script patterns;
+    -- CheckCI only uses gh CLI directly for status gathering.
     consumedBy = Commit + Amend + Squash + Rebase + Push + Worktree
-                 + CleanWorktrees + CheckCI + FixCI + Rerun + Watch
-                 + Review + Reply + SubmitReview + UpdateDescription
+                 + CleanWorktrees + FixCI + Watch
+                 + Review + Reply + UpdateDescription
 }
 
 one sig GitHubText extends Reference {} {
@@ -268,7 +294,7 @@ one sig IntCleanWorktrees extends Intent {} {
 
 /** Step kinds that matter for invariant checking */
 abstract sig StepKind {}
-one sig GatherK, ConfirmK, DelegateK, WriteK, PublishK, ReportK, LoopK extends StepKind {}
+one sig GatherK, ConfirmK, DelegateK, WriteK, PublishK, ReportK, LoopK, VerifyK extends StepKind {}
 
 /**
  * StepBinding ties an operation to its ordered step kinds.
@@ -291,67 +317,104 @@ sig StepBinding {
 -- Each fact uses cardinality + quantifiers to fully constrain its steps.
 -- Operations with duplicate StepKinds use `some disj` for uniqueness.
 
--- Commit: gather(0) -> delegate(1) -> report(2)
+-- Commit: gather(0) -> delegate(1) -> confirm(2) -> delegate(3) -> report(4)
+-- delegate(1) = committer; confirm(2) = cohesion choice if mixed concerns;
+-- delegate(3) = committer re-invocation with user's file selection.
 fact commitSteps {
-    #{ sb: StepBinding | sb.forOp = Commit } = 3
+    #{ sb: StepBinding | sb.forOp = Commit } = 5
     one sb: StepBinding | sb.forOp = Commit and sb.kind = GatherK   and sb.position = 0
-    one sb: StepBinding | sb.forOp = Commit and sb.kind = DelegateK and sb.position = 1
-    one sb: StepBinding | sb.forOp = Commit and sb.kind = ReportK   and sb.position = 2
+    some disj sb1, sb2: StepBinding {
+        sb1.forOp = Commit and sb1.kind = DelegateK and sb1.position = 1
+        sb2.forOp = Commit and sb2.kind = DelegateK and sb2.position = 3
+    }
+    one sb: StepBinding | sb.forOp = Commit and sb.kind = ConfirmK  and sb.position = 2
+    one sb: StepBinding | sb.forOp = Commit and sb.kind = ReportK   and sb.position = 4
 }
 
--- Amend: gather(0) -> delegate(1) -> confirm(2) -> publish(3) -> report(4)
+-- Amend: gather(0) -> delegate(1) -> verify(2) -> confirm(3) -> publish(4) -> delegate(5) -> report(6)
+-- delegate(1) = committer amend; verify(2) = compare file sets;
+-- confirm(3) = message update?; publish(4) = force-push;
+-- delegate(5) = pr-writer update.
 fact amendSteps {
-    #{ sb: StepBinding | sb.forOp = Amend } = 5
+    #{ sb: StepBinding | sb.forOp = Amend } = 7
     one sb: StepBinding | sb.forOp = Amend and sb.kind = GatherK   and sb.position = 0
-    one sb: StepBinding | sb.forOp = Amend and sb.kind = DelegateK and sb.position = 1
-    one sb: StepBinding | sb.forOp = Amend and sb.kind = ConfirmK  and sb.position = 2
-    one sb: StepBinding | sb.forOp = Amend and sb.kind = PublishK  and sb.position = 3
-    one sb: StepBinding | sb.forOp = Amend and sb.kind = ReportK   and sb.position = 4
+    some disj sb1, sb2: StepBinding {
+        sb1.forOp = Amend and sb1.kind = DelegateK and sb1.position = 1
+        sb2.forOp = Amend and sb2.kind = DelegateK and sb2.position = 5
+    }
+    one sb: StepBinding | sb.forOp = Amend and sb.kind = VerifyK   and sb.position = 2
+    one sb: StepBinding | sb.forOp = Amend and sb.kind = ConfirmK  and sb.position = 3
+    one sb: StepBinding | sb.forOp = Amend and sb.kind = PublishK  and sb.position = 4
+    one sb: StepBinding | sb.forOp = Amend and sb.kind = ReportK   and sb.position = 6
 }
 
--- Squash: gather(0) -> confirm(1) -> delegate(2) -> report(3)
+-- Squash: gather(0) -> delegate(1) -> write(2) -> verify(3) -> confirm(4) -> delegate(5) -> report(6)
+-- delegate(1) = optional commit of uncommitted changes; write(2) = rebase;
+-- verify(3) = scope check; confirm(4) = squash?;
+-- delegate(5) = committer squash.
 fact squashSteps {
-    #{ sb: StepBinding | sb.forOp = Squash } = 4
+    #{ sb: StepBinding | sb.forOp = Squash } = 7
     one sb: StepBinding | sb.forOp = Squash and sb.kind = GatherK   and sb.position = 0
-    one sb: StepBinding | sb.forOp = Squash and sb.kind = ConfirmK  and sb.position = 1
-    one sb: StepBinding | sb.forOp = Squash and sb.kind = DelegateK and sb.position = 2
-    one sb: StepBinding | sb.forOp = Squash and sb.kind = ReportK   and sb.position = 3
+    some disj sb1, sb2: StepBinding {
+        sb1.forOp = Squash and sb1.kind = DelegateK and sb1.position = 1
+        sb2.forOp = Squash and sb2.kind = DelegateK and sb2.position = 5
+    }
+    one sb: StepBinding | sb.forOp = Squash and sb.kind = WriteK    and sb.position = 2
+    one sb: StepBinding | sb.forOp = Squash and sb.kind = VerifyK   and sb.position = 3
+    one sb: StepBinding | sb.forOp = Squash and sb.kind = ConfirmK  and sb.position = 4
+    one sb: StepBinding | sb.forOp = Squash and sb.kind = ReportK   and sb.position = 6
 }
 
--- Rebase: gather(0) -> write(1) -> report(2)
--- No delegation -- rebase is inline.
+-- Rebase: gather(0) -> write(1) -> verify(2) -> report(3)
+-- No delegation -- rebase is inline. verify(2) = scope check.
 fact rebaseSteps {
-    #{ sb: StepBinding | sb.forOp = Rebase } = 3
-    one sb: StepBinding | sb.forOp = Rebase and sb.kind = GatherK and sb.position = 0
-    one sb: StepBinding | sb.forOp = Rebase and sb.kind = WriteK  and sb.position = 1
-    one sb: StepBinding | sb.forOp = Rebase and sb.kind = ReportK and sb.position = 2
+    #{ sb: StepBinding | sb.forOp = Rebase } = 4
+    one sb: StepBinding | sb.forOp = Rebase and sb.kind = GatherK  and sb.position = 0
+    one sb: StepBinding | sb.forOp = Rebase and sb.kind = WriteK   and sb.position = 1
+    one sb: StepBinding | sb.forOp = Rebase and sb.kind = VerifyK  and sb.position = 2
+    one sb: StepBinding | sb.forOp = Rebase and sb.kind = ReportK  and sb.position = 3
 }
 
--- Push: gather(0) -> publish(1) -> delegate(2) -> report(3)
--- publish = git push to remote; delegate = pr-writer creates/updates PR
+-- Push: gather(0) -> publish(1) -> verify(2) -> delegate(3) -> report(4)
+-- publish(1) = git push to remote; verify(2) = check PR state;
+-- delegate(3) = pr-writer creates/updates PR.
 fact pushSteps {
-    #{ sb: StepBinding | sb.forOp = Push } = 4
+    #{ sb: StepBinding | sb.forOp = Push } = 5
     one sb: StepBinding | sb.forOp = Push and sb.kind = GatherK   and sb.position = 0
     one sb: StepBinding | sb.forOp = Push and sb.kind = PublishK  and sb.position = 1
-    one sb: StepBinding | sb.forOp = Push and sb.kind = DelegateK and sb.position = 2
-    one sb: StepBinding | sb.forOp = Push and sb.kind = ReportK   and sb.position = 3
+    one sb: StepBinding | sb.forOp = Push and sb.kind = VerifyK   and sb.position = 2
+    one sb: StepBinding | sb.forOp = Push and sb.kind = DelegateK and sb.position = 3
+    one sb: StepBinding | sb.forOp = Push and sb.kind = ReportK   and sb.position = 4
 }
 
--- Worktree: gather(0) -> write(1) -> report(2)
+-- Worktree: gather(0) -> write(1) -> confirm(2) -> write(3) -> report(4)
+-- write(1) = gwt; confirm(2) = branch exists?; write(3) = gwt --force or retry.
 fact worktreeSteps {
-    #{ sb: StepBinding | sb.forOp = Worktree } = 3
-    one sb: StepBinding | sb.forOp = Worktree and sb.kind = GatherK and sb.position = 0
-    one sb: StepBinding | sb.forOp = Worktree and sb.kind = WriteK  and sb.position = 1
-    one sb: StepBinding | sb.forOp = Worktree and sb.kind = ReportK and sb.position = 2
+    #{ sb: StepBinding | sb.forOp = Worktree } = 5
+    one sb: StepBinding | sb.forOp = Worktree and sb.kind = GatherK  and sb.position = 0
+    some disj sb1, sb2: StepBinding {
+        sb1.forOp = Worktree and sb1.kind = WriteK and sb1.position = 1
+        sb2.forOp = Worktree and sb2.kind = WriteK and sb2.position = 3
+    }
+    one sb: StepBinding | sb.forOp = Worktree and sb.kind = ConfirmK and sb.position = 2
+    one sb: StepBinding | sb.forOp = Worktree and sb.kind = ReportK  and sb.position = 4
 }
 
--- Clean Worktrees: gather(0) -> confirm(1) -> write(2) -> report(3)
+-- Clean Worktrees: gather(0) -> write(1) -> report(2) -> confirm(3) -> write(4) -> report(5)
+-- write(1) = fetch/discover stale; report(2) = present stale worktrees;
+-- confirm(3) = deletion?; write(4) = delete/prune; report(5) = summary.
 fact cleanWorktreesSteps {
-    #{ sb: StepBinding | sb.forOp = CleanWorktrees } = 4
+    #{ sb: StepBinding | sb.forOp = CleanWorktrees } = 6
     one sb: StepBinding | sb.forOp = CleanWorktrees and sb.kind = GatherK  and sb.position = 0
-    one sb: StepBinding | sb.forOp = CleanWorktrees and sb.kind = ConfirmK and sb.position = 1
-    one sb: StepBinding | sb.forOp = CleanWorktrees and sb.kind = WriteK   and sb.position = 2
-    one sb: StepBinding | sb.forOp = CleanWorktrees and sb.kind = ReportK  and sb.position = 3
+    some disj sb1, sb2: StepBinding {
+        sb1.forOp = CleanWorktrees and sb1.kind = WriteK  and sb1.position = 1
+        sb2.forOp = CleanWorktrees and sb2.kind = WriteK  and sb2.position = 4
+    }
+    some disj sb3, sb4: StepBinding {
+        sb3.forOp = CleanWorktrees and sb3.kind = ReportK and sb3.position = 2
+        sb4.forOp = CleanWorktrees and sb4.kind = ReportK and sb4.position = 5
+    }
+    one sb: StepBinding | sb.forOp = CleanWorktrees and sb.kind = ConfirmK and sb.position = 3
 }
 
 -- CheckCI: gather(0) -> report(1)
@@ -374,12 +437,14 @@ fact fixCISteps {
     one sb: StepBinding | sb.forOp = FixCI and sb.kind = ReportK and sb.position = 3
 }
 
--- Rerun: gather(0) -> publish(1) -> report(2)
+-- Rerun: gather(0) -> publish(1) -> verify(2) -> report(3)
+-- publish(1) = gh run rerun; verify(2) = check new status.
 fact rerunSteps {
-    #{ sb: StepBinding | sb.forOp = Rerun } = 3
+    #{ sb: StepBinding | sb.forOp = Rerun } = 4
     one sb: StepBinding | sb.forOp = Rerun and sb.kind = GatherK  and sb.position = 0
     one sb: StepBinding | sb.forOp = Rerun and sb.kind = PublishK and sb.position = 1
-    one sb: StepBinding | sb.forOp = Rerun and sb.kind = ReportK  and sb.position = 2
+    one sb: StepBinding | sb.forOp = Rerun and sb.kind = VerifyK  and sb.position = 2
+    one sb: StepBinding | sb.forOp = Rerun and sb.kind = ReportK  and sb.position = 3
 }
 
 -- Watch: gather(0) -> report(1) -> loop(2) -> report(3)
@@ -423,12 +488,14 @@ fact replySteps {
     one sb: StepBinding | sb.forOp = Reply and sb.kind = PublishK and sb.position = 3
 }
 
--- Submit Review: gather(0) -> delegate(1) -> report(2)
+-- Submit Review: gather(0) -> confirm(1) -> delegate(2) -> report(3)
+-- confirm(1) = verdict clarification if ambiguous.
 fact submitReviewSteps {
-    #{ sb: StepBinding | sb.forOp = SubmitReview } = 3
+    #{ sb: StepBinding | sb.forOp = SubmitReview } = 4
     one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = GatherK   and sb.position = 0
-    one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = DelegateK and sb.position = 1
-    one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = ReportK   and sb.position = 2
+    one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = ConfirmK  and sb.position = 1
+    one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = DelegateK and sb.position = 2
+    one sb: StepBinding | sb.forOp = SubmitReview and sb.kind = ReportK   and sb.position = 3
 }
 
 -- Update Description: gather(0) -> delegate(1) -> report(2)
@@ -475,6 +542,14 @@ assert mutatesSubsetOfProduces {
     all op: Operation | op.mutates in op.produces
 }
 
+-- INV-D6: CITriager delegation always implies FixSubagent delegation
+-- (triager never acts alone -- it only triages, then hands off to fix)
+assert ciTriagerImpliesFixSubagent {
+    all op: Operation |
+        CITriager in op.delegatesTo implies
+            FixSubagent in op.delegatesTo
+}
+
 -- INV-P1: PublishK always preceded by GatherK in the same operation
 assert publishPrecededByGather {
     all op: Operation |
@@ -513,16 +588,17 @@ assert allOpsEndWithReport {
                 sb2.forOp = op and sb2.position > sb.position
 }
 
--- INV-SM-3: ConfirmK precedes WriteK when both present in the same operation
+-- INV-SM-3: Every ConfirmK must have at least one WriteK after it
+-- (weakened from "all ConfirmK < all WriteK" to support operations
+-- like Worktree and CleanWorktrees where confirm appears between writes)
 assert confirmPrecedesWrite {
     all op: Operation |
-        (some sc: StepBinding | sc.forOp = op and sc.kind = ConfirmK) and
-        (some sw: StepBinding | sw.forOp = op and sw.kind = WriteK)
-        implies
-            all sc, sw: StepBinding |
-                (sc.forOp = op and sc.kind = ConfirmK and
-                 sw.forOp = op and sw.kind = WriteK)
-                implies sc.position < sw.position
+        all sc: StepBinding |
+            (sc.forOp = op and sc.kind = ConfirmK) implies
+                (no sw: StepBinding | sw.forOp = op and sw.kind = WriteK) or
+                (some sw: StepBinding |
+                    sw.forOp = op and sw.kind = WriteK and
+                    sc.position < sw.position)
 }
 
 -- INV-SM-4: Operations that delegate must have an action step
@@ -542,13 +618,26 @@ assert mutationImpliesActionStep {
 }
 
 -- INV-SM-6: Domain-empty operations have no internal mutation steps
--- PublishK is allowed — it covers external triggers like CI re-runs
--- that don't produce local artifacts (e.g. Rerun).
+-- PublishK and VerifyK are allowed — PublishK covers external triggers like
+-- CI re-runs that don't produce local artifacts (e.g. Rerun); VerifyK is
+-- a post-action check that reads but does not mutate.
 assert domainEmptyOpsHaveNoMutationSteps {
     all op: Operation |
         (no op.produces and no op.delegatesTo and no op.mutates) implies
             all sb: StepBinding |
-                sb.forOp = op implies sb.kind in (GatherK + ReportK + PublishK)
+                sb.forOp = op implies sb.kind in (GatherK + ReportK + PublishK + VerifyK)
+}
+
+-- INV-SM-7: VerifyK must be preceded by an action step
+-- (DelegateK, WriteK, PublishK, or LoopK) in the same operation
+assert verifyFollowsAction {
+    all op: Operation |
+        all sv: StepBinding |
+            (sv.forOp = op and sv.kind = VerifyK) implies
+                some sa: StepBinding |
+                    sa.forOp = op and
+                    sa.kind in (DelegateK + WriteK + PublishK + LoopK) and
+                    sa.position < sv.position
 }
 
 -- INV-ROUTE-1: Every operation is reachable from at least one intent
@@ -561,6 +650,13 @@ assert allAgentsUsed {
     all a: DelegateAgent | some op: Operation | a in op.delegatesTo
 }
 
+-- INV-COMP-1: Every invoked operation must be reachable from at least one intent
+assert invokedOpsReachable {
+    all op1, op2: Operation |
+        op2 in op1.invokes implies
+            some i: Intent | op2 in i.routesTo
+}
+
 -- INV-REF-1: References are leaves — all references have non-empty consumedBy.
 -- The type system enforces this (consumedBy: some Operation), but we assert it
 -- explicitly to document the architectural intent.
@@ -568,9 +664,12 @@ assert referencesAreLeaves {
     all r: Reference | some r.consumedBy
 }
 
--- INV-REF-2: GitPatterns is consumed by all operations
-assert gitPatternsUniversal {
-    all op: Operation | op in GitPatterns.consumedBy
+-- INV-REF-2: GitPatterns is consumed by most operations.
+-- Rerun, SubmitReview, and CheckCI are intentional exceptions and are excluded.
+-- The assert checks that every op except these three consumes GitPatterns.
+assert gitPatternsMostOps {
+    all op: Operation |
+        (op not in (Rerun + SubmitReview + CheckCI)) implies op in GitPatterns.consumedBy
 }
 
 -- INV-REF-3: GitHubText consumed by all ops that produce GitHubTextArt or PRArt
@@ -584,52 +683,57 @@ assert githubTextMatchesProduction {
 -- ═══ Verification ════════════════════════════════════════════
 
 -- Delegation
-check committerDelegatedCorrectly        for 5 but 55 StepBinding, 4 Int
-check prWriterDelegatedCorrectly         for 5 but 55 StepBinding, 4 Int
-check githubWriterDelegatedCorrectly     for 5 but 55 StepBinding, 4 Int
-check exploreSubagentMatchesBulkThreads  for 5 but 55 StepBinding, 4 Int
-check mutatesSubsetOfProduces            for 5 but 55 StepBinding, 4 Int
+check committerDelegatedCorrectly        for 5 but exactly 69 StepBinding, 4 Int
+check prWriterDelegatedCorrectly         for 5 but exactly 69 StepBinding, 4 Int
+check githubWriterDelegatedCorrectly     for 5 but exactly 69 StepBinding, 4 Int
+check exploreSubagentMatchesBulkThreads  for 5 but exactly 69 StepBinding, 4 Int
+check mutatesSubsetOfProduces            for 5 but exactly 69 StepBinding, 4 Int
+check ciTriagerImpliesFixSubagent        for 5 but exactly 69 StepBinding, 4 Int
 
 -- Publish safety
-check publishPrecededByGather            for 5 but 55 StepBinding, 4 Int
-check confirmPrecedesPublish             for 5 but 55 StepBinding, 4 Int
+check publishPrecededByGather            for 5 but exactly 69 StepBinding, 4 Int
+check confirmPrecedesPublish             for 5 but exactly 69 StepBinding, 4 Int
 
 -- State machines
-check allOpsStartWithGather              for 5 but 55 StepBinding, 4 Int
-check allOpsEndWithReport                for 5 but 55 StepBinding, 4 Int
-check confirmPrecedesWrite               for 5 but 55 StepBinding, 4 Int
-check delegationImpliesActionStep        for 5 but 55 StepBinding, 4 Int
-check mutationImpliesActionStep          for 5 but 55 StepBinding, 4 Int
-check domainEmptyOpsHaveNoMutationSteps  for 5 but 55 StepBinding, 4 Int
+check allOpsStartWithGather              for 5 but exactly 69 StepBinding, 4 Int
+check allOpsEndWithReport                for 5 but exactly 69 StepBinding, 4 Int
+check confirmPrecedesWrite               for 5 but exactly 69 StepBinding, 4 Int
+check delegationImpliesActionStep        for 5 but exactly 69 StepBinding, 4 Int
+check mutationImpliesActionStep          for 5 but exactly 69 StepBinding, 4 Int
+check domainEmptyOpsHaveNoMutationSteps  for 5 but exactly 69 StepBinding, 4 Int
+check verifyFollowsAction                for 5 but exactly 69 StepBinding, 4 Int
 
 -- Routing
-check allOpsReachable                    for 5 but 55 StepBinding, 4 Int
-check allAgentsUsed                      for 5 but 55 StepBinding, 4 Int
+check allOpsReachable                    for 5 but exactly 69 StepBinding, 4 Int
+check allAgentsUsed                      for 5 but exactly 69 StepBinding, 4 Int
+
+-- Composition
+check invokedOpsReachable                for 5 but exactly 69 StepBinding, 4 Int
 
 -- References
-check referencesAreLeaves                for 5 but 55 StepBinding, 4 Int
-check gitPatternsUniversal               for 5 but 55 StepBinding, 4 Int
-check githubTextMatchesProduction        for 5 but 55 StepBinding, 4 Int
+check referencesAreLeaves                for 5 but exactly 69 StepBinding, 4 Int
+check gitPatternsMostOps                 for 5 but exactly 69 StepBinding, 4 Int
+check githubTextMatchesProduction        for 5 but exactly 69 StepBinding, 4 Int
 
 
 -- ═══ Examples ════════════════════════════════════════════════
 
 -- Show a valid instance of the full model
-run showModel {} for 5 but 55 StepBinding, 4 Int
+run showModel {} for 5 but exactly 69 StepBinding, 4 Int
 
 -- Show all operations that mutate artifacts
 run showMutatingOps {
     some op: Operation | some op.mutates
-} for 5 but 55 StepBinding, 4 Int
+} for 5 but exactly 69 StepBinding, 4 Int
 
 -- Show all operations that delegate to agents
 run showDelegatingOps {
     some op: Operation | some op.delegatesTo
-} for 5 but 55 StepBinding, 4 Int
+} for 5 but exactly 69 StepBinding, 4 Int
 
 -- Show operations with confirm-before-publish safety
 run showConfirmBeforePublish {
     some op: Operation |
         (some sb: StepBinding | sb.forOp = op and sb.kind = ConfirmK) and
         (some sb: StepBinding | sb.forOp = op and sb.kind = PublishK)
-} for 5 but 55 StepBinding, 4 Int
+} for 5 but exactly 69 StepBinding, 4 Int

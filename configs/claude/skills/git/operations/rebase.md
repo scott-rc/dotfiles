@@ -12,5 +12,7 @@ Fetch latest and rebase onto base branch.
 
 4. **If conflicts**: List conflicting files (`git diff --name-only --diff-filter=U`), report to user, present options via AskUserQuestion: "Help resolve conflicts" or "Abort rebase (`git rebase --abort`)". Only run `git rebase --abort` if the user picks the abort option.
 
-5. **If success**: Verify scope per references/git-patterns.md, show commit count: `git rev-list --count origin/<base>..HEAD`.
+5. **If success**: Verify scope per references/git-patterns.md.
+
+6. **Report**: Show commit count: `git rev-list --count origin/<base>..HEAD`.
 

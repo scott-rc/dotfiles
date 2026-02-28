@@ -44,12 +44,12 @@ Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function
 See operations/clean-worktrees.md for detailed instructions.
 
 ### Check CI
-Check CI status and report results (status-only mode).
-See operations/fix-ci.md for detailed instructions (status-only path).
+Check CI status and report results.
+See operations/check-ci.md for detailed instructions.
 
 ### Fix CI
 Fetch CI failure logs, triage via ci-triager, and fix issues via fix subagent.
-See operations/fix-ci.md for detailed instructions (full mode).
+See operations/fix-ci.md for detailed instructions.
 
 ### Rerun
 Re-trigger failed CI jobs.
@@ -81,7 +81,7 @@ Users often request multiple operations together. Handle these as follows:
 
 - **"commit and push"** → Run commit operation, then push operation
 - **"amend"** / **"fold into last commit"** / **"add to last commit"** → Run amend operation
-- **"amend and push"** → Run amend operation, then push operation (note: amend's step 9 may already force-push, so push may be a no-op)
+- **"amend and push"** → Run amend operation, then push operation (note: when running push after amend, push MUST use `--force-with-lease` since the local history has been rewritten; the push operation's rejection handler already offers this -- pre-select it rather than re-asking)
 - **"squash and push"** → Run squash operation, then push operation (note: push's uncommitted-changes check is redundant after squash)
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation

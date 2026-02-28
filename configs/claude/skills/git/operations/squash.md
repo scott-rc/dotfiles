@@ -21,6 +21,6 @@ Squash all commits on the current branch into a single commit.
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
    - MUST ask the user to confirm before proceeding
 
-8. **Squash into a single commit**: `git reset --soft origin/<base>`. Then spawn the `committer` agent with prompt: "Squash commit."
+8. **Squash into a single commit**: `git reset --soft origin/<base>`. Then spawn the `committer` agent with prompt: "Squash commit. Original commit messages:\n<commit messages from step 3>"
 
 9. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. If no remote tracking branch, just report the result.

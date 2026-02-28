@@ -9,13 +9,13 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
    - If no PR specified, detect from current branch: `gh pr view --json number,url`
    - If no PR exists, inform the user and stop
 
-2. **Determine the verdict**:
+2. **Determine the verdict**: Clarify the verdict before assembling the review payload.
    - `APPROVE` -- user says "approve", "lgtm", "looks good"
    - `REQUEST_CHANGES` -- user says "request changes", "block", "needs work"
    - `COMMENT` -- user says "comment only", or no explicit verdict
    - If ambiguous, ask the user
 
-3. **Gather inline comments**:
+3. **Gather inline comments**: (Pre-delegation assembly — gathered after verdict because inline comment scope depends on review type.)
    If the user has review findings (from a prior code review, or described inline), map each to a review comment with these fields:
    - `path` -- file path relative to repo root
    - `line` -- line number in the file (MUST be within the PR diff)

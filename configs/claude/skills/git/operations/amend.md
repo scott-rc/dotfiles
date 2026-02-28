@@ -33,6 +33,6 @@ Fold outstanding changes into the last commit.
     - `commit_messages`: all branch commit messages verbatim
     - `context` (optional): one sentence describing what changed in the amend
 
-    Confirm the PR was updated, show the PR URL, and follow references/github-text.md for the text itself.
+    Confirm the PR was updated and show the PR URL.
 
 13. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
