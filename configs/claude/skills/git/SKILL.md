@@ -43,9 +43,13 @@ See operations/worktree.md for detailed instructions.
 Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
 See operations/clean-worktrees.md for detailed instructions.
 
+### Check CI
+Check CI status and report results (status-only mode).
+See operations/fix-ci.md for detailed instructions (status-only path).
+
 ### Fix CI
-Check CI status, fetch failure logs, identify root cause, and fix the issues.
-See operations/fix-ci.md for detailed instructions.
+Fetch CI failure logs, triage via ci-triager, and fix issues via fix subagent.
+See operations/fix-ci.md for detailed instructions (full mode).
 
 ### Rerun
 Re-trigger failed CI jobs.
@@ -81,8 +85,8 @@ Users often request multiple operations together. Handle these as follows:
 - **"squash and push"** → Run squash operation, then push operation (note: push's uncommitted-changes check is redundant after squash)
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
-- **"check CI"** / **"CI status"** → Run fix-ci operation in status-only mode
-- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full mode, including fix)
+- **"check CI"** / **"CI status"** → Run check-ci operation (status-only: gather → report)
+- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full: gather → delegate → delegate → report)
 - **"rerun CI"** / **"retry CI"** / **"re-trigger"** → Run rerun operation
 - **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
 - **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation
