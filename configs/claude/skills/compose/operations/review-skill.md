@@ -27,14 +27,17 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Flag individual files over 2000 tokens as candidates for splitting
    - Flag SKILL.md over 5000 tokens as exceeding the hub size limit
 
-5. **Present findings**:
+5. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
+   Run `alloy exec -f -o /tmp/alloy-output <spec-path>` for each `.als` file. If any check returns SAT (counterexample found), add as a Blocking finding — the skill violates a behavioral invariant. Include the assertion name and counterexample in the finding.
+
+6. **Present findings**:
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
-6. **Review-fix loop**:
+7. **Review-fix loop**:
    - Fix immediately without pausing to ask the user. Escalate only when a fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
    - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
    - Iterate until all findings pass or 4 cycles complete per references/multi-perspective-review.md.
 
-7. **Report outcomes**:
+8. **Report outcomes**:
    Present a summary of what was reviewed, what was fixed, and what remains. List any unresolved findings with their severity and the reason they were not fixed (escalated, recurring, or max iterations reached). If all findings were resolved, say so explicitly. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items).

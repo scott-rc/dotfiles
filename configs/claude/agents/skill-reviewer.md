@@ -92,7 +92,7 @@ Flag any of these as findings:
 - Cross-skill file references: relative file paths to another skill's files instead of Skill tool delegation
 - Inline system prompts for reusable agents: operations embedding full system prompts in ad-hoc Task tool delegation when the same agent identity is reused across multiple invocations
 - Duplicate operation content: operation files that duplicate content from other operation files
-- Reference files with operation logic: reference files containing numbered steps telling Claude what to do
+- Reference files defining workflows: reference files with gather/write/review/report phases or agent delegation (procedural domain knowledge like protocols and algorithms is fine)
 - Missing combined operations: multiple operations that could logically be chained but lack a combined operations section
 - Overly long descriptions that may exceed the description budget (2% of context window)
 - Operations reading many files inline instead of delegating to subagents

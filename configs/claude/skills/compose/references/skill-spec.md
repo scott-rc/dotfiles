@@ -117,7 +117,7 @@ Reference files DRY content shared by two or more operations that changes togeth
 - **Leaves only**: SKILL.md and operation files can reference these files. References MUST NOT reference other reference files. If a reference grows too large, split into sibling references that operations link to independently.
 - **DRY threshold**: If content is only used by one operation, it belongs in the operation file, not a reference.
 - **Descriptive names**: MUST describe the content type (e.g., `commit-guidelines.md`, `git-patterns.md`)
-- **No operation logic**: MUST provide information, not step-by-step instructions
+- **Not an operation**: References provide domain knowledge (declarative or procedural) consumed by operations. They MUST NOT define workflows with gather/write/review/report phases or agent delegation — that belongs in operation files. Procedural content (protocols, algorithms, formats) is fine.
 - **Size cap**: Reference files SHOULD stay under 300 lines. If a reference exceeds this, split into focused sibling references that operations link to independently.
 - **Table of contents**: SHOULD include a table of contents for reference files over 100 lines
 - **Inline linking**: When a step depends on reference content, link it at that step — not in a preamble or header
@@ -132,6 +132,8 @@ Reference files DRY content shared by two or more operations that changes togeth
 │   └── <operation>.md
 ├── references/           # Shared knowledge files (optional)
 │   └── <reference>.md
+├── specs/                # Alloy behavioral specs (optional)
+│   └── <skill-name>.als
 ├── scripts/              # Executable scripts (optional)
 ├── agents/               # Companion agent files (optional)
 └── assets/               # Non-text files (optional)

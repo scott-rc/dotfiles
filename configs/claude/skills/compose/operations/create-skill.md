@@ -48,9 +48,12 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
    MUST fix any blocking issues the skill-writer reports before proceeding.
 
-6. **Review and iterate**:
+6. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
+   Run `alloy exec -f -o /tmp/alloy-output <spec-path>` for each `.als` file. If any check returns SAT (counterexample found), the skill violates a behavioral invariant. Read the Alloy output to identify which assertion failed, map it back to the skill files, and fix before proceeding. Re-run until all checks return UNSAT.
+
+7. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
 
-7. **Report results**:
+8. **Report results**:
    - MUST list all files created with a one-line description of each
    - MUST show the full `description` field so the user can verify trigger keywords
