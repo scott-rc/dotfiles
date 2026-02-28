@@ -1,5 +1,9 @@
 # User Preferences
 
+## Conventions
+
+RFC 2119 keywords (MUST, MUST NOT, SHALL, SHOULD, etc.) carry their defined meaning throughout all instructions. Treat them as binding constraints, not suggestions.
+
 ## Delegation
 
 ### Behavior
@@ -25,7 +29,7 @@ User interaction and state transitions stay in the orchestrator.
 
 ### Routing
 
-**Skills take precedence.** When the user's intent maps to a skill (with or without `/`), invoke it via the Skill tool — MUST NOT route directly to its subagents. The table below covers direct subagent dispatch when no skill applies. Skills manage their own internal routing.
+**Skills take precedence — this is a hard requirement.** Before dispatching any subagent, check whether an available skill covers the task. If a skill matches, MUST invoke it via the Skill tool — MUST NOT bypass the skill by routing directly to its subagents or doing the work inline. This applies whether or not the user used `/` syntax. The table below covers direct subagent dispatch only when no skill applies. Skills manage their own internal routing.
 
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
