@@ -61,8 +61,10 @@ Users often request multiple operations together. Handle these as follows:
 - **"create and review"** / **"scaffold"** / **"new skill"** → Run Create Skill, then Review Skill on the new skill
 - **"update skill"** / **"add operation"** / **"modify skill"** / **"change skill"** / **"add operation to"** / **"remove operation from"** / **"rename skill"** → Run Update Skill
 - **"update and review"** → Run Update Skill (includes review loop)
+- **"review skill"** / **"review a skill"** / **"evaluate skill"** → Run Review Skill
 - **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until all 3 agents pass
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
+- **"review rules"** / **"review my rules"** / **"review CLAUDE.md"** → Run Review Rules
 - **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until all 3 agents pass
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt

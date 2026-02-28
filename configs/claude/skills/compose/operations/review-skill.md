@@ -35,3 +35,6 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. Do not block convergence on Suggestions.
    - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
    - Iterate until all findings pass or 4 cycles complete per references/multi-perspective-review.md.
+
+7. **Report outcomes**:
+   Present a summary of what was reviewed, what was fixed, and what remains. List any unresolved findings with their severity and the reason they were not fixed (escalated, recurring, or max iterations reached). If all findings were resolved, say so explicitly. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items).

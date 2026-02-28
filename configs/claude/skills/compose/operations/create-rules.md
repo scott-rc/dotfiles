@@ -33,7 +33,19 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - Check for existing CLAUDE.md files in parent/child directories and `.claude/rules/` files
    - Return a list of relevant files with paths and brief content summaries
 
-4. **Write and verify**:
+4. **Confirm the plan**:
+   Before writing, confirm the full plan with the user. MUST summarize:
+   - File type and target path
+   - Key instructions to encode (from step 1)
+   - `@file` references to include (from step 3)
+   - Mode: create, replace, or extend
+
+   Present via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If "Needs changes", ask what to adjust, update, and re-confirm
+   - If "Start over", return to step 1
+   - MUST NOT proceed to writing until the user selects "Looks good"
+
+5. **Write and verify**:
    Delegate to `rules-writer` (Task agent) with:
    - `mode` — `create`, `replace`, or `extend` (from step 2)
    - `file_path` — target path (from step 2)
@@ -45,10 +57,10 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 
    The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
 
-5. **Review and iterate**:
+6. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents.
 
-6. **Report results**:
+7. **Report results**:
    Present results to the user:
    - MUST show the complete rules file content for review
    - MUST list `@file` references and their resolution status

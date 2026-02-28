@@ -25,19 +25,32 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Create `<location>/<skill-name>/`
    - If the directory already exists, present options via AskUserQuestion: "Overwrite existing", "Pick a different name"
 
-4. **Write the skill**:
+4. **Confirm the spec**:
+   Before writing, confirm the full skill spec with the user. MUST summarize:
+   - Skill name and directory path
+   - Description (trigger keywords)
+   - Operations to create (names and one-line summaries)
+   - Reference files to create
+   - Frontmatter options (invocation mode, context, allowed-tools)
+
+   Present via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If "Needs changes", ask what to adjust, update, and re-confirm
+   - If "Start over", return to step 1
+   - MUST NOT proceed to writing until the user selects "Looks good"
+
+5. **Write the skill**:
    Spawn a Task subagent (type: skill-writer) in create mode. Pass:
    - `mode`: create
    - `skill_dir`: the absolute path from step 3
-   - `spec`: the gathered requirements from steps 1-2 (name, description, operations, references, frontmatter options, delegation boundaries)
+   - `spec`: the confirmed requirements from step 4 (name, description, operations, references, frontmatter options, delegation boundaries)
 
    Expect back: list of files created, validation status, and per-file token counts.
 
    MUST fix any blocking issues the skill-writer reports before proceeding.
 
-5. **Review and iterate**:
+6. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
 
-6. **Report results**:
+7. **Report results**:
    - MUST list all files created with a one-line description of each
    - MUST show the full `description` field so the user can verify trigger keywords
