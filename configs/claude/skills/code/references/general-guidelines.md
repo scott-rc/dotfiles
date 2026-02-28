@@ -16,26 +16,11 @@ Defensive at system boundaries — API handlers, external service calls, user in
 
 ## Control Flow
 
-Guard clauses over nested conditionals. Return or throw early to keep the happy path unindented:
-
-```ts
-function process(input: Input): Result {
-  if (!input.isValid) {
-    throw new ValidationError("invalid input");
-  }
-
-  if (input.isEmpty) {
-    return emptyResult();
-  }
-
-  // happy path at top level
-  return transform(input);
-}
-```
+Prefer guard clauses and early returns over nested conditionals.
 
 ## Abstractions
 
-Inline-first. Repeat code up to 3 times before extracting. Extracted abstractions MUST have a clear interface and a name that describes what they do, not how they're used.
+Inline-first. Extract only at 3 or more repetitions. Extracted abstractions MUST have a clear interface and a name that describes what they do, not how they're used.
 
 ## Strings
 

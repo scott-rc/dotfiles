@@ -52,18 +52,7 @@ Coverage tools find code you forgot to test. But coverage is no substitute for t
 
 ## Look for Special Cases
 
-Before finishing a test plan, check for:
-
-- Empty input (empty string, empty list, nil/null, zero)
-- Single element
-- Boundary values (off-by-one, max int, min int, exactly at limit)
-- Duplicate values
-- Unicode, multi-byte characters, emoji
-- Negative numbers, zero, overflow
-- Whitespace-only, trailing newlines, mixed line endings
-- Paths with spaces, symlinks, missing directories
-
-Not all apply to every function. But scanning this list catches cases that slip through.
+Cover boundary conditions and edge cases (empty input, overflow, Unicode, concurrency).
 
 ## Make Test Failures Readable
 

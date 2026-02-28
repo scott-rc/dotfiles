@@ -4,11 +4,11 @@ Load the user's coding style preferences, write code, and verify it matches.
 
 ## Instructions
 
-1. **Load guidelines**: Read references/general-guidelines.md. If a language-specific file exists for the target language (references/typescript-guidelines.md, references/go-guidelines.md, references/rust-guidelines.md, references/shell-guidelines.md), load it too. For languages without a dedicated file, infer conventions from the project's existing code.
+1. **Load guidelines**: Follow references/load-guidelines.md.
 
 2. **Write the code**: Apply the loaded preferences. When they conflict with existing project conventions (linter config, formatter, existing patterns), SHOULD follow project conventions.
 
-3. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Repeat until all items pass.
+3. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Iterate up to 3 times. If violations persist after 3 iterations, report remaining issues to the user.
 
 4. **Run existing tests**: If the project has a test suite, run it (or the relevant subset) to confirm no regressions.
 

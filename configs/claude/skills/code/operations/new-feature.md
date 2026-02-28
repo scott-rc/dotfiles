@@ -25,7 +25,7 @@ Build a feature through the red-green-refactor cycle: write a failing test, make
    Run the test to confirm it passes. If it fails, fix the implementation — not the test — unless the test itself has a bug.
 
 8. **Refactor** (optional):
-   SHOULD refactor if duplication exceeds 2 repetitions, naming has drifted, or structure obscures intent. All tests MUST still pass after refactoring.
+   SHOULD refactor if duplication reaches 3 or more repetitions, naming has drifted, or structure obscures intent. All tests MUST still pass after refactoring.
 
 9. **Repeat for remaining test cases**:
     Cycle through steps 4–8 for each planned test case. Adjust granularity by complexity — simple cases MAY be batched, complex cases SHOULD get individual red-green-refactor cycles.

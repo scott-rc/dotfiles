@@ -23,8 +23,8 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **No cross-skill file references**: MUST NOT reference another skill's files via relative paths. Use the Skill tool for cross-skill delegation.
 - [ ] **No nested references**: Reference files MUST NOT reference other reference files
 - [ ] **No circular references**: No file directly or indirectly references itself
-- [ ] **Line count**: SKILL.md is under 500 lines and under 5000 tokens
-- [ ] **Companion agent files exist**: Every custom agent name referenced in an operation's Task tool call has a corresponding file in `configs/claude/agents/<name>.md`. Built-in subagent types (`Explore`, `Plan`, `general-purpose`, `skill-writer`, `rules-writer`, `skill-reviewer`, `rules-reviewer`, `code-writer`, `committer`, `pr-writer`, `github-writer`, `chunk-writer`, `chunk-executor`, etc.) are exempt.
+- [ ] **Line count**: SKILL.md is under 500 lines and under 5000 tokens (SKILL.md only — not the total skill directory size)
+- [ ] **Companion agent files exist**: Every custom agent name referenced in an operation's Task tool call has a corresponding file in `configs/claude/agents/<name>.md`. Built-in subagent types (see the Agent tool's description for the authoritative list) are exempt.
 - [ ] **No unbounded output**: Operations that produce output specify length limits or truncation rules
 - [ ] **No SKILL.md inline complexity**: SKILL.md MAY contain simple inline operations (linear, no file refs, no branching). Complex operations with conditional logic, file references, or agent delegation MUST be in their own files.
 - [ ] **No reference-only fork skills**: Skills with `context: fork` contain task instructions, not just reference content
@@ -49,7 +49,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **Readable standalone**: Operation files are understandable on their own — intent and flow are clear without loading references (per skill-spec.md)
 - [ ] **Invocation control**: Skills with side effects use `disable-model-invocation: true`; background-knowledge skills use `user-invocable: false`; default is appropriate for dual-invocation skills
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
-- [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do
+- [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do. User confirmation before destructive or irreversible actions is not a violation of this rule.
 
 ### Suggestions
 

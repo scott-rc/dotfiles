@@ -36,15 +36,10 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
 ### Phase 3 — Review-Fix Convergence Loop
 
 7. **Follow the Review operation**:
-   Follow operations/review.md on all files written or modified across Phases 1 and 2. Skip review.md's fix-plan offer (step 13) — this phase owns the convergence loop.
+   Follow operations/review.md on all files written or modified across Phases 1 and 2. Skip all user-facing interaction points in review.md — the scope-confirmation AskUserQuestion (step 2 thorough branch) and the final fix-plan offer (step 11) — this phase owns the convergence loop.
 
 8. **Drive the fix-review loop**:
-   This phase owns the convergence loop (up to 4 iterations):
-   - Blocking and Improvement findings — fix immediately. Escalate only when the fix has multiple plausible approaches and no available context disambiguates.
-   - Suggestions — fix if quick (fewer than 3 per file); otherwise record and include in the Phase 4 report.
-   - Recurring findings — if the same finding recurs after a fix attempt, escalate to the user or record as "acknowledged, not addressed" with rationale.
-   - Fix findings, then re-follow operations/review.md on the same file set.
-   - Stop when review reports no remaining findings or 4 iterations are reached. At max iterations, hand off remaining findings to the Phase 4 report.
+   Follow the evaluate-fix loop from the project's loop rules until convergence — the project's loop rules govern iteration limits (default: 4). Re-follow operations/review.md on the same file set after each fix round. When the loop terminates (converged or max iterations reached), capture any remaining findings for the Phase 4 report.
 
 ### Phase 4 — Report
 

@@ -107,6 +107,7 @@ Each operation file (e.g., `operations/create-skill.md`, `operations/review-skil
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
 - **Numbered steps**: MUST use numbered steps where each step has a **bold step name** followed by the instructions
 - **Cross-references**: MUST reference files as plain text paths (e.g., references/commit-guidelines.md). Do NOT use markdown link syntax or backtick-wrapped paths.
+- **Global rules**: Project CLAUDE.md and `.claude/rules/` files are always present in Claude's context window. Operations MAY reference them by description (e.g., "follow the project's loop rules") without providing a file path — they do not require explicit linking.
 - **Step nesting**: Steps MUST NOT nest numbered sub-steps. Informational bullet points under a step are acceptable. If a step needs nested numbered sub-steps, flatten into sequential top-level steps or extract into a reference file.
 - **Readable standalone**: SHOULD be understandable from the operation file alone — intent and flow are clear without loading references, but correct execution depends on referenced content
 
@@ -115,7 +116,7 @@ Each operation file (e.g., `operations/create-skill.md`, `operations/review-skil
 Reference files DRY content shared by two or more operations that changes together.
 
 - **Leaves only**: SKILL.md and operation files can reference these files. References MUST NOT reference other reference files. If a reference grows too large, split into sibling references that operations link to independently.
-- **DRY threshold**: If content is only used by one operation, it belongs in the operation file, not a reference.
+- **DRY threshold**: If content is only used by one operation, it belongs in the operation file, not a reference. Exception: content passed as standalone context to a subagent MAY be a separate reference file even with a single consumer, because a subagent cannot read content embedded inside a parent operation file.
 - **Descriptive names**: MUST describe the content type (e.g., `commit-guidelines.md`, `git-patterns.md`)
 - **Not an operation**: References provide domain knowledge (declarative or procedural) consumed by operations. They MUST NOT define workflows with gather/write/review/report phases or agent delegation — that belongs in operation files. Procedural content (protocols, algorithms, formats) is fine.
 - **Size cap**: Reference files SHOULD stay under 300 lines. If a reference exceeds this, split into focused sibling references that operations link to independently.

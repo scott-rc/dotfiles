@@ -62,7 +62,7 @@ Users often request multiple operations together. Handle these as follows:
 - **backfill tests / add coverage / write tests** (existing code) → Add Coverage
 - **benchmark / optimize** (with perf target) → Benchmark
 - **optimize** (no target, general cleanup) → Apply
-- **review and fix** → Review, then Apply or Fix Bug. Thorough path offers fix plan at step 13.
+- **review and fix** → Review, then Apply or Fix Bug (Apply for style/convention changes; Fix Bug for behavioral issues). Thorough path offers a fix plan after reporting findings. When chaining to Fix Bug, write the regression test before fixing — do not skip this precondition.
 - **fix then add coverage** → Fix Bug, then Add Coverage
 - **implement and benchmark** → New Feature, then Benchmark
 - **mutate / mutation test / test my tests** → Mutation Testing
@@ -80,6 +80,5 @@ Users often request multiple operations together. Handle these as follows:
 - references/rust-guidelines.md — Rust-specific error handling, type patterns, module organization, testing, and style conventions
 - references/shell-guidelines.md — Bash and Fish conventions, shellcheck enforcement
 - references/test-environment.md — Test and benchmark runner detection, file placement conventions, and framework setup
-- references/review-template.md — Subagent prompt template for code review tasks
-- references/review-checklist.md — Five-category review checklist (test coverage, idiomaticity, simplification, correctness, naming)
-- references/load-guidelines.md — Index of all coding guideline files with descriptions, referenced by TDD/coverage/benchmark/mutation operations
+- references/load-guidelines.md — Index of all coding guideline files with descriptions, referenced by all operations that load language-specific guidelines
+- references/review-checklist.md — Review criteria for test coverage, idiomaticity, simplification, correctness, and naming, referenced by review subagents

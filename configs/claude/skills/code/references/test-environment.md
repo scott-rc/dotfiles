@@ -2,12 +2,14 @@
 
 How to detect and configure the test environment for a project. All operations reference this file before writing tests.
 
-## Test Runner Detection
+## Runner Detection
 
-Resolve the test runner in priority order. Stop at the first match.
+Applies to both test and benchmark runners. Resolve in priority order. Stop at the first match.
 
-1. **Project instructions**: Check CLAUDE.md or README for an explicit test command.
-2. **Config file detection**: Look for framework config files in the project root:
+1. **Project instructions**: Check CLAUDE.md or README for an explicit command.
+2. **Config/framework detection**: Look for config files or dependencies in the project root:
+
+   Tests:
    - **Jest**: `jest.config.*` or `jest` key in `package.json` -- `npx jest`
    - **Vitest**: `vitest.config.*` or `vitest` key in `package.json` -- `npx vitest run`
    - **Playwright**: `playwright.config.*` -- `npx playwright test`
@@ -21,8 +23,17 @@ Resolve the test runner in priority order. Stop at the first match.
    - **Maven**: `pom.xml` -- `mvn test`
    - **Deno test**: `deno.json*` -- `deno test`
 
-3. **Existing test files**: Infer the framework from import statements or test syntax in existing test files.
-4. **Ask the user**: If nothing is detected, ask what test framework and command to use.
+   Benchmarks:
+   - **Vitest bench**: `vitest.config.*` with bench config or `.bench.ts` files -- `npx vitest bench`
+   - **Deno bench**: `deno.json*` -- `deno bench`
+   - **Criterion**: `Cargo.toml` with `criterion` dependency or `benches/` directory -- `cargo bench`
+   - **Go bench**: `go.mod` with `_test.go` files containing `Benchmark*` functions -- `go test -bench=. ./...`
+   - **pytest-benchmark**: `pytest.ini` or `pyproject.toml` with `pytest-benchmark` dependency -- `pytest --benchmark-only`
+   - **JMH**: `build.gradle*` or `pom.xml` with JMH dependency -- framework-specific run command
+   - **hyperfine**: Available as a CLI tool for benchmarking arbitrary commands -- `hyperfine`
+
+3. **Existing files**: Infer the framework from import statements or test/benchmark syntax in existing files.
+4. **Ask the user**: If nothing is detected, ask what framework and command to use.
 
 ## Test File Placement
 
@@ -47,23 +58,7 @@ Follow the project's existing naming convention. Common patterns:
 
 ## Framework Setup
 
-When no framework is detected: prefer the language's standard or most common framework, get user approval before installing, and configure minimally -- only what's needed to run tests.
-
-## Benchmark Runner Detection
-
-Resolve the benchmark runner in priority order. Stop at the first match.
-
-1. **Project instructions**: Check CLAUDE.md or README for an explicit benchmark command.
-2. **Config/framework detection**: Look for benchmark support in the project:
-   - **Vitest bench**: `vitest.config.*` with bench config or `.bench.ts` files -- `npx vitest bench`
-   - **Deno bench**: `deno.json*` -- `deno bench`
-   - **Criterion**: `Cargo.toml` with `criterion` dependency or `benches/` directory -- `cargo bench`
-   - **Go bench**: `go.mod` with `_test.go` files containing `Benchmark*` functions -- `go test -bench=. ./...`
-   - **pytest-benchmark**: `pytest.ini` or `pyproject.toml` with `pytest-benchmark` dependency -- `pytest --benchmark-only`
-   - **JMH**: `build.gradle*` or `pom.xml` with JMH dependency -- framework-specific run command
-   - **hyperfine**: Available as a CLI tool for benchmarking arbitrary commands -- `hyperfine`
-3. **Existing benchmark files**: Infer the framework from imports or benchmark syntax in existing benchmark files.
-4. **Ask the user**: If nothing is detected, ask what benchmark framework and command to use.
+When no framework is detected: prefer the language's standard or most common framework, get user approval before installing, and configure minimally -- only what's needed to run tests or benchmarks.
 
 ## Benchmark File Placement
 
