@@ -137,7 +137,7 @@ one sig Watch extends Operation {} {
     invokes     = none
 }
 
-one sig Review extends Operation {} {
+one sig FixReview extends Operation {} {
     produces    = CommitArt
     delegatesTo = FixSubagent + ExploreSubagent
     mutates     = CommitArt
@@ -177,7 +177,7 @@ one sig GitPatterns extends Reference {} {
     -- CheckCI only uses gh CLI directly for status gathering.
     consumedBy = Commit + Amend + Squash + Rebase + Push + Worktree
                  + CleanWorktrees + FixCI + Watch
-                 + Review + Reply + UpdateDescription
+                 + FixReview + Reply + UpdateDescription
 }
 
 one sig GitHubText extends Reference {} {
@@ -189,7 +189,7 @@ one sig PRWriterRules extends Reference {} {
 }
 
 one sig BulkThreads extends Reference {} {
-    consumedBy = Review + Reply
+    consumedBy = FixReview + Reply
 }
 
 one sig BuildkiteHandling extends Reference {} {
@@ -203,7 +203,7 @@ one sig WatchSubops extends Reference {} {
 -- Scripts modeled as Reference instances
 
 one sig GetPRComments extends Reference {} {
-    consumedBy = Review + Reply + Watch
+    consumedBy = FixReview + Reply + Watch
 }
 
 one sig PollPRStatus extends Reference {} {
@@ -267,8 +267,8 @@ one sig IntWatch extends Intent {} {
 one sig IntPushAndWatch extends Intent {} {
     routesTo = Push + Watch
 }
-one sig IntReview extends Intent {} {
-    routesTo = Review
+one sig IntFixReview extends Intent {} {
+    routesTo = FixReview
 }
 one sig IntUpdateDescription extends Intent {} {
     routesTo = UpdateDescription
@@ -279,8 +279,8 @@ one sig IntReply extends Intent {} {
 one sig IntSubmitReview extends Intent {} {
     routesTo = SubmitReview
 }
-one sig IntReviewAndPush extends Intent {} {
-    routesTo = Review + Push
+one sig IntFixReviewAndPush extends Intent {} {
+    routesTo = FixReview + Push
 }
 one sig IntWorktree extends Intent {} {
     routesTo = Worktree
@@ -426,7 +426,7 @@ fact checkCISteps {
 
 -- FixCI: gather(0) -> delegate(1) -> delegate(2) -> report(3)
 -- delegate(1) = ci-triager triages failures; delegate(2) = fix subagent applies fixes.
--- Consistent with Review which also models fix subagent work as DelegateK.
+-- Consistent with FixReview which also models fix subagent work as DelegateK.
 fact fixCISteps {
     #{ sb: StepBinding | sb.forOp = FixCI } = 4
     one sb: StepBinding | sb.forOp = FixCI and sb.kind = GatherK and sb.position = 0
@@ -459,17 +459,18 @@ fact watchSteps {
     one sb: StepBinding | sb.forOp = Watch and sb.kind = LoopK and sb.position = 2
 }
 
--- Review: gather(0) -> report(1) -> delegate(2) -> report(3)
--- No ConfirmK -- user invoked "fix review feedback" so intent is clear.
--- ReportK appears at both position 1 (summary) and position 3 (verify fixes).
-fact reviewSteps {
-    #{ sb: StepBinding | sb.forOp = Review } = 4
-    one sb: StepBinding | sb.forOp = Review and sb.kind = GatherK   and sb.position = 0
+-- FixReview: gather(0) -> report(1) -> confirm(2) -> delegate(3) -> report(4)
+-- confirm(2) = classify threads; human reviewer threads require user approval.
+-- ReportK appears at both position 1 (summary) and position 4 (verify fixes).
+fact fixReviewSteps {
+    #{ sb: StepBinding | sb.forOp = FixReview } = 5
+    one sb: StepBinding | sb.forOp = FixReview and sb.kind = GatherK   and sb.position = 0
     some disj sb1, sb2: StepBinding {
-        sb1.forOp = Review and sb1.kind = ReportK and sb1.position = 1
-        sb2.forOp = Review and sb2.kind = ReportK and sb2.position = 3
+        sb1.forOp = FixReview and sb1.kind = ReportK and sb1.position = 1
+        sb2.forOp = FixReview and sb2.kind = ReportK and sb2.position = 4
     }
-    one sb: StepBinding | sb.forOp = Review and sb.kind = DelegateK and sb.position = 2
+    one sb: StepBinding | sb.forOp = FixReview and sb.kind = ConfirmK  and sb.position = 2
+    one sb: StepBinding | sb.forOp = FixReview and sb.kind = DelegateK and sb.position = 3
 }
 
 -- Reply: gather(0) -> report(1) -> confirm(2) -> publish(3) -> report(4)
@@ -683,57 +684,57 @@ assert githubTextMatchesProduction {
 -- ═══ Verification ════════════════════════════════════════════
 
 -- Delegation
-check committerDelegatedCorrectly        for 5 but exactly 69 StepBinding, 4 Int
-check prWriterDelegatedCorrectly         for 5 but exactly 69 StepBinding, 4 Int
-check githubWriterDelegatedCorrectly     for 5 but exactly 69 StepBinding, 4 Int
-check exploreSubagentMatchesBulkThreads  for 5 but exactly 69 StepBinding, 4 Int
-check mutatesSubsetOfProduces            for 5 but exactly 69 StepBinding, 4 Int
-check ciTriagerImpliesFixSubagent        for 5 but exactly 69 StepBinding, 4 Int
+check committerDelegatedCorrectly        for 5 but exactly 70 StepBinding, 4 Int
+check prWriterDelegatedCorrectly         for 5 but exactly 70 StepBinding, 4 Int
+check githubWriterDelegatedCorrectly     for 5 but exactly 70 StepBinding, 4 Int
+check exploreSubagentMatchesBulkThreads  for 5 but exactly 70 StepBinding, 4 Int
+check mutatesSubsetOfProduces            for 5 but exactly 70 StepBinding, 4 Int
+check ciTriagerImpliesFixSubagent        for 5 but exactly 70 StepBinding, 4 Int
 
 -- Publish safety
-check publishPrecededByGather            for 5 but exactly 69 StepBinding, 4 Int
-check confirmPrecedesPublish             for 5 but exactly 69 StepBinding, 4 Int
+check publishPrecededByGather            for 5 but exactly 70 StepBinding, 4 Int
+check confirmPrecedesPublish             for 5 but exactly 70 StepBinding, 4 Int
 
 -- State machines
-check allOpsStartWithGather              for 5 but exactly 69 StepBinding, 4 Int
-check allOpsEndWithReport                for 5 but exactly 69 StepBinding, 4 Int
-check confirmPrecedesWrite               for 5 but exactly 69 StepBinding, 4 Int
-check delegationImpliesActionStep        for 5 but exactly 69 StepBinding, 4 Int
-check mutationImpliesActionStep          for 5 but exactly 69 StepBinding, 4 Int
-check domainEmptyOpsHaveNoMutationSteps  for 5 but exactly 69 StepBinding, 4 Int
-check verifyFollowsAction                for 5 but exactly 69 StepBinding, 4 Int
+check allOpsStartWithGather              for 5 but exactly 70 StepBinding, 4 Int
+check allOpsEndWithReport                for 5 but exactly 70 StepBinding, 4 Int
+check confirmPrecedesWrite               for 5 but exactly 70 StepBinding, 4 Int
+check delegationImpliesActionStep        for 5 but exactly 70 StepBinding, 4 Int
+check mutationImpliesActionStep          for 5 but exactly 70 StepBinding, 4 Int
+check domainEmptyOpsHaveNoMutationSteps  for 5 but exactly 70 StepBinding, 4 Int
+check verifyFollowsAction                for 5 but exactly 70 StepBinding, 4 Int
 
 -- Routing
-check allOpsReachable                    for 5 but exactly 69 StepBinding, 4 Int
-check allAgentsUsed                      for 5 but exactly 69 StepBinding, 4 Int
+check allOpsReachable                    for 5 but exactly 70 StepBinding, 4 Int
+check allAgentsUsed                      for 5 but exactly 70 StepBinding, 4 Int
 
 -- Composition
-check invokedOpsReachable                for 5 but exactly 69 StepBinding, 4 Int
+check invokedOpsReachable                for 5 but exactly 70 StepBinding, 4 Int
 
 -- References
-check referencesAreLeaves                for 5 but exactly 69 StepBinding, 4 Int
-check gitPatternsMostOps                 for 5 but exactly 69 StepBinding, 4 Int
-check githubTextMatchesProduction        for 5 but exactly 69 StepBinding, 4 Int
+check referencesAreLeaves                for 5 but exactly 70 StepBinding, 4 Int
+check gitPatternsMostOps                 for 5 but exactly 70 StepBinding, 4 Int
+check githubTextMatchesProduction        for 5 but exactly 70 StepBinding, 4 Int
 
 
 -- ═══ Examples ════════════════════════════════════════════════
 
 -- Show a valid instance of the full model
-run showModel {} for 5 but exactly 69 StepBinding, 4 Int
+run showModel {} for 5 but exactly 70 StepBinding, 4 Int
 
 -- Show all operations that mutate artifacts
 run showMutatingOps {
     some op: Operation | some op.mutates
-} for 5 but exactly 69 StepBinding, 4 Int
+} for 5 but exactly 70 StepBinding, 4 Int
 
 -- Show all operations that delegate to agents
 run showDelegatingOps {
     some op: Operation | some op.delegatesTo
-} for 5 but exactly 69 StepBinding, 4 Int
+} for 5 but exactly 70 StepBinding, 4 Int
 
 -- Show operations with confirm-before-publish safety
 run showConfirmBeforePublish {
     some op: Operation |
         (some sb: StepBinding | sb.forOp = op and sb.kind = ConfirmK) and
         (some sb: StepBinding | sb.forOp = op and sb.kind = PublishK)
-} for 5 but exactly 69 StepBinding, 4 Int
+} for 5 but exactly 70 StepBinding, 4 Int

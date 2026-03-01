@@ -2,7 +2,7 @@
 
 When there are 5+ threads OR fewer than 5 threads touching more than 3 distinct files, spawn a Task subagent (type: Explore, model: sonnet) to read all referenced files upfront and return a concise per-thread context summary. This avoids loading many files inline and keeps the orchestrator's context small.
 
-## For review.md
+## For fix-review.md
 
 Instruct the Explore subagent to: read each referenced file and its surrounding context (10-20 lines around each thread location), then return a per-thread summary with: file path, line range, current code at the thread location, and any immediately relevant context (function signature, containing block, etc.).
 

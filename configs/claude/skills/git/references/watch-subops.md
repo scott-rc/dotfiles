@@ -2,7 +2,7 @@
 
 State file format and monitoring loop protocol for the watch loop. Referenced by watch.md.
 
-These rules apply within the watch loop context only. The standalone review operation handles simple cases inline; the watch loop always delegates to preserve long-running context.
+These rules apply within the watch loop context only. The standalone Fix Review operation handles simple cases inline; the watch loop always delegates to preserve long-running context.
 
 ## Delegation Pattern
 

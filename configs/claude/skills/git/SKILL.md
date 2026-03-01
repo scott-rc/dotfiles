@@ -59,9 +59,9 @@ See operations/rerun.md for detailed instructions.
 Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
 See operations/watch.md for detailed instructions.
 
-### Review
+### Fix Review
 Fetch unresolved PR review threads and fix the issues reviewers described.
-See operations/review.md for detailed instructions.
+See operations/fix-review.md for detailed instructions.
 
 ### Update Description
 Rewrite the PR title and description to match current changes per guidelines.
@@ -91,14 +91,14 @@ Users often request multiple operations together. Handle these as follows:
 - **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
 - **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation
 - **"push and watch"** → Run push operation, then watch operation
-- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run review operation
+- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run fix-review operation
 - **"fix PR description"** / **"update PR"** / **"sync PR"** → Run update-description operation
 - **"reply to this comment"** / **"post a comment"** / **"answer this question on the PR"** → Run reply operation
 - **"reply to reviews"** / **"respond to feedback"** → Run reply operation (auto-discover mode)
 - **"approve"** / **"approve this PR"** / **"LGTM"** / **"submit review"** → Run submit-review operation
 - **"approve and comment"** / **"approve with comments"** / **"approve and add comments"** → Run submit-review operation
 - **"request changes"** / **"block this PR"** / **"needs work"** → Run submit-review operation
-- **"review and push"** / **"fix reviews and push"** → Run review operation, then push operation
+- **"review and push"** / **"fix reviews and push"** → Run fix-review operation, then push operation
 
 ## References
 
@@ -106,11 +106,11 @@ Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
 - references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
-- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Review and Reply operations)
+- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix Review and Reply operations)
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch operation)
 - references/watch-subops.md - State file format and monitoring loop protocol for the watch loop
 
 Scripts:
-- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Review, Reply, and Watch operations)
+- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations (also called internally by poll-pr-status.sh))
 - scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation)
