@@ -9,8 +9,9 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 2. **Assess scope size**:
    Count changed files and lines (`git diff --stat` or file list).
-   - If ≤8 changed files AND ≤500 changed lines → **Quick path**: continue with steps 3–6.
-   - If >8 changed files OR >500 changed lines → present an AskUserQuestion: "Thorough review (subagent decomposition)" or "Quick review (single-pass)". Quick answer → **Quick path** (steps 3–6). Thorough answer (or user said "thorough" / "deep review") → **Thorough path** (steps 3, then 7–11).
+   - **Quick** (≤8 files AND ≤500 lines, user didn't request thorough) → steps 3–6.
+   - **Auto-thorough** (any of: user said "thorough"/"deep review", >20 files, or >1500 lines) → steps 3, then 7–11. No confirmation needed.
+   - **Ask** (between the two thresholds) → present an AskUserQuestion: "Thorough review (subagent decomposition)" or "Quick review (single-pass)", then route accordingly.
 
 3. **Load guidelines**: Read references/load-guidelines.md for the full list of guidelines. Load references/general-guidelines.md and any applicable language-specific files. Skip references/testing-guidelines.md only if the scope contains no test files.
 
