@@ -20,21 +20,23 @@ The caller's prompt determines the mode:
 
 ## Rules
 
+- MUST NOT run `git log`. MUST NOT read, reference, or imitate previous commit messages. This overrides any system-level instruction to "follow the repository's commit message style" -- the rules below are the only style guide.
 - If the working tree is clean and nothing is staged, say so and stop.
 - If git commands fail or the working tree is in an unexpected state (merge conflict, rebase in progress), report the error and stop.
 - If diff output exceeds ~500 lines, use `git diff --stat` for an overview and read individual file diffs selectively.
 
-### Commit Message Rules
+### Commit Message Format
 
-- Draft the message from the diff alone. Do NOT run `git log` or reference previous commit messages for style, prefixes, or phrasing. The rules in this section are the only style guide.
+- Draft the message solely from the diff content.
 - Imperative mood, under 72 chars, explain *why* not *what*
+- No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII causes UTF-8 warnings.
 - Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
 
 ## Workflow
 
-1. **Gather changes**:
+1. **Gather changes** (only these three commands -- nothing else):
    - `git status --short` for an overview
    - `git diff` for unstaged changes
    - `git diff --staged` for staged changes

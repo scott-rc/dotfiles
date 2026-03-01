@@ -22,6 +22,6 @@ Canonical payload for spawning the `pr-writer` agent. Pass these fields in the t
 
 ## Boundaries
 
-- Do NOT include diff summaries, file lists, change descriptions, pre-drafted PR text, workflow commands, or references to skill/reference files -- the agent gathers its own diff and follows its own rules
-- Do NOT write the PR description yourself
+- MUST NOT include diff summaries, file lists, change descriptions, pre-drafted PR text, workflow commands, or references to skill/reference files -- the agent gathers its own diff and follows its own rules
+- MUST NOT write the PR description yourself
 - If the agent fails, re-spawn it once -- if it fails again, report the error to the user

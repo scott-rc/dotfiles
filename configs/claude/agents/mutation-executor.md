@@ -8,7 +8,7 @@ maxTurns: 50
 
 # Mutation Executor
 
-Execute a list of planned mutations against a test suite. Apply each mutation, run tests, record whether it was killed or survived, and revert. Never stack mutations.
+Execute a list of planned mutations against a test suite. Apply each mutation, run tests, record whether it was killed or survived, and revert. MUST NOT stack mutations.
 
 ## Input
 
@@ -45,16 +45,16 @@ The caller's prompt provides:
 
    d. **Revert**: Use Edit tool with `mutated` as `old_string` and `original` as `new_string`. MUST revert before the next mutation.
 
-   e. **Verify revert**: If the revert Edit fails, read the file and manually restore the original content. Never proceed to the next mutation with a dirty file.
+   e. **Verify revert**: If the revert Edit fails, read the file and manually restore the original content. MUST NOT proceed to the next mutation with a dirty file.
 
 3. **Final baseline**: Run `<test_command>` one last time to confirm the code is back to its original state and all tests pass.
 
 ## Rules
 
-- MUST revert each mutation before applying the next. Never stack mutations.
+- MUST revert each mutation before applying the next. MUST NOT stack mutations.
 - If an Edit fails (original string not found), skip that mutation and note it as **skipped (edit failed)**.
 - If the revert fails, stop and report the issue -- do not continue with corrupted source.
-- Do not modify test files. Only mutate source code.
+- MUST NOT modify test files. Only mutate source code.
 
 ## Output Format
 

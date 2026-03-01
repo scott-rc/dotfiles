@@ -41,8 +41,8 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    - For each chunk, provide: a one-line description, the list of files it will touch, which prior chunk it depends on (or "None"), a 2-4 sentence summary, and verification steps
    - Follow these chunking guidelines:
      1. **Refactor first** -- if the task requires new abstractions or restructuring, make chunk 01 a pure refactor with no behavior change. This gives later chunks a clean foundation.
-     2. **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. Do not mix unrelated changes.
-     3. **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. Never leave the codebase in a broken intermediate state.
+     2. **One feature per chunk** -- each chunk should add exactly one user-visible capability or complete one logical unit of work. MUST NOT mix unrelated changes.
+     3. **Buildable after each** -- the codebase MUST build and pass tests after every chunk completes. MUST NOT leave the codebase in a broken intermediate state.
      4. **~15-25 checkboxes per chunk** -- enough for meaningful progress, few enough to complete in one Claude Code session. If a chunk exceeds 25, split it.
      5. **Declare dependencies** -- each chunk's "Depends on" line names the chunk file it requires. Chunk 01 depends on "None". Keep the dependency chain linear when possible.
      6. **Test first when testable** -- for chunks adding testable behavior, structure step groups as red-green-refactor: "Red" (write failing tests), "Green" (implement to pass), "Refactor" (clean up). Include explicit test-run checkboxes to confirm failure then success. Chunks that are pure refactoring, config, or glue code use plain step groups.

@@ -1,10 +1,10 @@
 # Buildkite CI Handling
 
-How to fetch logs and handle failures from Buildkite CI. Do NOT use `ci-triager` for Buildkite -- skip automated triage and treat all failures as real.
+How to fetch logs and handle failures from Buildkite CI. MUST NOT use `ci-triager` for Buildkite -- skip automated triage and treat all failures as real.
 
 ## Overview
 
-Note: Buildkite runs sharded checks (e.g., ~80 parallel "node-api" jobs) that share the same check name in GitHub. A single failed shard gets masked by subsequent passing shards because GitHub reports the latest check result per name, not the worst. The `failed` count in the poll response correctly counts all failures, but `gh pr checks` may show the check as passing. Always use the `buildkite` script to inspect the actual build when the poll shows `failed > 0`, even if all named checks appear green.
+Note: Buildkite runs sharded checks (e.g., ~80 parallel "node-api" jobs) that share the same check name in GitHub. A single failed shard gets masked by subsequent passing shards because GitHub reports the latest check result per name, not the worst. The `failed` count in the poll response correctly counts all failures, but `gh pr checks` may show the check as passing. MUST use the `buildkite` script to inspect the actual build when the poll shows `failed > 0`, even if all named checks appear green.
 
 The `buildkite` script is a project-local CI script located under `.ai/skills/ci/` (typically a `.mjs` file). Run it via `direnv exec . <path-to-script>`. Requires `BUILDKITE_API_TOKEN` env var.
 

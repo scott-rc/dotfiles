@@ -6,7 +6,7 @@ These rules apply within the watch loop context only. The watch loop always dele
 
 ## Delegation Pattern
 
-The watch loop uses a two-level delegation pattern: the orchestrator reads state, triages, and dispatches; subagents debug and fix. Each subagent prompt includes the repository root path. All fixes go to subagents -- attempting fixes inline in the loop exhausts the context window and causes the loop to lose monitoring state.
+The watch loop uses a two-level delegation pattern: the orchestrator reads state, triages, and dispatches; subagents debug and fix. Each subagent prompt includes the repository root path. Fixes MUST be delegated to subagents -- attempting fixes inline in the loop exhausts the context window and causes the loop to lose monitoring state.
 
 State is persisted to the state file at `./tmp/ci-watch-<pr-number>.md` after each iteration. Raw poll data, subagent results, and intermediate JSON are discarded once relevant data is extracted and written to the state file.
 
@@ -76,7 +76,7 @@ Each iteration follows this sequence:
 When `threads.new > 0`, classify each new thread per references/bulk-threads.md:
 
 - **Bot threads**: handle autonomously -- dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch", passing thread details (file path, line number, full comment bodies, last comment `comment_id`). After it returns, add the thread's last comment `id` to "Handled Threads" regardless of outcome. If files changed, spawn `committer` ("Commit these changes. They address PR review feedback: <brief summary>."), `git push`, and update `head_sha` and `last_push_time`. Then spawn one `github-writer` subagent (type: `review-reply`) for the thread using that thread's `comment_id`; reply text MUST follow references/github-text.md. Append to "Actions Log": `- [<timestamp>] Fixed review threads: <brief summary>, files: <list>`. If the subagent could not fix a thread, log it and continue.
-- **Human reviewer threads**: Skip entirely. Do NOT add to "Handled Threads", do NOT dispatch any subagent. Leave them for the standalone Fix Review operation.
+- **Human reviewer threads**: Skip entirely. MUST NOT add to "Handled Threads", MUST NOT dispatch any subagent. Leave them for the standalone Fix Review operation.
 
 ### Handling CI Failures
 
@@ -84,7 +84,7 @@ When any failure names are not in `handled_checks`:
 
 **Guard against infinite loops**: if "Fix Attempts" shows `<check_name>: 2` or higher, skip it and report to the user that manual intervention may be needed. Monitoring continues for other checks.
 
-**GitHub Actions** (`ci_system == "github-actions"`): Run `get-failed-runs` (path in references/git-patterns.md) with `--head-sha <current HEAD>` and `--check "<failed check name>"`. If the result array is empty, verify whether the failing check's commit SHA matches the current HEAD. If the SHA does not match, the check is from a superseded commit -- log it, add to "Handled Checks", and skip. If the SHA matches or cannot be determined, the run may still be initializing -- do NOT add to handled_checks; skip this iteration and let the next poll pick it up. Detect base branch per references/git-patterns.md. Spawn `ci-triager` with: run_id, workflow_name, branch, base_branch, repo. If transient or flake: add check NAME to "Handled Checks", log the classification, continue. If real: proceed to fix.
+**GitHub Actions** (`ci_system == "github-actions"`): Run `get-failed-runs` (path in references/git-patterns.md) with `--head-sha <current HEAD>` and `--check "<failed check name>"`. If the result array is empty, verify whether the failing check's commit SHA matches the current HEAD. If the SHA does not match, the check is from a superseded commit -- log it, add to "Handled Checks", and skip. If the SHA matches or cannot be determined, the run may still be initializing -- MUST NOT add to handled_checks; skip this iteration and let the next poll pick it up. Detect base branch per references/git-patterns.md. Spawn `ci-triager` with: run_id, workflow_name, branch, base_branch, repo. If transient or flake: add check NAME to "Handled Checks", log the classification, continue. If real: proceed to fix.
 
 **Buildkite** (`ci_system == "buildkite"`): Fetch logs per references/buildkite-handling.md. Proceed directly to fix.
 

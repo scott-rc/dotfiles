@@ -2,7 +2,7 @@
 
 ## Type Annotations
 
-- Always annotate return types on functions
+- MUST annotate return types on functions
 - Let variable types be inferred from assignment
 - Use `interface` for extensible object shapes
 - Use `type` for unions, intersections, and aliases

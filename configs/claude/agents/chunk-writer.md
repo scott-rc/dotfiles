@@ -84,6 +84,6 @@ You write plan chunk files. Given chunk details from an orchestrator, you produc
 - Target ~15-25 total checkboxes. If it would exceed 25, report that the chunk should be split.
 - Each checkbox MUST be completable in a single focused action.
 - Use specific file paths, function names, and shell commands -- not vague descriptions.
-- The "What and Why" section MUST be self-contained: a fresh Claude Code session should understand the chunk without reading other chunks or having prior conversation context.
+- The "What and Why" section MUST be self-contained: a fresh Claude Code session can understand the chunk without reading other chunks or having prior conversation context.
 - For chunks adding testable behavior, MUST use TDD structure: "Red" step group (write failing tests), "Green" step group (implement to pass), "Refactor" step group (clean up). Include explicit "run tests -- confirm fail/pass" checkboxes.
 - For pure refactoring, config, or glue code, use plain step groups without TDD structure.

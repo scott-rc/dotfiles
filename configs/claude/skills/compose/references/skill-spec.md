@@ -93,7 +93,7 @@ Custom agent types reference `.claude/agents/<name>.md` files; the name MUST mat
 
 The body after frontmatter is the hub that routes to operation files. Constraints:
 
-- **Max 500 lines / 5000 tokens**: MUST NOT exceed these limits. Anything longer should be split into referenced files.
+- **Max 500 lines / 5000 tokens**: MUST NOT exceed these limits. Anything longer MUST be split into referenced files.
 - **Heading structure**: MUST have one H1 (the skill title), then H2 for sections, H3 for individual operations
 - **Required sections**: MUST have "Operations" (H2) listing each operation with a one-line summary and a link to its file
 - **Optional sections**: MAY have "Combined Operations" (H2) for multi-operation intent mapping, "References" (H2) for shared reference files

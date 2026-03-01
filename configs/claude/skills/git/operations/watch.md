@@ -19,7 +19,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
    **If it does not exist (fresh start):** Run the initial `poll-pr-status` call, then create the file with the fields defined in references/watch-subops.md. Populate `head_sha` from `git rev-parse HEAD`, set `last_push_time` and `started_at` to the current UTC timestamp, `iteration` to 0, `sleep_interval` to `initial_interval` (60), and `actions_log` with a single `Watch started` entry. Start `handled_checks` empty for all CI systems -- do not pre-seed pending checks, as a pending check that later transitions to failed must be handled normally and pre-seeding it into `handled_checks` would cause it to be silently skipped.
 
-   Ensure the `./tmp/` directory exists before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
+   MUST create `./tmp/` before writing (`mkdir -p ./tmp`). If this fails, inform the user and stop -- the state file cannot be created.
 
 4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (30s-300s, starting at 60s). If resuming, note the previous iteration count and any prior actions.
 

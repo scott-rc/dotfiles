@@ -19,7 +19,7 @@ Build a feature through the red-green-refactor cycle: write a failing test, make
    MUST run the first test case to verify the harness works. MAY skip for subsequent cases if the runner and assertion pattern are established.
 
 6. **Green — write minimal implementation**:
-   Write the simplest code that makes the failing test pass. Do not add behavior beyond what the current test requires.
+   Write the simplest code that makes the failing test pass. MUST NOT add behavior beyond what the current test requires.
 
 7. **Verify pass**:
    Run the test to confirm it passes. If it fails, fix the implementation — not the test — unless the test itself has a bug.
