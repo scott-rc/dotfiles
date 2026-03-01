@@ -26,7 +26,7 @@ Fold outstanding changes into the last commit.
 
 11. **Evaluate PR description**: Check for an existing PR: `gh pr view --json number,url,title,body 2>/dev/null`. If no PR exists, skip to step 13. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description and skip to step 13. If files were added or removed, proceed to step 12.
 
-12. **Update PR description**: Detect base branch per references/git-patterns.md. Read branch context file if it exists. Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md. Spawn the `pr-writer` agent using the Delegation Fields in references/pr-writer-rules.md with `mode: update`, `pr_number` from step 11, and `context` set to one sentence describing what changed in the amend.
+12. **Update PR description**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists (path per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md. Spawn the `pr-writer` agent using the Delegation Fields in references/pr-writer-rules.md with `mode: update`, `pr_number` from step 11, and `context` set to one sentence describing what changed in the amend.
 
     Confirm the PR was updated and show the PR URL.
 

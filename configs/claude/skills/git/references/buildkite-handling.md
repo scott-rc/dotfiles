@@ -1,6 +1,6 @@
 # Buildkite CI Handling
 
-How to fetch logs and handle failures from Buildkite CI in the watch loop.
+How to fetch logs and handle failures from Buildkite CI. Do NOT use `ci-triager` for Buildkite -- skip automated triage and treat all failures as real.
 
 ## Overview
 

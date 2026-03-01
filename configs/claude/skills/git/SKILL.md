@@ -81,30 +81,17 @@ See operations/reply.md for detailed instructions.
 
 ## Combined Operations
 
-Users often request multiple operations together. Handle these as follows:
+Multi-operation sequences and ambiguous phrasings that need explicit routing:
 
-- **"commit and push"** → Run commit operation, then push operation
-- **"amend"** / **"fold into last commit"** / **"add to last commit"** → Run amend operation
-- **"amend and push"** → Run amend operation, then push operation
-- **"squash and push"** → Run squash operation, then push operation (note: push's uncommitted-changes check is redundant after squash)
-- **"squash and update description"** / **"squash and update PR"** → Run squash operation through the Report step but skip the push offer, then run update-description operation. Set the `context` field in the pr-writer delegation to note the squash (e.g., "squashed commit history into a single commit"). After update-description, offer force push since history was rewritten.
-- **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
-- **"sync"** / **"update branch"** → Same as rebase operation
-- **"check CI"** / **"CI status"** → Run check-ci operation (status-only: gather → report)
-- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Run fix-ci operation (full: gather → delegate → delegate → report)
-- **"rerun CI"** / **"retry CI"** / **"re-trigger"** → Run rerun operation
-- **"rerun and watch"** → Run rerun operation, then watch operation to monitor new status
-- **"watch CI"** / **"monitor PR"** / **"sleep and watch"** / **"watch"** → Run watch operation
-- **"push and watch"** → Run push operation, then watch operation
-- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Run fix-review operation
-- **"fix PR description"** / **"update PR"** / **"sync PR"** → Run update-description operation
-- **"reply to this comment"** / **"post a comment"** / **"answer this question on the PR"** → Run reply operation
-- **"reply to reviews"** / **"respond to feedback"** → Run reply operation (auto-discover mode)
-- **"approve"** / **"approve this PR"** / **"LGTM"** / **"submit review"** → Run submit-review operation
-- **"approve and comment"** / **"approve with comments"** / **"approve and add comments"** → Run submit-review operation
-- **"request changes"** / **"block this PR"** / **"needs work"** → Run submit-review operation
-- **"review and push"** / **"fix reviews and push"** → Run fix-review operation, then push operation
-- **"set branch context"** / **"update branch purpose"** / **"why am I on this branch"** → Run set-branch-context operation
+- **"commit and push"** → Commit, then push
+- **"amend and push"** → Amend, then push
+- **"squash and push"** → Squash, then push (push's uncommitted-changes check is redundant after squash)
+- **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then update-description. Set `context` to note the squash. After update-description, offer force push since history was rewritten.
+- **"push and watch"** → Push, then watch
+- **"rerun and watch"** → Rerun, then watch
+- **"review and push"** / **"fix reviews and push"** → Fix-review, then push
+- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix-ci (not check-ci)
+- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix-review (not reply)
 
 ## References
 
@@ -113,8 +100,8 @@ Reference files:
 - references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix Review and Reply operations)
-- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch operation)
-- references/watch-subops.md - State file format and monitoring loop protocol for the watch loop
+- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch and Fix CI operations)
+- references/watch-subops.md - State file format, monitoring loop protocol, and thread/CI failure handling for the watch loop
 
 Scripts:
 - scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations)

@@ -27,8 +27,9 @@ The caller's prompt determines the mode:
 ### Commit Message Rules
 
 - Imperative mood, under 72 chars, explain *why* not *what*
-- ASCII only -- use `--`, `"`, `'` (no em dashes, smart quotes, curly apostrophes)
+- ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII causes UTF-8 warnings.
 - Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
+- No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
 
 ## Workflow
 

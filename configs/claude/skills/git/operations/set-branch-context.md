@@ -6,7 +6,7 @@ Read or create the branch context file that captures the "why" for the current b
 
 1. **Check branch**: If on main/master, inform user that branch context is for feature branches and stop.
 
-2. **Check for existing file**: Sanitize the branch name (replace `/` with `--`) and check if `tmp/branches/<sanitized-branch>.md` exists. If it exists, display its contents and ask if the user wants to update it. If they decline, stop.
+2. **Check for existing file**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If it exists, display its contents and ask if the user wants to update it. If they decline, stop.
 
 3. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these three options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts):
    - **"I know"** — user provides the purpose directly. Optionally ask "Any related links (issues, PRs, Slack)?" with a "Skip" option.

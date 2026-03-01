@@ -10,7 +10,7 @@ Rewrite the PR title and description to match current changes per guidelines.
    - `base_branch`: detect per references/git-patterns.md
    - `pr_number`: from step 1
    - `commit_messages`: read via `git log origin/<base>..HEAD --format=%B`
-   - `branch_context` (optional): read `tmp/branches/<sanitized-branch>.md` if it exists (sanitize: replace `/` with `--`)
+   - `branch_context` (optional): read the branch context file if it exists (path per references/git-patterns.md "Branch Context File")
    - `context` (optional): one sentence if the user specified a reason for the update
 
    PR text MUST follow references/github-text.md.

@@ -23,27 +23,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
 
 4. **Report initial status**: CI actionable status, pass/fail/pending counts, count of pre-existing unresolved threads, and that monitoring has started with adaptive AIMD polling (30s-300s, starting at 60s). If resuming, note the previous iteration count and any prior actions.
 
-5. **Run the monitoring loop** (loop protocol and AIMD parameters in references/watch-subops.md; up to 30 iterations, ~60 minutes at average idle interval). Each iteration: sleep, poll `poll-pr-status`, handle new review threads and CI failures by dispatching subagents, write state, then check exit conditions. The interval adapts via AIMD -- shorter when events occur, longer when idle. Follow the per-iteration steps and sleep interval computation defined in references/watch-subops.md.
-
-   **Handle new review threads** (if `threads.new > 0`):
-   Classify each new thread per the Thread Classification rules in references/bulk-threads.md:
-   - **Bot threads**: handle autonomously -- dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch", passing the thread details (file path, line number, full comment bodies, last comment `comment_id`). After it returns, add the thread's last comment `id` to "Handled Threads" regardless of outcome. If files changed, spawn `committer` ("Commit these changes. They address PR review feedback: <brief summary>."), `git push`, and update `head_sha` and `last_push_time`. Then spawn one `github-writer` subagent (type: `review-reply`) for the thread using that thread's `comment_id`; reply text MUST follow references/github-text.md. Log any errors and continue. Append to "Actions Log": `- [<timestamp>] Fixed review threads: <brief summary>, files: <list>`. If the subagent could not fix a thread, log it and continue.
-   - **Human reviewer threads**: Skip entirely. Do NOT add to "Handled Threads", do NOT dispatch a fix subagent or github-writer, and do NOT report them during the iteration. Leave them for the standalone Fix Review operation (`/git fix review`) to handle.
-
-   **Handle CI failures** (if any failure names not in `handled_checks`):
-   Note: CANCELLED checks from old commits are filtered by `poll-pr-status` via `--last-push-time` -- no special handling needed.
-
-   Guard against infinite loops: if "Fix Attempts" shows `<check_name>: 2` or higher, skip it and report to the user that manual intervention may be needed. Monitoring continues for other checks.
-
-   For GitHub Actions (`ci_system == "github-actions"`): run `get-failed-runs` (path in references/git-patterns.md) with `--head-sha <current HEAD>` and `--check "<failed check name>"`. If the result array is empty, verify whether the failing check's commit SHA matches the current HEAD. If the SHA does not match, the check is from a superseded commit -- log it, add to "Handled Checks", and skip. If the SHA matches or cannot be determined, the run may still be initializing -- do NOT add to handled_checks; skip this iteration and let the next poll pick it up. Detect base branch per references/git-patterns.md. Spawn `ci-triager` with: run_id, workflow_name, branch, base_branch, repo. If transient or flake: add check NAME to "Handled Checks", log the classification, continue. If real: proceed to fix.
-
-   In-progress runs with failed jobs: `get-failed-runs` includes these, but full logs are unavailable until the run completes. ci-triager falls back to annotations (file paths and error descriptions) for these runs -- the fix subagent should expect annotation-level detail rather than full stack traces.
-
-   For Buildkite (`ci_system == "buildkite"`): fetch logs via the buildkite reference path in references/buildkite-handling.md (do NOT use ci-triager). Skip automated triage -- treat all failures as real and proceed to fix using those logs.
-
-   For unknown CI (`ci_system == "unknown"`): same as Buildkite -- skip triage, treat failures as real, proceed to fix.
-
-   To fix a real failure: dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch", passing the failed check name and trimmed logs/root cause from ci-triager (if available). After the subagent returns, increment `<check_name>` in "Fix Attempts" and add check NAME to "Handled Checks". If files changed: spawn `committer` ("Commit these changes. They fix a CI failure in <check name>: <brief failure summary>."), `git push`, update `head_sha` and `last_push_time`, append to "Actions Log". If the subagent could not fix the issue, log it and continue.
+5. **Run the monitoring loop** (up to 30 iterations, ~60 minutes at average idle interval). Each iteration: sleep, poll `poll-pr-status`, handle new review threads and CI failures by dispatching subagents, write state, then check exit conditions. Follow the per-iteration steps, thread/CI handling, and sleep interval computation defined in references/watch-subops.md.
 
 6. **Summary**: Read the actions log from the state file and report:
    - Review threads addressed (count, files)

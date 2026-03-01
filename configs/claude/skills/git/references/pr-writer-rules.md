@@ -10,7 +10,7 @@ Canonical payload for spawning the `pr-writer` agent. Pass these fields in the t
 - `base_branch`: run `fish -c 'gbb'` to detect
 - `pr_number`: required for `update` mode
 - `commit_messages`: all branch commit messages verbatim (see Commit Message Forwarding below)
-- `branch_context` (optional): contents of the branch context file (`tmp/branches/<sanitized-branch>.md`, sanitize: replace `/` with `--`) -- purpose statement and links captured at branch creation. When present, this is the primary source for the PR's motivation/narrative; commit messages remain supplementary hints.
+- `branch_context` (optional): contents of the branch context file (path per references/git-patterns.md "Branch Context File") -- purpose statement and links captured at branch creation. When present, this is the primary source for the PR's motivation/narrative; commit messages remain supplementary hints.
 - `context` (optional): one sentence describing what changed in this particular update. When `branch_context` is present, do NOT restate the branch purpose here -- instead describe what's new (e.g., "addresses review feedback on error handling", "adds test coverage for edge cases"). If nothing substantive changed (e.g., post-squash cleanup), omit this field entirely.
 
 ## Commit Message Forwarding

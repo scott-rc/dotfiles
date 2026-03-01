@@ -64,6 +64,12 @@ All new branches MUST use the `sc/` prefix, e.g. `sc/fix-login-redirect`.
 - The `gwt` fish function adds the `sc/` prefix automatically for worktrees -- do not add it when calling `gwt`
 - This rule applies to all other branch creation or suggestion contexts
 
+## Branch Context File
+
+Path: `tmp/branches/<sanitized-branch>.md` where the branch name is sanitized by replacing `/` with `--` (e.g., `sc/fix-login` becomes `sc--fix-login`).
+
+Read this file when it exists and forward its contents as `branch_context` to the pr-writer agent.
+
 ## Fetch Safety
 
 Always use:
