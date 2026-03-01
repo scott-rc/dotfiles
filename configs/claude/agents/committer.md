@@ -28,7 +28,7 @@ The caller's prompt determines the mode:
 ### Commit Message Format
 
 - Draft the message solely from the diff content.
-- Imperative mood, under 72 chars, explain *why* not *what*
+- Imperative mood, start with a capital letter, under 72 chars, explain *why* not *what*
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII causes UTF-8 warnings.
 - Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
