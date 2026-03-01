@@ -2,7 +2,7 @@
 
 State file format and monitoring loop protocol for the watch loop. Referenced by watch.md.
 
-These rules apply within the watch loop context only. The standalone Fix Review operation handles simple cases inline; the watch loop always delegates to preserve long-running context.
+These rules apply within the watch loop context only. The watch loop always delegates to subagents to preserve long-running context.
 
 ## Delegation Pattern
 
@@ -60,15 +60,16 @@ Each iteration follows this sequence:
 1. Read the state file to load `sleep_interval`, `handled_checks`, `handled_threads`, `fix_attempts`, `head_sha`, `last_push_time`, `started_at`, and `iteration` count.
 2. Run `sleep <sleep_interval>`.
 3. Run `poll-pr-status` with current `--last-push-time`, `--handled-threads`, and `--handled-checks` values (extracted from bullet lists, joined with commas). Omit `--handled-threads` if empty; always pass `--handled-checks` (even empty -- the script handles it). The `--handled-checks` argument causes the script to use name-based filtering instead of timestamp filtering, which is critical for Buildkite where `startedAt` reflects the original job start.
-4. Report one line to the user AND update the "Latest Status" section: `actionable=<value> new_failures=<N> new_threads=<N> pending=[<name>, ...]`.
-5. Handle new review threads (if `threads.new > 0`) -- see watch.md for delegation details.
-6. Handle CI failures (if any failure names not in `handled_checks`) -- see watch.md for delegation details.
-7. Check exit conditions using the `exit` field from the poll response:
+4. **Detect new push**: compare the `headSha` field from the poll response (camelCase in JSON output) against the stored `head_sha` (snake_case in the state file). If they differ, a new push occurred outside watch -- clear `handled_checks` entirely (set to empty list) so all checks are re-evaluated against the new commit, update `head_sha` to the new value, and log: `- [<timestamp>] New push detected (<new sha>), cleared handled_checks`.
+5. Report one line to the user AND update the "Latest Status" section: `actionable=<value> new_failures=<N> new_threads=<N> pending=[<name>, ...]`.
+6. Handle new review threads (if `threads.new > 0`) -- see watch.md for delegation details.
+7. Handle CI failures (if any failure names not in `handled_checks`) -- see watch.md for delegation details.
+8. Check exit conditions using the `exit` field from the poll response:
    - `exit == "all_green"`: all actionable checks pass, no new threads -- report success, exit loop
    - `exit == "pr_merged"` or `exit == "pr_closed"`: report, exit loop
    - `exit == null`: continue loop
    - Timeout (max iterations reached): report current status, exit loop
-8. Write state (MUST happen every iteration): increment `iteration`, update "Latest Status", compute new `sleep_interval`, write ALL state back to the file. No exceptions -- this enables the context-discard rule (raw poll data can be discarded once state is written).
+9. Write state (MUST happen every iteration): increment `iteration`, update "Latest Status", compute new `sleep_interval`, write ALL state back to the file. No exceptions -- this enables the context-discard rule (raw poll data can be discarded once state is written).
 
 ### Sleep Interval Computation
 

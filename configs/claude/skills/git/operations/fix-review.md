@@ -16,10 +16,12 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
    - Include any review summaries (these provide high-level context from the reviewer)
    - If many threads exist, group by file and show counts rather than listing every thread individually
 
-4. **Classify threads by commenter type**:
-   - Bot threads (bugbot, dependabot, or any automated bot) — proceed directly to fix
-   - Human reviewer threads — MUST NOT fix or reply without explicit user approval; for each thread, state the proposed change, ask the user to confirm, and only proceed after receiving confirmation. This applies even when the fix is obvious or mechanical.
+4. **Classify threads by commenter type**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers).
 
-5. **Gather context and fix each thread**: Use references/bulk-threads.md for context gathering (Explore subagent threshold), then dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch" for the actual fixes. Group threads by file path to minimize context switching and apply the fix the reviewer requested.
+5. **Gather context and fix each thread**: Use references/bulk-threads.md for context gathering (Explore subagent threshold), then dispatch a fix subagent using the "Fix Subagent Dispatch" pattern in references/git-patterns.md for the actual fixes. Group threads by file path to minimize context switching and apply the fix the reviewer requested.
 
-6. **Verify fixes**: Run linter/tests if configured. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, report it as unresolved and continue with remaining threads. Report which threads were fixed and which files changed.
+6. **Verify fixes**: Run linter/tests if configured per the "Local Fix Commands" section in references/git-patterns.md. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, report it as unresolved and continue with remaining threads. Report which threads were fixed and which files changed.
+
+7. **Commit**: Dispatch the `committer` agent with: "Commit these changes. They address PR review feedback: <brief summary of threads fixed>."
+
+8. **Report**: Confirm what was fixed, which threads remain unresolved, and the commit hash.

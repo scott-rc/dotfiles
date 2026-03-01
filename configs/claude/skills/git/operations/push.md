@@ -24,23 +24,9 @@ Push commits and create/update PR.
      - Check: `git merge-base --is-ancestor <headRefOid> HEAD`
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
-6. **If NO PR exists** (or old PR was merged/closed):
-   Detect base branch per references/git-patterns.md. Read all branch commit messages: `git log origin/<base>..HEAD --format=%B`. Spawn the `pr-writer` agent per references/pr-writer-rules.md with:
-   - `mode`: `create`
-   - `base_branch`: detected base branch
-   - `commit_messages`: all branch commit messages verbatim
-   - `context` (optional): one sentence of motivation -- the "why," not the "what"
-   - PR text MUST follow references/github-text.md.
+6. **Create or update PR description**:
+   Detect base branch per references/git-patterns.md. Read branch context file if it exists (`tmp/branches/<sanitized-branch>.md`, sanitize: replace `/` with `--`). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md. Spawn the `pr-writer` agent using the Delegation Fields in references/pr-writer-rules.md with `mode: create` if no PR exists (or old PR was merged/closed), or `mode: update` if PR exists and new commits were pushed that aren't reflected in the current description.
 
-7. **If PR exists and new commits were pushed that aren't reflected in the current description**:
-   Detect base branch per references/git-patterns.md. Read all branch commit messages: `git log origin/<base>..HEAD --format=%B`. Spawn the `pr-writer` agent per references/pr-writer-rules.md with:
-   - `mode`: `update`
-   - `base_branch`: detected base branch
-   - `pr_number`: from step 4
-   - `commit_messages`: all branch commit messages verbatim
-   - `context` (optional): one sentence describing what changed since the last update
-   - PR text MUST follow references/github-text.md.
+   If no PR exists and the dotfiles exception applies, skip PR creation. If PR exists but no new commits were pushed (e.g., force push of same content), skip the update.
 
-   If no new commits were pushed (e.g., force push of same content), skip the update.
-
-8. **Report PR URL** to the user.
+7. **Report PR URL** to the user.

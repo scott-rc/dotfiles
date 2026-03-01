@@ -67,6 +67,10 @@ See operations/fix-review.md for detailed instructions.
 Rewrite the PR title and description to match current changes per guidelines.
 See operations/update-description.md for detailed instructions.
 
+### Set Branch Context
+Read or create the branch context file that captures the "why" for the current branch.
+See operations/set-branch-context.md for detailed instructions.
+
 ### Submit Review
 Submit a PR review (approve, request changes, or comment) with optional inline comments.
 See operations/submit-review.md for detailed instructions.
@@ -81,8 +85,9 @@ Users often request multiple operations together. Handle these as follows:
 
 - **"commit and push"** → Run commit operation, then push operation
 - **"amend"** / **"fold into last commit"** / **"add to last commit"** → Run amend operation
-- **"amend and push"** → Run amend operation, then push operation (note: when running push after amend, push MUST use `--force-with-lease` since the local history has been rewritten; the push operation's rejection handler already offers this -- pre-select it rather than re-asking)
+- **"amend and push"** → Run amend operation, then push operation
 - **"squash and push"** → Run squash operation, then push operation (note: push's uncommitted-changes check is redundant after squash)
+- **"squash and update description"** / **"squash and update PR"** → Run squash operation through the Report step but skip the push offer, then run update-description operation. Set the `context` field in the pr-writer delegation to note the squash (e.g., "squashed commit history into a single commit"). After update-description, offer force push since history was rewritten.
 - **"make a PR"** / **"open a PR"** → Same as push (push handles PR creation)
 - **"sync"** / **"update branch"** → Same as rebase operation
 - **"check CI"** / **"CI status"** → Run check-ci operation (status-only: gather → report)
@@ -99,6 +104,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"approve and comment"** / **"approve with comments"** / **"approve and add comments"** → Run submit-review operation
 - **"request changes"** / **"block this PR"** / **"needs work"** → Run submit-review operation
 - **"review and push"** / **"fix reviews and push"** → Run fix-review operation, then push operation
+- **"set branch context"** / **"update branch purpose"** / **"why am I on this branch"** → Run set-branch-context operation
 
 ## References
 
@@ -111,6 +117,6 @@ Reference files:
 - references/watch-subops.md - State file format and monitoring loop protocol for the watch loop
 
 Scripts:
-- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations (also called internally by poll-pr-status.sh))
+- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations)
 - scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation)

@@ -2,6 +2,21 @@
 
 Shared patterns used across git skill operations. Reference this file for consistent implementation.
 
+## Contents
+
+- Script Paths
+- Fish Functions
+- Base Branch Detection
+- Dotfiles Exception
+- Main Branch Protection
+- Branch Naming
+- Fetch Safety
+- Scope Verification
+- CI Detection
+- CI System Detection
+- Fix Subagent Dispatch
+- Local Fix Commands
+
 ## Script Paths
 
 - `get-pr-comments` -- `~/.claude/skills/git/scripts/get-pr-comments.sh`
@@ -80,6 +95,17 @@ git diff --stat origin/<base> HEAD
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
 - Offer to fix with `git rebase -i origin/<base>`
+
+## CI Detection
+
+Use these two steps to verify CI is configured and check status. Referenced by check-ci.md and fix-ci.md.
+
+**Step 1 -- Verify CI is configured**: Run `gh pr checks --json name,state 2>/dev/null` (or `gh run list --branch $(git branch --show-current) --limit 1` if no PR exists). If the command returns no check runs and no runs exist, inform the user that no CI checks were found and stop.
+
+**Step 2 -- Check CI status**:
+- If a PR exists (`gh pr view --json number,url 2>/dev/null`): run `gh pr checks`
+- Otherwise check branch runs: run `gh run list --branch $(git branch --show-current) --limit 5`
+- Group checks by status (failed, pending, passed)
 
 ## CI System Detection
 

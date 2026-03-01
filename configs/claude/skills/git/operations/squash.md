@@ -8,7 +8,7 @@ Squash all commits on the current branch into a single commit.
 
 2. **Detect base branch**: Detect base branch per references/git-patterns.md.
 
-3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`
+3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`. Also capture full commit messages for step 8: `git log origin/<base>..HEAD --format=%B`.
 
 4. **Commit uncommitted changes**: Check for uncommitted changes. If changes exist, spawn the `committer` agent with no additional prompt. If clean, skip to step 5.
 
@@ -21,6 +21,6 @@ Squash all commits on the current branch into a single commit.
    - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
    - MUST ask the user to confirm before proceeding
 
-8. **Squash into a single commit**: `git reset --soft origin/<base>`. Then spawn the `committer` agent with prompt: "Squash commit. Original commit messages:\n<commit messages from step 3>"
+8. **Squash into a single commit**: `git reset --soft origin/<base>`. Read `tmp/branches/<sanitized-branch>.md` if it exists (sanitize: replace `/` with `--`). Spawn the `committer` agent with prompt: "Squash commit. Original commit messages:\n<full commit messages captured in step 3>". If branch context exists, append: "\nBranch purpose:\n<branch context contents>"
 
-9. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. If no remote tracking branch, just report the result.
+9. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. Note: Push's uncommitted-changes check is redundant after squash -- skip it. If no remote tracking branch, just report the result.

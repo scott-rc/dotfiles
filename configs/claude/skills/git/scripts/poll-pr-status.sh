@@ -40,13 +40,14 @@ done
 
 # --- PR state ---
 
-pr_json=$(gh pr view --json number,state 2>/dev/null) || {
+pr_json=$(gh pr view --json number,state,headRefOid 2>/dev/null) || {
   echo '{"error":"No PR found for the current branch."}' >&2
   exit 1
 }
 
 pr_number=$(echo "$pr_json" | jq -r '.number')
 pr_state=$(echo "$pr_json" | jq -r '.state')
+head_sha=$(echo "$pr_json" | jq -r '.headRefOid')
 
 if [[ "$pr_state" == "MERGED" ]]; then
   jq -n --argjson num "$pr_number" '{"exit":"pr_merged","pr":{"number":$num,"state":"MERGED"}}'
@@ -153,7 +154,7 @@ fi
 
 # --- Review threads ---
 
-threads_json='{"total":0,"new":0,"newThreads":[]}'
+threads_json='{"total":0,"botTotal":0,"new":0,"newThreads":[]}'
 comments_raw=""
 
 if comments_raw=$("$SCRIPT_DIR/get-pr-comments.sh" --unreplied 2>/dev/null); then
@@ -162,6 +163,14 @@ if comments_raw=$("$SCRIPT_DIR/get-pr-comments.sh" --unreplied 2>/dev/null); the
   '
     # Build a set of handled IDs from the comma-separated string
     ($handled | split(",") | map(select(. != ""))) as $handled_ids |
+
+    # A thread is a bot thread if its first comment author looks like a bot:
+    # - login contains "[bot]" (GitHub App convention)
+    # - login is a known bot (dependabot, bugbot, etc.)
+    def is_bot_thread:
+      (.comments[0].author // "") as $author |
+      ($author | test("\\[bot\\]$")) or
+      ($author | test("^(dependabot|bugbot|renovate|codecov|github-actions)$"; "i"));
 
     .unresolvedThreads as $threads |
 
@@ -173,6 +182,7 @@ if comments_raw=$("$SCRIPT_DIR/get-pr-comments.sh" --unreplied 2>/dev/null); the
 
     {
       total: ($threads | length),
+      botTotal: ([ $threads[] | select(is_bot_thread) ] | length),
       new: ($new_threads | length),
       newThreads: $new_threads
     }
@@ -183,16 +193,17 @@ fi
 
 exit_value="null"
 
+bot_threads=$(echo "$threads_json" | jq '.botTotal')
+
 if [[ "$ci_json" == "null" ]]; then
-  # No CI -- exit is all_green if no unresolved threads
-  total_threads=$(echo "$threads_json" | jq '.total')
-  if [[ "$total_threads" -eq 0 ]]; then
+  # No CI -- exit is all_green if no unresolved bot threads
+  # (human threads are handled outside the watch loop)
+  if [[ "$bot_threads" -eq 0 ]]; then
     exit_value='"all_green"'
   fi
 else
   actionable_status=$(echo "$ci_json" | jq -r '.actionable')
-  total_threads=$(echo "$threads_json" | jq '.total')
-  if [[ "$actionable_status" == "passing" && "$total_threads" -eq 0 ]]; then
+  if [[ "$actionable_status" == "passing" && "$bot_threads" -eq 0 ]]; then
     exit_value='"all_green"'
   fi
 fi
@@ -202,11 +213,13 @@ fi
 jq -n \
   --argjson prNumber "$pr_number" \
   --arg prState "$pr_state" \
+  --arg headSha "$head_sha" \
   --argjson ci "$ci_json" \
   --argjson threads "$threads_json" \
   --argjson exit_val "$exit_value" \
 '{
   pr: { number: $prNumber, state: $prState },
+  headSha: $headSha,
   ci: $ci,
   threads: $threads,
   exit: $exit_val
