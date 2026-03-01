@@ -26,6 +26,7 @@ The caller's prompt determines the mode:
 
 ### Commit Message Rules
 
+- Draft the message from the diff alone. Do NOT run `git log` or reference previous commit messages for style, prefixes, or phrasing. The rules in this section are the only style guide.
 - Imperative mood, under 72 chars, explain *why* not *what*
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII causes UTF-8 warnings.
 - Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.

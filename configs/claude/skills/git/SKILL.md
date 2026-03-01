@@ -9,7 +9,6 @@ argument-hint: "[operation or intent]"
 ## Current State
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
-- Recent commits: !`git log --oneline -5`
 
 Route to the appropriate operation based on user intent.
 
