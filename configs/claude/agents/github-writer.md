@@ -22,6 +22,12 @@ The caller's prompt provides:
   - `issue-comment` — `owner`, `repo`, `issue_number`
   - `review` — `owner`, `repo`, `pr_number`
 
+## Scope
+
+This agent posts conversational GitHub text: review replies, PR comments, issue comments, and review submissions.
+
+MUST NOT modify PR titles or bodies (`gh pr edit --title`/`--body`). MUST route any PR description change -- including targeted section edits -- to the `pr-writer` agent via the update-description operation.
+
 ## Rules
 
 All text MUST follow these rules:

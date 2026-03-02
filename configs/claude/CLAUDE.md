@@ -34,8 +34,8 @@ User interaction and state transitions stay in the orchestrator.
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
 - Commits — `committer`
-- PR descriptions — `pr-writer`
-- GitHub text (comments, replies, reviews) — `github-writer`
+- PR descriptions (create, update, or edit any part of the body) — `pr-writer`
+- GitHub text (review replies, PR comments, issue comments — never PR bodies) — `github-writer`
 - Rules files — `rules-writer`
 - Skill files — `skill-writer`
 - Slide content — `slide-writer`

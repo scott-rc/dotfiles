@@ -165,6 +165,16 @@ one sig UpdateDescription extends Operation {} {
     invokes     = none
 }
 
+-- Correct propagates a user correction to all affected artifacts.
+-- Delegates to Committer (amend message) and PRWriter (update description).
+-- Also directly edits branch context and changeset files (not domain artifacts).
+one sig Correct extends Operation {} {
+    produces    = CommitArt + PRArt
+    delegatesTo = Committer + PRWriter
+    mutates     = CommitArt + PRArt
+    invokes     = none
+}
+
 -- SetBranchContext reads or creates the branch context file.
 -- No delegation -- purely inline. Produces nothing (the context file
 -- is consumed by other operations, not an artifact in our domain model).
@@ -190,11 +200,11 @@ one sig GitPatterns extends Reference {} {
     -- or script patterns are used.
     consumedBy = Commit + Amend + Squash + Rebase + Push + Worktree
                  + CleanWorktrees + FixCI + Watch
-                 + FixReview + Reply + UpdateDescription
+                 + FixReview + Reply + UpdateDescription + Correct
 }
 
 one sig GitHubText extends Reference {} {
-    consumedBy = Push + Amend + Reply + SubmitReview + UpdateDescription + Watch
+    consumedBy = Push + Amend + Reply + SubmitReview + UpdateDescription + Watch + Correct
 }
 
 -- PRWriterRules provides delegation context and commit-forwarding rules for
@@ -203,7 +213,7 @@ one sig GitHubText extends Reference {} {
 -- describe intermediate states (fixups, reverts, mid-PR bugs) that must not
 -- appear in the final PR description.
 one sig PRWriterRules extends Reference {} {
-    consumedBy = Push + Amend + UpdateDescription
+    consumedBy = Push + Amend + UpdateDescription + Correct
 }
 
 one sig BulkThreads extends Reference {} {
@@ -311,6 +321,9 @@ one sig IntCleanWorktrees extends Intent {} {
 }
 one sig IntSetBranchContext extends Intent {} {
     routesTo = SetBranchContext
+}
+one sig IntCorrect extends Intent {} {
+    routesTo = Correct
 }
 
 
@@ -468,6 +481,18 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = UpdateDescription and k = PublishK  and p = 3) or
     (op = UpdateDescription and k = ReportK   and p = 4) or
 
+    -- Correct: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> publish(4) -> report(5)
+    -- gather(0) = understand correction, detect base, scan all artifacts;
+    -- write(1) = fix branch context and changeset files directly;
+    -- delegate(2) = committer amends commit message, pr-writer updates description;
+    -- confirm(3) = force push offer; publish(4) = force push if accepted.
+    (op = Correct and k = GatherK   and p = 0) or
+    (op = Correct and k = WriteK    and p = 1) or
+    (op = Correct and k = DelegateK and p = 2) or
+    (op = Correct and k = ConfirmK  and p = 3) or
+    (op = Correct and k = PublishK  and p = 4) or
+    (op = Correct and k = ReportK   and p = 5) or
+
     -- Set Branch Context: gather(0) -> confirm(1) -> write(2) -> report(3)
     -- gather(0) = check branch + check for existing file;
     -- confirm(1) = prompt user for purpose; write(2) = write context file.
@@ -493,6 +518,7 @@ pred maxPos[op: Operation, p: Int] {
     (op = Reply              and p = 4) or
     (op = SubmitReview       and p = 3) or
     (op = UpdateDescription  and p = 4) or
+    (op = Correct            and p = 5) or
     (op = SetBranchContext   and p = 3)
 }
 
