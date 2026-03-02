@@ -170,7 +170,7 @@ if comments_raw=$("$SCRIPT_DIR/get-pr-comments.sh" --unreplied 2>/dev/null); the
     def is_bot_thread:
       (.comments[0].author // "") as $author |
       ($author | test("\\[bot\\]$")) or
-      ($author | test("^(dependabot|bugbot|renovate|codecov|github-actions)$"; "i"));
+      ($author | test("^(cursor|dependabot|bugbot|renovate|codecov|github-actions)$"; "i"));
 
     .unresolvedThreads as $threads |
 
