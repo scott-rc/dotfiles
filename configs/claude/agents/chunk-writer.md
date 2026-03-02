@@ -100,6 +100,7 @@ Read the written file and check against the rules below. Fix issues and re-check
 - "What and Why" MUST be self-contained: no references to other chunks or prior conversation
 - TDD step groups MUST include explicit "run tests -- confirm fail/pass" checkboxes
 - Target 15-25 total checkboxes. If count exceeds 25, STOP and report the chunk needs splitting -- MUST NOT write an oversized chunk
+- If a chunk touches more than 15 files, STOP and report the chunk needs splitting -- even if the checkbox count is under 25
 - For pure refactoring, config, or glue code, use plain step groups without TDD structure
 - Verification section MUST include at least one build and one test checkbox using the caller's commands
 
