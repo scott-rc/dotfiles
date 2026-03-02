@@ -36,7 +36,7 @@ These override everything else. Every title and description MUST follow them.
 
 1. **The diff is the source of truth.** Every factual claim in the description MUST be verifiable against `git diff`. With multiple commits, commit messages often describe intermediate states -- fixups, reverts, mid-PR bugs that were later corrected -- and MUST NOT drive the description. After a squash, the single commit message is the author's deliberate summary of the final state; use it as a structural template (its organization, grouping, and emphasis) while still verifying every claim against the diff.
 2. **Describe the net change, not the journey.** If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug. The PR describes the end state, not intermediate steps.
-3. **Branch context provides the "why".** When `branch_context` is present, it is the primary source for motivation and narrative framing. The diff remains the source of truth for *what* changed; branch context explains *why* it changed. Links from branch context (e.g., "Fixes #123") should be woven into the description naturally.
+3. **Branch context provides the "why" -- not the "what".** When `branch_context` is present, it is the primary source for motivation and narrative framing. However, branch context may contain inaccurate factual claims about before/after states (types, signatures, behavior). The diff is the sole source of truth for what the code looked like before and after. If branch context claims "X was raw strings" but the diff shows branded types, the diff wins.
 
 ### Title
 
@@ -114,8 +114,8 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
    **Update mode**:
    - Fetch current body: `gh pr view <pr_number> --json body -q .body`
-   - Verify every factual claim in the existing body against the diff. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, or journey language like "was flaky" for code that is entirely new in the PR)
    - If the existing body contains bot-appended content (sections not in your new description, e.g., Cursor BugBot, Dependabot), append it to the new body
+   - **Before posting**, verify every factual claim in your new draft against the diff. For claims about before/after states (types, signatures, behavior), find the corresponding `-` and `+` lines in the diff and confirm they match. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, "raw strings" when the diff shows branded types, or journey language like "was flaky" for code that is entirely new in the PR). Do not trust branch context or commit messages for before/after facts -- only the diff.
    ```bash
    gh pr edit <pr_number> --title "<title>" --body-file "$BODY_FILE"
    ```

@@ -25,4 +25,6 @@ Rewrite the PR title and description to match current changes per guidelines.
 
 4. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), present options via AskUserQuestion: "Force push (--force-with-lease)" or "Skip push". Only push if the user accepts.
 
-5. **Report**: confirm update, show PR URL.
+5. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, re-invoke the pr-writer with explicit correction context.
+
+6. **Report**: confirm update, show PR URL.
