@@ -61,7 +61,7 @@ fi
 reset="\033[0m"
 
 # Build bar
-filled=$((percent * BAR_WIDTH / 100))
+filled=$((percent * BAR_WIDTH / COMPACT))
 [ "$filled" -gt "$BAR_WIDTH" ] && filled=$BAR_WIDTH
 empty=$((BAR_WIDTH - filled))
 
