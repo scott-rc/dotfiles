@@ -11,7 +11,7 @@ Read or create the branch context file that captures the "why" for the current b
 3. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these three options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts):
    - **"I know"** — user provides the purpose directly. Optionally ask "Any related links (issues, PRs, Slack)?" with a "Skip" option.
    - **"Help me articulate it"** — run a quick inline exploration. Ask 2-3 targeted questions via AskUserQuestion: "What problem are you solving or what triggered this work?", "What's the expected outcome when this branch merges?", and optionally "Any related issues, PRs, or links?". Synthesize the answers into a concise purpose statement (1-3 sentences) plus links.
-   - **"Skip"** — stop without creating the file.
+   - **"Skip"** — write `N/A` as the file content (same path and `mkdir` logic as below) and proceed to step 5.
 
 4. **Write the file**: `mkdir -p tmp/branches` and write to `tmp/branches/<sanitized-branch>.md`. The file MUST contain only:
    - 1-3 sentences of purpose/motivation (the "why")

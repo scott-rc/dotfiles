@@ -70,6 +70,8 @@ Path: `tmp/branches/<sanitized-branch>.md` where the branch name is sanitized by
 
 Read this file when it exists and forward its contents as `branch_context` to the pr-writer agent.
 
+**Opt-out sentinel**: If the file contains exactly `N/A` (single line, no other content), the user opted out of providing context. Treat the file as present but empty for routing purposes. pr-writer callers MUST NOT pass `N/A` as `branch_context` -- omit the field instead.
+
 ## Fetch Safety
 
 MUST use:
