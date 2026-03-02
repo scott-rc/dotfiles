@@ -10,7 +10,7 @@ Monitor the current PR for CI failures and new review comments. Triage failures,
    ```
    If no PR exists, inform the user and stop. Save the PR number for the state file path.
 
-2. **CI system**: `poll-pr-status` detects the CI system automatically and includes it in the `ci.ciSystem` field (`github-actions`, `buildkite`, or `unknown`). No separate detection step is needed. Note that `ci` being null means no check runs were reported at all (rare), not that CI is unsupported.
+2. **CI system**: `poll-pr-status` includes `ci.ciSystem` in its response (`github-actions`, `buildkite`, or `unknown`); use that value directly. Note that `ci` being null means no check runs were reported at all (rare), not that CI is unsupported.
 
 3. **Initialize or resume state file** (state file format defined in references/watch-subops.md):
    Check if `./tmp/ci-watch-<pr-number>.md` already exists.

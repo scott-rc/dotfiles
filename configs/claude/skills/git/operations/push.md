@@ -24,11 +24,10 @@ Push commits and create/update PR.
      - Check: `git merge-base --is-ancestor <headRefOid> HEAD`
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
-6. **Create or update PR description**:
-   Detect base branch per references/git-patterns.md. Read the branch context file if it exists and does not contain the `N/A` sentinel (path and sentinel per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md. Spawn the `pr-writer` agent using the Delegation Fields in references/pr-writer-rules.md with `mode: create` if no PR exists (or old PR was merged/closed), or `mode: update` if PR exists and new commits were pushed that aren't reflected in the current description.
+6. **Detect base branch and read context**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists and does not contain the `N/A` sentinel (path and sentinel per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md.
 
-   For `mode: create`: if the branch context file is missing, MUST run the set-branch-context operation before delegating to pr-writer. For `mode: update`: the context file SHOULD already exist from the initial commit; if somehow missing, run set-branch-context first.
+7. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the set-branch-context operation first. Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
 
-   If no PR exists and the dotfiles exception applies, skip PR creation. If PR exists but no new commits were pushed (e.g., force push of same content), skip the update.
+8. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run set-branch-context first. Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
 
-7. **Report PR URL** to the user.
+9. **Report PR URL** to the user.

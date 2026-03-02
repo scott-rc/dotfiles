@@ -102,6 +102,6 @@ Otherwise, determine whether the iteration was an event or idle:
 - Event: new failures handled, OR new review threads handled, OR a push was made
 - Idle: none of the above
 
-Apply:
+Apply using the named parameters above:
 - Event: `sleep_interval = max(sleep_interval * multiplicative_decrease, min_interval)`
 - Idle: `sleep_interval = min(sleep_interval + additive_increase, max_interval)`
