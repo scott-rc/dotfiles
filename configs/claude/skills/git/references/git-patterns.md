@@ -66,7 +66,13 @@ All new branches MUST use the `sc/` prefix, e.g. `sc/fix-login-redirect`.
 
 ## Branch Context File
 
-Path: `tmp/branches/<sanitized-branch>.md` where the branch name is sanitized by replacing `/` with `--` (e.g., `sc/fix-login` becomes `sc--fix-login`).
+Path: `./tmp/branches/<sanitized-branch>/context.md` where the branch name is sanitized by replacing `/` with `--` (e.g., `sc/fix-login` becomes `sc--fix-login`):
+
+```bash
+branch=$(git rev-parse --abbrev-ref HEAD | sed 's|/|--|g')
+```
+
+The `./tmp/branches/<sanitized-branch>/` directory holds all per-branch artifacts (context, review findings, etc.).
 
 Read this file when it exists and forward its contents as `branch_context` to the pr-writer agent.
 

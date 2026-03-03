@@ -14,7 +14,7 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 
 3. **Scan all artifacts**: Read the following artifacts in parallel, checking each for the incorrect claim:
    - Commit message — `git log -1 --format=%B` (or `git log origin/<base>..HEAD --format=%B` for multi-commit branches)
-   - Branch context file — `./tmp/branches/<sanitized-branch>.md` per references/git-patterns.md
+   - Branch context file — the branch context file per references/git-patterns.md "Branch Context File"
    - Changeset files — `ls .changeset/*.md 2>/dev/null`, then read each
    - PR title — `gh pr view --json title -q .title 2>/dev/null`
    - PR description — `gh pr view --json body -q .body 2>/dev/null`
