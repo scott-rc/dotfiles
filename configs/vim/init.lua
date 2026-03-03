@@ -92,6 +92,12 @@ vim.keymap.set("n", "<leader>%", "<cmd>source %<CR>", { desc = "Source file" })
 vim.keymap.set("v", "<D-c>", '"+y', { desc = "Copy to clipboard" })
 vim.keymap.set({ "n", "v", "i" }, "<D-q>", "<cmd>qa<CR>", { desc = "Quit" })
 vim.keymap.set({ "n", "v", "i" }, "<D-s>", "<cmd>w<CR>", { desc = "Save" })
+vim.keymap.set({ "n", "v", "i" }, "<D-a>", "<Esc>ggVG", { desc = "Select all" })
+vim.keymap.set("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment" })
+vim.keymap.set("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" })
+vim.keymap.set("n", "<D-/>", "gcc", { remap = true, desc = "Toggle comment" })
+vim.keymap.set("v", "<D-/>", "gc", { remap = true, desc = "Toggle comment" })
+vim.keymap.set("i", "<D-/>", "<Esc>gcc", { remap = true, desc = "Toggle comment" })
 vim.keymap.set({ "n", "v", "i" }, "<D-z>", "<cmd>undo<CR>", { desc = "Undo" })
 vim.keymap.set({ "n", "v", "i" }, "<D-S-z>", "<cmd>redo<CR>", { desc = "Redo" })
 vim.keymap.set({ "n", "v", "i" }, "<D-w>", "<cmd>bdelete<CR>", { desc = "Close buffer" })
@@ -369,6 +375,9 @@ require("lazy").setup({
 		event = "VeryLazy",
 		opts = {
 			preset = "modern",
+			triggers = {
+				{ "<auto>", mode = "nsot" },
+			},
 			spec = {
 				{ "<leader>y", group = "Yank" },
 
@@ -397,6 +406,16 @@ require("lazy").setup({
 		},
 	},
 
+	-- Icons (file + folder-name-specific, e.g. src, test, node_modules)
+	{
+		"echasnovski/mini.icons",
+		opts = {},
+		config = function(_, opts)
+			require("mini.icons").setup(opts)
+			MiniIcons.mock_nvim_web_devicons()
+		end,
+	},
+
 	-- File explorer
 	{
 		"nvim-neo-tree/neo-tree.nvim",
@@ -404,7 +423,7 @@ require("lazy").setup({
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"MunifTanjim/nui.nvim",
-			"nvim-tree/nvim-web-devicons",
+			"echasnovski/mini.icons",
 		},
 		config = function()
 			-- Monkey-patch: neo-tree crashes on deleted files whose parent directory
@@ -425,6 +444,17 @@ require("lazy").setup({
 
 			require("neo-tree").setup({
 				log_level = "warn",
+				default_component_configs = {
+					icon = {
+						provider = function(icon, node)
+							if node.type == "directory" then
+								local text, hl = require("mini.icons").get("directory", node.name)
+								icon.text = text .. " "
+								icon.highlight = hl
+							end
+						end,
+					},
+				},
 				commands = {
 					open_and_refocus = function(state)
 						local node = state.tree:get_node()
@@ -738,17 +768,6 @@ require("lazy").setup({
 		},
 	},
 
-	-- Commenting
-	{
-		"tpope/vim-commentary",
-		keys = {
-			{ "<leader>/", "<Plug>CommentaryLine", desc = "Toggle comment" },
-			{ "<leader>/", "<Plug>Commentary", mode = "v", desc = "Toggle comment" },
-			{ "<D-/>", "<Plug>CommentaryLine", desc = "Toggle comment" },
-			{ "<D-/>", "<Plug>Commentary", mode = "v", desc = "Toggle comment" },
-			{ "<D-/>", "<Esc><Plug>CommentaryLine", mode = "i", desc = "Toggle comment" },
-		},
-	},
 
 	-- Multi-cursor (cmd+d select next, cmd+shift+d undo selection)
 	{
