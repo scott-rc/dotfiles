@@ -796,7 +796,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			desc = "Go to definition",
 		})
 		vim.keymap.set({ "n", "v", "i" }, "<D-b>", function()
-			local params = vim.lsp.util.make_position_params()
+			local client = vim.lsp.get_clients({ bufnr = 0 })[1]
+			local params = vim.lsp.util.make_position_params(0, client and client.offset_encoding or "utf-16")
 			vim.lsp.buf_request(0, "textDocument/definition", params, function(err, result)
 				if err then
 					return
@@ -824,8 +825,31 @@ vim.api.nvim_create_autocmd("LspAttach", {
 					end
 				end
 				if at_def or #defs == 0 then
-					vim.lsp.buf.references()
+					local origin = vim.g._lsp_ref_origin
+					vim.g._lsp_ref_origin = nil
+					require("telescope.builtin").lsp_references({
+						include_declaration = false,
+						on_complete = origin and {
+							function(picker)
+								for i = 1, picker.manager:num_results() do
+									local entry = picker.manager:get_entry(i)
+									if
+										entry
+										and entry.filename == origin.filename
+										and entry.lnum == origin.lnum
+									then
+										picker:set_selection(picker:get_row(i))
+										return
+									end
+								end
+							end,
+						} or {},
+					})
 				else
+					vim.g._lsp_ref_origin = {
+						filename = vim.api.nvim_buf_get_name(0),
+						lnum = vim.api.nvim_win_get_cursor(0)[1],
+					}
 					vim.lsp.util.show_document(defs[1], "utf-8", { focus = true })
 				end
 			end)
