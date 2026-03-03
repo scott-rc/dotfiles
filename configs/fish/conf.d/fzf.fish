@@ -17,5 +17,5 @@ set -gx FZF_UNRESTRICTED_COMMAND "fd --type f --hidden --follow --no-ignore $fd_
 
 set -gx FZF_DEFAULT_OPTS '--select-1 --height ~40% --reverse'
 
-bind \cf _fzf_find_file
+bind \ck _fzf_find_file
 bind \cg _fzf_grep_file

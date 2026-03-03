@@ -40,8 +40,13 @@ cask "gcloud-cli"
 brew "kubectl", link: false  # kubernetes-cli formula
 brew "terraform"
 
+# Formatters
+brew "oxfmt"
+brew "stylua"
+
 # Editors
 brew "neovim"
+brew "tree-sitter-cli"
 
 # Containers
 cask "orbstack"
