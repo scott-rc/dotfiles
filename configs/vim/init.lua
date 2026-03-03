@@ -373,6 +373,7 @@ require("lazy").setup({
 				{ "<leader>y", group = "Yank" },
 
 				{ "<leader>g", group = "Git" },
+				{ "<leader>l", group = "LSP" },
 
 				{ "<leader>o", group = "Options" },
 				{
@@ -620,7 +621,7 @@ require("lazy").setup({
 					require("telescope.builtin").find_files()
 				end,
 				mode = { "n", "v", "i" },
-				desc = "Ripgrep search",
+				desc = "Find files",
 			},
 			{
 				"<D-g>",
@@ -680,6 +681,59 @@ require("lazy").setup({
 					require("telescope.builtin").live_grep()
 				end,
 				desc = "Ripgrep search",
+			},
+
+			-- LSP pickers
+			{
+				"<leader>ld",
+				function()
+					require("telescope.builtin").diagnostics()
+				end,
+				desc = "Diagnostics",
+			},
+			{
+				"<leader>ls",
+				function()
+					require("telescope.builtin").lsp_document_symbols()
+				end,
+				desc = "Document symbols",
+			},
+			{
+				"<leader>lS",
+				function()
+					require("telescope.builtin").lsp_workspace_symbols()
+				end,
+				desc = "Workspace symbols",
+			},
+
+			-- Git pickers
+			{
+				"<leader>gc",
+				function()
+					require("telescope.builtin").git_commits()
+				end,
+				desc = "Commits",
+			},
+			{
+				"<leader>gC",
+				function()
+					require("telescope.builtin").git_bcommits()
+				end,
+				desc = "Buffer commits",
+			},
+			{
+				"<leader>gB",
+				function()
+					require("telescope.builtin").git_branches()
+				end,
+				desc = "Branches",
+			},
+			{
+				"<leader>gf",
+				function()
+					require("telescope.builtin").git_status()
+				end,
+				desc = "Changed files",
 			},
 		},
 	},
