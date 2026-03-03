@@ -30,7 +30,7 @@ Decompose a coding task into ordered chunks with TDD structure for testable beha
 See operations/plan.md for detailed instructions.
 
 ### Review
-Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis.
+Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis. Supports an evaluate-fix loop mode for iterative convergence.
 See operations/review.md for detailed instructions.
 
 ### Benchmark
@@ -62,7 +62,8 @@ Users often request multiple operations together. Handle these as follows:
 - **backfill tests / add coverage / write tests** (existing code) → Add Coverage
 - **benchmark / optimize** (with perf target) → Benchmark
 - **optimize** (no target, general cleanup) → Apply
-- **review and fix** → Review, then Apply or Fix Bug (Apply for style/convention changes; Fix Bug for behavioral issues). Thorough path offers a fix plan after reporting findings. When chaining to Fix Bug, write the regression test before fixing — do not skip this precondition.
+- **review and fix** → Review, then Apply or Fix Bug (Apply for style/convention changes; Fix Bug for behavioral issues). Non-loop mode: thorough path offers a fix plan after reporting findings. When chaining to Fix Bug, write the regression test before fixing — do not skip this precondition.
+- **review and loop / review and fix loop** → Review (loop mode — drives evaluate-fix cycle until convergence)
 - **fix then add coverage** → Fix Bug, then Add Coverage
 - **implement and benchmark** → New Feature, then Benchmark
 - **mutate / mutation test / test my tests** → Mutation Testing

@@ -35,15 +35,12 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
 
 ### Phase 3 — Review-Fix Convergence Loop
 
-7. **Follow the Review operation**:
-   Follow operations/review.md on all files written or modified across Phases 1 and 2. Skip all user-facing interaction points in review.md — the scope-confirmation AskUserQuestion (step 2 thorough branch) and the final fix-plan offer (step 11) — this phase owns the convergence loop.
-
-8. **Drive the fix-review loop**:
-   Follow the evaluate-fix loop from the project's loop rules until convergence — the project's loop rules govern iteration limits (default: 4). Re-follow operations/review.md on the same file set after each fix round. When the loop terminates (converged or max iterations reached), capture any remaining findings for the Phase 4 report.
+7. **Run Review with loop mode**:
+   Follow operations/review.md in loop mode on all files written or modified across Phases 1 and 2. Loop mode skips all user-facing prompts and drives convergence automatically. When the loop terminates (converged or max iterations reached), capture any remaining findings for the Phase 4 report.
 
 ### Phase 4 — Report
 
-9. **Report results**:
+8. **Report results**:
    MUST report to the user:
    - Implementation summary: tests written, behaviors covered, TDD approach used (red-green-refactor or regression-first), files created/modified
    - Mutation testing: score before/after (if run)

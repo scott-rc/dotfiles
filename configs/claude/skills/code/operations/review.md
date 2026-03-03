@@ -4,6 +4,8 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 ## Instructions
 
+**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing AskUserQuestion prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
+
 1. **Identify review scope**:
    Determine what code to review. If the user specifies files, functions, or a diff, use that. If unspecified, ask what they want reviewed.
 
@@ -42,24 +44,11 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    If no findings, say so — do not manufacture issues.
 
 7. **Persist findings**:
-   Write `./tmp/branches/<sanitized-branch>/review.md` (create the directory if needed) with this format:
+   Write `./tmp/branches/<sanitized-branch>/review.md` (create the directory if needed) using the review artifact format below.
 
-   ```markdown
-   # Code Review: <branch>
-
-   ## Metadata
-   - head_sha: <git rev-parse HEAD>
-   - base: <base branch>
-   - reviewed_at: <ISO 8601 timestamp>
-
-   ## Findings
-   <full findings list in same format as report>
-
-   ## User Decisions
-   <any skipped findings or chosen approaches>
-   ```
-
-8. **Stop** — quick review is complete.
+8. **Stop or loop**:
+   If NOT in loop mode — quick review is complete. Stop.
+   If in loop mode — proceed to the Loop Phase (steps 15–20).
 
 ---
 
@@ -89,22 +78,58 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     Same format as step 6 — grouped by severity, each with file/location, problem description, and concrete fix.
 
 13. **Persist findings**:
-    Write `./tmp/branches/<sanitized-branch>/review.md` (create the directory if needed) with this format:
+    Write `./tmp/branches/<sanitized-branch>/review.md` (create the directory if needed) using the review artifact format below.
 
-    ```markdown
-    # Code Review: <branch>
+14. **Offer fix plan or loop**:
+    If NOT in loop mode — if any issues or suggestions were found, ask the user if they want a fix plan. If yes, invoke the compose skill: `skill: "compose", args: "plan fixes from the review findings"`.
+    If in loop mode — proceed to the Loop Phase (steps 15–20).
 
-    ## Metadata
-    - head_sha: <git rev-parse HEAD>
-    - base: <base branch>
-    - reviewed_at: <ISO 8601 timestamp>
+---
 
-    ## Findings
-    <full findings list in same format as report>
+### Loop Phase (steps 15–20)
 
-    ## User Decisions
-    <any skipped findings or chosen approaches>
-    ```
+15. **Check for actionable findings**:
+    If no Blocking or Improvement findings exist after the initial evaluation, the review converged on the first pass — skip to step 20.
 
-14. **Offer fix plan**:
-    If any issues or suggestions were found, ask the user if they want a fix plan. If yes, invoke the compose skill: `skill: "compose", args: "plan fixes from the review findings"`.
+16. **Fix findings**:
+    Delegate all Blocking and Improvement findings to a code-writer subagent — no pause, no user confirmation. Pass:
+    - The findings grouped by file, with file paths and line numbers
+    - The guideline files loaded in step 4
+    - Project context (repo root, conventions observed)
+
+    Handle Suggestions per the project's loop rules: fix if quick (fewer than 3 per file); otherwise note and move on.
+
+17. **Re-evaluate**:
+    Spawn a review subagent (type: code-reviewer) on only the files that were fixed in step 16 — not the full original scope. Pass the same guidelines and checklist from step 4, plus the list of findings delegated in step 16 with the instruction "verify these specific issues were addressed."
+
+18. **Check convergence**:
+    If no Blocking or Improvement findings remain, proceed to step 20. If findings remain and iteration count < max iterations (default: 4), return to step 16. If a recurring finding persists after a fix attempt, escalate to the user or record as "acknowledged, not addressed" with rationale, per the project's loop rules.
+
+19. **Report loop status**:
+    If max iterations reached without convergence, present remaining findings with their status and let the user decide.
+
+20. **Persist final findings**:
+    Write `./tmp/branches/<sanitized-branch>/review.md` using the review artifact format below. Add loop metadata fields to the Metadata section:
+    - iterations_completed: <n>
+    - convergence_status: converged | max_iterations_reached | escalated
+
+---
+
+### Review Artifact Format
+
+Used by steps 7, 13, and 20. Create the directory if needed.
+
+```markdown
+# Code Review: <branch>
+
+## Metadata
+- head_sha: <git rev-parse HEAD>
+- base: <base branch>
+- reviewed_at: <ISO 8601 timestamp>
+
+## Findings
+<full findings list in same format as report>
+
+## User Decisions
+<any skipped findings or chosen approaches>
+```
