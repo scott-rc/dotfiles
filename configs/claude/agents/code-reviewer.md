@@ -4,7 +4,7 @@ description: "Expert code review specialist. Proactively reviews code for qualit
 tools: Read, Grep, Glob, Bash
 model: sonnet
 background: true
-maxTurns: 30
+maxTurns: 60
 ---
 
 # Code Reviewer

@@ -4,7 +4,7 @@ description: Reads CLAUDE.md and rules files and evaluates them against structur
 tools: Read, Grep, Glob
 model: sonnet
 background: true
-maxTurns: 15
+maxTurns: 50
 ---
 
 # Rules Reviewer

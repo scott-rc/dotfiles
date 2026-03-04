@@ -3,7 +3,7 @@ name: ci-triager
 description: Fetches CI failure logs, classifies failures as transient/flake/real, reruns transient and flake jobs, and returns trimmed logs with root cause analysis for real failures.
 tools: Bash
 model: sonnet
-maxTurns: 15
+maxTurns: 50
 ---
 
 # CI Triager

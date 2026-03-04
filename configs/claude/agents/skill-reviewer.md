@@ -4,7 +4,7 @@ description: Reads a skill directory and evaluates it against structure, quality
 tools: Read, Grep, Glob
 model: sonnet
 background: true
-maxTurns: 15
+maxTurns: 50
 ---
 
 # Skill Reviewer

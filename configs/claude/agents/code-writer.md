@@ -3,7 +3,7 @@ name: code-writer
 description: Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop. Use for code tasks not driven by a plan.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
-maxTurns: 50
+maxTurns: 100
 ---
 
 # Code Writer

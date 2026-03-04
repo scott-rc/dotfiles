@@ -3,7 +3,7 @@ name: chunk-writer
 description: Writes plan chunk files with checkbox-structured steps and verification sections. Use for plan-task decomposition.
 tools: Read, Write, Edit, Grep, Glob
 model: sonnet
-maxTurns: 20
+maxTurns: 50
 ---
 
 # Chunk Writer

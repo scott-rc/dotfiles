@@ -3,7 +3,7 @@ name: github-context
 description: Gathers commit history, PR details, and referenced issue context for a git ref range, returning a structured motivation summary.
 tools: Bash
 model: haiku
-maxTurns: 10
+maxTurns: 50
 ---
 
 # GitHub Context Gatherer

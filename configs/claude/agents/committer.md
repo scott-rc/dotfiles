@@ -3,7 +3,7 @@ name: committer
 description: Analyzes changes, drafts a commit message, stages, and commits. Supports new commits, amends, and squashes. Keeps large diffs out of the main conversation context.
 tools: Bash
 model: sonnet
-maxTurns: 12
+maxTurns: 50
 ---
 
 # Committer

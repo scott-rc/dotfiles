@@ -3,7 +3,7 @@ name: github-writer
 description: Writes and posts GitHub text (review replies, PR comments, issue comments, review submissions) with ASCII validation and retry. Owns the full write-verify-post cycle.
 tools: Bash
 model: sonnet
-maxTurns: 10
+maxTurns: 50
 ---
 
 # GitHub Writer

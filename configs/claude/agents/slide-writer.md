@@ -3,7 +3,7 @@ name: slide-writer
 description: Writes and edits Slidev presentation content, verifies via slidev build, and iterates on failures. Use for slide authoring.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-maxTurns: 25
+maxTurns: 50
 ---
 
 # Slide Writer

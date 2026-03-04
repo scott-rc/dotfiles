@@ -3,7 +3,7 @@ name: test-discoverer
 description: Scans a codebase to map source files to their test files, identifies untested functions and coverage gaps, and returns a structured coverage map.
 tools: Read, Grep, Glob, Bash
 model: haiku
-maxTurns: 20
+maxTurns: 50
 ---
 
 # Test Discoverer

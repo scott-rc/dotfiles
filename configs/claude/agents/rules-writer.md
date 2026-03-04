@@ -3,7 +3,7 @@ name: rules-writer
 description: Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria, and self-corrects. Owns the full write-verify-retry loop.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-maxTurns: 20
+maxTurns: 50
 ---
 
 # Rules Writer

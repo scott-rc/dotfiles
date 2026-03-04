@@ -3,7 +3,7 @@ name: skill-writer
 description: Writes and validates skill files (SKILL.md, operations, references). Supports create and update modes. Owns the full write-verify-retry loop.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-maxTurns: 30
+maxTurns: 60
 ---
 
 # Skill Writer
