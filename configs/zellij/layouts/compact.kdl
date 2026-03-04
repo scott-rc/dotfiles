@@ -14,9 +14,9 @@ layout {
                 color_purple "#bc8cff"
                 color_yellow "#bb8009"
 
-                format_left  "{mode}"
-                format_center "{tabs}"
-                format_right "{session}"
+                format_left  "{mode}{tabs}"
+                format_center ""
+                format_right ""
 
                 mode_normal        "#[bg=$blue,fg=$bg,bold] NORMAL "
                 mode_locked        "#[bg=$red,fg=$bg,bold] LOCKED "
@@ -32,15 +32,15 @@ layout {
                 mode_rename_pane   "#[bg=$green,fg=$bg,bold] RENAME "
                 mode_tmux          "#[bg=$orange,fg=$bg,bold] TMUX "
 
-                tab_normal              "#[fg=$muted] {name} "
-                tab_normal_fullscreen   "#[fg=$muted] {name} [] "
-                tab_normal_sync         "#[fg=$muted] {name} <> "
-                tab_active              "#[fg=$fg,bold] {name} "
-                tab_active_fullscreen   "#[fg=$fg,bold] {name} [] "
-                tab_active_sync         "#[fg=$fg,bold] {name} <> "
-                tab_separator           ""
+                tab_normal              "#[fg=$muted] {name}"
+                tab_normal_fullscreen   "#[fg=$muted] {name} []"
+                tab_normal_sync         "#[fg=$muted] {name} <>"
+                tab_active              "#[fg=$fg,bold] {name}"
+                tab_active_fullscreen   "#[fg=$fg,bold] {name} []"
+                tab_active_sync         "#[fg=$fg,bold] {name} <>"
+                tab_separator           "#[fg=$muted] |"
 
-                session_name "#[fg=$muted] {name} "
+                session_name ""
             }
         }
     }
