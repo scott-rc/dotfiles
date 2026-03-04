@@ -12,10 +12,10 @@ Read or create the branch context file that captures the "why" for the current b
 
 4. **Draft from conversation**: If context is sufficient (step 3 passed), draft a branch context using the same content rules as step 7: 1-3 sentences of purpose/motivation, related links if discussed, no headers/change lists/implementation details. Cross-check any factual claims about before/after states against `git diff origin/<base>..HEAD` — the diff is the source of truth for what the code looked like. Then skip to step 8 (write the file). If context is insufficient, continue to step 5.
 
-5. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these three options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts):
-   - **"I know"** — user provides the purpose directly. Optionally ask "Any related links (issues, PRs, Slack)?" with a "Skip" option. If their description includes factual claims about before/after states, cross-check against the diff before writing (same as "Help me articulate it").
+5. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these two options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts). The free-text input ("Type something...") serves as the direct-entry path — no separate option is needed for it.
    - **"Help me articulate it"** — proceed to step 6.
    - **"Skip"** — write `N/A` to the branch context file (path per references/git-patterns.md) and proceed to step 10 (skip confirmation).
+   If the user provides free text, treat it as the purpose. Optionally ask "Any related links (issues, PRs, Slack)?" with a "Skip" option. If their description includes factual claims about before/after states, cross-check against the diff before writing (same as "Help me articulate it").
 
 6. **Ask targeted questions**: Ask via AskUserQuestion: "What problem are you solving or what triggered this work?". Then ask "What's the expected outcome when this branch merges?". Then ask "Any related issues, PRs, or links?" with a "Skip" option.
 
