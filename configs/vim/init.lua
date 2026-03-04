@@ -109,15 +109,19 @@ vim.keymap.set({ "n", "v" }, "<D-[>", "<C-o>", { desc = "Go back" })
 vim.keymap.set({ "n", "v" }, "<D-]>", "<C-i>", { desc = "Go forward" })
 vim.keymap.set("i", "<D-[>", "<Esc><C-o>", { desc = "Go back" })
 vim.keymap.set("i", "<D-]>", "<Esc><C-i>", { desc = "Go forward" })
+local function is_file_win(w)
+	local buf = vim.api.nvim_win_get_buf(w)
+	return vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "neo-tree"
+end
+
 vim.keymap.set({ "n", "v", "i" }, "<D-1>", function()
 	local win = vim.g._last_file_win
-	if win and vim.api.nvim_win_is_valid(win) then
+	if win and vim.api.nvim_win_is_valid(win) and is_file_win(win) then
 		vim.api.nvim_set_current_win(win)
 		return
 	end
 	for _, w in ipairs(vim.api.nvim_list_wins()) do
-		local buf = vim.api.nvim_win_get_buf(w)
-		if vim.bo[buf].buftype == "" then
+		if is_file_win(w) then
 			vim.api.nvim_set_current_win(w)
 			return
 		end
@@ -236,6 +240,21 @@ local function toggle_neotree_files()
 	end
 end
 
+-- When opened with a directory arg (e.g. `nvim .`), replace the directory
+-- buffer with an empty buffer and open neo-tree as a proper sidebar
+vim.api.nvim_create_autocmd("VimEnter", {
+	group = augroup,
+	callback = function()
+		if vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1 then
+			vim.schedule(function()
+				vim.cmd("bdelete")
+				require("neo-tree")
+				vim.cmd("Neotree source=filesystem")
+			end)
+		end
+	end,
+})
+
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 	group = augroup,
 	command = "checktime",
@@ -245,7 +264,7 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 vim.api.nvim_create_autocmd("BufEnter", {
 	group = augroup,
 	callback = function()
-		if vim.bo.buftype == "" then
+		if vim.bo.buftype == "" and vim.bo.filetype ~= "neo-tree" then
 			vim.g._last_file_win = vim.api.nvim_get_current_win()
 		end
 	end,
@@ -484,7 +503,7 @@ require("lazy").setup({
 					},
 				},
 				filesystem = {
-					hijack_netrw_behavior = "open_current",
+					hijack_netrw_behavior = "disabled",
 					follow_current_file = { enabled = true },
 					use_libuv_file_watcher = true,
 					filtered_items = {
