@@ -29,7 +29,7 @@ vim.o.showmatch = true
 vim.o.number = true
 vim.o.cursorline = true
 vim.o.wrap = false
-vim.o.scrolloff = 22
+vim.o.scrolloff = 100
 vim.opt.listchars = { tab = "→ ", trail = "·", nbsp = "+", extends = ">", precedes = "<" }
 
 -- Indentation
