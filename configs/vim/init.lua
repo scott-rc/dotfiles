@@ -948,7 +948,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				local cur_col = params.position.character
 				local at_def = false
 				for _, def in ipairs(defs) do
-					local loc = def.targetRange or def.targetSelectionRange or def.range
+					local loc = def.targetSelectionRange or def.targetRange or def.range
 					local uri = def.targetUri or def.uri or ""
 					if
 						uri == cur_uri
@@ -961,8 +961,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 						break
 					end
 				end
-				-- Treesitter fallback: if the LSP definition points elsewhere
-				-- (e.g., an interface), check if the cursor is on a definition node
 				if not at_def and #defs > 0 then
 					local node = vim.treesitter.get_node()
 					while node do
@@ -980,34 +978,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
 						node = node:parent()
 					end
 				end
-				if at_def or #defs == 0 then
-					local origin = vim.g._lsp_ref_origin
-					vim.g._lsp_ref_origin = nil
-					require("telescope.builtin").lsp_references({
-						include_declaration = false,
-						on_complete = origin and {
-							function(picker)
-								for i = 1, picker.manager:num_results() do
-									local entry = picker.manager:get_entry(i)
-									if
-										entry
-										and entry.filename == origin.filename
-										and entry.lnum == origin.lnum
-									then
-										picker:set_selection(picker:get_row(i))
-										return
-									end
-								end
-							end,
-						} or {},
-					})
-				else
-					vim.g._lsp_ref_origin = {
-						filename = vim.api.nvim_buf_get_name(0),
-						lnum = vim.api.nvim_win_get_cursor(0)[1],
-					}
-					vim.lsp.util.show_document(defs[1], "utf-8", { focus = true })
-				end
+				vim.schedule(function()
+					if at_def or #defs == 0 then
+						require("telescope.builtin").lsp_references({ include_declaration = false })
+					else
+						require("telescope.builtin").lsp_definitions()
+					end
+				end)
 			end)
 		end, {
 			buffer = args.buf,
