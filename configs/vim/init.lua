@@ -917,8 +917,11 @@ require("lazy").setup({
 		opts = {
 			keymap = {
 				preset = "enter",
-				["<Tab>"] = { "select_next", "fallback" },
-				["<S-Tab>"] = { "select_prev", "fallback" },
+				["<Tab>"] = { "select_and_accept", "snippet_forward", "fallback" },
+				["<S-Tab>"] = { "snippet_backward", "select_prev", "fallback" },
+			},
+			completion = {
+				list = { selection = { preselect = true, auto_insert = false } },
 			},
 			sources = {
 				default = { "lsp", "buffer" },
