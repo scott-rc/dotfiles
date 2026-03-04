@@ -73,7 +73,11 @@ impl AnsiState {
     }
 
     /// Update state from a single ANSI escape sequence (e.g., `\x1b[1m`).
+    /// Non-SGR sequences (e.g., OSC 8 hyperlinks) are silently ignored.
     pub fn update(&mut self, code: &str) {
+        if !code.starts_with("\x1b[") || !code.ends_with('m') {
+            return;
+        }
         let inner = &code[2..code.len() - 1];
         if inner.is_empty() {
             return;
