@@ -418,7 +418,7 @@ require("lazy").setup({
 				{ "<leader>l", group = "LSP" },
 
 				{ "<C-w>r", group = "Resize" },
-			{ "<leader>o", group = "Options" },
+				{ "<leader>o", group = "Options" },
 				{
 					"<leader>ow",
 					function()
@@ -596,6 +596,24 @@ require("lazy").setup({
 				end, "Copy hunk")
 				map("v", "<leader>yh", '"+y', "Copy selection")
 			end,
+		},
+	},
+
+	-- Smooth scrolling
+	{
+		"folke/snacks.nvim",
+		lazy = false,
+		opts = {
+			scroll = {
+				animate = {
+					duration = { step = 10, total = 100 },
+					easing = "outQuad",
+				},
+				animate_repeat = {
+					delay = 50,
+					duration = { step = 5, total = 30 },
+				},
+			},
 		},
 	},
 
@@ -804,7 +822,6 @@ require("lazy").setup({
 		},
 	},
 
-
 	-- Window resize mode
 	{
 		"nvimtools/hydra.nvim",
@@ -837,10 +854,34 @@ require("lazy").setup({
 				mode = "n",
 				body = "<C-w>r",
 				heads = {
-					{ "h", function() resize("h") end, { desc = "Left" } },
-					{ "l", function() resize("l") end, { desc = "Right" } },
-					{ "j", function() resize("j") end, { desc = "Down" } },
-					{ "k", function() resize("k") end, { desc = "Up" } },
+					{
+						"h",
+						function()
+							resize("h")
+						end,
+						{ desc = "Left" },
+					},
+					{
+						"l",
+						function()
+							resize("l")
+						end,
+						{ desc = "Right" },
+					},
+					{
+						"j",
+						function()
+							resize("j")
+						end,
+						{ desc = "Down" },
+					},
+					{
+						"k",
+						function()
+							resize("k")
+						end,
+						{ desc = "Up" },
+					},
 					{ "=", "<C-w>=", { desc = "Equalize" } },
 					{ "<Esc>", nil, { exit = true, desc = "Exit" } },
 				},
@@ -850,7 +891,9 @@ require("lazy").setup({
 					timeout = false,
 				},
 			})
-			vim.keymap.set("n", "<C-r>", function() hydra:activate() end, { desc = "Resize mode" })
+			vim.keymap.set("n", "<C-r>", function()
+				hydra:activate()
+			end, { desc = "Resize mode" })
 		end,
 	},
 
@@ -883,6 +926,9 @@ require("lazy").setup({
 			signature = { enabled = true },
 		},
 	},
+	-- JSON schemas for intellisense
+	{ "b0o/SchemaStore.nvim", lazy = true },
+
 	{
 		"stevearc/conform.nvim",
 		event = "BufWritePre",
@@ -934,6 +980,20 @@ vim.lsp.config("gopls", {
 })
 
 vim.lsp.enable("gopls")
+
+vim.lsp.config("jsonls", {
+	cmd = { "vscode-json-language-server", "--stdio" },
+	filetypes = { "json", "jsonc" },
+	root_markers = { ".git" },
+	settings = {
+		json = {
+			schemas = require("schemastore").json.schemas(),
+			validate = { enable = true },
+		},
+	},
+})
+
+vim.lsp.enable("jsonls")
 
 vim.lsp.config("*", {
 	capabilities = require("blink.cmp").get_lsp_capabilities(),
