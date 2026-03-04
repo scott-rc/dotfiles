@@ -21,7 +21,10 @@ vim.o.splitkeep = "screen"
 -- Display
 vim.o.title = true
 vim.o.titlestring = " %f%( %m%)"
+vim.o.cmdheight = 0
 vim.o.showmode = false
+vim.o.laststatus = 3
+vim.o.signcolumn = "yes"
 vim.o.showmatch = true
 vim.o.number = true
 vim.o.cursorline = true
@@ -37,7 +40,7 @@ vim.opt.formatoptions:append("o")
 
 -- Behavior
 vim.o.mouse = "n"
-vim.o.updatetime = 750
+vim.o.updatetime = 250
 vim.opt.whichwrap:append("<,>,h,l")
 
 -- Persistence
@@ -71,6 +74,7 @@ vim.keymap.set({ "n", "v" }, "k", function()
 end, { expr = true, desc = "Up (wrap-aware)" })
 
 -- Navigation
+vim.keymap.set({ "n", "v" }, "<Space>", "<Nop>")
 vim.keymap.set({ "n", "v" }, ";", ":", { desc = "Command mode" })
 vim.keymap.set({ "n", "v" }, "<S-h>", "^", { desc = "Start of line" })
 vim.keymap.set({ "n", "v" }, "<S-l>", "$", { desc = "End of line" })
@@ -376,7 +380,8 @@ require("lazy").setup({
 		opts = {
 			preset = "modern",
 			triggers = {
-				{ "<auto>", mode = "nsot" },
+				{ "<auto>", mode = "nvsot" },
+				{ "<leader>", mode = "v" },
 			},
 			spec = {
 				{ "<leader>y", group = "Yank" },
@@ -577,7 +582,7 @@ require("lazy").setup({
 	-- Statusline
 	{
 		"nvim-lualine/lualine.nvim",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
+		dependencies = { "echasnovski/mini.icons" },
 		opts = {
 			options = {
 				component_separators = "",
@@ -614,8 +619,9 @@ require("lazy").setup({
 			local actions = require("telescope.actions")
 			telescope.setup({
 				defaults = {
+					sorting_strategy = "ascending",
 					layout_strategy = "vertical",
-					layout_config = { preview_cutoff = 20, preview_height = 0.6 },
+					layout_config = { preview_cutoff = 20, preview_height = 0.6, prompt_position = "top" },
 					mappings = {
 						i = {
 							["<Esc>"] = actions.close,
@@ -784,29 +790,19 @@ require("lazy").setup({
 
 	-- Completion
 	{
-		"hrsh7th/nvim-cmp",
-		dependencies = {
-			"hrsh7th/cmp-nvim-lsp",
-			"hrsh7th/cmp-buffer",
+		"saghen/blink.cmp",
+		version = "1.*",
+		opts = {
+			keymap = {
+				preset = "enter",
+				["<Tab>"] = { "select_next", "fallback" },
+				["<S-Tab>"] = { "select_prev", "fallback" },
+			},
+			sources = {
+				default = { "lsp", "buffer" },
+			},
+			signature = { enabled = true },
 		},
-		config = function()
-			local cmp = require("cmp")
-			cmp.setup({
-				mapping = cmp.mapping.preset.insert({
-					["<C-Space>"] = cmp.mapping.complete(),
-					["<CR>"] = cmp.mapping.confirm({ select = true }),
-					["<Tab>"] = cmp.mapping.select_next_item(),
-					["<S-Tab>"] = cmp.mapping.select_prev_item(),
-				}),
-				sources = {
-					{ name = "nvim_lsp" },
-					{ name = "buffer" },
-				},
-			})
-			vim.lsp.config("*", {
-				capabilities = require("cmp_nvim_lsp").default_capabilities(),
-			})
-		end,
 	},
 	{
 		"stevearc/conform.nvim",
@@ -860,14 +856,14 @@ vim.lsp.config("gopls", {
 
 vim.lsp.enable("gopls")
 
--- Only gd is mapped here; grn, gra, grr, K are Neovim 0.11+ built-in LSP defaults
+vim.lsp.config("*", {
+	capabilities = require("blink.cmp").get_lsp_capabilities(),
+})
+
+-- gd, grn, gra, grr, K are Neovim 0.11+ built-in LSP defaults
 vim.api.nvim_create_autocmd("LspAttach", {
 	group = augroup,
 	callback = function(args)
-		vim.keymap.set("n", "gd", vim.lsp.buf.definition, {
-			buffer = args.buf,
-			desc = "Go to definition",
-		})
 		vim.keymap.set({ "n", "v", "i" }, "<D-b>", function()
 			local client = vim.lsp.get_clients({ bufnr = 0 })[1]
 			local params = vim.lsp.util.make_position_params(0, client and client.offset_encoding or "utf-16")
