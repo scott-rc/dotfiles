@@ -222,12 +222,15 @@ end, { expr = true, desc = "Wildmenu: enter dir" })
 
 local augroup = vim.api.nvim_create_augroup("user_config", { clear = true })
 
+local _neotree_width = nil
+
 local function toggle_neotree_files()
 	local manager = require("neo-tree.sources.manager")
 	local state = manager.get_state("filesystem")
 	local neo_win = state.winid
 	if neo_win and vim.api.nvim_win_is_valid(neo_win) then
 		if vim.api.nvim_get_current_win() == neo_win then
+			_neotree_width = vim.api.nvim_win_get_width(neo_win)
 			local ei = vim.o.eventignore
 			vim.o.eventignore = "BufEnter,WinEnter,WinLeave,BufLeave"
 			manager.close("filesystem")
@@ -237,6 +240,12 @@ local function toggle_neotree_files()
 		end
 	else
 		vim.cmd("Neotree focus source=filesystem")
+		if _neotree_width then
+			local s = manager.get_state("filesystem")
+			if s.winid and vim.api.nvim_win_is_valid(s.winid) then
+				vim.api.nvim_win_set_width(s.winid, _neotree_width)
+			end
+		end
 	end
 end
 
@@ -814,9 +823,9 @@ require("lazy").setup({
 				else
 					local has_neighbor = vim.fn.winnr(dir) ~= cur
 					if has_neighbor then
-						vim.cmd(amount .. "wincmd +")
-					else
 						vim.cmd(amount .. "wincmd -")
+					else
+						vim.cmd(amount .. "wincmd +")
 					end
 				end
 			end
