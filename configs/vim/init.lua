@@ -633,7 +633,6 @@ require("lazy").setup({
 		"nvim-telescope/telescope.nvim",
 		dependencies = {
 			"nvim-lua/plenary.nvim",
-			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
 		},
 		config = function()
 			local telescope = require("telescope")
@@ -669,7 +668,6 @@ require("lazy").setup({
 					find_files = { hidden = true, file_ignore_patterns = { "%.git/" } },
 				},
 			})
-			telescope.load_extension("fzf")
 		end,
 		keys = {
 			{
@@ -963,6 +961,25 @@ vim.api.nvim_create_autocmd("LspAttach", {
 						break
 					end
 				end
+				-- Treesitter fallback: if the LSP definition points elsewhere
+				-- (e.g., an interface), check if the cursor is on a definition node
+				if not at_def and #defs > 0 then
+					local node = vim.treesitter.get_node()
+					while node do
+						local t = node:type()
+						if
+							t == "function_declaration"
+							or t == "method_definition"
+							or t == "function"
+							or t == "arrow_function"
+							or t == "method_signature"
+						then
+							at_def = true
+							break
+						end
+						node = node:parent()
+					end
+				end
 				if at_def or #defs == 0 then
 					local origin = vim.g._lsp_ref_origin
 					vim.g._lsp_ref_origin = nil
@@ -995,6 +1012,16 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		end, {
 			buffer = args.buf,
 			desc = "Go to definition / references",
+		})
+		vim.keymap.set("n", "gd", require("telescope.builtin").lsp_definitions, {
+			buffer = args.buf,
+			desc = "Go to definition (Telescope)",
+		})
+		vim.keymap.set("n", "grr", function()
+			require("telescope.builtin").lsp_references({ include_declaration = false })
+		end, {
+			buffer = args.buf,
+			desc = "Find references (Telescope)",
 		})
 		vim.keymap.set("n", "<C-Space>", vim.lsp.buf.hover, {
 			buffer = args.buf,
