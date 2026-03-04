@@ -389,7 +389,8 @@ require("lazy").setup({
 				{ "<leader>g", group = "Git" },
 				{ "<leader>l", group = "LSP" },
 
-				{ "<leader>o", group = "Options" },
+				{ "<C-w>r", group = "Resize" },
+			{ "<leader>o", group = "Options" },
 				{
 					"<leader>ow",
 					function()
@@ -479,6 +480,7 @@ require("lazy").setup({
 					mappings = {
 						["<cr>"] = "open_and_refocus",
 						["<space>"] = "open_and_refocus",
+						["<C-r>"] = "none",
 					},
 				},
 				filesystem = {
@@ -774,6 +776,55 @@ require("lazy").setup({
 		},
 	},
 
+
+	-- Window resize mode
+	{
+		"nvimtools/hydra.nvim",
+		event = "VeryLazy",
+		config = function()
+			local Hydra = require("hydra")
+
+			local function resize(dir)
+				local amount = 2
+				local cur = vim.fn.winnr()
+				if dir == "h" or dir == "l" then
+					local has_neighbor = vim.fn.winnr(dir) ~= cur
+					if has_neighbor then
+						vim.cmd(amount .. "wincmd >")
+					else
+						vim.cmd(amount .. "wincmd <")
+					end
+				else
+					local has_neighbor = vim.fn.winnr(dir) ~= cur
+					if has_neighbor then
+						vim.cmd(amount .. "wincmd +")
+					else
+						vim.cmd(amount .. "wincmd -")
+					end
+				end
+			end
+
+			local hydra = Hydra({
+				name = "Resize",
+				mode = "n",
+				body = "<C-w>r",
+				heads = {
+					{ "h", function() resize("h") end, { desc = "Left" } },
+					{ "l", function() resize("l") end, { desc = "Right" } },
+					{ "j", function() resize("j") end, { desc = "Down" } },
+					{ "k", function() resize("k") end, { desc = "Up" } },
+					{ "=", "<C-w>=", { desc = "Equalize" } },
+					{ "<Esc>", nil, { exit = true, desc = "Exit" } },
+				},
+				config = {
+					hint = { type = "statusline" },
+					invoke_on_body = true,
+					timeout = false,
+				},
+			})
+			vim.keymap.set("n", "<C-r>", function() hydra:activate() end, { desc = "Resize mode" })
+		end,
+	},
 
 	-- Multi-cursor (cmd+d select next, cmd+shift+d undo selection)
 	{

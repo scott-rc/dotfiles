@@ -162,6 +162,12 @@ Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors 
 | `d` | Git panel | Discard changes |
 | `t` | Git panel | Toggle tree/list view |
 
+#### Neovim
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+W r` | Enter resize mode (Hydra) — then `h/l` shrink/grow width, `j/k` grow/shrink height, `=` equalize, `Esc` exit |
+
 ### Workflow: Ghostty Tabs + Zellij Sessions
 
 Each Ghostty tab runs its own Zellij session for a repo. Zellij tabs represent worktrees within a repo, and panes are free-form within each worktree tab.
