@@ -59,7 +59,7 @@ Configuration directories symlinked to their expected locations:
 | `starship/` | `~/.config/starship.toml` |
 | `vim/` | `~/.config/nvim/init.lua` |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
-| `zellij/` | `~/.config/zellij/{config.kdl,layouts}` |
+| `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin) |
 | `zsh/` | `~/.zshrc` |
 
 ### Fish Shell Structure

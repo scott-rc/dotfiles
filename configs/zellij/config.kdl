@@ -378,7 +378,7 @@ themes {
 // changing these requires a restart to take effect
 plugins {
     about location="zellij:about"
-    compact-bar location="zellij:compact-bar"
+    zjstatus location="file:~/.config/zellij/plugins/zjstatus.wasm"
     configuration location="zellij:configuration"
     filepicker location="zellij:strider" {
         cwd "/"
