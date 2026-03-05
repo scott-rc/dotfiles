@@ -481,11 +481,11 @@ require("lazy").setup({
 				default_component_configs = {
 					icon = {
 						provider = function(icon, node)
-							if node.type == "directory" then
-								local text, hl = require("mini.icons").get("directory", node.name)
-								icon.text = text .. " "
-								icon.highlight = hl
-							end
+							local mini = require("mini.icons")
+							local category = node.type == "directory" and "directory" or "file"
+							local text, hl = mini.get(category, node.name)
+							icon.text = text
+							icon.highlight = hl
 						end,
 					},
 				},
@@ -508,6 +508,7 @@ require("lazy").setup({
 					mappings = {
 						["<cr>"] = "open_and_refocus",
 						["<space>"] = "open_and_refocus",
+						["<bs>"] = "delete",
 						["<C-r>"] = "none",
 					},
 				},
