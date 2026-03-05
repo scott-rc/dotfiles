@@ -3,7 +3,7 @@ name: chunk-executor
 description: Executes implementation chunks from a plan, marking checkboxes as steps are completed. Use for plan execution.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
-maxTurns: 150
+maxTurns: 250
 permissionMode: acceptEdits
 skills: [code]
 ---

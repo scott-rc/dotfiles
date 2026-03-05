@@ -11,6 +11,8 @@ Default to action when there's an obvious path. Ask when the answer genuinely ch
 
 ## How to Ask
 
+MUST use the `AskUserQuestion` tool — not inline text — so the question is surfaced as an explicit prompt.
+
 - Lead with a recommendation: "I'd go with X because Y — want me to proceed, or would you prefer Z?"
 - Be concrete — name the specific options or trade-offs, not a vague "what should I do?"
 - One question at a time; batch related unknowns into a single ask when possible

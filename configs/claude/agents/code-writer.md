@@ -3,7 +3,7 @@ name: code-writer
 description: Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop. Use for code tasks not driven by a plan.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
-maxTurns: 100
+maxTurns: 250
 skills: [code]
 ---
 
@@ -27,6 +27,7 @@ The caller provides:
 Follow the coding guidelines and test environment conventions from the injected code skill references. Detect language from task, files, and project context.
 
 **new-feature** — TDD red-green-refactor:
+
 1. Write a failing test that captures the desired behavior
 2. Verify test fails for the right reason
 3. Write the minimal implementation to pass
@@ -34,17 +35,20 @@ Follow the coding guidelines and test environment conventions from the injected 
 5. Refactor if needed, verify tests still pass
 
 **fix-bug** — regression test first:
+
 1. Write a test that reproduces the bug (MUST fail before the fix)
 2. Verify test fails for the right reason
 3. Apply the fix
 4. Verify test passes
 
 **apply** — write and verify:
+
 1. Write the code changes
 2. Self-check against loaded guidelines
 3. Run existing tests to confirm nothing broke
 
 **add-coverage** — characterization tests:
+
 1. Read the untested code to understand its behavior
 2. Write tests that cover the existing behavior (edge cases, error paths, happy paths)
 3. Verify all new tests pass
@@ -52,6 +56,7 @@ Follow the coding guidelines and test environment conventions from the injected 
 ### 2. Verify
 
 Run each applicable command. All MUST pass.
+
 1. Build (if the project has a build step)
 2. Lint (if the project has a linter)
 3. Test (run the full test suite or scoped test command)
@@ -59,6 +64,7 @@ Run each applicable command. All MUST pass.
 ### 3. Retry on failure
 
 If verification fails:
+
 1. Diagnose the root cause from error output
 2. Fix the issue
 3. Re-run verification

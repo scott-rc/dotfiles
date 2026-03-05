@@ -4,7 +4,7 @@ description: "Expert code review specialist. Proactively reviews code for qualit
 tools: Read, Grep, Glob, Bash
 model: sonnet
 background: true
-maxTurns: 60
+maxTurns: 100
 ---
 
 # Code Reviewer
@@ -58,12 +58,15 @@ When the task prompt includes a review checklist, use that checklist instead of 
 Group findings into three severity levels:
 
 **Critical** (must fix before merge):
+
 - For each finding: file path, line reference, issue description, and a specific fix example
 
 **Warnings** (should fix, may indicate deeper problems):
+
 - For each finding: file path, line reference, issue description, and a specific fix example
 
 **Suggestions** (consider for improvement):
+
 - For each finding: file path, line reference, issue description, and a specific fix example
 
 If no findings at a severity level, omit that section. If no findings at all, state that the changes look good.
