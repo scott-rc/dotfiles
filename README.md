@@ -205,7 +205,6 @@ Custom CLI tools.
 | `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
 | `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, and GitHub interactions |
 | `interview/` | Conducts a structured multi-round interview on any topic — asking probing questions to gather requirements, explore decisions, or deepen understanding |
-| `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
 
 Each skill follows this directory structure:
 
@@ -243,7 +242,6 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `rules-writer.md` | Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria |
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |
 | `skill-writer.md` | Writes and validates skill files (SKILL.md, operations, references) in create or update mode |
-| `slide-writer.md` | Writes and edits Slidev presentation content, verifies via slidev build, and iterates on failures |
 
 Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.
 
@@ -270,4 +268,3 @@ Codex runtime/session files remain machine-local and are not source-controlled: 
 | `./apply.sh` | Run setup |
 | `LOG_LEVEL=debug ./apply.sh` | Verbose setup |
 | `reload` | Restart fish shell |
-| `/slides` | Manage Slidev presentations (create, dev, build, deploy, export) |

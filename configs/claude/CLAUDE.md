@@ -37,8 +37,6 @@ User interaction and state transitions stay in the orchestrator.
 - PR descriptions (create, update, or edit any part of the body) — `pr-writer`
 - Rules files — `rules-writer`
 - Skill files — `skill-writer`
-- Slide content — `slide-writer`
-
 ---
 
 ## Path Resolution
@@ -52,7 +50,6 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 **Convention:** All repos live under `~/Code/{personal,gadget,scratch}/<name>`. For repos not listed here, check those directories.
 
 - `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills**
-- `~/Code/personal/slides` — Slidev presentations (pnpm workspace)
 - `~/Code/gadget/gadget` — Main Gadget monorepo (app platform)
 - `~/Code/gadget/ggt` — Gadget CLI tool
 - `~/Code/gadget/skipper` — Kubernetes operator for Gadget apps
