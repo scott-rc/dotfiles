@@ -107,6 +107,8 @@ keybind = global:cmd+grave_accent=toggle_quick_terminal
 keybind = cmd+ctrl+j=jump_to_prompt:1
 keybind = cmd+ctrl+k=jump_to_prompt:-1
 link-url = true
+window-padding-balance = true
+window-padding-color = background
 macos-option-as-alt = true
 maximize = true
 mouse-hide-while-typing = true
