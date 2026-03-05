@@ -245,6 +245,7 @@ fn keymap_entry(action: ActionId, context: KeyContext) -> Option<&'static Keymap
 }
 
 fn first_key_from_display(display: &str) -> &str {
+    debug_assert!(!display.is_empty());
     display.split('/').next().unwrap_or(display)
 }
 

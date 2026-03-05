@@ -105,6 +105,20 @@ fn test_next_match_in_range_negative_current() {
     assert_eq!(next_match_in_range(&matches, -1, 0, 10), Some(0));
 }
 
+#[test]
+fn test_next_match_in_range_match_at_line_zero() {
+    let matches = vec![0, 5, 8];
+    // With no current match, should find first match even at line 0
+    assert_eq!(next_match_in_range(&matches, -1, 0, 10), Some(0));
+}
+
+#[test]
+fn test_next_match_in_range_stale_current_beyond_len() {
+    let matches = vec![2, 5];
+    // Stale index beyond matches length should behave like no current match
+    assert_eq!(next_match_in_range(&matches, 10, 0, 10), Some(0));
+}
+
 // --- prev_match_in_range ---
 
 #[test]
@@ -141,6 +155,20 @@ fn test_prev_match_in_range_current_after_range() {
 fn test_prev_match_in_range_current_at_start_of_range() {
     let matches = vec![3, 7, 12];
     assert_eq!(prev_match_in_range(&matches, 0, 0, 10), Some(1));
+}
+
+#[test]
+fn test_prev_match_in_range_negative_current() {
+    let matches = vec![2, 5, 8];
+    // With no current match, should wrap to last match in range
+    assert_eq!(prev_match_in_range(&matches, -1, 0, 10), Some(2));
+}
+
+#[test]
+fn test_prev_match_in_range_stale_current_beyond_len() {
+    let matches = vec![2, 5];
+    // Stale index beyond matches length should behave like no current match
+    assert_eq!(prev_match_in_range(&matches, 10, 0, 10), Some(1));
 }
 
 // --- submit_search ---
@@ -269,4 +297,20 @@ fn test_search_alt_right_word_boundary() {
     let mut state = make_search_state("foo bar", 0);
     handle_search_key(&mut state, Key::AltRight);
     assert_eq!(state.search_cursor, 4);
+}
+
+#[test]
+fn test_search_backspace_at_cursor_zero_no_op() {
+    // Non-empty input but cursor at position 0 — the else branch (lines 50-52).
+    // Backspace should leave input unchanged and cursor at 0.
+    let mut state = make_search_state("hello", 0);
+    handle_search_key(&mut state, Key::Backspace);
+    assert_eq!(state.search_input, "hello", "input should be unchanged");
+    assert_eq!(state.search_cursor, 0, "cursor should remain at 0");
+    // Mode should stay Search since input is not empty
+    assert_eq!(
+        state.mode,
+        super::super::types::Mode::Search,
+        "mode should remain Search"
+    );
 }

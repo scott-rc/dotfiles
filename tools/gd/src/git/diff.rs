@@ -117,7 +117,10 @@ pub fn parse(raw: &str) -> Vec<DiffFile> {
             (line_end, 0)
         };
 
-        let line = std::str::from_utf8(&bytes[pos..line_content_end]).unwrap();
+        let Ok(line) = std::str::from_utf8(&bytes[pos..line_content_end]) else {
+            pos = line_content_end + sep_len;
+            continue;
+        };
         if line.starts_with("diff --git ") {
             chunk_starts.push(line_start);
         }
@@ -128,7 +131,9 @@ pub fn parse(raw: &str) -> Vec<DiffFile> {
     let mut files = Vec::new();
     for (i, &start) in chunk_starts.iter().enumerate() {
         let end = chunk_starts.get(i + 1).copied().unwrap_or(bytes.len());
-        let chunk = std::str::from_utf8(&bytes[start..end]).unwrap();
+        let Ok(chunk) = std::str::from_utf8(&bytes[start..end]) else {
+            continue;
+        };
         if let Some(file) = parse_file(chunk) {
             files.push(file);
         }
@@ -243,7 +248,7 @@ fn parse_hunk(lines: &[&str]) -> Option<DiffHunk> {
         } else if let Some(rest) = line.strip_prefix(' ') {
             (LineKind::Context, rest)
         } else {
-            // Bare line (no prefix) — treat as context
+            // Safety net: treat unrecognized prefix as context (e.g. malformed diff output)
             (LineKind::Context, line)
         };
 
@@ -657,5 +662,58 @@ diff --git a/f.rs b/f.rs
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0].kind, LineKind::Added);
         assert_eq!(lines[0].content, "no newline");
+    }
+
+    #[test]
+    fn parse_diff_no_trailing_newline() {
+        // Last line has no trailing newline — exercises the final-byte (sep_len=0) path.
+        let diff = "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,1 +1,2 @@\n ctx\n+added";
+        let files = parse(diff);
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].hunks[0].lines.len(), 2);
+        assert_eq!(files[0].hunks[0].lines[1].kind, LineKind::Added);
+        assert_eq!(files[0].hunks[0].lines[1].content, "added");
+    }
+
+    #[test]
+    fn parse_no_newline_at_end_of_file_marker() {
+        // The `\ No newline at end of file` marker should be skipped.
+        let diff = "\
+diff --git a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ -1,2 +1,2 @@
+ ctx
+-old
+\\ No newline at end of file
++new
+\\ No newline at end of file
+";
+        let files = parse(diff);
+        assert_eq!(files.len(), 1);
+        let lines = &files[0].hunks[0].lines;
+        // Should have 3 lines: ctx, -old, +new (markers skipped)
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0].kind, LineKind::Context);
+        assert_eq!(lines[1].kind, LineKind::Deleted);
+        assert_eq!(lines[1].content, "old");
+        assert_eq!(lines[2].kind, LineKind::Added);
+        assert_eq!(lines[2].content, "new");
+    }
+
+    #[test]
+    fn parse_malformed_hunk_header_short() {
+        // Hunk header with fewer than 2 parts — parse_hunk_header returns None.
+        let diff = "\
+diff --git a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ -1
+ ctx
+";
+        let files = parse(diff);
+        assert_eq!(files.len(), 1);
+        // The malformed hunk should be skipped, resulting in no hunks.
+        assert!(files[0].hunks.is_empty());
     }
 }

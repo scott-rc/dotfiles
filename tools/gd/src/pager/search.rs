@@ -122,15 +122,18 @@ pub(crate) fn next_match_in_range(
         return None;
     }
     let cur_line = if current_match >= 0 && (current_match as usize) < matches.len() {
-        matches[current_match as usize]
+        Some(matches[current_match as usize])
     } else {
-        range_start.saturating_sub(1)
+        None
     };
-    let next_line = filtered
-        .iter()
-        .find(|&&m| m > cur_line)
-        .copied()
-        .or_else(|| Some(filtered[0]));
+    let next_line = match cur_line {
+        Some(cl) => filtered
+            .iter()
+            .find(|&&m| m > cl)
+            .copied()
+            .or_else(|| Some(filtered[0])),
+        None => Some(filtered[0]),
+    };
     next_line.and_then(|line| {
         matches
             .iter()
@@ -157,16 +160,19 @@ pub(crate) fn prev_match_in_range(
         return None;
     }
     let cur_line = if current_match >= 0 && (current_match as usize) < matches.len() {
-        matches[current_match as usize]
+        Some(matches[current_match as usize])
     } else {
-        range_end
+        None
     };
-    let prev_line = filtered
-        .iter()
-        .rev()
-        .find(|&&m| m < cur_line)
-        .copied()
-        .or_else(|| filtered.last().copied());
+    let prev_line = match cur_line {
+        Some(cl) => filtered
+            .iter()
+            .rev()
+            .find(|&&m| m < cl)
+            .copied()
+            .or_else(|| filtered.last().copied()),
+        None => filtered.last().copied(),
+    };
     prev_line.and_then(|line| {
         matches
             .iter()

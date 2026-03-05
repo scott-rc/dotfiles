@@ -301,6 +301,9 @@ pub(crate) fn default_view_scope(
 #[cfg(debug_assertions)]
 pub(crate) fn debug_assert_valid_state(state: &PagerState) {
     let (rs, re) = visible_range(state);
+    if rs == re {
+        return;
+    }
     let max_cursor = re.saturating_sub(1);
     assert!(
         state.cursor_line >= rs && state.cursor_line <= max_cursor,

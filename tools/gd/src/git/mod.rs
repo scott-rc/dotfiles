@@ -117,7 +117,7 @@ pub(crate) fn parse_first_parent_base(log_output: &str, skip: &[&str]) -> Option
         }
         for r in line.split(", ") {
             let name = r.strip_prefix("HEAD -> ").unwrap_or(r);
-            if skip.iter().any(|s| *s == name) {
+            if skip.contains(&name) {
                 continue;
             }
             return Some(name.strip_prefix("origin/").unwrap_or(name).to_string());
@@ -200,14 +200,6 @@ pub fn base_branch_finish(repo: &Path, current: &str, default: &str) -> String {
     }
 
     default.to_string()
-}
-
-/// Detect the base branch by walking first-parent history and finding the first
-/// ancestor commit decorated with another branch. Mirrors the `gbb` fish function.
-#[cfg(test)]
-pub fn find_base_branch(repo: &Path) -> String {
-    let (current, default) = base_branch_init(repo);
-    base_branch_finish(repo, &current, &default)
 }
 
 /// List untracked files (respecting .gitignore).

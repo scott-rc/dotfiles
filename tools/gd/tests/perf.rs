@@ -6,7 +6,7 @@ use gd::render::render;
 static LARGE_DIFF: &str = include_str!("../benches/fixtures/large-diff.patch");
 
 #[test]
-#[ignore] // run with --release --ignored; too slow in debug, flaky on loaded CI
+#[ignore = "run with --release --ignored; too slow in debug, flaky on loaded CI"]
 fn render_large_color_under_threshold() {
     let files = parse(LARGE_DIFF);
     let iterations = 10;

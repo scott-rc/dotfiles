@@ -114,7 +114,7 @@ fn test_compute_tree_width_returns_raw_content_width() {
     let width = compute_tree_width(&entries);
     // raw formula: (depth + 1) * 4 + 2 + status_extra + label.len() + 2
     // = (0 + 1) * 4 + 2 + 2 + 60 + 2 = 70
-    let expected = (0 + 1) * 4 + 2 + 2 + long_label.len() + 2;
+    let expected = 4 + 2 + 2 + long_label.len() + 2;
     assert_eq!(width, expected, "tree width should equal raw content width without capping");
 }
 
@@ -596,6 +596,40 @@ fn test_no_scroll_when_cursor_label_fits() {
             "line {i} should NOT have truncation or indicator: {stripped:?}"
         );
     }
+}
+
+#[test]
+fn test_build_tree_lines_collapse_depth_reset() {
+    // A collapsed directory followed by an entry at the same depth triggers
+    // the `collapse_depth = None` reset (lines ~209-210 of tree.rs).
+    let entries = vec![
+        TreeEntry {
+            label: "src".to_string(),
+            depth: 0,
+            file_idx: None,
+            status: None,
+            collapsed: true, // collapsed directory
+        },
+        // These children should be hidden by the collapsed parent:
+        entry("hidden.rs", 1, Some(0)),
+        // This entry is at the same depth as the collapsed dir, resetting collapse_depth:
+        entry("README.md", 0, Some(1)),
+    ];
+    let width = compute_tree_width(&entries);
+    let (lines, visible_orig) = build_tree_lines(&entries, 0, width);
+    // Should show 2 visible lines: the collapsed "src" and "README.md"
+    assert_eq!(
+        lines.len(),
+        2,
+        "collapsed dir should hide children; sibling at same depth should be visible"
+    );
+    // visible_orig should map to entries [0, 2] (skipping the hidden child at index 1)
+    assert_eq!(visible_orig, vec![0, 2]);
+    let stripped_last = strip(&lines[1]);
+    assert!(
+        stripped_last.contains("README.md"),
+        "sibling after collapsed dir should be visible: {stripped_last:?}"
+    );
 }
 
 // ---- diff_area_width ----

@@ -624,7 +624,7 @@ diff --git a/x.txt b/x.txt
     assert!(
         matches!(
             kind,
-            Some(LineKind::Added) | Some(LineKind::Deleted)
+            Some(LineKind::Added | LineKind::Deleted)
         ),
         "cursor should land on a change line, got {:?} at line {}",
         kind,
@@ -633,14 +633,12 @@ diff --git a/x.txt b/x.txt
 }
 
 #[test]
-fn diag_single_file_hunk_nav_multiple_presses() {
-    use super::super::navigation::change_group_starts;
+fn single_file_hunk_nav_multiple_presses() {
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
     use std::path::Path;
     use tui::pager::Key;
 
-    // Build a realistic two-file diff with multiple hunks
     let raw = "\
 diff --git a/a.txt b/a.txt
 --- a/a.txt
@@ -671,20 +669,6 @@ diff --git a/b.txt b/b.txt
     let files = crate::git::diff::parse(raw);
     let mut state = make_pager_state_from_files(&files, false);
 
-    eprintln!("=== INITIAL STATE ===");
-    eprintln!(
-        "cursor={} top={} active={:?}",
-        state.cursor_line, state.top_line, state.active_file()
-    );
-    eprintln!("file_starts={:?}", state.doc.file_starts);
-    eprintln!("line_map len={}", state.doc.line_map.len());
-    for (i, li) in state.doc.line_map.iter().enumerate() {
-        eprintln!(
-            "  line[{}]: file_idx={} kind={:?} path={}",
-            i, li.file_idx, li.line_kind, li.path
-        );
-    }
-
     // Enter single file mode
     let result = handle_key(
         &mut state,
@@ -695,81 +679,43 @@ diff --git a/b.txt b/b.txt
         &files,
         Path::new("."),
     );
-    eprintln!("\n=== AFTER 's' (before re_render) ===");
-    eprintln!(
-        "cursor={} top={} active={:?} result={:?}",
-        state.cursor_line,
-        state.top_line,
-        state.active_file(),
-        result
-    );
-
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
 
-    eprintln!("\n=== AFTER re_render ===");
-    eprintln!(
-        "cursor={} top={} active={:?}",
-        state.cursor_line, state.top_line, state.active_file()
+    let initial_active = state.active_file();
+    let initial_cursor = state.cursor_line;
+
+    // Press ] — should move to next hunk within the same file
+    handle_key(
+        &mut state,
+        Key::Char(']'),
+        40,
+        40,
+        120,
+        &files,
+        Path::new("."),
     );
-    eprintln!("file_starts={:?}", state.doc.file_starts);
-    eprintln!("line_map len={}", state.doc.line_map.len());
-    let (rs, re) = visible_range(&state);
-    eprintln!("visible_range=({}, {})", rs, re);
-
-    let targets = change_group_starts(&state.doc.line_map, rs, re);
-    eprintln!("change_group_starts={:?}", targets);
-
-    for (i, li) in state.doc.line_map.iter().enumerate() {
-        if i >= rs && i < re {
-            eprintln!(
-                "  line[{}]: file_idx={} kind={:?} path={}",
-                i, li.file_idx, li.line_kind, li.path
-            );
-        }
-    }
-
-    // Press ] multiple times
-    for press in 1..=5 {
-        let before = state.cursor_line;
-        let before_active = state.active_file();
-        handle_key(
-            &mut state,
-            Key::Char(']'),
-            40,
-            40,
-            120,
-            &files,
-            Path::new("."),
-        );
-        eprintln!("\n=== After ] press #{press} ===");
-        eprintln!(
-            "cursor: {} -> {} active: {:?} -> {:?} status='{}'",
-            before,
-            state.cursor_line,
-            before_active,
-            state.active_file(),
-            state.status_message
-        );
-    }
-
-    // The test itself -- just verify that ] navigated within the file before advancing
-    // This is the diagnostic -- the real fix will come from understanding the output
-    assert!(true);
+    assert!(
+        state.cursor_line > initial_cursor,
+        "] should advance cursor from {initial_cursor} to a later position"
+    );
+    assert_eq!(
+        state.active_file(),
+        initial_active,
+        "first ] should stay in same file"
+    );
 }
 
 #[test]
-fn diag_single_file_tree_width_change() {
-    use super::super::navigation::change_group_starts;
+fn single_file_tree_width_change_hunk_nav() {
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
     use std::path::Path;
     use tui::pager::Key;
 
-    // Build a diff with files that have directories (triggers tree auto-show).
-    // Files must be sorted by path (lib/ < src/) because build_tree_entries
-    // requires sorted input and parse() preserves diff order.
+    // Files with directories trigger tree auto-show.
+    // Sorted by path (lib/ < src/) as build_tree_entries requires.
     let raw = "\
 diff --git a/lib/baz.txt b/lib/baz.txt
 --- a/lib/baz.txt
@@ -806,17 +752,9 @@ diff --git a/src/foo.txt b/src/foo.txt
  line14
 ";
     let files = crate::git::diff::parse(raw);
-    // Start WITHOUT tree visible, at a width where the tree might auto-show on s-toggle
     let mut state = make_pager_state_from_files(&files, false);
     state.tree_visible = false;
     state.tree_user_hidden = false;
-
-    eprintln!("\n=== INITIAL (tree_visible={}) ===", state.tree_visible);
-    eprintln!("file_starts={:?}", state.doc.file_starts);
-    eprintln!(
-        "cursor={} top={} active={:?}",
-        state.cursor_line, state.top_line, state.active_file()
-    );
 
     // Toggle single file with tree auto-show potential
     let result = handle_key(
@@ -828,36 +766,10 @@ diff --git a/src/foo.txt b/src/foo.txt
         &files,
         Path::new("."),
     );
-    eprintln!("\n=== AFTER 's' (before re_render) ===");
-    eprintln!(
-        "cursor={} top={} active={:?} tree_visible={} result={:?}",
-        state.cursor_line,
-        state.top_line,
-        state.active_file(),
-        state.tree_visible,
-        result
-    );
-    let old_file_starts = state.doc.file_starts.clone();
-
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
 
-    eprintln!("\n=== AFTER re_render ===");
-    eprintln!(
-        "cursor={} top={} active={:?} tree_visible={}",
-        state.cursor_line, state.top_line, state.active_file(), state.tree_visible
-    );
-    eprintln!("old file_starts={:?}", old_file_starts);
-    eprintln!("new file_starts={:?}", state.doc.file_starts);
-    let (rs, re) = visible_range(&state);
-    eprintln!("visible_range=({}, {})", rs, re);
-    eprintln!("cursor_line == rs ? {}", state.cursor_line == rs);
-
-    let targets = change_group_starts(&state.doc.line_map, rs, re);
-    eprintln!("change_group_starts={:?}", targets);
-
-    // Now press ]
     let before = state.cursor_line;
     let before_active = state.active_file();
     handle_key(
@@ -869,17 +781,7 @@ diff --git a/src/foo.txt b/src/foo.txt
         &files,
         Path::new("."),
     );
-    eprintln!("\n=== After ] press ===");
-    eprintln!(
-        "cursor: {} -> {} active: {:?} -> {:?} status='{}'",
-        before,
-        state.cursor_line,
-        before_active,
-        state.active_file(),
-        state.status_message
-    );
 
-    // Verify ] navigated to a hunk, not to the next file
     assert_eq!(
         state.active_file(),
         before_active,

@@ -434,7 +434,7 @@ fn format_status_bar_right_side_is_position_only() {
     let visible = strip(&bar);
     // The right-side portion should NOT contain a dash (the range separator in "1-20/90").
     // Split on whitespace and check the rightmost token.
-    let right_token = visible.trim_end().split_whitespace().last().unwrap_or("");
+    let right_token = visible.split_whitespace().last().unwrap_or("");
     assert_eq!(right_token, "TOP", "right side should be position only: {visible:?}");
     assert!(
         !visible.contains('-'),

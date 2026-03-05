@@ -56,6 +56,8 @@ pub fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
         prev_components = dir_parts.to_vec();
     }
 
+    // Collapse single-child directory chains (a/b/c -> a/b/c).
+    // O(n^2) for deep nesting; acceptable for real codebases.
     let mut i = 0;
     while i + 1 < entries.len() {
         if entries[i].file_idx.is_none()
@@ -235,7 +237,7 @@ pub(crate) fn build_tree_lines(
         let ce_label_len = ce.label.chars().count();
         if ce_label_len > ce_budget {
             let extra = ce_label_len - ce_budget;
-            ((extra + 3) / 4).min(ce.depth) // round up to next indent level
+            extra.div_ceil(4).min(ce.depth) // round up to next indent level
         } else {
             0
         }

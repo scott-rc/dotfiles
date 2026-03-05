@@ -1463,4 +1463,52 @@ diff --git a/b.rs b/b.rs
         assert_eq!(color_output.hunk_starts, plain_output.hunk_starts);
         assert_eq!(color_output.line_map.len(), plain_output.line_map.len());
     }
+
+    #[test]
+    fn render_deleted_file_shows_status_label() {
+        let raw = "\
+diff --git a/old.txt b/old.txt
+deleted file mode 100644
+--- a/old.txt
++++ /dev/null
+@@ -1,2 +0,0 @@
+-line1
+-line2
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false);
+        let header = crate::ansi::strip_ansi(&output.lines[0]);
+        assert!(
+            header.contains("Deleted"),
+            "file header should contain 'Deleted': {header:?}"
+        );
+        assert_eq!(files[0].status, FileStatus::Deleted);
+        // Deleted lines should be present
+        let deleted_count = output
+            .line_map
+            .iter()
+            .filter(|li| li.line_kind == Some(LineKind::Deleted))
+            .count();
+        assert_eq!(deleted_count, 2, "should have 2 deleted lines");
+    }
+
+    #[test]
+    fn render_renamed_file_shows_status_label() {
+        let raw = "\
+diff --git a/old.txt b/new.txt
+similarity index 100%
+rename from old.txt
+rename to new.txt
+";
+        let files = diff::parse(raw);
+        let output = render(&files, 80, false);
+        let header = crate::ansi::strip_ansi(&output.lines[0]);
+        assert!(
+            header.contains("Renamed"),
+            "file header should contain 'Renamed': {header:?}"
+        );
+        assert_eq!(files[0].status, FileStatus::Renamed);
+        // Pure rename has no hunks — just the header line
+        assert_eq!(output.lines.len(), 1);
+    }
 }

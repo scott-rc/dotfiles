@@ -269,4 +269,33 @@ mod tests {
             "colored gutter stripped matches expected layout"
         );
     }
+
+    #[test]
+    fn test_hunk_separator_colored() {
+        let sep = hunk_separator(10, true);
+        assert!(
+            sep.contains(FG_SEP),
+            "colored hunk separator should contain FG_SEP: {sep:?}"
+        );
+        assert!(
+            sep.contains(RESET),
+            "colored hunk separator should contain RESET: {sep:?}"
+        );
+        let stripped = strip_ansi(&sep);
+        assert_eq!(
+            stripped.chars().count(),
+            10,
+            "visible width should match requested width"
+        );
+    }
+
+    #[test]
+    fn test_hunk_separator_plain() {
+        let sep = hunk_separator(5, false);
+        assert_eq!(sep.chars().count(), 5, "plain separator width should match");
+        assert!(
+            !sep.contains(FG_SEP),
+            "plain separator should not contain ANSI codes"
+        );
+    }
 }

@@ -828,7 +828,7 @@ fn key_l_toggle_tree_fallback_on_very_narrow_terminal() {
     assert!(state.tree_visible, "l should still toggle tree on");
     // Fallback tree_width must not make the diff unusable
     assert!(
-        state.tree_width + MIN_DIFF_WIDTH + 1 <= cols as usize,
+        state.tree_width + MIN_DIFF_WIDTH < cols as usize,
         "tree_width {} + MIN_DIFF_WIDTH + 1 should not exceed cols {}",
         state.tree_width,
         cols

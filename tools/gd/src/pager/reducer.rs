@@ -229,8 +229,12 @@ fn dispatch_normal_action(
                         scroll_to_match(state, ch);
                     }
                 } else {
-                    state.current_match =
-                        (state.current_match + 1) % state.search_matches.len() as isize;
+                    let len = state.search_matches.len() as isize;
+                    if state.current_match < 0 || state.current_match >= len {
+                        state.current_match = 0;
+                    } else {
+                        state.current_match = (state.current_match + 1) % len;
+                    }
                     scroll_to_match(state, ch);
                 }
             }
@@ -247,9 +251,12 @@ fn dispatch_normal_action(
                         scroll_to_match(state, ch);
                     }
                 } else {
-                    state.current_match = (state.current_match - 1
-                        + state.search_matches.len() as isize)
-                        % state.search_matches.len() as isize;
+                    let len = state.search_matches.len() as isize;
+                    if state.current_match < 0 || state.current_match >= len {
+                        state.current_match = len - 1;
+                    } else {
+                        state.current_match = (state.current_match - 1 + len) % len;
+                    }
                     scroll_to_match(state, ch);
                 }
             }
@@ -350,6 +357,7 @@ fn dispatch_normal_action(
             state.tooltip_visible = !state.tooltip_visible;
             Some(ReducerEffect::ReRender)
         }
+        // Handled by dispatch_search_action in Search mode
         ActionId::SearchSubmit | ActionId::SearchCancel => None,
     }
 }
