@@ -6,7 +6,7 @@ use crate::git::diff::LineKind;
 use crate::render;
 use crate::render::LineInfo;
 
-use super::super::runtime::{re_render, resolve_path_for_editor};
+use super::super::runtime::{git_index_mtime, re_render, resolve_path_for_editor};
 use super::super::state::{
     Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
 };
@@ -823,4 +823,20 @@ fn re_render_does_not_auto_show_for_small_flat_diffs() {
         !state.tree_visible,
         "tree should stay hidden for small flat diffs even at wide terminal"
     );
+}
+
+#[test]
+fn git_index_mtime_returns_some_for_real_index() {
+    let dir = std::env::temp_dir().join(format!("gd_test_mtime_{}", std::process::id()));
+    std::fs::create_dir_all(dir.join(".git")).unwrap();
+    std::fs::write(dir.join(".git/index"), b"fake index").unwrap();
+    let result = git_index_mtime(&dir);
+    assert!(result.is_some(), "should return Some for an existing .git/index");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn git_index_mtime_returns_none_for_missing_path() {
+    let dir = std::path::Path::new("/tmp/gd_test_nonexistent_repo_path");
+    assert_eq!(git_index_mtime(dir), None);
 }

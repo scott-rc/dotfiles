@@ -880,6 +880,34 @@ fn key_esc_without_selection_is_noop() {
     assert_eq!(state.visual_anchor, None);
 }
 
+// ---- R reload ----
+
+#[test]
+#[allow(non_snake_case)]
+fn key_R_returns_regenerate() {
+    let mut state = make_keybinding_state();
+    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p());
+    assert!(
+        matches!(result, KeyResult::ReGenerate),
+        "R should return ReGenerate, got {result:?}"
+    );
+    assert!(state.status_message.contains("Reload"));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn key_R_preserves_visual_selection() {
+    let mut state = make_keybinding_state();
+    state.visual_anchor = Some(5);
+    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p());
+    assert!(matches!(result, KeyResult::ReGenerate));
+    assert_eq!(
+        state.visual_anchor,
+        Some(5),
+        "Reload should not clear visual selection"
+    );
+}
+
 // ---- ? toggle tooltip ----
 
 #[test]
@@ -1048,6 +1076,7 @@ fn property_bounded_random_transitions() {
         Key::Char('}'),
         Key::Char('{'),
         Key::Char('?'),
+        Key::Char('R'),
     ];
 
     for step in 0..72 {

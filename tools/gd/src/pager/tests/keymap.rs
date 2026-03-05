@@ -55,6 +55,7 @@ fn keymap_normal_other_keys() {
         (Key::Char('v'), ActionId::VisualSelect),
         (Key::Char('y'), ActionId::YankSelection),
         (Key::Char('e'), ActionId::OpenEditor),
+        (Key::Char('R'), ActionId::Reload),
         (Key::Char('q'), ActionId::Quit),
         (Key::Char('?'), ActionId::ToggleTooltip),
     ];
@@ -158,6 +159,8 @@ fn help_includes_all_primary_runtime_actions() {
         "Yank selection",
         "e",
         "Open in editor",
+        "R",
+        "Reload diff",
         "q",
         "Quit",
         "?",
@@ -205,7 +208,7 @@ fn keymap_tooltip_lines_has_expected_shape() {
 #[test]
 fn keymap_tooltip_lines_uses_primary_keys() {
     let joined = keymap_tooltip_lines().join(" ");
-    for token in ["j/k scroll", "]/[ hunk", "}/{ file", "n/N match"] {
+    for token in ["j/k scroll", "]/[ hunk", "}/{ file", "n/N match", "R reload"] {
         assert!(
             joined.contains(token),
             "tooltip should use primary key token: {token:?}"
@@ -218,7 +221,7 @@ fn keymap_tooltip_lines_tracks_runtime_actions() {
     let joined = keymap_tooltip_lines().join(" ");
     for token in [
         "scroll", "page", "top/bot", "center", "hunk", "file", "single", "context", "tree",
-        "search", "match", "sel", "yank", "edit", "quit",
+        "search", "match", "sel", "yank", "edit", "reload", "quit",
     ] {
         assert!(
             joined.contains(token),

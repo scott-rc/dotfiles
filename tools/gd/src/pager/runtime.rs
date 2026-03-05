@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::time::Duration;
+use std::time::{Duration, Instant, SystemTime};
 
 use crossterm::event::{self, Event, KeyEventKind};
 
@@ -77,6 +77,12 @@ fn format_debug_state(state: &PagerState) -> String {
 
 fn open_in_editor(path: &str, line: Option<u32>) {
     tui::pager::open_in_editor(path, line.map(|l| l as usize), false);
+}
+
+pub(crate) fn git_index_mtime(repo: &std::path::Path) -> Option<SystemTime> {
+    std::fs::metadata(repo.join(".git/index"))
+        .ok()
+        .and_then(|m| m.modified().ok())
 }
 
 pub(crate) fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std::path::PathBuf {
@@ -226,6 +232,9 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     re_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
+    let mut last_index_mtime = git_index_mtime(&diff_ctx.repo);
+    let mut last_poll_check = Instant::now();
+
     loop {
         let ev = match event::poll(Duration::from_millis(50)) {
             Ok(true) => match event::read() {
@@ -234,9 +243,26 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             },
             Ok(false) => {
                 let current_size = get_term_size();
+                let mut needs_render = false;
                 if current_size != last_size {
                     last_size = current_size;
                     re_render(&mut state, &files, color, last_size.0);
+                    needs_render = true;
+                }
+                if last_poll_check.elapsed() >= Duration::from_secs(2) {
+                    last_poll_check = Instant::now();
+                    let current_mtime = git_index_mtime(&diff_ctx.repo);
+                    if current_mtime != last_index_mtime {
+                        last_index_mtime = current_mtime;
+                        files = regenerate_files(diff_ctx, state.full_context);
+                        if files.is_empty() {
+                            break;
+                        }
+                        re_render(&mut state, &files, color, last_size.0);
+                        needs_render = true;
+                    }
+                }
+                if needs_render {
                     render_screen(&mut stdout, &state, last_size.0, last_size.1);
                 }
                 continue;
@@ -280,6 +306,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                     break;
                 }
                 re_render(&mut state, &files, color, last_size.0);
+                last_index_mtime = git_index_mtime(&diff_ctx.repo);
                 let base = format_debug_state(&state);
                 debug_trace(
                     "runtime:run_pager:regenerate:after",
@@ -303,6 +330,13 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 let _ = stdout.flush();
                 let _ = crossterm::terminal::enable_raw_mode();
                 last_size = get_term_size();
+
+                files = regenerate_files(diff_ctx, state.full_context);
+                if files.is_empty() {
+                    break;
+                }
+                re_render(&mut state, &files, color, last_size.0);
+                last_index_mtime = git_index_mtime(&diff_ctx.repo);
             }
             KeyResult::Continue => {}
         }

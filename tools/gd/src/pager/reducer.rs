@@ -353,6 +353,10 @@ fn dispatch_normal_action(
             }
             None
         }
+        ActionId::Reload => {
+            state.status_message = "Reloading…".into();
+            Some(ReducerEffect::ReGenerate)
+        }
         ActionId::ToggleTooltip => {
             state.tooltip_visible = !state.tooltip_visible;
             Some(ReducerEffect::ReRender)

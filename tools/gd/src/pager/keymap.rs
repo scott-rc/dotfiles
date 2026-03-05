@@ -210,6 +210,14 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             label: "Open in editor",
         },
         KeymapEntry {
+            action: ActionId::Reload,
+            context: Normal,
+            keys: &[Key::Char('R')],
+            group: Other,
+            key_display: "R",
+            label: "Reload diff",
+        },
+        KeymapEntry {
             action: ActionId::Quit,
             context: Normal,
             keys: &[Key::Char('q'), Key::CtrlC],
@@ -275,6 +283,7 @@ fn compact_label(label: &str) -> String {
         "Visual select" => "sel".to_string(),
         "Yank selection" => "yank".to_string(),
         "Open in editor" => "edit".to_string(),
+        "Reload diff" => "reload".to_string(),
         "Quit" => "quit".to_string(),
         _ => label.to_ascii_lowercase(),
     }
@@ -320,6 +329,7 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 2] {
         tooltip_single(ActionId::YankSelection, context),
         tooltip_pair(ActionId::CopyRelPath, ActionId::CopyAbsPath, "path", context),
         tooltip_single(ActionId::OpenEditor, context),
+        tooltip_single(ActionId::Reload, context),
         tooltip_single(ActionId::Quit, context),
     ]
     .into_iter()

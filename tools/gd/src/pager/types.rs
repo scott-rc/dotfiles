@@ -111,6 +111,7 @@ pub(crate) enum ActionId {
     CopyRelPath,
     CopyAbsPath,
     OpenEditor,
+    Reload,
     ToggleTooltip,
 }
 
