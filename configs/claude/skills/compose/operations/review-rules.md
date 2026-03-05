@@ -1,6 +1,6 @@
 # Review Rules
 
-Evaluate a CLAUDE.md or scoped rules file against best practices, report findings grouped by severity, and offer to fix issues.
+Evaluate a CLAUDE.md or scoped rules file against best practices, report findings grouped by severity, and fix issues via the review-fix loop until all agents pass.
 
 ## Instructions
 
@@ -24,16 +24,14 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
 
 4. **Estimate token impact**:
    - Use the token counts from the rules-reviewer's output
-   - Flag files over 200 lines as candidates for splitting into scoped rules
+   - Flag files over ~200 lines as candidates for splitting into scoped rules
    - Flag total token cost if it seems disproportionate
 
 5. **Present findings**:
    Group results by severity (Blocking, Improvements, Suggestions) per references/quality-checklist.md. For each finding, state: what the issue is, which file and line/section it's in, what the fix would be.
 
 6. **Review-fix loop**:
-   - Fix Blocking and Improvements immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
-   - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. MUST NOT block convergence on Suggestions.
-   - Delegate fixes to a `rules-writer` subagent, then re-review with all 3 agents. Iterate until all pass or 4 cycles complete per references/multi-perspective-review.md.
+   Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Delegate fixes to a `rules-writer` subagent. Iterate until all pass or 4 cycles complete.
 
 7. **Report outcomes**:
-   Present a summary of what was reviewed, what was fixed, and what remains. List any unresolved findings with their severity and the reason they were not fixed (escalated, recurring, or max iterations reached). If all findings were resolved, say so explicitly. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items).
+   Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

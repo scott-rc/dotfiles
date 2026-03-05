@@ -49,7 +49,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    Delegate to `rules-writer` (Task agent) with:
    - `mode` — `create`, `replace`, or `extend` (from step 2)
    - `file_path` — target path (from step 2)
-   - `file_type` — one of: `project-claude-md`, `global-claude-md`, `claude-local-md`, `unconditional-rule`, `scoped-rule`, `user-rule`
+   - `file_type` — one of: `project-claude-md`, `global-claude-md`, `claude-local-md`, `unconditional-rule`, `scoped-rule`, `user-rule`, `managed-policy`
    - `scope_patterns` — glob patterns (scoped rules only, from step 1)
    - `requirements` — user's content requirements (from step 1)
    - `existing_content` — current file content (extend mode only, from step 2)
@@ -62,7 +62,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 
 7. **Report results**:
    Present results to the user:
-   - MUST show the complete rules file content for review
+   - MUST show the rules file content for review (for files over 100 lines, show the first and last 20 lines with a note about the full length)
    - MUST list `@file` references and their resolution status
    - SHOULD note the approximate token cost (the file loads into every conversation)
    - If scoped: MUST show the `paths:` patterns and explain which files they match

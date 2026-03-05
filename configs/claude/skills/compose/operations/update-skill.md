@@ -17,6 +17,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Combined Operations entries
    - Reference file names with their topics
    - Per-file line counts
+   - Return a concise summary (under 200 lines)
 
 3. **Check for Alloy spec**:
    Check if the skill has a `specs/` directory containing `.als` files. If found, read the spec to understand the skill's behavioral invariants (operations, routing, delegation, step sequences). These invariants constrain what changes are valid — use them to inform step 4 and verify in step 6.
@@ -41,7 +42,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - `update_scope`: the confirmed changes from step 4
    - `existing_summary`: the structure summary from step 2
 
-   The skill-writer reads authoring specs, applies changes (add/modify/remove operations, add/update/remove references, update metadata, rename), validates against the quality checklist, and self-corrects up to 3 iterations. It returns the list of files created/modified/removed, validation status, and per-file token counts.
+   The skill-writer reads authoring specs, applies changes (add/modify/remove operations, add/update/remove references, update metadata, rename), and returns the list of files created/modified/removed, validation status, and per-file token counts.
 
    Special cases requiring user interaction before delegation:
    - **Renaming**: confirm new name candidates via AskUserQuestion before passing to skill-writer

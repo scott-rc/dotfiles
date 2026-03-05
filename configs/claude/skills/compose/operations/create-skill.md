@@ -5,16 +5,16 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
-   - What the skill does (purpose and domain)
-   - What triggers it (user phrases that should invoke it)
-   - What operations it needs (distinct tasks the skill should handle)
-   - What shared knowledge operations need (patterns, guidelines, templates)
-   - Any runtime dependencies (CLIs, APIs, services)
-   - Where to create it -- present applicable locations as AskUserQuestion options (e.g., `~/.claude/skills/`, project `.claude/skills/`)
-   - Who invokes the skill -- present as AskUserQuestion options: "User only" (description: `disable-model-invocation: true` for side-effect workflows), "Claude only" (description: `user-invocable: false` for background knowledge), "Both" (description: default)
-   - Should it run in a subagent (`context: fork`) or inline? Present as AskUserQuestion options.
-   - Any tool restrictions needed (`allowed-tools`)?
+   Follow the interview pattern from references/content-patterns.md. Cover each topic via AskUserQuestion:
+   - Purpose and domain
+   - Trigger phrases
+   - Operations needed
+   - Shared knowledge requirements
+   - Runtime dependencies
+   - Location — present applicable locations as AskUserQuestion options
+   - Invocation mode — present as AskUserQuestion options: "User only" (`disable-model-invocation: true`), "Claude only" (`user-invocable: false`), "Both" (default)
+   - Subagent execution (`context: fork`) — present as AskUserQuestion options
+   - Tool restrictions (`allowed-tools`)
 
 2. **Determine skill name**:
    - MUST apply naming rules from references/skill-spec.md: lowercase, hyphens, max 64 chars
@@ -42,7 +42,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    Spawn a Task subagent (type: skill-writer) in create mode. Pass:
    - `mode`: create
    - `skill_dir`: the absolute path from step 3
-   - `spec`: the confirmed requirements from step 4 (name, description, operations, references, frontmatter options, delegation boundaries)
+   - `spec`: the confirmed requirements from step 4 (name, description, operations, references, frontmatter options)
 
    Expect back: list of files created, validation status, and per-file token counts.
 
@@ -50,6 +50,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 
 6. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
    Run the verification procedure from references/alloy-verification.md. Fix any failures before proceeding.
+   Note: newly created skills will not have a specs/ directory unless Alloy spec files were manually added. This step applies primarily when creating skills with pre-existing behavioral specifications.
 
 7. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.

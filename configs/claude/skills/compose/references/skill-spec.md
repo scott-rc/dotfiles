@@ -87,7 +87,7 @@ When `context: fork` is set in frontmatter, the skill runs in an isolated subage
 
 Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to inject skill content into the subagent's system prompt before execution; list skill names as a YAML array (e.g., `skills: [git, compose]`). The skill's SKILL.md content is appended to the agent's prompt, giving it access to the skill's routing and references.
 
-**`context: fork` vs Task tool**: Use `context: fork` when the entire skill runs in a subagent -- every invocation forks. Use the Task tool inside an operation step when only one step needs delegation and the orchestrator continues afterward. If every path through the operation delegates, prefer `context: fork` on SKILL.md.
+**`context: fork` vs Task tool**: See the Task Skill Pattern in references/content-patterns.md.
 
 ### SKILL.md Body
 
@@ -97,7 +97,8 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 - **Heading structure**: MUST have one H1 (the skill title), then H2 for sections, H3 for individual operations
 - **Required sections**: MUST have "Operations" (H2) listing each operation with a one-line summary and a link to its file
 - **Optional sections**: MAY have "Combined Operations" (H2) for multi-operation intent mapping, "References" (H2) for shared reference files
-- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file. **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- move it to its own operation file with a delegation step rather than keeping it inline.
+- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file.
+  - **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- move it to its own operation file with a delegation step rather than keeping it inline.
 
 ### Operation Files
 

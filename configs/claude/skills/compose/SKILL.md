@@ -52,8 +52,6 @@ Within compose, all writing MUST go through `skill-writer` or `rules-writer`. MU
 - Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
 - Review-fix cycles — same agents: `skill-writer` for skill fixes, `rules-writer` for rules fixes
 
-Full loop mechanics (cycle count, pass criteria, disagreement handling): see references/multi-perspective-review.md in the References section below.
-
 ## Combined Operations
 
 Users often request multiple operations together. Handle these as follows:

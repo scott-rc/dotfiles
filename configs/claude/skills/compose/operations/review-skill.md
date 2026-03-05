@@ -1,6 +1,6 @@
 # Review Skill
 
-Evaluate a Claude Code skill against best practices using multi-perspective review, report findings grouped by severity, and iterate fixes until clean.
+Evaluate a Claude Code skill against best practices using multi-perspective review, report findings grouped by severity, and fix issues via the review-fix loop until all agents pass.
 
 ## Instructions
 
@@ -34,10 +34,7 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
 7. **Review-fix loop**:
-   - Fix immediately without pausing to ask the user. Escalate only when a fix has multiple plausible approaches and no available context disambiguates, or the same finding recurs after a fix attempt.
-   - Suggestions: fix if quick (fewer than 3 per file); otherwise note and move on. MUST NOT block convergence on Suggestions.
-   - Delegate fixes to a `skill-writer` subagent (update mode), then re-review with all 3 agents.
-   - Iterate until all findings pass or 4 cycles complete per references/multi-perspective-review.md.
+   Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Delegate fixes to a `skill-writer` subagent (update mode; pass: skill directory path, the synthesized findings from step 3, and the specific files to update). Iterate until all pass or 4 cycles complete.
 
 8. **Report outcomes**:
-   Present a summary of what was reviewed, what was fixed, and what remains. List any unresolved findings with their severity and the reason they were not fixed (escalated, recurring, or max iterations reached). If all findings were resolved, say so explicitly. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items).
+   Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

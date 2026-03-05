@@ -104,6 +104,8 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 
 ## Testing (Skills only)
 
+Note: These criteria are aspirational — no operation currently enforces them automatically.
+
 ### Improvements
 
 - [ ] **Tested with target models**: The skill has been tested with the models it targets

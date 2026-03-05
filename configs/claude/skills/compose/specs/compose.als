@@ -194,7 +194,7 @@ one sig IntPlanTask extends Intent {} {
 
 /** Step kinds that matter for invariant checking */
 abstract sig StepKind {}
-one sig GatherK, WriteK, ReviewK, ReportK, ConfirmK, DeliverK extends StepKind {}
+one sig GatherK, WriteK, ReviewK, ReportK, ConfirmK, DeliverK, ValidateK extends StepKind {}
 
 /**
  * StepBinding ties an operation to its ordered step kinds.
@@ -265,6 +265,8 @@ fact reviewRulesSteps {
 }
 
 -- Create Prompt: gather(0) -> confirm(1) -> write(2) -> deliver(3)
+-- ConfirmK is conditional at runtime (may be skipped when requirements are already clear);
+-- the spec models structural existence, not runtime conditionality.
 fact createPromptSteps {
     #{ sb: StepBinding | sb.forOp = CreatePrompt } = 4
     one sb: StepBinding | sb.forOp = CreatePrompt and sb.kind = GatherK  and sb.position = 0
@@ -281,23 +283,26 @@ fact reviewPromptSteps {
     one sb: StepBinding | sb.forOp = ReviewPrompt and sb.kind = ReportK  and sb.position = 2
 }
 
--- Create Handoff: gather(0) -> confirm(1) -> write(2) -> deliver(3)
+-- Create Handoff: gather(0) -> write(1) -> deliver(2)
+-- No pre-write confirmation: plan mode's accept/reject is the user gate (DeliverK).
 fact createHandoffSteps {
-    #{ sb: StepBinding | sb.forOp = CreateHandoff } = 4
+    #{ sb: StepBinding | sb.forOp = CreateHandoff } = 3
     one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = GatherK  and sb.position = 0
-    one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = ConfirmK and sb.position = 1
-    one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = WriteK   and sb.position = 2
-    one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = DeliverK and sb.position = 3
+    one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = WriteK   and sb.position = 1
+    one sb: StepBinding | sb.forOp = CreateHandoff and sb.kind = DeliverK and sb.position = 2
 }
 
--- Plan Task: gather(0) -> confirm(1) -> write(2) -> review(3) -> deliver(4)
+-- Plan Task: gather(0) -> confirm(1) -> write(2) -> validate(3) -> deliver(4)
+-- ConfirmK is conditional at runtime (may be skipped when requirements are already clear);
+-- the spec models structural existence, not runtime conditionality.
+-- ValidateK (not ReviewK) models structural file validation -- no multi-perspective review.
 fact planTaskSteps {
     #{ sb: StepBinding | sb.forOp = PlanTask } = 5
-    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = GatherK  and sb.position = 0
-    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = ConfirmK and sb.position = 1
-    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = WriteK   and sb.position = 2
-    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = ReviewK  and sb.position = 3
-    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = DeliverK and sb.position = 4
+    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = GatherK    and sb.position = 0
+    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = ConfirmK   and sb.position = 1
+    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = WriteK     and sb.position = 2
+    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = ValidateK  and sb.position = 3
+    one sb: StepBinding | sb.forOp = PlanTask and sb.kind = DeliverK   and sb.position = 4
 }
 
 
@@ -422,38 +427,38 @@ assert referencesAreLeaves {
 -- ═══ Verification ════════════════════════════════════════════
 
 -- Delegation
-check skillWritesDelegatedCorrectly       for 5 but 39 StepBinding, 4 Int
-check rulesWritesDelegatedCorrectly       for 5 but 39 StepBinding, 4 Int
-check codeWriterNeverUsed                 for 5 but 39 StepBinding, 4 Int
-check reviewerMatchesArtifact             for 5 but 39 StepBinding, 4 Int
+check skillWritesDelegatedCorrectly       for 5 but 38 StepBinding, 4 Int
+check rulesWritesDelegatedCorrectly       for 5 but 38 StepBinding, 4 Int
+check codeWriterNeverUsed                 for 5 but 38 StepBinding, 4 Int
+check reviewerMatchesArtifact             for 5 but 38 StepBinding, 4 Int
 
-check nonMutatingOpsAreClean              for 5 but 39 StepBinding, 4 Int
+check nonMutatingOpsAreClean              for 5 but 38 StepBinding, 4 Int
 
 -- Review coverage
-check mutatingOpsHaveReview               for 5 but 39 StepBinding, 4 Int
-check reviewUsesAllPerspectives           for 5 but 39 StepBinding, 4 Int
+check mutatingOpsHaveReview               for 5 but 38 StepBinding, 4 Int
+check reviewUsesAllPerspectives           for 5 but 38 StepBinding, 4 Int
 
 -- Routing
-check allOpsReachable                     for 5 but 39 StepBinding, 4 Int
-check allArtifactsCovered                 for 5 but 39 StepBinding, 4 Int
+check allOpsReachable                     for 5 but 38 StepBinding, 4 Int
+check allArtifactsCovered                 for 5 but 38 StepBinding, 4 Int
 
 -- State machines
-check mutatingOpsHaveWriteStep            for 5 but 39 StepBinding, 4 Int
-check writeBeforeReviewInCreateOps        for 5 but 39 StepBinding, 4 Int
-check reviewBeforeWriteInReviewOps        for 5 but 39 StepBinding, 4 Int
-check allOpsStartWithGather               for 5 but 39 StepBinding, 4 Int
-check confirmBeforeWrite                  for 5 but 39 StepBinding, 4 Int
+check mutatingOpsHaveWriteStep            for 5 but 38 StepBinding, 4 Int
+check writeBeforeReviewInCreateOps        for 5 but 38 StepBinding, 4 Int
+check reviewBeforeWriteInReviewOps        for 5 but 38 StepBinding, 4 Int
+check allOpsStartWithGather               for 5 but 38 StepBinding, 4 Int
+check confirmBeforeWrite                  for 5 but 38 StepBinding, 4 Int
 
 -- References
-check referencesAreLeaves                 for 5 but 39 StepBinding, 4 Int
+check referencesAreLeaves                 for 5 but 38 StepBinding, 4 Int
 
 
 -- ═══ Examples ════════════════════════════════════════════════
 
 -- Show a valid instance of the full model
-run showModel {} for 5 but 39 StepBinding, 4 Int
+run showModel {} for 5 but 38 StepBinding, 4 Int
 
 -- Show all operations that mutate artifacts
 run showMutatingOps {
     some op: Operation | some op.mutates
-} for 5 but 39 StepBinding, 4 Int
+} for 5 but 38 StepBinding, 4 Int

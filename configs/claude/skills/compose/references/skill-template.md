@@ -70,10 +70,3 @@ These files are referenced by the operation instructions above:
 4. **<Step name>**:
    MUST report results to the user. <Specify what to include.>
 ```
-
-## Naming Guidance
-
-When choosing a skill name, prefer:
-- **Gerund form** when natural: `managing-deploys`, `reviewing-code`, `syncing-data`
-- **Domain noun** when gerund is awkward: `git`, `docker`, `kubernetes`
-- **Hyphenated compound** for specificity: `pr-review`, `test-runner`, `db-migrations`
