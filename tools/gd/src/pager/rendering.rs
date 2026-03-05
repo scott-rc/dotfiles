@@ -102,7 +102,7 @@ pub(crate) fn viewport_bounds(
     super::navigation::viewport_bounds(state, content_height)
 }
 
-pub(crate) const TOOLTIP_HEIGHT: usize = 2;
+pub(crate) const TOOLTIP_HEIGHT: usize = 3;
 
 pub(crate) fn bar_visible(state: &PagerState) -> bool {
     matches!(state.mode, Mode::Search)

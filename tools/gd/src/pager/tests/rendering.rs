@@ -103,6 +103,7 @@ fn li(new: Option<u32>, old: Option<u32>) -> LineInfo {
         new_lineno: new,
         old_lineno: old,
         line_kind: Some(LineKind::Context),
+        hunk_idx: None,
     }
 }
 

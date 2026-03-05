@@ -135,7 +135,7 @@ mod user_override_flags {
     fn toggle_single_file_sets_user_flag() {
         let mut state = make_keybinding_state();
         assert!(!state.view_scope_user_set);
-        handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+        handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
         assert!(state.view_scope_user_set);
     }
 
@@ -143,7 +143,7 @@ mod user_override_flags {
     fn toggle_full_context_sets_user_flag() {
         let mut state = make_keybinding_state();
         assert!(!state.full_context_user_set);
-        handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p());
+        handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
         assert!(state.full_context_user_set);
     }
 

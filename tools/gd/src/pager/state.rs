@@ -17,6 +17,7 @@ pub(crate) struct ReducerCtx<'a> {
     pub cols: u16,
     pub files: &'a [DiffFile],
     pub repo: &'a std::path::Path,
+    pub source: &'a crate::git::DiffSource,
 }
 
 /// Effect emitted by the reducer. Mirrors KeyResult.
@@ -27,6 +28,7 @@ pub(crate) enum ReducerEffect {
     ReGenerate,
     Quit,
     OpenEditor { path: String, lineno: Option<u32> },
+    ApplyPatch { patch: String, cached: bool, reverse: bool },
 }
 
 impl From<ReducerEffect> for KeyResult {
@@ -37,6 +39,9 @@ impl From<ReducerEffect> for KeyResult {
             ReducerEffect::ReGenerate => KeyResult::ReGenerate,
             ReducerEffect::Quit => KeyResult::Quit,
             ReducerEffect::OpenEditor { path, lineno } => KeyResult::OpenEditor { path, lineno },
+            ReducerEffect::ApplyPatch { patch, cached, reverse } => {
+                KeyResult::ApplyPatch { patch, cached, reverse }
+            }
         }
     }
 }

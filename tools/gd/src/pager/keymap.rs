@@ -14,7 +14,7 @@ struct KeymapEntry {
 }
 
 fn keymap_entries() -> &'static [KeymapEntry] {
-    use HelpGroup::{DiffNav, Navigation, Other, Selection};
+    use HelpGroup::{DiffNav, Navigation, Other, Selection, Staging};
     use KeyContext::Normal;
     static ENTRIES: &[KeymapEntry] = &[
         KeymapEntry {
@@ -233,6 +233,38 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             key_display: "?",
             label: "Toggle key hints",
         },
+        KeymapEntry {
+            action: ActionId::StageLine,
+            context: Normal,
+            keys: &[Key::Char('a')],
+            group: Staging,
+            key_display: "a",
+            label: "Stage line",
+        },
+        KeymapEntry {
+            action: ActionId::StageHunk,
+            context: Normal,
+            keys: &[Key::Char('A')],
+            group: Staging,
+            key_display: "A",
+            label: "Stage hunk",
+        },
+        KeymapEntry {
+            action: ActionId::DiscardLine,
+            context: Normal,
+            keys: &[Key::Char('x')],
+            group: Staging,
+            key_display: "x",
+            label: "Discard line",
+        },
+        KeymapEntry {
+            action: ActionId::DiscardHunk,
+            context: Normal,
+            keys: &[Key::Char('X')],
+            group: Staging,
+            key_display: "X",
+            label: "Discard hunk",
+        },
     ];
     ENTRIES
 }
@@ -298,7 +330,7 @@ fn tooltip_single(action: ActionId, context: KeyContext) -> Option<String> {
     ))
 }
 
-pub(crate) fn keymap_tooltip_lines() -> [String; 2] {
+pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
     let context = KeyContext::Normal;
 
     let line1 = [
@@ -337,14 +369,23 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 2] {
     .collect::<Vec<String>>()
     .join("  ");
 
-    [line1, line2]
+    let line3 = [
+        tooltip_pair(ActionId::StageLine, ActionId::StageHunk, "stage", context),
+        tooltip_pair(ActionId::DiscardLine, ActionId::DiscardHunk, "discard", context),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<String>>()
+    .join("  ");
+
+    [line1, line2, line3]
 }
 
 #[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn keymap_help_lines() -> Vec<String> {
     use HelpGroup::{DiffNav, Navigation, Other, Search, Selection};
     use std::collections::HashSet;
-    let order = [Navigation, DiffNav, Search, Selection, Other];
+    let order = [Navigation, DiffNav, Search, Selection, HelpGroup::Staging, Other];
     let mut lines: Vec<String> = Vec::new();
     for group in order {
         let mut seen: HashSet<(&'static str, &'static str)> = HashSet::new();
@@ -368,6 +409,7 @@ pub(crate) fn keymap_help_lines() -> Vec<String> {
                 Search => "Search",
                 Selection => "Selection",
                 Other => "Other",
+                HelpGroup::Staging => "Staging",
             };
             lines.push(group_name.to_string());
             for (k, l) in group_lines {

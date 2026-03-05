@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::git::diff::{DiffFile, FileStatus, LineKind};
+use crate::git::diff::{DiffFile, DiffHunk, DiffLine, FileStatus, LineKind};
 use crate::render;
 use crate::render::LineInfo;
 use crate::style;
@@ -134,6 +134,7 @@ pub fn make_keybinding_state() -> PagerState {
             new_lineno: Some(i as u32 + 1),
             old_lineno: None,
             line_kind,
+            hunk_idx: None,
         });
     }
 
@@ -193,6 +194,7 @@ pub fn make_pager_state_for_range(
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
+            hunk_idx: None,
         };
         lines_len
     ];
@@ -217,6 +219,7 @@ pub fn make_line_map(kinds: &[Option<LineKind>]) -> Vec<LineInfo> {
             new_lineno: None,
             old_lineno: None,
             line_kind: kind,
+            hunk_idx: None,
         })
         .collect()
 }
@@ -242,6 +245,7 @@ pub fn make_line_map_with_headers() -> Vec<LineInfo> {
             new_lineno: Some(1),
             old_lineno: None,
             line_kind: kind,
+            hunk_idx: None,
         })
         .collect()
 }
@@ -276,6 +280,7 @@ pub fn scrollbar_thumb_range(
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
+            hunk_idx: None,
         })
         .collect();
     let mut first = None;
@@ -371,6 +376,7 @@ pub fn make_mixed_content_state() -> PagerState {
             new_lineno: lineno,
             old_lineno,
             line_kind,
+            hunk_idx: None,
         });
     }
 
@@ -389,6 +395,43 @@ pub fn make_mixed_content_state() -> PagerState {
     );
     state.cursor_line = 1;
     state
+}
+
+/// Build DiffFiles suitable for staging tests: one file with one hunk containing
+/// context + added + deleted lines.
+pub fn make_staging_files() -> Vec<DiffFile> {
+    vec![DiffFile {
+        old_path: Some("test.rs".to_string()),
+        new_path: Some("test.rs".to_string()),
+        status: FileStatus::Modified,
+        hunks: vec![DiffHunk {
+            old_start: 1,
+            new_start: 1,
+            lines: vec![
+                DiffLine { kind: LineKind::Context, content: "ctx1".into(), old_lineno: Some(1), new_lineno: Some(1) },
+                DiffLine { kind: LineKind::Deleted, content: "old".into(), old_lineno: Some(2), new_lineno: None },
+                DiffLine { kind: LineKind::Added, content: "new".into(), old_lineno: None, new_lineno: Some(2) },
+                DiffLine { kind: LineKind::Context, content: "ctx2".into(), old_lineno: Some(3), new_lineno: Some(3) },
+            ],
+        }],
+    }]
+}
+
+/// Build a PagerState with line_map entries that have hunk_idx set, suitable for
+/// staging action tests. Returns (state, files).
+pub fn make_staging_state() -> (PagerState, Vec<DiffFile>) {
+    let files = make_staging_files();
+    let output = render::render(&files, 80, false);
+    let tree_entries = build_tree_entries(&files);
+    let state = PagerState::new(
+        output.lines,
+        output.line_map,
+        output.file_starts,
+        output.hunk_starts,
+        tree_entries,
+        120,
+    );
+    (state, files)
 }
 
 pub fn add_leading_context_before_hunk_changes(state: &mut PagerState) {

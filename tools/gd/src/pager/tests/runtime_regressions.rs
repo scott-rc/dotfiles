@@ -327,6 +327,7 @@ fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
             } else {
                 Some(LineKind::Context)
             },
+            hunk_idx: None,
         })
         .collect();
     let new_doc = Document {
@@ -366,6 +367,7 @@ fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
+                hunk_idx: None,
             };
             30
         ],
@@ -465,6 +467,7 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
+                hunk_idx: None,
             };
             20
         ],

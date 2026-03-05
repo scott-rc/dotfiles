@@ -284,7 +284,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         };
 
         let ch = content_height(last_size.1, &state);
-        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files, &diff_ctx.repo);
+        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files, &diff_ctx.repo, &diff_ctx.source);
         match result {
             KeyResult::Quit => break,
             KeyResult::ReRender => {
@@ -337,6 +337,31 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 }
                 re_render(&mut state, &files, color, last_size.0);
                 last_index_mtime = git_index_mtime(&diff_ctx.repo);
+            }
+            KeyResult::ApplyPatch { patch, cached, reverse } => {
+                let apply_result = if cached && !reverse {
+                    crate::git::stage_patch(&diff_ctx.repo, &patch)
+                } else if cached && reverse {
+                    crate::git::unstage_patch(&diff_ctx.repo, &patch)
+                } else {
+                    crate::git::revert_patch(&diff_ctx.repo, &patch)
+                };
+                match apply_result {
+                    Ok(()) => {
+                        files = regenerate_files(diff_ctx, state.full_context);
+                        if files.is_empty() {
+                            break;
+                        }
+                        re_render(&mut state, &files, color, last_size.0);
+                        last_index_mtime = git_index_mtime(&diff_ctx.repo);
+                    }
+                    Err(e) => {
+                        state.status_message = format!(
+                            "Apply failed: {}",
+                            e.lines().next().unwrap_or(&e)
+                        );
+                    }
+                }
             }
             KeyResult::Continue => {}
         }

@@ -1,6 +1,9 @@
 use tui::pager::{Key, copy_to_clipboard};
 
+use std::collections::HashSet;
+
 use crate::git::diff::DiffFile;
+use crate::git::DiffSource;
 
 use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
@@ -361,9 +364,116 @@ fn dispatch_normal_action(
             state.tooltip_visible = !state.tooltip_visible;
             Some(ReducerEffect::ReRender)
         }
+        ActionId::StageLine | ActionId::StageHunk | ActionId::DiscardLine | ActionId::DiscardHunk => {
+            dispatch_staging_action(state, action, ctx)
+        }
         // Handled by dispatch_search_action in Search mode
         ActionId::SearchSubmit | ActionId::SearchCancel => None,
     }
+}
+
+fn dispatch_staging_action(
+    state: &mut PagerState,
+    action: ActionId,
+    ctx: &ReducerCtx<'_>,
+) -> Option<ReducerEffect> {
+    let files = ctx.files;
+
+    // Guard: staging requires a diff line with file/hunk context
+    let info = state.doc.line_map.get(state.cursor_line)?;
+    if info.line_kind.is_none() {
+        return Some(ReducerEffect::Continue);
+    }
+    let file_idx = info.file_idx;
+    let hunk_idx = match info.hunk_idx {
+        Some(h) => h,
+        None => return Some(ReducerEffect::Continue),
+    };
+
+    // Guard: staging is not supported in commit or range views
+    match ctx.source {
+        DiffSource::Commit(_) | DiffSource::Range(_, _) => {
+            state.status_message = "Cannot stage in this view".into();
+            return Some(ReducerEffect::Continue);
+        }
+        _ => {}
+    }
+
+    // Determine cached/reverse flags based on action and source
+    let is_stage = matches!(action, ActionId::StageLine | ActionId::StageHunk);
+    let is_hunk = matches!(action, ActionId::StageHunk | ActionId::DiscardHunk);
+
+    let (cached, reverse) = match ctx.source {
+        DiffSource::WorkingTree => {
+            if is_stage {
+                (true, false)
+            } else {
+                (false, true)
+            }
+        }
+        DiffSource::Staged => {
+            if is_stage {
+                // Unstage: apply cached reverse
+                (true, true)
+            } else {
+                state.status_message = "Cannot discard in staged view".into();
+                return Some(ReducerEffect::Continue);
+            }
+        }
+        _ => unreachable!(),
+    };
+
+    let file = match files.get(file_idx) {
+        Some(f) => f,
+        None => return Some(ReducerEffect::Continue),
+    };
+    let hunk = match file.hunks.get(hunk_idx) {
+        Some(h) => h,
+        None => return Some(ReducerEffect::Continue),
+    };
+
+    let patch = if is_hunk {
+        crate::git::patch::generate_hunk_patch(file, hunk)
+    } else {
+        // Line action: find which hunk line indices to select
+        let selected = if let Some(anchor) = state.visual_anchor.take() {
+            // Visual selection: collect all content-line indices in the range
+            let lo = anchor.min(state.cursor_line);
+            let hi = anchor.max(state.cursor_line);
+            let mut indices = HashSet::new();
+            for doc_line in lo..=hi {
+                if let Some(li) = state.doc.line_map.get(doc_line) {
+                    if li.file_idx == file_idx && li.hunk_idx == Some(hunk_idx) && li.line_kind.is_some() {
+                        // Find the hunk line index by matching lineno
+                        for (i, hl) in hunk.lines.iter().enumerate() {
+                            if hl.old_lineno == li.old_lineno && hl.new_lineno == li.new_lineno {
+                                indices.insert(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            indices
+        } else {
+            // Single line: find the matching hunk line
+            let mut indices = HashSet::new();
+            for (i, hl) in hunk.lines.iter().enumerate() {
+                if hl.old_lineno == info.old_lineno && hl.new_lineno == info.new_lineno {
+                    indices.insert(i);
+                    break;
+                }
+            }
+            indices
+        };
+
+        if selected.is_empty() {
+            return Some(ReducerEffect::Continue);
+        }
+        crate::git::patch::generate_line_patch(file, hunk, &selected)
+    };
+
+    Some(ReducerEffect::ApplyPatch { patch, cached, reverse })
 }
 
 fn dispatch_search_action(state: &mut PagerState, action: ActionId) -> ReducerEffect {
@@ -441,6 +551,7 @@ pub(crate) fn handle_key(
     cols: u16,
     files: &[DiffFile],
     repo: &std::path::Path,
+    source: &crate::git::DiffSource,
 ) -> KeyResult {
     let event = ReducerEvent::Key(key);
     let ctx = ReducerCtx {
@@ -449,6 +560,7 @@ pub(crate) fn handle_key(
         cols,
         files,
         repo,
+        source,
     };
     KeyResult::from(reduce(state, &event, &ctx))
 }

@@ -1,6 +1,7 @@
 pub mod diff;
+pub mod patch;
 
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -240,6 +241,53 @@ pub fn append_untracked(
         }
         let text = String::from_utf8_lossy(&content);
         files.push(diff::DiffFile::from_content(&path, &text));
+    }
+}
+
+fn apply_patch_raw(repo: &Path, extra_args: &[&str], patch: &str) -> Result<(), String> {
+    let mut child = Command::new("git")
+        .arg("apply")
+        .args(extra_args)
+        .current_dir(repo)
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(patch.as_bytes()).map_err(|e| e.to_string())?;
+    }
+
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).into_owned())
+    }
+}
+
+pub fn stage_patch(repo: &Path, patch: &str) -> Result<(), String> {
+    apply_patch_raw(repo, &["--cached"], patch)
+}
+
+pub fn unstage_patch(repo: &Path, patch: &str) -> Result<(), String> {
+    apply_patch_raw(repo, &["--cached", "--reverse"], patch)
+}
+
+pub fn revert_patch(repo: &Path, patch: &str) -> Result<(), String> {
+    apply_patch_raw(repo, &["--reverse"], patch)
+}
+
+pub fn stage_untracked(repo: &Path, path: &str) -> Result<(), String> {
+    let out = Command::new("git")
+        .args(["add", path])
+        .current_dir(repo)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).into_owned())
     }
 }
 
@@ -502,6 +550,139 @@ mod tests {
         sort_files_for_display(&mut files);
         let paths: Vec<&str> = files.iter().map(diff::DiffFile::path).collect();
         assert_eq!(paths, vec!["a-first.txt", "m-middle.txt", "z-last.txt"]);
+    }
+
+    fn make_temp_repo() -> PathBuf {
+        let dir_name = format!(
+            "gd-apply-test-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        );
+        let repo = std::env::temp_dir().join(dir_name);
+        std::fs::create_dir_all(&repo).expect("create temp repo");
+
+        let init = Command::new("git")
+            .arg("init")
+            .current_dir(&repo)
+            .output()
+            .expect("git init");
+        assert!(init.status.success(), "git init should succeed");
+
+        Command::new("git")
+            .args(["config", "user.email", "test@test.com"])
+            .current_dir(&repo)
+            .output()
+            .expect("git config email");
+        Command::new("git")
+            .args(["config", "user.name", "Test"])
+            .current_dir(&repo)
+            .output()
+            .expect("git config name");
+
+        std::fs::write(repo.join("file.txt"), "line1\n").expect("write file");
+        Command::new("git")
+            .args(["add", "."])
+            .current_dir(&repo)
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "initial"])
+            .current_dir(&repo)
+            .output()
+            .expect("git commit");
+
+        repo
+    }
+
+    #[test]
+    fn test_stage_patch_adds_line() {
+        let repo = make_temp_repo();
+
+        // Append a line to file.txt
+        std::fs::write(repo.join("file.txt"), "line1\nline2\n").expect("append line");
+
+        // Capture working-tree diff
+        let patch = run_diff(&repo, &["diff"]);
+        assert!(!patch.is_empty(), "should have a working-tree diff");
+
+        // Stage the patch
+        stage_patch(&repo, &patch).expect("stage_patch should succeed");
+
+        // Verify it's staged
+        let staged = run_diff(&repo, &["diff", "--cached"]);
+        assert!(!staged.is_empty(), "staged diff should be non-empty");
+
+        std::fs::remove_dir_all(&repo).expect("cleanup");
+    }
+
+    #[test]
+    fn test_unstage_patch_removes_staged_line() {
+        let repo = make_temp_repo();
+
+        // Append a line and capture the working-tree diff
+        std::fs::write(repo.join("file.txt"), "line1\nline2\n").expect("append line");
+        let patch = run_diff(&repo, &["diff"]);
+
+        // Stage it
+        stage_patch(&repo, &patch).expect("stage_patch should succeed");
+
+        // Unstage it
+        unstage_patch(&repo, &patch).expect("unstage_patch should succeed");
+
+        // Verify nothing is staged
+        let staged = run_diff(&repo, &["diff", "--cached"]);
+        assert!(staged.is_empty(), "staged diff should be empty after unstage");
+
+        std::fs::remove_dir_all(&repo).expect("cleanup");
+    }
+
+    #[test]
+    fn test_revert_patch_discards_working_tree_change() {
+        let repo = make_temp_repo();
+
+        // Append a line
+        std::fs::write(repo.join("file.txt"), "line1\nline2\n").expect("append line");
+
+        // Capture working-tree diff
+        let patch = run_diff(&repo, &["diff"]);
+        assert!(!patch.is_empty(), "should have a working-tree diff");
+
+        // Revert it
+        revert_patch(&repo, &patch).expect("revert_patch should succeed");
+
+        // Verify the file is back to original
+        let content = std::fs::read_to_string(repo.join("file.txt")).expect("read file");
+        assert_eq!(content, "line1\n", "file should be back to original");
+
+        std::fs::remove_dir_all(&repo).expect("cleanup");
+    }
+
+    #[test]
+    fn test_stage_untracked_stages_new_file() {
+        let repo = make_temp_repo();
+
+        // Write a new file without adding it
+        std::fs::write(repo.join("new.txt"), "hello\n").expect("write new file");
+
+        // Stage it
+        stage_untracked(&repo, "new.txt").expect("stage_untracked should succeed");
+
+        // Verify it's staged
+        let out = Command::new("git")
+            .args(["diff", "--cached", "--name-only"])
+            .current_dir(&repo)
+            .output()
+            .expect("git diff --cached --name-only");
+        let names = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            names.contains("new.txt"),
+            "new.txt should appear in staged files"
+        );
+
+        std::fs::remove_dir_all(&repo).expect("cleanup");
     }
 
     #[test]

@@ -192,7 +192,7 @@ fn help_groups_are_present() {
 #[test]
 fn keymap_tooltip_lines_has_expected_shape() {
     let lines = keymap_tooltip_lines();
-    assert_eq!(lines.len(), 2, "tooltip should have two lines");
+    assert_eq!(lines.len(), 3, "tooltip should have three lines");
     for line in lines {
         assert!(!line.trim().is_empty(), "tooltip lines must be non-empty");
         let segments: Vec<&str> = line.split("  ").collect();

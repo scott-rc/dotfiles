@@ -9,6 +9,7 @@ expression: output.line_map
         new_lineno: None,
         old_lineno: None,
         line_kind: None,
+        hunk_idx: None,
     },
     LineInfo {
         file_idx: 0,
@@ -22,6 +23,9 @@ expression: output.line_map
         line_kind: Some(
             Context,
         ),
+        hunk_idx: Some(
+            0,
+        ),
     },
     LineInfo {
         file_idx: 0,
@@ -32,6 +36,9 @@ expression: output.line_map
         old_lineno: None,
         line_kind: Some(
             Added,
+        ),
+        hunk_idx: Some(
+            0,
         ),
     },
     LineInfo {
@@ -45,6 +52,9 @@ expression: output.line_map
         ),
         line_kind: Some(
             Context,
+        ),
+        hunk_idx: Some(
+            0,
         ),
     },
 ]

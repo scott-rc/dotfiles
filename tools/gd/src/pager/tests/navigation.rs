@@ -129,6 +129,7 @@ fn change_group_starts_finds_change_boundaries() {
         new_lineno: Some(i as u32 + 1),
         old_lineno: None,
         line_kind: *kind,
+        hunk_idx: None,
     })
     .collect();
 
@@ -174,6 +175,7 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
+                hunk_idx: None,
             };
             20
         ],
@@ -361,6 +363,7 @@ fn test_scrollbar_no_crash_on_zero_range() {
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
+            hunk_idx: None,
         })
         .collect();
     let cell = super::super::rendering::render_scrollbar_cell(0, 20, 5, 5, 0, &line_map);
@@ -413,6 +416,7 @@ fn test_sync_tree_cursor_collapsed_parent_lands_on_directory() {
             new_lineno: Some(i as u32 + 1),
             old_lineno: None,
             line_kind: Some(LineKind::Context),
+            hunk_idx: None,
         })
         .collect();
 
@@ -469,6 +473,7 @@ fn test_sync_tree_cursor_empty_tree_no_panic() {
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
+                hunk_idx: None,
             };
             5
         ],
@@ -523,6 +528,7 @@ fn test_scrollbar_no_panic_on_vis_end_less_than_vis_start() {
             new_lineno: None,
             old_lineno: None,
             line_kind: None,
+            hunk_idx: None,
         })
         .collect();
     // vis_start=10 > vis_end=5 should not panic on subtraction underflow.
@@ -560,7 +566,7 @@ fn test_change_group_starts_real_render_single_file() {
     let mut state = make_pager_state_from_files(&files, false);
 
     // Enter single file mode
-    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."));
+    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
 
     // Re-render as the runtime would after ReRender
     if matches!(result, super::super::types::KeyResult::ReRender) {
@@ -604,13 +610,13 @@ diff --git a/x.txt b/x.txt
     let mut state = make_pager_state_from_files(&files, false);
 
     // Enter single file mode
-    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."));
+    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
 
     let before = state.cursor_line;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, Path::new("."));
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
 
     assert!(
         state.cursor_line > before,
@@ -678,6 +684,7 @@ diff --git a/b.txt b/b.txt
         120,
         &files,
         Path::new("."),
+        &crate::git::DiffSource::WorkingTree,
     );
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
@@ -695,6 +702,7 @@ diff --git a/b.txt b/b.txt
         120,
         &files,
         Path::new("."),
+        &crate::git::DiffSource::WorkingTree,
     );
     assert!(
         state.cursor_line > initial_cursor,
@@ -765,6 +773,7 @@ diff --git a/src/foo.txt b/src/foo.txt
         120,
         &files,
         Path::new("."),
+        &crate::git::DiffSource::WorkingTree,
     );
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
@@ -780,6 +789,7 @@ diff --git a/src/foo.txt b/src/foo.txt
         120,
         &files,
         Path::new("."),
+        &crate::git::DiffSource::WorkingTree,
     );
 
     assert_eq!(

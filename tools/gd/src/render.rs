@@ -20,6 +20,8 @@ pub struct LineInfo {
     pub old_lineno: Option<u32>,
     /// Diff status of this line (Added/Deleted/Context), if from a hunk.
     pub line_kind: Option<LineKind>,
+    /// Index of the hunk within the file this line belongs to, if from a hunk.
+    pub hunk_idx: Option<usize>,
 }
 
 pub struct RenderOutput {
@@ -81,6 +83,7 @@ fn render_file(
         new_lineno: None,
         old_lineno: None,
         line_kind: None,
+        hunk_idx: None,
     });
 
     // Syntax highlighter for this file's extension
@@ -112,13 +115,14 @@ fn render_file(
                 new_lineno: None,
                 old_lineno: None,
                 line_kind: None,
+                hunk_idx: None,
             });
         }
 
         hunk_starts.push(lines.len());
 
         // Render diff lines with word-level highlights
-        render_hunk_lines(hunk, &render_ctx, &mut lines, &mut line_map);
+        render_hunk_lines(hunk, hunk_idx, &render_ctx, &mut lines, &mut line_map);
     }
 
     (lines, line_map, hunk_starts)
@@ -436,6 +440,7 @@ fn add_ranges_to_lines(
 
 fn render_hunk_lines(
     hunk: &DiffHunk,
+    hunk_idx: usize,
     ctx: &HunkRenderContext<'_>,
     lines: &mut Vec<String>,
     line_map: &mut Vec<LineInfo>,
@@ -578,6 +583,7 @@ fn render_hunk_lines(
                 new_lineno: diff_line.new_lineno,
                 old_lineno: diff_line.old_lineno,
                 line_kind: Some(diff_line.kind),
+                hunk_idx: Some(hunk_idx),
             });
         }
     }

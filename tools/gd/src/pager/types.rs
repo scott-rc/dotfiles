@@ -74,6 +74,7 @@ pub(crate) enum KeyResult {
     ReGenerate,
     Quit,
     OpenEditor { path: String, lineno: Option<u32> },
+    ApplyPatch { patch: String, cached: bool, reverse: bool },
 }
 
 /// Context in which a keybinding applies.
@@ -113,6 +114,10 @@ pub(crate) enum ActionId {
     OpenEditor,
     Reload,
     ToggleTooltip,
+    StageLine,
+    StageHunk,
+    DiscardLine,
+    DiscardHunk,
 }
 
 /// Help group for overlay layout.
@@ -122,5 +127,6 @@ pub(crate) enum HelpGroup {
     DiffNav,
     Search,
     Selection,
+    Staging,
     Other,
 }

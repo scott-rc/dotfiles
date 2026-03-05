@@ -14,7 +14,7 @@ use std::path::Path;
 use super::common::{
     StateSnapshot, add_leading_context_before_hunk_changes, assert_state_invariants,
     make_diff_file, make_keybinding_state, make_mixed_content_state, make_pager_state_from_files,
-    make_two_file_diff,
+    make_staging_state, make_two_file_diff,
 };
 
 fn p() -> &'static Path {
@@ -27,7 +27,7 @@ fn p() -> &'static Path {
 fn key_j_next_content_line() {
     let mut state = make_keybinding_state();
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -35,7 +35,7 @@ fn key_j_next_content_line() {
 fn key_k_prev_content_line() {
     let mut state = make_keybinding_state();
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char('k'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('k'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -43,7 +43,7 @@ fn key_k_prev_content_line() {
 fn key_j_skips_headers() {
     let mut state = make_keybinding_state();
     state.cursor_line = 4;
-    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -51,7 +51,7 @@ fn key_j_skips_headers() {
 fn key_g_jumps_to_first_content() {
     let mut state = make_keybinding_state();
     state.cursor_line = 15;
-    handle_key(&mut state, Key::Char('g'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('g'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -60,7 +60,7 @@ fn key_g_jumps_to_first_content() {
 fn key_G_jumps_to_last_content() {
     let mut state = make_keybinding_state();
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('G'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('G'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -70,7 +70,7 @@ fn key_G_jumps_to_last_content() {
 fn key_d_half_page_down() {
     let mut state = make_keybinding_state();
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('d'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('d'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -78,7 +78,7 @@ fn key_d_half_page_down() {
 fn key_u_half_page_up() {
     let mut state = make_keybinding_state();
     state.cursor_line = 25;
-    handle_key(&mut state, Key::Char('u'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('u'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -89,7 +89,7 @@ fn key_z_centers_viewport() {
     let mut state = make_keybinding_state();
     state.cursor_line = 40;
     state.top_line = 0;
-    handle_key(&mut state, Key::Char('z'), 20, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('z'), 20, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(
         state.top_line > 0,
         "z should center viewport around cursor, moving top_line from 0"
@@ -103,7 +103,7 @@ fn key_z_centers_viewport() {
 fn key_bracket_next_hunk_same_file() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 8;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -111,7 +111,7 @@ fn key_bracket_next_hunk_same_file() {
 fn key_bracket_prev_hunk_same_file() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 16;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -120,7 +120,7 @@ fn key_bracket_prev_hunk_from_first_content_line() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 16;
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 10);
 }
 
@@ -129,7 +129,7 @@ fn key_bracket_prev_hunk_single_file_retreats_to_prev_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // At the first hunk of file 1, [ should retreat to previous file
     assert_eq!(
         state.active_file(),
@@ -147,7 +147,7 @@ fn key_bracket_prev_hunk_single_file_retreats_to_prev_file() {
 fn key_bracket_next_hunk_cross_file_boundary() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 16;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -155,7 +155,7 @@ fn key_bracket_next_hunk_cross_file_boundary() {
 fn key_bracket_next_hunk_scrolloff_binding() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char(']'), 15, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 15, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -164,7 +164,7 @@ fn key_bracket_next_hunk_at_last_is_noop() {
     let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 76;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -173,7 +173,7 @@ fn key_bracket_prev_hunk_at_first_is_noop() {
     let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -182,7 +182,7 @@ fn key_bracket_no_active_file_does_not_stick() {
     let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 5;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -192,7 +192,7 @@ fn key_bracket_no_active_file_does_not_stick() {
 fn key_brace_next_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -201,7 +201,7 @@ fn key_brace_prev_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -210,7 +210,7 @@ fn key_brace_prev_file_no_active_stuck_cursor() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -219,7 +219,7 @@ fn key_brace_next_file_no_active_file_does_not_stick() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 0;
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -228,7 +228,7 @@ fn key_brace_next_file_at_last_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 66;
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -237,7 +237,7 @@ fn key_brace_prev_file_at_first_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -246,7 +246,7 @@ fn key_brace_next_file_single_file_switches() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(
         state.active_file(),
         Some(1),
@@ -260,7 +260,7 @@ fn key_brace_prev_file_single_file_switches() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(
         state.active_file(),
         Some(0),
@@ -274,7 +274,7 @@ fn key_brace_next_file_single_file_last_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(2));
     state.cursor_line = 61;
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.active_file(), Some(2));
 }
 
@@ -283,7 +283,7 @@ fn key_brace_prev_file_single_file_first_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.active_file(), Some(0));
 }
 
@@ -291,7 +291,7 @@ fn key_brace_prev_file_single_file_first_is_noop() {
 fn key_brace_shows_file_status_message() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -299,7 +299,7 @@ fn key_brace_shows_file_status_message() {
 fn key_brace_prev_shows_file_status_message() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -310,7 +310,7 @@ fn key_bracket_single_file_advances_to_next_file_at_last_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 16;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // At the last hunk of file 0 (hunks [5, 15]), ] should advance to next file
     assert_eq!(
         state.active_file(),
@@ -329,7 +329,7 @@ fn key_bracket_prev_single_file_retreats_to_prev_file_at_first_hunk() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(1));
     state.cursor_line = 36;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // At first hunk of file 1, [ should retreat to previous file
     assert_eq!(
         state.active_file(),
@@ -348,7 +348,7 @@ fn key_bracket_single_file_last_file_at_last_hunk_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(2));
     state.cursor_line = 76;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // At the last hunk of the last file, ] should be a no-op
     assert_eq!(state.active_file(), Some(2));
     assert_eq!(state.cursor_line, 76);
@@ -359,7 +359,7 @@ fn key_bracket_single_file_first_file_at_first_hunk_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // At the first hunk of file 0, [ with no previous file should be a no-op
     assert_eq!(state.active_file(), Some(0));
     assert_eq!(state.cursor_line, 6);
@@ -370,7 +370,7 @@ fn key_bracket_single_file_within_file_works() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 10);
 }
 
@@ -379,7 +379,7 @@ fn key_bracket_single_file_clamps_top_line_to_active_file_range() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
     state.cursor_line = 16;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     let (range_start, _range_end) = visible_range(&state);
     assert!(state.top_line >= range_start);
 }
@@ -393,7 +393,7 @@ fn key_bracket_next_advance_lands_on_first_change_group() {
     // Position at the last change group of file 0 (Deleted at 10-11)
     state.cursor_line = 10;
     // First ] stays within file 0 -- no more change groups after 10
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // Should advance to file 1 and land on first change group (Added at 36)
     assert_eq!(
         state.active_file(),
@@ -414,7 +414,7 @@ fn key_bracket_prev_retreat_lands_on_last_change_group() {
     state.set_active_file(Some(1));
     // Position at the first change group of file 1 (Added at 36)
     state.cursor_line = 36;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // Should retreat to file 0 and land on last change group (Deleted at 10)
     assert_eq!(
         state.active_file(),
@@ -446,7 +446,7 @@ fn key_bracket_full_context_single_file_navigates_changes() {
         };
     }
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
@@ -457,7 +457,7 @@ fn key_bracket_hunk_context_skips_leading_context_to_first_change() {
     add_leading_context_before_hunk_changes(&mut state);
     state.full_context = false;
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 8);
 }
 
@@ -467,7 +467,7 @@ fn key_bracket_prev_hunk_context_navigates_to_prev_change_group() {
     add_leading_context_before_hunk_changes(&mut state);
     state.full_context = false;
     state.cursor_line = 17;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 10);
 }
 
@@ -477,7 +477,7 @@ fn key_bracket_full_context_single_file_lands_on_change_group() {
     state.set_active_file(Some(0));
     state.full_context = true;
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 6);
 }
 
@@ -498,8 +498,8 @@ fn key_bracket_full_context_same_targets_as_hunk_mode() {
     ctx_state.cursor_line = 1;
 
     // First ] should land on same position in both modes
-    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p());
-    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(
         hunk_state.cursor_line, ctx_state.cursor_line,
         "first ] should land on same position: hunk={} full_ctx={}",
@@ -507,8 +507,8 @@ fn key_bracket_full_context_same_targets_as_hunk_mode() {
     );
 
     // Second ] should also land on same position
-    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p());
-    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut hunk_state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut ctx_state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(
         hunk_state.cursor_line, ctx_state.cursor_line,
         "second ] should land on same position: hunk={} full_ctx={}",
@@ -524,7 +524,7 @@ fn key_bracket_full_context_advances_to_next_file() {
     state.full_context = true;
     // Navigate to the last change in file 0
     state.cursor_line = 10; // Deleted group at 10-11
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // If there are no more targets in file 0, should advance to file 1
     // (depends on mixed_content_state's layout for file 0)
     assert_state_invariants(&state);
@@ -536,7 +536,7 @@ fn key_bracket_prev_full_context_single_file_at_first_change_is_noop() {
     state.set_active_file(Some(0));
     state.full_context = true;
     state.cursor_line = 7;
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, 6);
 }
 
@@ -546,13 +546,13 @@ fn key_bracket_then_prev_round_trip_full_context_single_file() {
     state.set_active_file(Some(0));
     state.full_context = true;
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     let after_next = state.cursor_line;
     assert!(
         after_next > 6,
         "] should move forward from 6, got {after_next}"
     );
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     let after_prev = state.cursor_line;
     assert_eq!(after_prev, 6, "[ should return to first change");
 }
@@ -565,7 +565,7 @@ fn key_bracket_full_context_all_context_file_advances_to_next_file() {
     state.set_active_file(Some(0));
     state.full_context = true;
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -575,7 +575,7 @@ fn key_bracket_full_context_all_context_file_advances_to_next_file() {
 fn key_s_toggles_off_single_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -583,16 +583,16 @@ fn key_s_toggles_off_single_file() {
 fn key_s_toggles_on_single_file() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
 #[test]
 fn key_s_still_toggles_single_file() {
     let mut state = make_keybinding_state();
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.active_file(), Some(0));
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.active_file(), None);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
@@ -601,7 +601,7 @@ fn key_s_still_toggles_single_file() {
 fn normal_s_toggle_on_lands_on_file_header() {
     let mut state = make_keybinding_state();
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     // Cursor lands on file header so ] (jump_next, strictly >) can find the first change group
     let file_start = state.file_start(state.active_file().unwrap()).unwrap();
     assert_eq!(
@@ -616,7 +616,7 @@ fn normal_s_toggle_on_lands_on_file_header() {
 #[test]
 fn key_o_toggles_full_context() {
     let mut state = make_keybinding_state();
-    handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.full_context);
 }
 
@@ -624,7 +624,7 @@ fn key_o_toggles_full_context() {
 fn key_o_toggles_hunk_context() {
     let mut state = make_keybinding_state();
     state.full_context = true;
-    handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(!state.full_context);
 }
 
@@ -632,7 +632,7 @@ fn key_o_toggles_hunk_context() {
 fn key_space_is_noop_for_full_context_toggle() {
     let mut state = make_keybinding_state();
     state.full_context = false;
-    handle_key(&mut state, Key::Char(' '), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(' '), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(!state.full_context);
 }
 
@@ -640,7 +640,7 @@ fn key_space_is_noop_for_full_context_toggle() {
 fn key_space_is_noop_for_context_toggle() {
     let mut state = make_keybinding_state();
     state.full_context = true;
-    handle_key(&mut state, Key::Char(' '), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char(' '), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.full_context);
 }
 
@@ -649,7 +649,7 @@ fn key_space_is_noop_for_context_toggle() {
 #[test]
 fn key_slash_enters_search() {
     let mut state = make_keybinding_state();
-    handle_key(&mut state, Key::Char('/'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('/'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -661,7 +661,7 @@ fn key_n_wraps_within_single_file() {
     state.search_matches = vec![6, 36, 66];
     state.current_match = 0;
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -672,7 +672,7 @@ fn key_N_wraps_within_single_file() {
     state.search_matches = vec![6, 36, 66];
     state.current_match = 0;
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -682,7 +682,7 @@ fn key_n_no_matches_in_active_file() {
     state.search_matches = vec![36, 66];
     state.current_match = -1;
     state.set_active_file(Some(0));
-    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -692,7 +692,7 @@ fn key_n_after_toggling_single_file_off_cycles_globally() {
     state.search_matches = vec![6, 36, 66];
     state.current_match = 0;
     state.set_active_file(None);
-    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -702,7 +702,7 @@ fn test_key_n_single_file_moves_to_next_match() {
     state.set_active_file(Some(0));
     state.search_matches = vec![5, 15];
     state.current_match = 0;
-    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.current_match, 1);
     assert_eq!(state.cursor_line, 15);
 }
@@ -714,7 +714,7 @@ fn test_key_N_single_file_moves_to_prev_match() {
     state.set_active_file(Some(0));
     state.search_matches = vec![5, 15];
     state.current_match = 1;
-    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.current_match, 0);
     assert_eq!(state.cursor_line, 5);
 }
@@ -724,7 +724,7 @@ fn test_key_n_empty_matches_noop() {
     let mut state = make_keybinding_state();
     state.search_matches = vec![];
     state.current_match = -1;
-    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('n'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.current_match, -1);
 }
 
@@ -734,7 +734,7 @@ fn test_key_N_empty_matches_noop() {
     let mut state = make_keybinding_state();
     state.search_matches = vec![];
     state.current_match = -1;
-    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('N'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.current_match, -1);
 }
 
@@ -749,7 +749,7 @@ fn key_l_toggles_tree_on() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    handle_key(&mut state, Key::Char('l'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char('l'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.tree_visible, "l should show tree");
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
@@ -759,7 +759,7 @@ fn key_l_toggles_tree_off() {
     let mut state = make_keybinding_state();
     state.tree_visible = true;
     state.rebuild_tree_lines();
-    handle_key(&mut state, Key::Char('l'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('l'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(!state.tree_visible, "l should hide tree");
 }
 
@@ -778,7 +778,7 @@ fn key_l_toggle_tree_clamps_width_on_narrow_terminal() {
     ];
     crate::git::sort_files_for_display(&mut files);
     let cols: u16 = 100;
-    handle_key(&mut state, Key::Char('l'), 40, 40, cols, &files, p());
+    handle_key(&mut state, Key::Char('l'), 40, 40, cols, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.tree_visible, "tree should be visible even on narrow terminal");
     let max_tree = cols as usize - MIN_DIFF_WIDTH - 1;
     assert!(
@@ -801,7 +801,7 @@ fn key_s_toggle_single_file_clamps_tree_width_on_narrow_terminal() {
     ];
     crate::git::sort_files_for_display(&mut files);
     let cols: u16 = 100;
-    handle_key(&mut state, Key::Char('s'), 40, 40, cols, &files, p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, cols, &files, p(), &crate::git::DiffSource::WorkingTree);
     let max_tree = cols as usize - MIN_DIFF_WIDTH - 1;
     assert!(
         state.tree_width <= max_tree,
@@ -824,7 +824,7 @@ fn key_l_toggle_tree_fallback_on_very_narrow_terminal() {
     // Very narrow terminal where resolve_tree_layout returns None,
     // triggering the fallback: terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1)
     let cols: u16 = 85;
-    handle_key(&mut state, Key::Char('l'), 40, 40, cols, &files, p());
+    handle_key(&mut state, Key::Char('l'), 40, 40, cols, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.tree_visible, "l should still toggle tree on");
     // Fallback tree_width must not make the diff unusable
     assert!(
@@ -841,7 +841,7 @@ fn key_l_toggle_tree_fallback_on_very_narrow_terminal() {
 fn key_v_starts_visual_select() {
     let mut state = make_keybinding_state();
     state.cursor_line = 10;
-    handle_key(&mut state, Key::Char('v'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('v'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.visual_anchor, Some(10));
     assert!(state.status_message.contains("VISUAL"));
 }
@@ -850,7 +850,7 @@ fn key_v_starts_visual_select() {
 fn key_y_without_selection_shows_error() {
     let mut state = make_keybinding_state();
     state.visual_anchor = None;
-    handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.status_message.contains("No selection"));
 }
 
@@ -859,7 +859,7 @@ fn key_y_with_selection_clears_anchor() {
     let mut state = make_keybinding_state();
     state.visual_anchor = Some(5);
     state.cursor_line = 10;
-    handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('y'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.visual_anchor, None, "yank should clear visual anchor");
 }
 
@@ -867,7 +867,7 @@ fn key_y_with_selection_clears_anchor() {
 fn key_esc_clears_visual_selection() {
     let mut state = make_keybinding_state();
     state.visual_anchor = Some(5);
-    handle_key(&mut state, Key::Escape, 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.visual_anchor, None, "Esc should clear visual anchor");
 }
 
@@ -875,7 +875,7 @@ fn key_esc_clears_visual_selection() {
 fn key_esc_without_selection_is_noop() {
     let mut state = make_keybinding_state();
     let cursor_before = state.cursor_line;
-    handle_key(&mut state, Key::Escape, 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.cursor_line, cursor_before);
     assert_eq!(state.visual_anchor, None);
 }
@@ -886,7 +886,7 @@ fn key_esc_without_selection_is_noop() {
 #[allow(non_snake_case)]
 fn key_R_returns_regenerate() {
     let mut state = make_keybinding_state();
-    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p());
+    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(
         matches!(result, KeyResult::ReGenerate),
         "R should return ReGenerate, got {result:?}"
@@ -899,7 +899,7 @@ fn key_R_returns_regenerate() {
 fn key_R_preserves_visual_selection() {
     let mut state = make_keybinding_state();
     state.visual_anchor = Some(5);
-    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p());
+    let result = handle_key(&mut state, Key::Char('R'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(matches!(result, KeyResult::ReGenerate));
     assert_eq!(
         state.visual_anchor,
@@ -914,9 +914,9 @@ fn key_R_preserves_visual_selection() {
 fn key_question_toggles_tooltip() {
     let mut state = make_keybinding_state();
     assert!(!state.tooltip_visible);
-    handle_key(&mut state, Key::Char('?'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('?'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(state.tooltip_visible, "? should show tooltip");
-    handle_key(&mut state, Key::Char('?'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('?'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert!(!state.tooltip_visible, "? again should hide tooltip");
 }
 
@@ -927,7 +927,7 @@ fn key_g_single_file_lands_on_file_start() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(1));
     state.cursor_line = 50;
-    handle_key(&mut state, Key::Char('g'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('g'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -937,7 +937,7 @@ fn key_G_single_file_lands_on_file_end() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('G'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('G'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -946,7 +946,7 @@ fn key_d_single_file_clamps_to_file_end() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 25;
-    handle_key(&mut state, Key::Char('d'), 20, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('d'), 20, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -955,7 +955,7 @@ fn key_u_single_file_clamps_to_file_start() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(1));
     state.cursor_line = 32;
-    handle_key(&mut state, Key::Char('u'), 20, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('u'), 20, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -964,7 +964,7 @@ fn key_j_at_last_content_line_of_single_file_is_noop() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 29;
-    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -973,7 +973,7 @@ fn key_brace_prev_no_active_file_at_file_boundary() {
     let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p());
+    handle_key(&mut state, Key::Char('{'), 50, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -996,10 +996,10 @@ fn sequence_toggle_single_file_context_regenerate() {
     ];
     let mut state = make_keybinding_state();
 
-    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
 
-    let result = handle_key(&mut state, Key::Char('o'), 40, 40, 120, &files, p());
+    let result = handle_key(&mut state, Key::Char('o'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
     if matches!(result, KeyResult::ReGenerate) {
         re_render(&mut state, &files, false, 80);
@@ -1013,20 +1013,20 @@ fn sequence_hunk_nav_in_both_context_modes() {
     let files: Vec<DiffFile> = vec![];
 
     state.full_context = false;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
 
     state.full_context = true;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
-    handle_key(&mut state, Key::Char('['), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char('['), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
 
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
 }
 
@@ -1035,7 +1035,7 @@ fn sequence_resize_rerender_in_search() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, true);
 
-    handle_key(&mut state, Key::Char('/'), 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Char('/'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     state.search_input = "first".to_string();
     state.search_cursor = 5;
     state.search_query = "first".to_string();
@@ -1047,7 +1047,7 @@ fn sequence_resize_rerender_in_search() {
     re_render(&mut state, &files, false, 40);
     assert_state_invariants(&state);
 
-    handle_key(&mut state, Key::Escape, 40, 40, 120, &files, p());
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_state_invariants(&state);
 }
 
@@ -1086,7 +1086,7 @@ fn property_bounded_random_transitions() {
 
         let ch = 24 + ((rng >> 16) as usize % 20);
         let rows = 40;
-        let _ = handle_key(&mut state, key, ch, rows, 120, &files, p());
+        let _ = handle_key(&mut state, key, ch, rows, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
         assert_state_invariants(&state);
 
         if step > 0 && step % 12 == 0 {
@@ -1098,4 +1098,97 @@ fn property_bounded_random_transitions() {
             assert_state_invariants(&state);
         }
     }
+}
+
+// ---- Staging actions ----
+
+#[test]
+fn stage_line_working_tree_returns_apply_patch() {
+    let (mut state, files) = make_staging_state();
+    // Position cursor on a changed line (find an Added line)
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('a'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(
+        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        "stage line on WorkingTree should return ApplyPatch(cached=true, reverse=false), got {result:?}"
+    );
+}
+
+#[test]
+fn stage_hunk_working_tree_returns_apply_patch() {
+    let (mut state, files) = make_staging_state();
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('A'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(
+        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        "stage hunk on WorkingTree should return ApplyPatch(cached=true, reverse=false), got {result:?}"
+    );
+}
+
+#[test]
+fn discard_line_working_tree_returns_apply_patch() {
+    let (mut state, files) = make_staging_state();
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('x'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(
+        matches!(result, KeyResult::ApplyPatch { cached: false, reverse: true, .. }),
+        "discard line on WorkingTree should return ApplyPatch(cached=false, reverse=true), got {result:?}"
+    );
+}
+
+#[test]
+fn discard_hunk_working_tree_returns_apply_patch() {
+    let (mut state, files) = make_staging_state();
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('X'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(
+        matches!(result, KeyResult::ApplyPatch { cached: false, reverse: true, .. }),
+        "discard hunk on WorkingTree should return ApplyPatch(cached=false, reverse=true), got {result:?}"
+    );
+}
+
+#[test]
+fn stage_line_commit_view_is_disabled() {
+    let (mut state, files) = make_staging_state();
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('a'), 40, 40, 120, &files, p(), &crate::git::DiffSource::Commit("abc".into()));
+    assert!(
+        matches!(result, KeyResult::Continue),
+        "stage in commit view should return Continue, got {result:?}"
+    );
+    assert!(state.status_message.contains("Cannot"), "should show Cannot message, got: {}", state.status_message);
+}
+
+#[test]
+fn stage_line_range_view_is_disabled() {
+    let (mut state, files) = make_staging_state();
+    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    state.cursor_line = added_line;
+    let result = handle_key(&mut state, Key::Char('a'), 40, 40, 120, &files, p(), &crate::git::DiffSource::Range("a".into(), "b".into()));
+    assert!(
+        matches!(result, KeyResult::Continue),
+        "stage in range view should return Continue, got {result:?}"
+    );
+    assert!(state.status_message.contains("Cannot"), "should show Cannot message, got: {}", state.status_message);
+}
+
+#[test]
+fn stage_line_with_visual_selection_stages_range() {
+    let (mut state, files) = make_staging_state();
+    // Find first and last content lines
+    let first_content = state.doc.line_map.iter().position(|li| li.line_kind.is_some()).unwrap();
+    let last_content = state.doc.line_map.iter().rposition(|li| li.line_kind.is_some()).unwrap();
+    state.visual_anchor = Some(first_content);
+    state.cursor_line = last_content;
+    let result = handle_key(&mut state, Key::Char('a'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(
+        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        "stage line with visual selection should return ApplyPatch, got {result:?}"
+    );
+    assert_eq!(state.visual_anchor, None, "visual anchor should be cleared after staging");
 }
