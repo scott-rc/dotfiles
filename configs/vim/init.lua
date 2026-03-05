@@ -664,6 +664,7 @@ require("lazy").setup({
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+			"nvim-telescope/telescope-frecency.nvim",
 		},
 		config = function()
 			local telescope = require("telescope")
@@ -700,12 +701,13 @@ require("lazy").setup({
 				},
 			})
 			telescope.load_extension("fzf")
+			telescope.load_extension("frecency")
 		end,
 		keys = {
 			{
 				"<D-f>",
 				function()
-					require("telescope.builtin").find_files()
+					require("telescope").extensions.frecency.frecency({ workspace = "CWD" })
 				end,
 				mode = { "n", "v", "i" },
 				desc = "Find files",
@@ -721,7 +723,7 @@ require("lazy").setup({
 			{
 				"<D-k>",
 				function()
-					require("telescope.builtin").find_files()
+					require("telescope").extensions.frecency.frecency({ workspace = "CWD" })
 				end,
 				mode = { "n", "v", "i" },
 				desc = "Find files",
@@ -744,7 +746,7 @@ require("lazy").setup({
 			{
 				"<leader>f",
 				function()
-					require("telescope.builtin").find_files()
+					require("telescope").extensions.frecency.frecency({ workspace = "CWD" })
 				end,
 				desc = "Find files",
 			},
