@@ -623,7 +623,9 @@ require("lazy").setup({
 		"petertriho/nvim-scrollbar",
 		dependencies = { "lewis6991/gitsigns.nvim" },
 		config = function()
-			require("scrollbar").setup()
+			require("scrollbar").setup({
+				handlers = { cursor = false },
+			})
 			require("scrollbar.handlers.gitsigns").setup()
 		end,
 	},
