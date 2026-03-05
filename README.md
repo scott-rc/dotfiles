@@ -117,12 +117,10 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+H/J/K/L` | Focus left/down/up/right |
 | `Cmd+Shift+E` | Toggle embed/float pane |
 | `Cmd+Shift+F` | Toggle fullscreen |
-| `Cmd+Shift+Z` | Toggle pane frames |
 | `Cmd+Shift+\\` | Toggle floating panes |
 | `Cmd+Shift+,/.` | Previous/next swap layout (floating: staggered/enlarged/fullscreen/spread) |
 | `Cmd+Shift+[/]` | Previous/next Zellij tab |
 | `Cmd+Shift+I/O` | Move tab left/right |
-| `Cmd+Shift+X` | Close pane (alt) |
 | `Cmd+Shift++/-/=` | Resize increase/decrease |
 | `Cmd+Shift+Up/Down` | Focus up/down |
 | `Cmd+Shift+G` | Lock mode |
@@ -131,7 +129,6 @@ Three modifier layers to avoid conflicts:
 | `Cmd+Shift+Y` | Tab mode |
 | `Cmd+Shift+S` | Session mode |
 | `Cmd+Shift+U` | Enter scroll mode + half-page up |
-| `Cmd+Shift+D` | Enter scroll mode + half-page down |
 | `Cmd+Shift+R` | Resize mode |
 | `Cmd+Shift+M` | Move mode |
 

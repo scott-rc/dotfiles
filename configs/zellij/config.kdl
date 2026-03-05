@@ -141,7 +141,6 @@ keybinds clear-defaults=true {
         bind "Super Shift l" { MoveFocus "right"; }
         bind "Super Shift e" { TogglePaneEmbedOrFloating; }
         bind "Super Shift f" { ToggleFocusFullscreen; }
-        bind "Super Shift z" { TogglePaneFrames; }
         bind "Super Shift down" { MoveFocus "down"; }
         bind "Super Shift up" { MoveFocus "up"; }
         bind "Super Shift +" { Resize "Increase"; }
@@ -153,7 +152,6 @@ keybinds clear-defaults=true {
         bind "Super Shift ." { NextSwapLayout; }
         bind "Super Shift i" { MoveTab "left"; }
         bind "Super Shift o" { MoveTab "right"; }
-        bind "Super Shift x" { CloseFocus; }
         bind "Super Shift g" { SwitchToMode "locked"; }
     }
     shared_except "locked" "move" {
@@ -164,7 +162,6 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" "scroll" "search" {
         bind "Super Shift u" { SwitchToMode "scroll"; HalfPageScrollUp; }
-        bind "Super Shift d" { SwitchToMode "scroll"; HalfPageScrollDown; }
     }
     shared_except "locked" "tab" {
         bind "Super Shift t" { NewTab; }
@@ -201,7 +198,6 @@ keybinds clear-defaults=true {
         bind "k" { ScrollUp; }
         bind "l" { PageScrollDown; }
         bind "Super Shift u" { HalfPageScrollUp; }
-        bind "Super Shift d" { HalfPageScrollDown; }
         bind "u" { HalfPageScrollUp; }
         bind "g" { ScrollToTop; }
         bind "G" { ScrollToBottom; }
