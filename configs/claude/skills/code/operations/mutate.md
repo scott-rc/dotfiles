@@ -7,8 +7,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
 1. **Load coding guidelines**: Follow references/load-guidelines.md.
 
 2. **Identify target code and tests**:
-   If the user specified target files, spawn the `test-discoverer` agent in targeted mode with the specified files. Otherwise, spawn the `test-discoverer` agent in auto-discover mode to identify candidates.
-   Use the agent's coverage map to locate source files, corresponding test files, function signatures, and coverage status.
+   Scan the project for test files matching the target code (common patterns: `*.test.*`, `*.spec.*`, `*_test.*`, `test_*.*`, `__tests__/`). For each target file, locate its test file and read both. Identify exported/public function signatures, which functions have test coverage, and which lack it.
    If no tests exist for the target code, stop and suggest Add Coverage instead.
 
 3. **Plan mutations**:

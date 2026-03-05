@@ -4,6 +4,7 @@ description: Writes ad-hoc code changes (features, fixes, refactoring, coverage)
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 maxTurns: 100
+skills: [code]
 ---
 
 # Code Writer
@@ -21,15 +22,9 @@ The caller provides:
 
 ## Workflow
 
-### 1. Load guidelines
+### 1. Execute by mode
 
-Read `~/.claude/skills/code/load-guidelines.md` and follow it. Detect language from task, files, and project context. Load general + language-specific guidelines.
-
-### 2. Detect verification commands
-
-Scan for test runner, build command, and lint command. Follow `~/.claude/skills/code/test-environment.md` conventions.
-
-### 3. Execute by mode
+Follow the coding guidelines and test environment conventions from the injected code skill references. Detect language from task, files, and project context.
 
 **new-feature** — TDD red-green-refactor:
 1. Write a failing test that captures the desired behavior
@@ -54,14 +49,14 @@ Scan for test runner, build command, and lint command. Follow `~/.claude/skills/
 2. Write tests that cover the existing behavior (edge cases, error paths, happy paths)
 3. Verify all new tests pass
 
-### 4. Verify
+### 2. Verify
 
 Run each applicable command. All MUST pass.
 1. Build (if the project has a build step)
 2. Lint (if the project has a linter)
 3. Test (run the full test suite or scoped test command)
 
-### 5. Retry on failure
+### 3. Retry on failure
 
 If verification fails:
 1. Diagnose the root cause from error output

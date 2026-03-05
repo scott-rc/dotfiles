@@ -193,7 +193,7 @@ one sig SetBranchContext extends Operation {} {
 one sig GitPatterns extends Reference {} {
     -- Consumed by most operations. Rerun, SubmitReview, and CheckCI are
     -- intentional exceptions: Rerun uses only gh CLI directly; SubmitReview
-    -- delegates entirely to github-writer with no branch/scope/script patterns;
+    -- posts directly to GitHub with no branch/scope/script patterns;
     -- CheckCI only uses gh CLI directly for status gathering.
     -- SetBranchContext is also excluded: it only checks the branch name and
     -- writes a context file -- no base-branch detection, scope verification,
@@ -456,9 +456,9 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
 
     -- Reply: gather(0) -> report(1) -> confirm(2) -> publish(3) -> report(4)
     -- ReportK appears at both position 1 (present drafts) and position 4 (summary).
-    -- PublishK (not DelegateK) at position 3: github-writer posting is modeled as
-    -- PublishK to enforce INV-P2 (confirm-before-publish). SubmitReview uses DelegateK
-    -- because the user's explicit verdict serves as implicit confirmation.
+    -- PublishK (not DelegateK) at position 3: GitHub posting is modeled as PublishK
+    -- to enforce INV-P2 (confirm-before-publish). SubmitReview uses DelegateK because
+    -- the user's explicit verdict serves as implicit confirmation.
     (op = Reply and k = GatherK  and p = 0) or
     (op = Reply and k = ReportK  and p = 1) or
     (op = Reply and k = ConfirmK and p = 2) or

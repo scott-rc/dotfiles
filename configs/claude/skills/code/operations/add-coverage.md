@@ -10,7 +10,7 @@ Write characterization tests for existing untested code — documenting its curr
    Determine which module, function, or class to cover. If the user hasn't specified what to cover, ask them before proceeding.
 
 3. **Map coverage gaps**:
-   Spawn the `test-discoverer` agent with the target files to get a coverage map: function signatures, covered/uncovered functions, and notable gaps.
+   Scan the project for test files matching the target code (common patterns: `*.test.*`, `*.spec.*`, `*_test.*`, `test_*.*`, `__tests__/`). For each target file, locate its test file and read both. Identify exported/public function signatures, which functions have test coverage, and which lack it.
 
 4. **Analyze code behavior**:
    Spawn a Task subagent (type: Explore) with the target files and coverage map. The subagent MUST read the target code and its callers, then return a structured test plan: one entry per test case with input, expected behavior, and the branch or edge case it covers. Present the plan to the user before writing tests.

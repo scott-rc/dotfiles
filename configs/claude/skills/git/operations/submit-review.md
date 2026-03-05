@@ -33,9 +33,10 @@ Submit a PR review with a verdict (approve, request changes, or comment) and opt
 
    For multi-line comment ranges, add `start_line` and `start_side` to mark the range start.
 
-5. **Submit the review**: Delegate to the `github-writer` agent with:
-   - **type**: `review`
-   - **body**: structured data -- `event`, optional `body`, and `comments` array
-   - **target**: `owner`, `repo`, `pr_number`
+5. **Submit the review**: Write the JSON payload (with `event`, optional `body`, and `comments` array) to a temp file. Validate ASCII per references/github-text.md. Post via:
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --input "$TMPFILE"
+   ```
+   On 422: inspect the response, fix the payload (common: non-ASCII in body, invalid `line` in review comment), retry once. Clean up the temp file.
 
 6. **Report result**: Confirm the review was submitted with the verdict and number of inline comments posted.

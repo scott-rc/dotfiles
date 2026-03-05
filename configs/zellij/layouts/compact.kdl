@@ -1,6 +1,5 @@
 layout {
     default_tab_template {
-        children
         pane size=1 borderless=true {
             plugin location="zjstatus" {
                 // github_dark_default colors
@@ -14,11 +13,11 @@ layout {
                 color_purple "#bc8cff"
                 color_yellow "#bb8009"
 
-                format_left  "{mode}{tabs}"
+                format_left  "{tabs}"
                 format_center ""
-                format_right ""
+                format_right "{mode}"
 
-                mode_normal        "#[bg=$blue,fg=$bg,bold] NORMAL "
+                mode_normal        ""
                 mode_locked        "#[bg=$red,fg=$bg,bold] LOCKED "
                 mode_resize        "#[bg=$orange,fg=$bg,bold] RESIZE "
                 mode_move          "#[bg=$orange,fg=$bg,bold] MOVE "
@@ -43,6 +42,7 @@ layout {
                 session_name ""
             }
         }
+        children
     }
 
     // Swap floating layouts -- cycled with NextSwapLayout / PreviousSwapLayout

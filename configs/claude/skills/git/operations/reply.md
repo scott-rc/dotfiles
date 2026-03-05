@@ -39,8 +39,10 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
 
 ### Posting
 
-All posted text MUST follow references/github-text.md. Delegate to the `github-writer` agent for each approved reply. Provide:
+All posted text MUST follow references/github-text.md. For each approved reply, write the body to a temp file, validate ASCII, and post:
 
-- **type**: `review-reply` for review threads, `pr-comment` for PR comments, `issue-comment` for issue comments
-- **body**: the approved reply text
-- **target**: the relevant identifiers (`owner`, `repo`, `comment_id` for review replies; `pr_number` for PR comments; `issue_number` for issue comments)
+- Review reply: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@"$TMPFILE"`
+- PR comment: `gh pr comment {pr_number} --repo {owner}/{repo} --body-file "$TMPFILE"`
+- Issue comment: `gh issue comment {issue_number} --repo {owner}/{repo} --body-file "$TMPFILE"`
+
+Clean up temp files after posting.

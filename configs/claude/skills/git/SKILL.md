@@ -95,7 +95,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"review and push"** / **"fix reviews and push"** → Fix-review, then push
 - **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix-ci (not check-ci)
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix-review (not reply)
-- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Update Description (not github-writer -- all PR body modifications, even targeted section edits, go through pr-writer)
+- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Update Description (all PR body modifications, even targeted section edits, go through pr-writer)
 - **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
 
 ## References

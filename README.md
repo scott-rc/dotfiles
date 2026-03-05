@@ -203,7 +203,6 @@ Custom CLI tools.
 | `code/` | Applies coding style preferences, enforces TDD, runs code reviews, manages benchmarks, and evaluates test quality via mutation testing |
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity |
 | `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
-| `explain/` | Explains code changes — branch diffs, individual commits, specific files, or commit ranges |
 | `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, and GitHub interactions |
 | `interview/` | Conducts a structured multi-round interview on any topic — asking probing questions to gather requirements, explore decisions, or deepen understanding |
 | `slides/` | Slidev presentation management via the `/slides` slash command — create, author, dev, build, and export presentations in `~/Code/personal/slides/` |
@@ -238,8 +237,6 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `code-reviewer.md` | Reviews code for quality, security, and maintainability |
 | `code-writer.md` | Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop |
 | `committer.md` | Analyzes uncommitted changes, drafts a commit message, stages files, and creates the commit, keeping large diffs out of the main conversation context |
-| `github-context.md` | Gathers commit history, PR details, and referenced issue context for a ref range, returns a structured motivation summary |
-| `github-writer.md` | Writes and posts GitHub text (review replies, PR comments, issue comments, review submissions) with ASCII validation |
 | `mutation-executor.md` | Executes planned source code mutations against a test suite, records killed/survived outcomes, returns results table and mutation score |
 | `pr-writer.md` | Writes PR titles and descriptions from git diffs following formatting guidelines, creates new PRs or updates existing ones |
 | `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
@@ -247,7 +244,6 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |
 | `skill-writer.md` | Writes and validates skill files (SKILL.md, operations, references) in create or update mode |
 | `slide-writer.md` | Writes and edits Slidev presentation content, verifies via slidev build, and iterates on failures |
-| `test-discoverer.md` | Scans a codebase to map source files to test files, identifies untested functions and coverage gaps |
 
 Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.
 
