@@ -21,7 +21,11 @@ Fetch CI failure logs, triage via ci-triager, and fix the issues.
 3. **Fix the issues**:
    For Buildkite: fetch logs per references/buildkite-handling.md.
    For GitHub Actions: forward the triager's full report as task context.
-   Dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch".
+   Spawn a general-purpose subagent (model: sonnet) with:
+   - The triager's full report as task context: root cause analysis, trimmed failure logs, and relevant file paths identified by the triager
+   - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt
+   - Instruction to: read the source files identified in the triager's report, apply the fix, run the resolved lint and test commands, and consult the project's CLAUDE.md for project-specific build/test commands
+   - One subagent per failed check
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 

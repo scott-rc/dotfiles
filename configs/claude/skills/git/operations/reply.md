@@ -23,7 +23,7 @@ Fetch unreplied PR review threads and draft responses for user approval, or post
    - If the feedback was already addressed, say so concisely
    - If the feedback needs discussion, draft a thoughtful response
 
-5. **Present ALL drafts for user review**: Show each draft alongside the reviewer's comment for context. For each draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit approval — never auto-reply. MUST wait for user approval before posting anything.
+5. **Present ALL drafts for user review**: Show each draft alongside the reviewer's comment for context. For each draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval — only bot comments may receive autonomous replies. MUST wait for user approval before posting anything.
 
 6. **Post approved replies** (see Posting below).
 

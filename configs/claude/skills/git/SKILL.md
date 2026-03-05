@@ -62,10 +62,6 @@ See operations/update-description.md for detailed instructions.
 Read or create the branch context file that captures the "why" for the current branch.
 See operations/set-branch-context.md for detailed instructions.
 
-### Submit Review
-Submit a PR review (approve, request changes, or comment) with optional inline comments.
-See operations/submit-review.md for detailed instructions.
-
 ### Reply
 Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment.
 See operations/reply.md for detailed instructions.

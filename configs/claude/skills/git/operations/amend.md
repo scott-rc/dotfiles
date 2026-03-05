@@ -24,10 +24,6 @@ Fold outstanding changes into the last commit.
 
 10. **Push if already pushed**: Check if a remote tracking branch exists: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null`. If no remote branch, skip to step 11. If remote branch exists, present options via AskUserQuestion: "Force push" or "Skip push". Only run `git push --force-with-lease` if the user picks "Force push".
 
-11. **Evaluate PR description**: Check for an existing PR: `gh pr view --json number,url,title,body 2>/dev/null`. If no PR exists, skip to step 13. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description and skip to step 13. If files were added or removed, proceed to step 12.
+11. **Update PR description if needed**: Check for an existing PR: `gh pr view --json number,url,title,body 2>/dev/null`. If no PR exists, skip to step 12. Reuse the file-set comparison from step 7: if the file sets are identical, keep the current PR description and skip to step 12. If files were added or removed, run the Update Description operation (operations/update-description.md) with context noting what changed in the amend (e.g., which files were added or removed).
 
-12. **Update PR description**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists (path per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md. Spawn the `pr-writer` agent using the Delegation Fields in references/pr-writer-rules.md with `mode: update`, `pr_number` from step 11, and `context` set to one sentence describing what changed in the amend.
-
-    Confirm the PR was updated and show the PR URL.
-
-13. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).
+12. **Report**: Confirm what happened -- amend, message update (if any), force push (if any), PR description update (if any).

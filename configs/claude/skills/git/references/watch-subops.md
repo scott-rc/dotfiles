@@ -76,7 +76,7 @@ Each iteration follows this sequence:
 When `threads.new > 0`, classify each new thread per references/bulk-threads.md:
 
 - **Bot threads**: handle autonomously -- dispatch a fix subagent per references/git-patterns.md "Fix Subagent Dispatch", passing thread details (file path, line number, full comment bodies, last comment `comment_id`). After it returns, add the thread's last comment `id` to "Handled Threads" regardless of outcome. If files changed, spawn `committer` ("Commit these changes. They address PR review feedback: <brief summary>."), `git push`, and update `head_sha` and `last_push_time`. Then post a reply to the thread: write reply text to a temp file (MUST follow references/github-text.md), validate ASCII, and run `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@"$TMPFILE"`. Append to "Actions Log": `- [<timestamp>] Fixed review threads: <brief summary>, files: <list>`. If the subagent could not fix a thread, log it and continue.
-- **Human reviewer threads**: Skip entirely. MUST NOT add to "Handled Threads", MUST NOT dispatch any subagent. Leave them for the standalone Fix Review operation.
+- **Human reviewer threads**: Skip entirely. MUST NOT add to "Handled Threads", MUST NOT dispatch any subagent, MUST NOT post any reply. Agents MUST NOT respond to comments made by humans. Leave them for the standalone Fix Review operation.
 
 ### Handling CI Failures
 

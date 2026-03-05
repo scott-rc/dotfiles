@@ -6,10 +6,8 @@ When there are 5+ threads OR fewer than 5 threads touching more than 3 distinct 
 
 Classify each thread by commenter type before deciding how to handle it:
 
-- **Bot threads** (bugbot, dependabot, or any automated bot): handle autonomously without requiring user approval.
-- **Human reviewer threads**: MUST NOT fix or reply without explicit user approval. For each human thread, state the proposed change and ask the user to confirm before proceeding. This applies even when the fix is obvious or mechanical. For replies specifically, MUST present the draft reply text and receive explicit approval before posting — never auto-reply.
-
-This classification applies in both fix-review.md (where bots are fixed directly and human threads require confirmation) and watch.md (where bots are handled autonomously and human threads are skipped entirely for the standalone Fix Review operation to address).
+- **Bot threads** (bugbot, dependabot, or any automated bot): handle autonomously without requiring user approval. Agents MAY post replies to bot threads.
+- **Human reviewer threads**: Agents MUST NOT post replies or comments responding to human reviewers — only the user responds to humans. Agents MAY fix code that a human reviewer flagged, but only with explicit user approval. For each human thread, state the proposed change and ask the user to confirm before proceeding. This applies even when the fix is obvious or mechanical.
 
 ## For fix-review.md
 
