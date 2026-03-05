@@ -699,6 +699,11 @@ require("lazy").setup({
 				pickers = {
 					find_files = { hidden = true, file_ignore_patterns = { "%.git/" } },
 				},
+				extensions = {
+					frecency = {
+						show_filter_column = false,
+					},
+				},
 			})
 			telescope.load_extension("fzf")
 			telescope.load_extension("frecency")
