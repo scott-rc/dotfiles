@@ -1,6 +1,6 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, worktrees, CI triage and monitoring, code review, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, or manage worktrees.
+description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, or review code.
 argument-hint: "[operation or intent]"
 ---
 
@@ -33,14 +33,6 @@ See operations/rebase.md for detailed instructions.
 ### Push
 Push commits and create/update PR with title/description per guidelines.
 See operations/push.md for detailed instructions.
-
-### Worktree
-Create a new git worktree for a task or convert an existing branch.
-See operations/worktree.md for detailed instructions.
-
-### Clean Worktrees
-Remove merged, squash-merged, and orphaned worktrees via the `gwc` fish function.
-See operations/clean-worktrees.md for detailed instructions.
 
 ### Check CI
 Check CI status and report results.
