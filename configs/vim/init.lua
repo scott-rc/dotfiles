@@ -1040,23 +1040,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 						break
 					end
 				end
-				if not at_def and #defs > 0 then
-					local node = vim.treesitter.get_node()
-					while node do
-						local t = node:type()
-						if
-							t == "function_declaration"
-							or t == "method_definition"
-							or t == "function"
-							or t == "arrow_function"
-							or t == "method_signature"
-						then
-							at_def = true
-							break
-						end
-						node = node:parent()
-					end
-				end
 				vim.schedule(function()
 					if at_def or #defs == 0 then
 						require("telescope.builtin").lsp_references({ include_declaration = false })
