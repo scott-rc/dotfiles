@@ -783,6 +783,7 @@ require("lazy").setup({
 				extensions = {
 					frecency = {
 						show_filter_column = false,
+						db_safe_mode = false,
 					},
 				},
 			})
