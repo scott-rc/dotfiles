@@ -1,6 +1,13 @@
 function v --description "Open in editor (no args: current directory)"
     if test (count $argv) -eq 0
-        nvim .
+        set -l last (nvim --headless -u NONE -c rshada \
+            +'lua local cwd = vim.uv.cwd() .. "/"; for _, f in ipairs(vim.v.oldfiles) do if f:sub(1, #cwd) == cwd and vim.uv.fs_stat(f) then io.write(f); break end end' \
+            +qa 2>/dev/null)
+        if test -n "$last"
+            nvim "$last"
+        else
+            nvim .
+        end
         return
     end
 
