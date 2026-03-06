@@ -969,6 +969,9 @@ require("lazy").setup({
 		end,
 	},
 
+	-- Auto-detect indentation (tabstop, shiftwidth, expandtab)
+	{ "tpope/vim-sleuth" },
+
 	-- GitHub Copilot
 	{ "github/copilot.vim" },
 
