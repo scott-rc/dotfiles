@@ -40,6 +40,13 @@ vim.o.shiftwidth = 4
 vim.o.smartindent = true
 vim.opt.formatoptions:append("o")
 
+-- Folding (treesitter-based, all open by default)
+vim.o.foldmethod = "expr"
+vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.o.foldlevelstart = 99
+vim.o.foldtext = ""
+vim.o.fillchars = "fold: ,foldopen:▼,foldclose:▶,foldsep:│"
+
 -- Behavior
 vim.o.mouse = "n"
 vim.o.updatetime = 250
@@ -410,7 +417,9 @@ require("lazy").setup({
 
 			vim.api.nvim_create_autocmd("FileType", {
 				callback = function(args)
-					pcall(vim.treesitter.start, args.buf)
+					if pcall(vim.treesitter.start, args.buf) then
+						vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+					end
 				end,
 			})
 		end,
@@ -620,6 +629,11 @@ require("lazy").setup({
 		"folke/snacks.nvim",
 		lazy = false,
 		opts = {
+			indent = {
+				enabled = true,
+				animate = { enabled = false },
+			},
+			scope = { enabled = true },
 			scroll = {
 				animate = {
 					duration = { step = 10, total = 100 },
@@ -630,6 +644,15 @@ require("lazy").setup({
 					duration = { step = 5, total = 30 },
 				},
 			},
+		},
+	},
+
+	-- Sticky scroll (shows containing function/class at top)
+	{
+		"nvim-treesitter/nvim-treesitter-context",
+		dependencies = { "nvim-treesitter/nvim-treesitter" },
+		opts = {
+			max_lines = 3,
 		},
 	},
 
