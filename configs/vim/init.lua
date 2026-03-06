@@ -12,6 +12,7 @@ vim.o.timeoutlen = 300
 vim.o.ignorecase = true
 vim.o.smartcase = true
 vim.o.gdefault = true
+vim.keymap.set("n", "/", "/\\V", { desc = "Literal search (no regex)" })
 
 -- Splits
 vim.o.splitbelow = true
@@ -29,13 +30,14 @@ vim.o.showmatch = true
 vim.o.number = true
 vim.o.cursorline = true
 vim.o.wrap = false
-vim.o.scrolloff = 100
+vim.o.scrolloff = 999
 vim.opt.listchars = { tab = "→ ", trail = "·", nbsp = "+", extends = ">", precedes = "<" }
 
 -- Indentation
 vim.o.expandtab = true
 vim.o.tabstop = 4
 vim.o.shiftwidth = 4
+vim.o.smartindent = true
 vim.opt.formatoptions:append("o")
 
 -- Behavior
@@ -54,6 +56,7 @@ vim.o.swapfile = false
 
 -- Escape
 vim.keymap.set({ "n", "v", "i" }, "fd", "<Esc>", { desc = "Escape" })
+vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 
 -- Option+Delete word deletion (Ghostty sends Alt/ESC prefix for Option key)
 vim.keymap.set("i", "<M-BS>", "<C-w>", { desc = "Delete word backward" })
@@ -102,6 +105,18 @@ vim.keymap.set("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" }
 vim.keymap.set("n", "<D-/>", "gcc", { remap = true, desc = "Toggle comment" })
 vim.keymap.set("v", "<D-/>", "gc", { remap = true, desc = "Toggle comment" })
 vim.keymap.set("i", "<D-/>", "<Esc>gcc", { remap = true, desc = "Toggle comment" })
+
+-- Stay in visual mode after indent
+vim.keymap.set("v", "<", "<gv", { desc = "Outdent and reselect" })
+vim.keymap.set("v", ">", ">gv", { desc = "Indent and reselect" })
+
+-- Diagnostic navigation (error-only; ]d/[d for all severities is built-in)
+vim.keymap.set("n", "]D", function()
+	vim.diagnostic.jump({ count = 1, severity = vim.diagnostic.severity.ERROR })
+end, { desc = "Next error" })
+vim.keymap.set("n", "[D", function()
+	vim.diagnostic.jump({ count = -1, severity = vim.diagnostic.severity.ERROR })
+end, { desc = "Prev error" })
 vim.keymap.set({ "n", "v", "i" }, "<D-z>", "<cmd>undo<CR>", { desc = "Undo" })
 vim.keymap.set({ "n", "v", "i" }, "<D-S-z>", "<cmd>redo<CR>", { desc = "Redo" })
 vim.keymap.set({ "n", "v", "i" }, "<D-w>", "<cmd>bdelete<CR>", { desc = "Close buffer" })
@@ -618,6 +633,9 @@ require("lazy").setup({
 		},
 	},
 
+	-- Scroll past EOF
+	{ "Aasim-A/scrollEOF.nvim", event = "CursorMoved", opts = {} },
+
 	-- Scrollbar with git indicators
 	{
 		"petertriho/nvim-scrollbar",
@@ -778,6 +796,14 @@ require("lazy").setup({
 			},
 
 			-- LSP pickers
+			{
+				"<D-S-o>",
+				function()
+					require("telescope.builtin").lsp_document_symbols()
+				end,
+				mode = { "n", "v", "i" },
+				desc = "Document symbols",
+			},
 			{
 				"<leader>ld",
 				function()
@@ -1070,6 +1096,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		vim.keymap.set("n", "<C-Space>", vim.lsp.buf.hover, {
 			buffer = args.buf,
 			desc = "Hover documentation",
+		})
+		vim.keymap.set({ "n", "v", "i" }, "<D-.>", vim.lsp.buf.code_action, {
+			buffer = args.buf,
+			desc = "Code actions",
+		})
+		vim.keymap.set("n", "<M-r>", vim.lsp.buf.rename, {
+			buffer = args.buf,
+			desc = "Rename symbol",
 		})
 	end,
 })
