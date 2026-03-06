@@ -946,6 +946,9 @@ require("lazy").setup({
 		end,
 	},
 
+	-- GitHub Copilot
+	{ "github/copilot.vim" },
+
 	-- Completion
 	{
 		"saghen/blink.cmp",

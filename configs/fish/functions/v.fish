@@ -4,7 +4,7 @@ function v --description "Open in editor (no args: current directory)"
             +'lua local cwd = vim.uv.cwd() .. "/"; for _, f in ipairs(vim.v.oldfiles) do if f:sub(1, #cwd) == cwd and vim.uv.fs_stat(f) then io.write(f); break end end' \
             +qa 2>/dev/null)
         if test -n "$last"
-            nvim "$last"
+            nvim '+normal! g`"' "$last"
         else
             nvim .
         end
