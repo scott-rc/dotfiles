@@ -310,6 +310,45 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+-- Persist neo-tree open/closed state per working directory
+local function neotree_state_file()
+	local cwd = vim.uv.cwd()
+	local hash = vim.fn.sha256(cwd):sub(1, 12)
+	return vim.fn.stdpath("data") .. "/neotree-open-" .. hash
+end
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+	group = augroup,
+	callback = function()
+		local state_file = neotree_state_file()
+		local ok, manager = pcall(require, "neo-tree.sources.manager")
+		if ok then
+			local state = manager.get_state("filesystem")
+			if state.winid and vim.api.nvim_win_is_valid(state.winid) then
+				vim.fn.writefile({}, state_file)
+				return
+			end
+		end
+		vim.fn.delete(state_file)
+	end,
+})
+
+vim.api.nvim_create_autocmd("VimEnter", {
+	group = augroup,
+	callback = function()
+		-- Only restore if opening a file (not a directory, which already opens neo-tree)
+		if vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1 then
+			return
+		end
+		if vim.uv.fs_stat(neotree_state_file()) then
+			vim.schedule(function()
+				require("neo-tree")
+				vim.cmd("Neotree source=filesystem")
+			end)
+		end
+	end,
+})
+
 -- ============================================================================
 -- Bootstrap lazy.nvim
 -- ============================================================================

@@ -57,7 +57,7 @@ Configuration directories symlinked to their expected locations:
 | `nix/` | `/etc/nix/nix.conf` (sudo) |
 | `orbstack/` | `~/.orbstack/config/docker.json` |
 | `starship/` | `~/.config/starship.toml` |
-| `vim/` | `~/.config/nvim/init.lua` — smooth scrolling (snacks.nvim), JSON schemas (SchemaStore.nvim + jsonls) |
+| `vim/` | `~/.config/nvim/init.lua` — smooth scrolling (snacks.nvim), JSON schemas (SchemaStore.nvim + jsonls), Neo-tree state persistence (re-opens sidebar if it was open last session) |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
 | `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin) |
 | `zsh/` | `~/.zshrc` |
