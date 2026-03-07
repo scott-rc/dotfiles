@@ -18,7 +18,7 @@ Squash all commits on the current branch into a single commit.
 
 7. **Confirm before squashing**:
    - Re-list commits after the rebase: `git log origin/<base>..HEAD --oneline` (the rebase in step 5 may have changed the commit count)
-   - Show what files will be in the final commit: `git diff --stat origin/<base> HEAD`
+   - Show what files will be in the final commit: `git diff --stat origin/<base>...HEAD`
    - MUST ask the user to confirm before proceeding
 
 8. **Squash into a single commit**: `git reset --soft origin/<base>`. Read the branch context file if it exists (path per references/git-patterns.md "Branch Context File"). Spawn the `committer` agent with prompt: "Squash commit. Original commit messages:\n<full commit messages captured in step 3>". If branch context exists, append: "\nBranch purpose:\n<branch context contents>"

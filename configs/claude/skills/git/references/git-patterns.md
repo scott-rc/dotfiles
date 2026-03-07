@@ -93,15 +93,15 @@ After fetching, reference remote branches as `origin/<branch>`.
 
 After rebase or before squash, verify the branch only contains expected changes.
 
-**Note**: These comparisons assume the branch has been rebased onto `origin/<base>`. If the branch has diverged (main advanced since the branch was created), the diff will include the reversal of main's changes. Rebase first: `git rebase origin/<base>`
-
 ```bash
 # Show files that will be in the commit
-git diff --name-only origin/<base> HEAD
+git diff --name-only origin/<base>...HEAD
 
 # Show file stats for human review
-git diff --stat origin/<base> HEAD
+git diff --stat origin/<base>...HEAD
 ```
+
+**Why triple-dot**: `git diff A...B` diffs against the merge-base of A and B, showing only changes introduced on the branch. Double-dot (`..`) diffs the two endpoints directly, so if main has advanced past the branch point, main's new commits appear as deletions. Triple-dot is correct regardless of rebase state.
 
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`

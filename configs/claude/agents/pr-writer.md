@@ -96,8 +96,8 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 1. **Gather diff context**:
 
    ```bash
-   git diff --stat origin/<base_branch>..HEAD
-   git diff origin/<base_branch>..HEAD
+   git diff --stat origin/<base_branch>...HEAD
+   git diff origin/<base_branch>...HEAD
    ```
 
    If the diff is large (>500 lines), use `--stat` for overview and read selectively.

@@ -12,15 +12,15 @@ Fold outstanding changes into the last commit.
 
 4. **Detect base branch**: Detect base branch per references/git-patterns.md.
 
-5. **Record pre-amend state**: Record the current file set (`git diff --name-only origin/<base> HEAD`) and the current commit message (`git log -1 --format=%B`).
+5. **Record pre-amend state**: Record the current file set (`git diff --name-only origin/<base>...HEAD`) and the current commit message (`git log -1 --format=%B`).
 
 6. **Amend the commit**: Delegate to the `committer` agent with prompt: "Amend the last commit with the current changes. No-edit."
 
-7. **Compare file sets**: Record the post-amend file set (`git diff --name-only origin/<base> HEAD`) and compare against the pre-amend file set from step 5. If the file sets are identical, keep the original message and skip to step 9.
+7. **Compare file sets**: Record the post-amend file set (`git diff --name-only origin/<base>...HEAD`) and compare against the pre-amend file set from step 5. If the file sets are identical, keep the original message and skip to step 9.
 
 8. **Ask about commit message** (file sets differ): Present options via AskUserQuestion: "Update commit message" or "Keep original message".
 
-9. **Update commit message** (if user picked "Update commit message"): Delegate to the `committer` agent with prompt: "Amend the last commit with a new message. The diff has changed -- new files were added or removed. Here is the current diff summary: `git diff --stat origin/<base> HEAD`. Draft a message that reflects the updated scope."
+9. **Update commit message** (if user picked "Update commit message"): Delegate to the `committer` agent with prompt: "Amend the last commit with a new message. The diff has changed -- new files were added or removed. Here is the current diff summary: `git diff --stat origin/<base>...HEAD`. Draft a message that reflects the updated scope."
 
 10. **Push if already pushed**: Check if a remote tracking branch exists: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null`. If no remote branch, skip to step 11. If remote branch exists, present options via AskUserQuestion: "Force push" or "Skip push". Only run `git push --force-with-lease` if the user picks "Force push".
 
