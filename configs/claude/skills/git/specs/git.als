@@ -15,7 +15,7 @@ module git
 
 /** Artifact types the skill operates on */
 abstract sig ArtifactType {}
-one sig CommitArt, PRArt, GitHubTextArt, WorktreeArt, WatchStateArt extends ArtifactType {}
+one sig CommitArt, PRArt, GitHubTextArt, WatchStateArt extends ArtifactType {}
 
 /** Agents that operations delegate work to */
 abstract sig DelegateAgent {}
@@ -86,20 +86,6 @@ one sig Push extends Operation {} {
     invokes     = Commit
 }
 
-one sig Worktree extends Operation {} {
-    produces    = WorktreeArt
-    delegatesTo = none
-    mutates     = WorktreeArt
-    invokes     = none
-}
-
-one sig CleanWorktrees extends Operation {} {
-    produces    = WorktreeArt
-    delegatesTo = none
-    mutates     = WorktreeArt
-    invokes     = none
-}
-
 -- CheckCI is the status-only mode: gather state, report results.
 -- No delegation, no mutation, no artifacts produced.
 one sig CheckCI extends Operation {} {
@@ -115,7 +101,7 @@ one sig FixCI extends Operation {} {
     produces    = CommitArt
     delegatesTo = CITriager + FixSubagent
     mutates     = CommitArt
-    invokes     = none
+    invokes     = Push
 }
 
 -- Rerun triggers a CI re-run via gh; no local artifacts or delegation.
@@ -139,7 +125,7 @@ one sig Watch extends Operation {} {
 
 one sig FixReview extends Operation {} {
     produces    = CommitArt
-    delegatesTo = FixSubagent + ExploreSubagent + Committer
+    delegatesTo = FixSubagent + ExploreSubagent
     mutates     = CommitArt
     invokes     = none
 }
@@ -147,13 +133,6 @@ one sig FixReview extends Operation {} {
 one sig Reply extends Operation {} {
     produces    = GitHubTextArt
     delegatesTo = GitHubWriter + ExploreSubagent
-    mutates     = none
-    invokes     = none
-}
-
-one sig SubmitReview extends Operation {} {
-    produces    = GitHubTextArt
-    delegatesTo = GitHubWriter
     mutates     = none
     invokes     = none
 }
@@ -166,11 +145,12 @@ one sig UpdateDescription extends Operation {} {
 }
 
 -- Correct propagates a user correction to all affected artifacts.
--- Delegates to Committer (amend message) and PRWriter (update description).
+-- Commit message amend is inlined (orchestrator already has the text).
+-- Delegates to PRWriter (update description).
 -- Also directly edits branch context and changeset files (not domain artifacts).
 one sig Correct extends Operation {} {
     produces    = CommitArt + PRArt
-    delegatesTo = Committer + PRWriter
+    delegatesTo = PRWriter
     mutates     = CommitArt + PRArt
     invokes     = none
 }
@@ -191,20 +171,19 @@ one sig SetBranchContext extends Operation {} {
 -- Named reference instances. Each constrains its consumedBy set.
 
 one sig GitPatterns extends Reference {} {
-    -- Consumed by most operations. Rerun, SubmitReview, and CheckCI are
-    -- intentional exceptions: Rerun uses only gh CLI directly; SubmitReview
-    -- posts directly to GitHub with no branch/scope/script patterns;
-    -- CheckCI only uses gh CLI directly for status gathering.
+    -- Consumed by most operations. Rerun and CheckCI are intentional
+    -- exceptions: Rerun uses only gh CLI directly; CheckCI only uses
+    -- gh CLI directly for status gathering.
     -- SetBranchContext is also excluded: it only checks the branch name and
     -- writes a context file -- no base-branch detection, scope verification,
     -- or script patterns are used.
-    consumedBy = Commit + Amend + Squash + Rebase + Push + Worktree
-                 + CleanWorktrees + FixCI + Watch
+    consumedBy = Commit + Amend + Squash + Rebase + Push
+                 + FixCI + Watch
                  + FixReview + Reply + UpdateDescription + Correct
 }
 
 one sig GitHubText extends Reference {} {
-    consumedBy = Push + Amend + Reply + SubmitReview + UpdateDescription + Watch + Correct
+    consumedBy = Push + Amend + Reply + UpdateDescription + Watch + Correct
 }
 
 -- PRWriterRules provides delegation context and commit-forwarding rules for
@@ -221,11 +200,15 @@ one sig BulkThreads extends Reference {} {
 }
 
 one sig BuildkiteHandling extends Reference {} {
-    consumedBy = Watch
+    consumedBy = Watch + FixCI
 }
 
 one sig WatchSubops extends Reference {} {
     consumedBy = Watch
+}
+
+one sig CommitMessageFormat extends Reference {} {
+    consumedBy = Commit + Squash + Correct + FixReview + FixCI
 }
 
 -- Scripts modeled as Reference instances
@@ -307,17 +290,8 @@ one sig IntUpdateDescription extends Intent {} {
 one sig IntReply extends Intent {} {
     routesTo = Reply
 }
-one sig IntSubmitReview extends Intent {} {
-    routesTo = SubmitReview
-}
 one sig IntFixReviewAndPush extends Intent {} {
     routesTo = FixReview + Push
-}
-one sig IntWorktree extends Intent {} {
-    routesTo = Worktree
-}
-one sig IntCleanWorktrees extends Intent {} {
-    routesTo = CleanWorktrees
 }
 one sig IntSetBranchContext extends Intent {} {
     routesTo = SetBranchContext
@@ -349,21 +323,23 @@ one sig GatherK, ConfirmK, DelegateK, WriteK, PublishK, ReportK, LoopK, VerifyK 
  * reference these predicates directly, making all checks instantaneous.
  */
 pred hasStep[op: Operation, k: StepKind, p: Int] {
-    -- Commit: gather(0) -> delegate(1) -> confirm(2) -> delegate(3) -> report(4)
-    -- delegate(1) = committer; confirm(2) = cohesion choice if mixed concerns;
-    -- delegate(3) = committer re-invocation with user's file selection.
+    -- Commit: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> delegate(4) -> report(5)
+    -- write(1) = inline commit (simple path); delegate(2) = committer (complex path);
+    -- confirm(3) = cohesion choice if mixed concerns;
+    -- delegate(4) = committer re-invocation with user's file selection.
     (op = Commit and k = GatherK   and p = 0) or
-    (op = Commit and k = DelegateK and p = 1) or
-    (op = Commit and k = ConfirmK  and p = 2) or
-    (op = Commit and k = DelegateK and p = 3) or
-    (op = Commit and k = ReportK   and p = 4) or
+    (op = Commit and k = WriteK    and p = 1) or
+    (op = Commit and k = DelegateK and p = 2) or
+    (op = Commit and k = ConfirmK  and p = 3) or
+    (op = Commit and k = DelegateK and p = 4) or
+    (op = Commit and k = ReportK   and p = 5) or
 
-    -- Amend: gather(0) -> delegate(1) -> verify(2) -> confirm(3) -> publish(4) -> delegate(5) -> report(6)
-    -- delegate(1) = committer amend; verify(2) = compare file sets;
+    -- Amend: gather(0) -> write(1) -> verify(2) -> confirm(3) -> publish(4) -> delegate(5) -> report(6)
+    -- write(1) = inline no-edit amend; verify(2) = compare file sets;
     -- confirm(3) = message update?; publish(4) = force-push;
-    -- delegate(5) = pr-writer update.
+    -- delegate(5) = pr-writer update (or committer for message rewrite).
     (op = Amend and k = GatherK   and p = 0) or
-    (op = Amend and k = DelegateK and p = 1) or
+    (op = Amend and k = WriteK    and p = 1) or
     (op = Amend and k = VerifyK   and p = 2) or
     (op = Amend and k = ConfirmK  and p = 3) or
     (op = Amend and k = PublishK  and p = 4) or
@@ -398,34 +374,18 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Push and k = DelegateK and p = 3) or
     (op = Push and k = ReportK   and p = 4) or
 
-    -- Worktree: gather(0) -> write(1) -> confirm(2) -> write(3) -> report(4)
-    -- write(1) = gwt; confirm(2) = branch exists?; write(3) = gwt --force or retry.
-    (op = Worktree and k = GatherK  and p = 0) or
-    (op = Worktree and k = WriteK   and p = 1) or
-    (op = Worktree and k = ConfirmK and p = 2) or
-    (op = Worktree and k = WriteK   and p = 3) or
-    (op = Worktree and k = ReportK  and p = 4) or
-
-    -- Clean Worktrees: gather(0) -> write(1) -> report(2) -> confirm(3) -> write(4) -> report(5)
-    -- write(1) = fetch/discover stale; report(2) = present stale worktrees;
-    -- confirm(3) = deletion?; write(4) = delete/prune; report(5) = summary.
-    (op = CleanWorktrees and k = GatherK  and p = 0) or
-    (op = CleanWorktrees and k = WriteK   and p = 1) or
-    (op = CleanWorktrees and k = ReportK  and p = 2) or
-    (op = CleanWorktrees and k = ConfirmK and p = 3) or
-    (op = CleanWorktrees and k = WriteK   and p = 4) or
-    (op = CleanWorktrees and k = ReportK  and p = 5) or
-
     -- CheckCI: gather(0) -> report(1)
     (op = CheckCI and k = GatherK and p = 0) or
     (op = CheckCI and k = ReportK and p = 1) or
 
-    -- FixCI: gather(0) -> delegate(1) -> delegate(2) -> report(3)
-    -- delegate(1) = ci-triager triages failures; delegate(2) = fix subagent applies fixes.
+    -- FixCI: gather(0) -> delegate(1) -> delegate(2) -> write(3) -> report(4)
+    -- delegate(1) = ci-triager triages failures; delegate(2) = fix subagent applies fixes;
+    -- write(3) = inline commit of fixes.
     (op = FixCI and k = GatherK   and p = 0) or
     (op = FixCI and k = DelegateK and p = 1) or
     (op = FixCI and k = DelegateK and p = 2) or
-    (op = FixCI and k = ReportK   and p = 3) or
+    (op = FixCI and k = WriteK    and p = 3) or
+    (op = FixCI and k = ReportK   and p = 4) or
 
     -- Rerun: gather(0) -> publish(1) -> verify(2) -> report(3)
     -- publish(1) = gh run rerun; verify(2) = check new status.
@@ -441,36 +401,28 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Watch and k = LoopK   and p = 2) or
     (op = Watch and k = ReportK and p = 3) or
 
-    -- FixReview: gather(0) -> report(1) -> confirm(2) -> delegate(3) -> verify(4) -> delegate(5) -> report(6)
+    -- FixReview: gather(0) -> report(1) -> confirm(2) -> delegate(3) -> verify(4) -> write(5) -> report(6)
     -- confirm(2) = classify threads; human reviewer threads require user approval.
     -- delegate(3) = fix subagent applies fixes; verify(4) = run linter/tests and re-read code;
-    -- delegate(5) = committer commits the fixes.
+    -- write(5) = inline commit of fixes.
     -- ReportK appears at both position 1 (summary) and position 6 (final report).
     (op = FixReview and k = GatherK   and p = 0) or
     (op = FixReview and k = ReportK   and p = 1) or
     (op = FixReview and k = ConfirmK  and p = 2) or
     (op = FixReview and k = DelegateK and p = 3) or
     (op = FixReview and k = VerifyK   and p = 4) or
-    (op = FixReview and k = DelegateK and p = 5) or
+    (op = FixReview and k = WriteK    and p = 5) or
     (op = FixReview and k = ReportK   and p = 6) or
 
     -- Reply: gather(0) -> report(1) -> confirm(2) -> publish(3) -> report(4)
     -- ReportK appears at both position 1 (present drafts) and position 4 (summary).
     -- PublishK (not DelegateK) at position 3: GitHub posting is modeled as PublishK
-    -- to enforce INV-P2 (confirm-before-publish). SubmitReview uses DelegateK because
-    -- the user's explicit verdict serves as implicit confirmation.
+    -- to enforce INV-P2 (confirm-before-publish).
     (op = Reply and k = GatherK  and p = 0) or
     (op = Reply and k = ReportK  and p = 1) or
     (op = Reply and k = ConfirmK and p = 2) or
     (op = Reply and k = PublishK and p = 3) or
     (op = Reply and k = ReportK  and p = 4) or
-
-    -- Submit Review: gather(0) -> confirm(1) -> delegate(2) -> report(3)
-    -- confirm(1) = verdict clarification if ambiguous.
-    (op = SubmitReview and k = GatherK   and p = 0) or
-    (op = SubmitReview and k = ConfirmK  and p = 1) or
-    (op = SubmitReview and k = DelegateK and p = 2) or
-    (op = SubmitReview and k = ReportK   and p = 3) or
 
     -- Update Description: gather(0) -> delegate(1) -> confirm(2) -> publish(3) -> report(4)
     -- delegate(1) = pr-writer rewrites description; confirm(2) = check for unpushed
@@ -481,17 +433,19 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = UpdateDescription and k = PublishK  and p = 3) or
     (op = UpdateDescription and k = ReportK   and p = 4) or
 
-    -- Correct: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> publish(4) -> report(5)
+    -- Correct: gather(0) -> write(1) -> write(2) -> delegate(3) -> confirm(4) -> publish(5) -> report(6)
     -- gather(0) = understand correction, detect base, scan all artifacts;
     -- write(1) = fix branch context and changeset files directly;
-    -- delegate(2) = committer amends commit message, pr-writer updates description;
-    -- confirm(3) = force push offer; publish(4) = force push if accepted.
+    -- write(2) = inline amend of commit message;
+    -- delegate(3) = pr-writer updates description;
+    -- confirm(4) = force push offer; publish(5) = force push if accepted.
     (op = Correct and k = GatherK   and p = 0) or
     (op = Correct and k = WriteK    and p = 1) or
-    (op = Correct and k = DelegateK and p = 2) or
-    (op = Correct and k = ConfirmK  and p = 3) or
-    (op = Correct and k = PublishK  and p = 4) or
-    (op = Correct and k = ReportK   and p = 5) or
+    (op = Correct and k = WriteK    and p = 2) or
+    (op = Correct and k = DelegateK and p = 3) or
+    (op = Correct and k = ConfirmK  and p = 4) or
+    (op = Correct and k = PublishK  and p = 5) or
+    (op = Correct and k = ReportK   and p = 6) or
 
     -- Set Branch Context: gather(0) -> confirm(1) -> write(2) -> report(3)
     -- gather(0) = check branch + check for existing file;
@@ -503,22 +457,19 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
 }
 
 pred maxPos[op: Operation, p: Int] {
-    (op = Commit             and p = 4) or
+    (op = Commit             and p = 5) or
     (op = Amend              and p = 6) or
     (op = Squash             and p = 6) or
     (op = Rebase             and p = 3) or
     (op = Push               and p = 4) or
-    (op = Worktree           and p = 4) or
-    (op = CleanWorktrees     and p = 5) or
     (op = CheckCI            and p = 1) or
-    (op = FixCI              and p = 3) or
+    (op = FixCI              and p = 4) or
     (op = Rerun              and p = 3) or
     (op = Watch              and p = 3) or
     (op = FixReview          and p = 6) or
     (op = Reply              and p = 4) or
-    (op = SubmitReview       and p = 3) or
     (op = UpdateDescription  and p = 4) or
-    (op = Correct            and p = 5) or
+    (op = Correct            and p = 6) or
     (op = SetBranchContext   and p = 3)
 }
 
@@ -593,9 +544,9 @@ assert allOpsEndWithReport {
 
 -- INV-SM-3: Every ConfirmK must have at least one WriteK or DelegateK after it
 -- (weakened from "all ConfirmK < all WriteK" to support operations
--- like Worktree and CleanWorktrees where confirm appears between writes,
--- and broadened to include DelegateK for operations like FixReview and
--- SubmitReview where the action after confirm is delegation, not a write)
+-- where confirm appears between writes, and broadened to include DelegateK
+-- for operations like FixReview where the action after confirm is delegation,
+-- not a write)
 assert confirmPrecedesAction {
     all op: Operation, cp: Int |
         hasStep[op, ConfirmK, cp] implies
@@ -669,10 +620,10 @@ assert referencesAreLeaves {
 }
 
 -- INV-REF-2: GitPatterns is consumed by most operations.
--- Rerun, SubmitReview, CheckCI, and SetBranchContext are intentional exceptions.
+-- Rerun, CheckCI, and SetBranchContext are intentional exceptions.
 assert gitPatternsMostOps {
     all op: Operation |
-        (op not in (Rerun + SubmitReview + CheckCI + SetBranchContext)) implies
+        (op not in (Rerun + CheckCI + SetBranchContext)) implies
             op in GitPatterns.consumedBy
 }
 
