@@ -34,7 +34,7 @@ Write a self-contained task description that captures the current session's cont
    - **Commands** -- build, test, lint, and other relevant commands already known
 
    Content rules:
-   - MUST write as if the reader has zero prior context. Every file path, function name, and decision MUST be stated explicitly -- never "the file we discussed" or "as mentioned earlier"
+   - The next agent starts a fresh session with no memory of this conversation. MUST write as if the reader has zero prior context. Every file path, function name, and decision MUST be stated explicitly -- never "the file we discussed" or "as mentioned earlier"
    - MUST preserve the user's intent in Remaining Work rather than decomposing or researching it. If they said "figure out X", write "Figure out X"
    - SHOULD keep the content under ~80 lines. If it would exceed that, the task may need Plan Task instead
    - MUST scan for non-ASCII characters and replace with ASCII equivalents before writing
