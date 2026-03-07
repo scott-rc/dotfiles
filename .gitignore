@@ -1,4 +1,5 @@
 updated_at
+configs/nvim/lazy-lock.json
 configs/fish/fish_variables
 configs/nu/history.txt
 tmp/

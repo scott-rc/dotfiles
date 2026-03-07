@@ -1,0 +1,30 @@
+return {
+	"stevearc/conform.nvim",
+	event = "BufWritePre",
+	opts = {
+		formatters_by_ft = {
+			go = { "gofumpt" },
+			javascript = { "oxfmt" },
+			javascriptreact = { "oxfmt" },
+			typescript = { "oxfmt" },
+			typescriptreact = { "oxfmt" },
+			json = { "oxfmt" },
+			yaml = { "oxfmt" },
+			html = { "oxfmt" },
+			css = { "oxfmt" },
+			markdown = { "oxfmt" },
+			rust = { "rustfmt" },
+			sh = { "shfmt" },
+			bash = { "shfmt" },
+			fish = { "fish_indent" },
+			lua = { "stylua" },
+			nix = { "nixfmt" },
+			terraform = { "terraform_fmt" },
+			hcl = { "terraform_fmt" },
+		},
+		format_on_save = {
+			timeout_ms = 3000,
+			lsp_format = "fallback",
+		},
+	},
+}

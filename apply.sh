@@ -250,9 +250,9 @@ ensure_symlink "$CONFIGS/orbstack/docker.json" "$HOME/.orbstack/config/docker.js
 
 ensure_symlink "$CONFIGS/starship/starship.toml" "$HOME/.config/starship.toml"
 
-# --- Vim ---
+# --- Neovim ---
 
-ensure_symlink "$CONFIGS/vim/init.lua" "$HOME/.config/nvim/init.lua"
+ensure_symlink "$CONFIGS/nvim" "$HOME/.config/nvim"
 
 # --- Zed ---
 
