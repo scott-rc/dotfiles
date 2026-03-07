@@ -26,6 +26,6 @@ Fetch unresolved PR review threads and fix the issues reviewers described.
 
 6. **Verify fixes**: Run linter/tests if configured per the "Local Fix Commands" section in references/git-patterns.md. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, report it as unresolved and continue with remaining threads. Report which threads were fixed and which files changed.
 
-7. **Commit**: Dispatch the `committer` agent with: "Commit these changes. They address PR review feedback: <brief summary of threads fixed>."
+7. **Commit**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md.
 
 8. **Report**: Confirm what was fixed, which threads remain unresolved, and the commit hash.

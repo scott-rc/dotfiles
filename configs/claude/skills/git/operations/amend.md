@@ -14,7 +14,7 @@ Fold outstanding changes into the last commit.
 
 5. **Record pre-amend state**: Record the current file set (`git diff --name-only origin/<base>...HEAD`) and the current commit message (`git log -1 --format=%B`).
 
-6. **Amend the commit**: Delegate to the `committer` agent with prompt: "Amend the last commit with the current changes. No-edit."
+6. **Amend the commit (inline)**: Stage changed files (`git diff --name-only` then `git add <file1> ...`), then `git commit --amend --no-edit`. If pre-commit hook fails, read error, fix the issue, re-stage, retry. MUST NOT use `--no-verify`.
 
 7. **Compare file sets**: Record the post-amend file set (`git diff --name-only origin/<base>...HEAD`) and compare against the pre-amend file set from step 5. If the file sets are identical, keep the original message and skip to step 9.
 

@@ -10,7 +10,7 @@ Squash all commits on the current branch into a single commit.
 
 3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`. Also capture full commit messages for step 8: `git log origin/<base>..HEAD --format=%B`.
 
-4. **Commit uncommitted changes**: Check for uncommitted changes. If changes exist, spawn the `committer` agent with no additional prompt. If clean, skip to step 5.
+4. **Commit uncommitted changes**: Check for uncommitted changes. If clean, skip to step 5. If changes exist, evaluate complexity (same criteria: session file set known, 5 or fewer files, 100 or fewer lines changed). If simple, commit per the Inline Commit Procedure in references/commit-message-format.md. If complex, spawn the `committer` agent with no additional prompt.
 
 5. **Rebase onto base branch** so all comparisons against `origin/<base>` are accurate: `git rebase origin/<base>`. If conflicts occur, present options via AskUserQuestion: "Help resolve conflicts" or "Abort rebase (`git rebase --abort`)". Only run `git rebase --abort` if the user picks the abort option.
 

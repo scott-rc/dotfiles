@@ -93,6 +93,7 @@ Reference files:
 - references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix Review and Reply operations)
+- references/commit-message-format.md - Commit message format rules (shared by inline commit path and committer agent)
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch and Fix CI operations)
 - references/watch-subops.md - State file format, monitoring loop protocol, and thread/CI failure handling for the watch loop
 

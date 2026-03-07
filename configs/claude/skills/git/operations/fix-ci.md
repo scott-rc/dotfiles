@@ -29,4 +29,4 @@ Fetch CI failure logs, triage via ci-triager, and fix the issues.
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 
-4. **Report to user**: Summarize what failed, why, what was fixed, and whether local verification passed. Offer to commit and push — if the user accepts, dispatch the `committer` agent to commit, then run the Push operation (push's uncommitted-changes check is redundant after a fresh commit — skip it).
+4. **Report to user**: Summarize what failed, why, what was fixed, and whether local verification passed. Offer to commit and push. If the user accepts: stage changed files, commit with message "Fix <workflow/check name> CI failure: <brief cause>" per the Inline Commit Procedure in references/commit-message-format.md, then run the Push operation (push's uncommitted-changes check is redundant after a fresh commit -- skip it).

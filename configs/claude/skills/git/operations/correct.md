@@ -22,7 +22,7 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 4. **Report findings**: List which artifacts contain the incorrect information and which are clean. Do NOT ask for confirmation -- proceed to fix.
 
 5. **Fix affected artifacts**: Apply corrections to all affected artifacts. Order matters -- fix upstream sources first so downstream regeneration uses correct input:
-   - Commit message — delegate to `committer` agent: "Amend the last commit message. Remove or correct: [incorrect claim]. The correction is: [what the user said]."
+   - Commit message -- the current message was already read in step 3. Apply the correction, then amend per the Inline Commit Procedure in references/commit-message-format.md (use `git commit --amend -F <file>`).
    - Branch context file — edit the file directly to remove or correct the claim
    - Changeset files — edit affected files directly
    - PR title — delegate to `pr-writer` agent with `mode: update` and `context` set to the correction (title only)

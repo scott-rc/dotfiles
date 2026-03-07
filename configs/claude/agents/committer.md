@@ -26,6 +26,7 @@ The caller's prompt determines the mode:
 - If diff output exceeds ~500 lines, use `git diff --stat` for an overview and read individual file diffs selectively.
 
 ### Commit Message Format
+<!-- Canonical pair: references/commit-message-format.md — keep in sync -->
 
 - Draft the message solely from the diff content.
 - Imperative mood, start with a capital letter, under 72 chars, explain _why_ not _what_

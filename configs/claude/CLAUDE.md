@@ -33,7 +33,7 @@ User interaction and state transitions stay in the orchestrator.
 
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
-- Commits — `committer`
+- Commits — git skill (routes to `committer` for complex commits; inlines simple ones)
 - PR descriptions (create, update, or edit any part of the body) — `pr-writer`
 - Rules files — `rules-writer`
 - Skill files — `skill-writer`
