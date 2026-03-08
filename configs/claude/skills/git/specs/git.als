@@ -15,7 +15,7 @@ module git
 
 /** Artifact types the skill operates on */
 abstract sig ArtifactType {}
-one sig CommitArt, PRArt, GitHubTextArt, WatchStateArt extends ArtifactType {}
+one sig CommitArt, PRArt, GitHubTextArt extends ArtifactType {}
 
 /** Agents that operations delegate work to */
 abstract sig DelegateAgent {}
@@ -52,13 +52,6 @@ abstract sig Operation {
 }
 
 one sig Commit extends Operation {} {
-    produces    = CommitArt
-    delegatesTo = Committer
-    mutates     = CommitArt
-    invokes     = SetBranchContext  -- partial: steps 3-4 only (gather+write, skipping report)
-}
-
-one sig Amend extends Operation {} {
     produces    = CommitArt + PRArt
     delegatesTo = Committer + PRWriter
     mutates     = CommitArt + PRArt
@@ -84,64 +77,6 @@ one sig Push extends Operation {} {
     delegatesTo = Committer + PRWriter
     mutates     = CommitArt + PRArt
     invokes     = Commit
-}
-
--- CheckCI is the status-only mode: gather state, report results.
--- No delegation, no mutation, no artifacts produced.
-one sig CheckCI extends Operation {} {
-    produces    = none
-    delegatesTo = none
-    mutates     = none
-    invokes     = none
-}
-
--- CITriager delegation is GitHub-Actions-specific; for Buildkite,
--- the triager is bypassed and FixSubagent handles everything directly.
-one sig FixCI extends Operation {} {
-    produces    = CommitArt
-    delegatesTo = CITriager + FixSubagent
-    mutates     = CommitArt
-    invokes     = Push
-}
-
--- Rerun triggers a CI re-run via gh; no local artifacts or delegation.
-one sig Rerun extends Operation {} {
-    produces    = none
-    delegatesTo = none
-    mutates     = none
-    invokes     = Watch
-}
-
--- Watch is a meta-operation: its loop internally invokes fix and commit
--- patterns. The outer structure is gather -> report -> loop -> report.
--- CITriager delegation is GitHub-Actions-specific; for Buildkite,
--- the triager is bypassed and FixSubagent handles everything directly.
-one sig Watch extends Operation {} {
-    produces    = WatchStateArt + CommitArt + GitHubTextArt
-    delegatesTo = CITriager + FixSubagent + Committer + GitHubWriter
-    mutates     = WatchStateArt + CommitArt
-    invokes     = none
-}
-
-one sig FixReview extends Operation {} {
-    produces    = CommitArt
-    delegatesTo = FixSubagent + ExploreSubagent
-    mutates     = CommitArt
-    invokes     = none
-}
-
-one sig Reply extends Operation {} {
-    produces    = GitHubTextArt
-    delegatesTo = GitHubWriter + ExploreSubagent
-    mutates     = none
-    invokes     = none
-}
-
-one sig UpdateDescription extends Operation {} {
-    produces    = PRArt
-    delegatesTo = PRWriter
-    mutates     = PRArt
-    invokes     = none
 }
 
 -- Correct propagates a user correction to all affected artifacts.

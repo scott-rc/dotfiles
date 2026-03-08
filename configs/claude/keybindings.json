@@ -1,16 +1,72 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-keybindings.json",
+  "$docs": "https://code.claude.com/docs/en/keybindings",
   "bindings": [
     {
       "context": "Chat",
       "bindings": {
-        "ctrl+;": "chat:cycleMode"
+        "ctrl+;": "chat:cycleMode",
+        "ctrl+'": "chat:modelPicker",
+        "cmd+_": "chat:undo",
+        "cmd+shift+-": "chat:undo",
+        "cmd+g": "chat:externalEditor",
+        "cmd+s": "chat:stash"
       }
     },
     {
-      "context": "Chat",
+      "context": "Global",
       "bindings": {
-        "ctrl+'": "chat:modelPicker"
+        "cmd+t": "app:toggleTodos",
+        "cmd+o": "app:toggleTranscript",
+        "cmd+shift+o": "app:toggleTeammatePreview",
+        "cmd+r": "history:search"
+      }
+    },
+    {
+      "context": "Confirmation",
+      "bindings": {
+        "cmd+e": "confirm:toggleExplanation",
+        "cmd+d": "permission:toggleDebug"
+      }
+    },
+    {
+      "context": "Transcript",
+      "bindings": {
+        "cmd+e": "transcript:toggleShowAll"
+      }
+    },
+    {
+      "context": "HistorySearch",
+      "bindings": {
+        "cmd+r": "historySearch:next"
+      }
+    },
+    {
+      "context": "Task",
+      "bindings": {
+        "cmd+b": "task:background"
+      }
+    },
+    {
+      "context": "ThemePicker",
+      "bindings": {
+        "cmd+t": "theme:toggleSyntaxHighlighting"
+      }
+    },
+    {
+      "context": "MessageSelector",
+      "bindings": {
+        "cmd+p": "messageSelector:up",
+        "cmd+n": "messageSelector:down",
+        "cmd+up": "messageSelector:top",
+        "cmd+down": "messageSelector:bottom"
+      }
+    },
+    {
+      "context": "Settings",
+      "bindings": {
+        "cmd+n": "select:next",
+        "cmd+p": "select:previous"
       }
     }
   ]

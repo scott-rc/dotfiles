@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::sync::LazyLock;
 use tui::ansi::AnsiState;
+use unicode_width::UnicodeWidthChar;
 
 pub use tui::ansi::{split_ansi, strip_ansi, wrap_line_for_display, ANSI_RE};
 pub use tui::ansi::visible_width as visible_length;
@@ -114,31 +115,46 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                 continue;
             }
 
-            let word_len = word.len();
+            let word_vis = visible_length(word);
 
             // If this word alone exceeds width, force-break it
-            if word_len > width && current_width == 0 {
-                let mut i = 0;
-                while i < word.len() {
-                    if i > 0 {
-                        if state.is_active() {
-                            current_line.push_str("\x1b[0m");
+            if word_vis > width && current_width == 0 {
+                let mut vis = 0;
+                let mut start = 0;
+                for (byte_idx, ch) in word.char_indices() {
+                    let cw = ch.width().unwrap_or(0);
+                    if vis > 0 && vis + cw > width {
+                        if start > 0 {
+                            if state.is_active() {
+                                current_line.push_str("\x1b[0m");
+                            }
+                            results.push(current_line.clone());
+                            current_line = state.to_codes();
+                            current_width = 0;
                         }
-                        results.push(current_line.clone());
-                        current_line = state.to_codes();
-                        current_width = 0;
+                        current_line.push_str(&word[start..byte_idx]);
+                        current_width = vis;
+                        start = byte_idx;
+                        vis = 0;
                     }
-                    let end = (i + width).min(word.len());
-                    let chunk = &word[i..end];
-                    current_line.push_str(chunk);
-                    current_width += chunk.len();
-                    i = end;
+                    vis += cw;
                 }
+                // Emit remaining chunk
+                if start > 0 {
+                    if state.is_active() {
+                        current_line.push_str("\x1b[0m");
+                    }
+                    results.push(current_line.clone());
+                    current_line = state.to_codes();
+                    current_width = 0;
+                }
+                current_line.push_str(&word[start..]);
+                current_width = vis;
                 continue;
             }
 
             // If adding this word would exceed width, wrap
-            if current_width + word_len > width && current_width > 0 {
+            if current_width + word_vis > width && current_width > 0 {
                 let mut line_to_save = current_line.trim_end().to_string();
 
                 // Don't leave a dangling opening backtick at end of line.
@@ -157,7 +173,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                             results.push(line_to_save);
                         }
                         current_line = format!("{}{captured}{word}", save_state.to_codes());
-                        current_width = 1 + word_len;
+                        current_width = 1 + word_vis;
                         continue;
                     }
                 }
@@ -177,7 +193,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                         let pulled_trimmed = pulled.trim_start();
                         current_line =
                             format!("{}{pulled_trimmed}{word}", state.to_codes());
-                        current_width = visible_length(pulled_trimmed) + word_len;
+                        current_width = visible_length(pulled_trimmed) + word_vis;
                         continue;
                     }
                 }
@@ -196,7 +212,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
             }
 
             current_line.push_str(word);
-            current_width += word_len;
+            current_width += word_vis;
         }
     }
 
@@ -436,6 +452,25 @@ mod tests {
     fn test_split_with_spaces() {
         let parts = split_with_spaces("hello  world");
         assert_eq!(parts, vec!["hello", "  ", "world"]);
+    }
+
+    #[test]
+    fn test_force_break_multibyte_chars() {
+        // Box-drawing characters are 3 bytes each but 1 visible width.
+        // Force-breaking must respect char boundaries.
+        let line = "┌─────────┬───────────────────────────────────────────────┬─────────┬────────────────";
+        let result = wrap_line_greedy(line, 40);
+        for (i, chunk) in result.iter().enumerate() {
+            assert!(
+                chunk.is_char_boundary(0) && chunk.len() == chunk.as_bytes().len(),
+                "chunk {i} is not valid UTF-8"
+            );
+            let vis = visible_length(chunk);
+            assert!(
+                vis <= 40,
+                "chunk {i} visible width {vis} exceeds 40: {chunk:?}"
+            );
+        }
     }
 
     // ---- wrap_line_for_display ----

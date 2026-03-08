@@ -1,7 +1,7 @@
 ---
 name: git
 description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, or review code.
-argument-hint: "[operation or intent]"
+argument-hint: "[commit | squash | push | rebase | fix | correct] [context]"
 ---
 
 # Git Operations
@@ -15,12 +15,8 @@ Route to the appropriate operation based on user intent.
 ## Operations
 
 ### Commit
-Commit outstanding changes with a well-formatted message.
+Commit outstanding changes with a well-formatted message. Also handles amend (fold changes into the last commit) -- see the Amend mode in `operations/commit.md`.
 See operations/commit.md for detailed instructions.
-
-### Amend
-Fold outstanding changes into the last commit.
-See operations/amend.md for detailed instructions.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
@@ -31,40 +27,12 @@ Fetch latest and rebase onto base branch.
 See operations/rebase.md for detailed instructions.
 
 ### Push
-Push commits and create/update PR with title/description per guidelines.
+Push commits and create/update PR with title/description per guidelines. Also handles refresh description (update PR description without new commits) -- see the Refresh Description mode in `operations/push.md`.
 See operations/push.md for detailed instructions.
 
-### Check CI
-Check CI status and report results.
-See operations/check-ci.md for detailed instructions.
-
-### Fix CI
-Fetch CI failure logs, triage via ci-triager, and fix issues via fix subagent.
-See operations/fix-ci.md for detailed instructions.
-
-### Rerun
-Re-trigger failed CI jobs.
-See operations/rerun.md for detailed instructions.
-
-### Watch
-Monitor CI and review threads on the current PR, automatically triaging failures, fixing issues, and pushing updates.
-See operations/watch.md for detailed instructions.
-
-### Fix Review
-Fetch unresolved PR review threads and fix the issues reviewers described.
-See operations/fix-review.md for detailed instructions.
-
-### Update Description
-Rewrite the PR title and description to match current changes per guidelines.
-See operations/update-description.md for detailed instructions.
-
-### Set Branch Context
-Read or create the branch context file that captures the "why" for the current branch.
-See operations/set-branch-context.md for detailed instructions.
-
-### Reply
-Fetch unreplied PR review threads and draft responses for user approval, or post a specific comment.
-See operations/reply.md for detailed instructions.
+### Fix
+Auto-detect and fix CI failures and unresolved review threads; draft and post replies.
+See operations/fix.md for detailed instructions.
 
 ### Correct
 Propagate a user correction about what a change does to all affected artifacts (commit message, branch context, changesets, PR title/description).
@@ -75,16 +43,20 @@ See operations/correct.md for detailed instructions.
 Multi-operation sequences and ambiguous phrasings that need explicit routing:
 
 - **"commit and push"** → Commit, then push
-- **"amend and push"** → Amend, then push
+- **"amend and push"** → Commit (amend mode), then push
 - **"squash and push"** → Squash, then push (push's uncommitted-changes check is redundant after squash)
-- **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then update-description. Set `context` to note the squash. After update-description, offer force push since history was rewritten.
-- **"push and watch"** → Push, then watch
-- **"rerun and watch"** → Rerun, then watch
-- **"review and push"** / **"fix reviews and push"** → Fix-review, then push
-- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix-ci (not check-ci)
-- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix-review (not reply)
-- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Update Description (all PR body modifications, even targeted section edits, go through pr-writer)
+- **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then Push (Refresh Description mode). Set `context` to note the squash. After refresh, offer force push since history was rewritten.
+- **"push, then monitor"** → Push, then advise `/loop 2m /git fix`
+- **"rerun, then monitor"** → Run `~/.claude/skills/git/scripts/rerun.sh`, then advise `/loop 2m /git fix`
+- **"review and push"** / **"fix reviews and push"** → Fix, then push
+- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix (not check-ci)
+- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix
+- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Push (Refresh Description mode) (all PR body modifications, even targeted section edits, go through pr-writer)
 - **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
+
+## Monitoring
+
+Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, or both) and handles it. The loop is session-scoped and auto-expires after 3 days.
 
 ## References
 
@@ -92,13 +64,13 @@ Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
 - references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
-- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix Review and Reply operations)
+- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)
 - references/commit-message-format.md - Commit message format rules (shared by inline commit path and committer agent)
-- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Watch and Fix CI operations)
-- references/watch-subops.md - State file format, monitoring loop protocol, and thread/CI failure handling for the watch loop
+- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
 
 Scripts:
-- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations)
-- scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
-- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation)
+- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix operation)
+- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Fix operation)
 - scripts/safe-text.sh - Writes GitHub-bound text to a temp file with ASCII enforcement; used by committer and pr-writer agents
+- scripts/check-ci.sh - Checks CI status for the current branch and prints a grouped summary (failed/pending/passed)
+- scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun

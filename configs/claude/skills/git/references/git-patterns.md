@@ -14,14 +14,16 @@ Shared patterns used across git skill operations. Reference this file for consis
 - Scope Verification
 - CI Detection
 - CI System Detection
+- Branch Context Creation
 - Local Fix Commands
 
 ## Script Paths
 
 - `get-pr-comments` -- `~/.claude/skills/git/scripts/get-pr-comments.sh`
-- `poll-pr-status` -- `~/.claude/skills/git/scripts/poll-pr-status.sh`
 - `get-failed-runs` -- `~/.claude/skills/git/scripts/get-failed-runs.sh`
 - `safe-text` -- `~/.claude/skills/git/scripts/safe-text.sh`
+- `check-ci` -- `~/.claude/skills/git/scripts/check-ci.sh`
+- `rerun` -- `~/.claude/skills/git/scripts/rerun.sh`
 - `buildkite` -- project-local CI script for querying the Buildkite API. Locate under the project's `.ai/skills/ci/` directory (typically a `.mjs` file). Run via `direnv exec .`. Requires `BUILDKITE_API_TOKEN` env var. Commands: `failed <org> <pipeline> <build>` lists failed jobs; `failed-logs <org> <pipeline> <build>` gets logs for all failed jobs.
 
 ## Fish Functions
@@ -110,7 +112,7 @@ Ask the user to verify these files match the branch's intended scope. If unexpec
 
 ## CI Detection
 
-Use these two steps to verify CI is configured and check status. Referenced by check-ci.md and fix-ci.md.
+Use these two steps to verify CI is configured and check status. Referenced by fix-ci.md.
 
 **Step 1 -- Verify CI is configured**: Run `gh pr checks --json name,state 2>/dev/null` (or `gh run list --branch $(git branch --show-current) --limit 1` if no PR exists). If the command returns no check runs and no runs exist, inform the user that no CI checks were found and stop.
 
@@ -121,7 +123,38 @@ Use these two steps to verify CI is configured and check status. Referenced by c
 
 ## CI System Detection
 
-CI system is detected automatically by `poll-pr-status` and reported in `ci.ciSystem`. For `fix-ci.md` standalone use, detect by checking `.github/workflows/` (github-actions) or `.buildkite/` (buildkite). `gh pr checks` works for all systems; `gh run list` / `gh run view` / `get-failed-runs` / `ci-triager` only work for `github-actions`.
+Detect CI system by checking `.github/workflows/` (github-actions) or `.buildkite/` (buildkite). `gh pr checks` works for all systems; `gh run list` / `gh run view` / `get-failed-runs` / `ci-triager` only work for `github-actions`.
+
+## Branch Context Creation
+
+Read or create the branch context file that captures the "why" for the current branch.
+
+1. **Check branch**: If on main/master, inform the user that branch context is for feature branches and stop.
+
+2. **Check for existing file**: Check if the branch context file exists (path per "Branch Context File" above). If it exists, display its contents and ask if the user wants to update it. If they decline, stop.
+
+3. **Assess conversation context**: Before prompting the user, assess whether the current conversation already contains enough information to draft a meaningful branch context -- problem discussed, motivation clear, relevant links shared. If the conversation lacks sufficient context (e.g., invoked at the start of a session with no prior discussion), fall through to step 5.
+
+4. **Draft from conversation**: If context is sufficient (step 3 passed), draft a branch context: 1-3 sentences of purpose/motivation, related links if discussed, no headers/change lists/implementation details. Cross-check any factual claims about before/after states against `git diff origin/<base>...HEAD` -- the diff is the source of truth for what the code looked like. Then skip to step 7 (write the file).
+
+5. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these two options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts). The free-text input ("Type something...") serves as the direct-entry path -- no separate option is needed for it.
+   - **"Help me articulate it"** -- proceed to step 6.
+   - **"Skip"** -- write `N/A` to the branch context file and skip to step 9 (skip confirmation).
+   If the user provides free text, treat it as the purpose. Optionally ask "Any related links (issues, PRs, Slack)?" with a "Skip" option. If their description includes factual claims about before/after states, cross-check against the diff before writing.
+
+6. **Ask targeted questions**: Ask via AskUserQuestion: "What problem are you solving or what triggered this work?". Then ask "What's the expected outcome when this branch merges?". Then ask "Any related issues, PRs, or links?" with a "Skip" option. Synthesize the answers into a concise purpose statement (1-3 sentences) plus any links provided. Cross-check any factual claims about before/after states against `git diff origin/<base>...HEAD`.
+
+7. **Write the file**: Create the branch context file (`./tmp/branches/<sanitized-branch>/context.md`). The file MUST contain only:
+   - 1-3 sentences of purpose/motivation (the "why")
+   - Related links, if given (each on its own line)
+
+   Do NOT include headers, change lists, implementation details, or what files were modified -- the diff is the source of truth for "what". Keep the user's original phrasing where possible.
+
+8. **Confirm with user**: Show the written content and ask via AskUserQuestion -- "Does this accurately capture the purpose?" with options:
+   - **"Looks good"** -- proceed to report.
+   - **"Needs changes"** -- user provides corrections; update the file and re-confirm.
+
+9. **Report**: Confirm the file was written and show its contents.
 
 ## Local Fix Commands
 
