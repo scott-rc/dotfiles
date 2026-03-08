@@ -213,6 +213,11 @@ one sig CommitMessageFormat extends Reference {} {
 
 -- Scripts modeled as Reference instances
 
+one sig SafeText extends Reference {} {
+    -- Indirect: ops delegate to Committer/PRWriter agents, which call the script.
+    consumedBy = Commit + Amend + Squash + Push + Watch + UpdateDescription + Correct
+}
+
 one sig GetPRComments extends Reference {} {
     consumedBy = FixReview + Reply + Watch
 }

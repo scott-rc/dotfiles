@@ -29,7 +29,7 @@ All GitHub-facing text MUST follow these rules:
 
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII corrupts through the `gh` CLI.
 - Backticks for code references, fenced code blocks for multi-line examples.
-- Write multi-line bodies to a temp file and use `-F body=@file` instead of inline strings or heredocs.
+- Write body content through `~/.claude/skills/git/scripts/safe-text.sh` (pipe or `--file`); use the returned path with `--body-file`.
 
 ### Cardinal Rules
 
@@ -107,18 +107,19 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
 3. **Create or update**:
 
-   Write the body to a uniquely-named temp file:
+   Write the body to a draft file, then sanitize through `~/.claude/skills/git/scripts/safe-text.sh`:
 
    ```bash
-   BODY_FILE=$(mktemp /tmp/pr-body.XXXXXX.txt)
+   DRAFT=$(mktemp /tmp/pr-draft-XXXXXX)
+   # ... write body to $DRAFT ...
+   BODY_FILE=$(~/.claude/skills/git/scripts/safe-text.sh --file "$DRAFT" --prefix pr-body)
+   TITLE_FILE=$(echo "<title>" | ~/.claude/skills/git/scripts/safe-text.sh --title --prefix pr-title)
    ```
-
-   **Validate ASCII**: Before posting, scan the title and body file for non-ASCII characters. If any are found (em dashes, curly quotes, ellipsis, etc.), replace them with ASCII equivalents.
 
    **Create mode**:
 
    ```bash
-   gh pr create --title "<title>" --base <base_branch> --body-file "$BODY_FILE"
+   gh pr create --title "$(cat "$TITLE_FILE")" --base <base_branch> --body-file "$BODY_FILE"
    ```
 
    **Update mode**:
@@ -127,7 +128,7 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
    - **Before posting**, verify every factual claim in your new draft against the diff. For claims about before/after states (types, signatures, behavior), find the corresponding `-` and `+` lines in the diff and confirm they match. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, "raw strings" when the diff shows branded types, or journey language like "was flaky" for code that is entirely new in the PR). Do not trust branch context or commit messages for before/after facts -- only the diff.
 
    ```bash
-   gh pr edit <pr_number> --title "<title>" --body-file "$BODY_FILE"
+   gh pr edit <pr_number> --title "$(cat "$TITLE_FILE")" --body-file "$BODY_FILE"
    ```
 
    Clean up the temp file after posting.

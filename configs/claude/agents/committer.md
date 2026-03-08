@@ -31,8 +31,7 @@ The caller's prompt determines the mode:
 - Draft the message solely from the diff content.
 - Imperative mood, start with a capital letter, under 72 chars, explain _why_ not _what_
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
-- ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII causes UTF-8 warnings.
-- Multi-line: write to a temp file and `git commit -F <file>` (not repeated `-m` args). Same for `--amend`.
+- Pipe the message through `~/.claude/skills/git/scripts/safe-text.sh --commit-msg --prefix commit-msg`; use the returned path with `git commit -F`. Same for `--amend`.
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
 
 ## Workflow
@@ -55,11 +54,11 @@ The caller's prompt determines the mode:
 
 4. **Stage and commit**:
    - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
-   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `git commit --amend -m/-F` if a new message is needed
+   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `MSG=$(echo "new message" | ~/.claude/skills/git/scripts/safe-text.sh --commit-msg --prefix commit-msg) && git commit --amend -F "$MSG"`
    - Squash: changes are already staged, draft message from the staged diff, `git commit`
 
 5. **Handle errors after commit**:
-   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write a corrected ASCII-only message to a temp file and `git commit --amend -F <file>`.
+   - **UTF-8 warning** ("commit message did not conform to UTF-8"): pipe a corrected message through `~/.claude/skills/git/scripts/safe-text.sh --commit-msg --prefix commit-msg` and `git commit --amend -F <file>`.
    - **Pre-commit hook failure**: read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`.
 
 6. **Return result**:

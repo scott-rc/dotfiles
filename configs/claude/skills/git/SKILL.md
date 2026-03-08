@@ -101,3 +101,4 @@ Scripts:
 - scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix Review and Reply operations)
 - scripts/poll-pr-status.sh - Combined CI + review thread poll for the watch loop; returns compact JSON with exit condition (used by Watch operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Watch operation)
+- scripts/safe-text.sh - Writes GitHub-bound text to a temp file with ASCII enforcement; used by committer and pr-writer agents
