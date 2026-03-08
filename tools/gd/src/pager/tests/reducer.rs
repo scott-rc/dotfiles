@@ -1656,3 +1656,167 @@ fn next_file_tree_visible_any_focus() {
     // Uses nav_D_down regardless of tree visibility or focus
     assert_eq!(state.cursor_line, 10, "cursor should jump to next file via nav_D_down");
 }
+
+// ---- File position memory (cursor position per file) ----
+
+/// Helper: build a two-file state in single-file mode with enough content lines
+/// to allow scrolling. File 0 = lines 0..30, File 1 = lines 30..60.
+fn make_single_file_state() -> PagerState {
+    let mut state = make_keybinding_state();
+    // Enter single file mode on file 0
+    state.set_active_file(Some(0));
+    // Position cursor somewhere in file 0 (not at the start)
+    state.cursor_line = 1; // first content line
+    state.top_line = 0;
+    state
+}
+
+#[test]
+fn file_position_restored_on_return() {
+    let mut state = make_single_file_state();
+
+    // Scroll down in file 0
+    for _ in 0..10 {
+        handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    }
+    let file0_cursor = state.cursor_line;
+    let file0_top = state.top_line;
+    assert!(file0_cursor > 1, "should have scrolled down in file 0");
+
+    // Switch to file 1
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.active_file(), Some(1), "should be on file 1");
+
+    // Switch back to file 0
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.active_file(), Some(0), "should be back on file 0");
+    assert_eq!(
+        state.cursor_line, file0_cursor,
+        "cursor position should be restored for file 0"
+    );
+    assert_eq!(
+        state.top_line, file0_top,
+        "top_line should be restored for file 0"
+    );
+}
+
+#[test]
+fn file_position_round_trip() {
+    let mut state = make_single_file_state();
+
+    // Scroll in file 0
+    for _ in 0..5 {
+        handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    }
+    let file0_cursor = state.cursor_line;
+
+    // Go to file 1, scroll there too
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.active_file(), Some(1));
+    for _ in 0..3 {
+        handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    }
+    let file1_cursor = state.cursor_line;
+
+    // Go back to file 0
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.cursor_line, file0_cursor, "file 0 position restored");
+
+    // Go back to file 1
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.cursor_line, file1_cursor, "file 1 position restored");
+}
+
+#[test]
+fn fresh_file_starts_at_header() {
+    let mut state = make_single_file_state();
+    // File 0 starts at line 0. On first visit, cursor should be at the file start.
+    // The existing behavior places cursor at the file's start line.
+    // Switch to file 1 (never visited)
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    let file1_start = state.file_start(1).unwrap();
+    assert_eq!(
+        state.cursor_line, file1_start,
+        "first visit to file 1 should start at file header"
+    );
+}
+
+#[test]
+fn file_positions_cleared_on_document_swap() {
+    use super::super::state::{capture_view_anchor, remap_after_document_swap};
+
+    let mut state = make_single_file_state();
+
+    // Scroll in file 0
+    for _ in 0..5 {
+        handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    }
+    let scrolled_cursor = state.cursor_line;
+    assert!(scrolled_cursor > 1);
+
+    // Switch to file 1 to save file 0's position
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    // Simulate document swap (regenerate)
+    let anchor = capture_view_anchor(&state);
+    let new_doc = state.doc.clone();
+    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
+
+    // Switch back to file 0 — position should NOT be restored (cache cleared)
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    let file0_start = state.file_start(0).unwrap();
+    assert_eq!(
+        state.cursor_line, file0_start,
+        "after document swap, file 0 should start at header (cache cleared)"
+    );
+}
+
+#[test]
+fn focus_tree_syncs_cursor_to_current_file() {
+    let mut state = make_keybinding_state();
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
+
+    // Open tree, then go back to diff
+    handle_key(&mut state, Key::Super('e'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree);
+    handle_key(&mut state, Key::Super('e'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff);
+
+    // Move diff cursor into file 1 (starts at line 30)
+    state.cursor_line = 31;
+
+    // Re-focus tree — cursor should sync to file 1's tree entry (index 1)
+    handle_key(&mut state, Key::Super('e'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree);
+    assert_eq!(state.tree_cursor(), 1, "tree cursor should sync to file 1 when re-focusing");
+}
+
+#[test]
+fn toggle_focus_syncs_cursor_to_current_file() {
+    let mut state = make_keybinding_state();
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
+
+    // Open and focus tree with t
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree);
+    assert_eq!(state.tree_cursor(), 0);
+
+    // Back to diff
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff);
+
+    // Move diff cursor into file 2 (starts at line 60)
+    state.cursor_line = 61;
+
+    // Re-focus tree — cursor should sync to file 2's tree entry (index 2)
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.tree_cursor(), 2, "tree cursor should sync to file 2 when re-focusing via t");
+}

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::git::diff::DiffFile;
 use crate::render::{LineInfo, RenderOutput};
@@ -134,6 +134,7 @@ pub(crate) struct PagerState {
     pub(crate) focus: FocusPane,
     pub(crate) collapsed_paths: HashSet<String>,
     pub(crate) pending_tree_key: Option<char>,
+    pub(crate) file_positions: HashMap<usize, (usize, usize)>,
 }
 
 impl PagerState {
@@ -285,6 +286,7 @@ impl PagerState {
             focus: FocusPane::Diff,
             collapsed_paths: HashSet::new(),
             pending_tree_key: None,
+            file_positions: HashMap::new(),
         }
     }
 }
@@ -387,6 +389,7 @@ pub(crate) fn remap_after_document_swap(
     terminal_cols: usize,
 ) {
     state.doc = new_doc;
+    state.file_positions.clear();
 
     let file_count = state.doc.file_count();
     state.view_scope = match state.view_scope {

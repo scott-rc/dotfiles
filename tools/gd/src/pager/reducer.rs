@@ -28,15 +28,29 @@ pub(crate) enum ReducerEvent {
 }
 
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
+    // Save current position before switching away
+    if let Some(current_idx) = state.active_file() {
+        state.file_positions.insert(current_idx, (state.top_line, state.cursor_line));
+    }
+
     state.set_active_file(Some(file_idx));
     if let Some(start) = state.file_start(file_idx) {
-        state.top_line = start;
-        // Keep cursor at file header so ] can find the first change group.
-        // snap_to_content would land on a change line when there's no leading
-        // context, making jump_next (strictly >) unable to find that target.
-        state.cursor_line = start;
-        let (_, _, _, max_top) = viewport_bounds(state, ch);
-        state.top_line = recenter_top_line(state.cursor_line, ch, start, max_top);
+        // Restore cached position if available
+        if let Some(&(saved_top, saved_cursor)) = state.file_positions.get(&file_idx) {
+            let end = state.file_end(file_idx);
+            let max = end.saturating_sub(1);
+            state.cursor_line = saved_cursor.clamp(start, max);
+            let (_, _, _, max_top) = viewport_bounds(state, ch);
+            state.top_line = saved_top.clamp(start, max_top);
+        } else {
+            state.top_line = start;
+            // Keep cursor at file header so ] can find the first change group.
+            // snap_to_content would land on a change line when there's no leading
+            // context, making jump_next (strictly >) unable to find that target.
+            state.cursor_line = start;
+            let (_, _, _, max_top) = viewport_bounds(state, ch);
+            state.top_line = recenter_top_line(state.cursor_line, ch, start, max_top);
+        }
     }
 }
 
@@ -376,10 +390,6 @@ fn dispatch_normal_action(
             } else {
                 state.tree_visible = true;
                 state.focus = FocusPane::Tree;
-                if state.tree_selection.is_none() {
-                    state.set_tree_cursor(0);
-                }
-                // Rebuild tree if it was hidden
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
                     state.tree_entries = build_tree_entries(files);
                     let content_width = compute_tree_width(&state.tree_entries);
@@ -388,9 +398,9 @@ fn dispatch_normal_action(
                     let terminal_cols = ctx.cols as usize;
                     state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
                         .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
-                    let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
-                    state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 }
+                let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
             Some(ReducerEffect::ReRender)
@@ -408,9 +418,6 @@ fn dispatch_normal_action(
                 // Open and focus tree
                 state.tree_visible = true;
                 state.focus = FocusPane::Tree;
-                if state.tree_selection.is_none() {
-                    state.set_tree_cursor(0);
-                }
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
                     state.tree_entries = build_tree_entries(files);
                     let content_width = compute_tree_width(&state.tree_entries);
@@ -419,9 +426,9 @@ fn dispatch_normal_action(
                     let terminal_cols = ctx.cols as usize;
                     state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
                         .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
-                    let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
-                    state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 }
+                let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
             Some(ReducerEffect::ReRender)

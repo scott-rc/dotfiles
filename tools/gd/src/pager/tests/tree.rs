@@ -7,7 +7,7 @@ use insta::assert_snapshot;
 use super::super::rendering::diff_area_width;
 use super::super::tree::{
     TreeEntry, build_tree_entries, build_tree_lines, compute_connector_prefix, compute_tree_width,
-    resolve_tree_layout, truncate_label,
+    precompute_connectors, resolve_tree_layout, truncate_label,
 };
 use super::common::{entry, entry_with_status, make_diff_file, strip};
 use crate::git::diff::DiffFile;
@@ -701,4 +701,117 @@ fn diff_area_width_saturates_on_small_cols() {
 fn diff_area_width_zero_cols() {
     assert_eq!(diff_area_width(0, 0, false, false), 0);
     assert_eq!(diff_area_width(0, 0, true, false), 0);
+}
+
+// ---- precompute_connectors correctness ----
+
+#[test]
+fn test_precompute_connectors_matches_flat() {
+    let entries = [
+        entry("a.rs", 0, Some(0)),
+        entry("b.rs", 0, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 0),
+            "mismatch at index {i}"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_matches_nested() {
+    let entries = [
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("README.md", 0, Some(2)),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 0),
+            "mismatch at index {i}"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_matches_deeply_nested() {
+    let entries = [
+        entry("app", 0, None),
+        entry("server", 1, None),
+        entry("handlers", 2, None),
+        entry("validate_token.rs", 3, Some(0)),
+        entry("refresh_token.rs", 3, Some(1)),
+        entry("routes.rs", 1, Some(2)),
+        entry("README.md", 0, Some(3)),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 0),
+            "mismatch at index {i}"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_with_start_depth() {
+    let entries = [
+        entry("app", 0, None),
+        entry("server", 1, None),
+        entry("handlers", 2, None),
+        entry("validate_token.rs", 3, Some(0)),
+        entry("refresh_token.rs", 3, Some(1)),
+        entry("routes.rs", 1, Some(2)),
+        entry("README.md", 0, Some(3)),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    // start_depth=2 simulates indent scrolling
+    let precomputed = precompute_connectors(&refs, 2);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 2),
+            "mismatch at index {i} with start_depth=2"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_single_entry() {
+    let entries = [entry("only.rs", 0, Some(0))];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    assert_eq!(precomputed[0], compute_connector_prefix(&refs, 0, 0));
+}
+
+// ---- build_tree_lines output unchanged after optimization ----
+
+#[test]
+fn test_build_tree_lines_output_identical_nested_tree() {
+    // Verify optimized build_tree_lines produces identical output for a complex tree.
+    let mut files = vec![
+        make_diff_file("src/lib.rs"),
+        make_diff_file("src/main.rs"),
+        make_diff_file("tests/integration.rs"),
+        make_diff_file("README.md"),
+    ];
+    crate::git::sort_files_for_display(&mut files);
+    let entries = build_tree_entries(&files);
+    let width = compute_tree_width(&entries);
+    let (lines, mapping) = build_tree_lines(&entries, 0, width, false);
+    let stripped: Vec<String> = lines.iter().map(|l| strip(l)).collect();
+    assert_snapshot!(stripped.join("\n"));
+    // Mapping should cover all visible entries
+    assert_eq!(mapping.len(), lines.len());
 }

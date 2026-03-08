@@ -193,6 +193,7 @@ pub fn apply_collapse_state(entries: &mut [TreeEntry], collapsed_paths: &HashSet
     }
 }
 
+#[cfg(test)]
 pub(crate) fn compute_connector_prefix(
     visible: &[&TreeEntry],
     idx: usize,
@@ -221,6 +222,109 @@ pub(crate) fn compute_connector_prefix(
     }
 
     prefix
+}
+
+/// Precompute connector prefixes for all visible entries in a single pass.
+///
+/// For each entry, we need two pieces of information at each ancestor depth:
+/// 1. Whether any later entry reaches that depth or shallower (continuation line).
+/// 2. Whether the entry is the last sibling at its own depth (└── vs ├──).
+///
+/// We do a backward pass to build `next_at_depth[d]` = index of the next entry
+/// at depth <= d, looking forward from each position. Then connector strings
+/// are assembled in a forward pass using these precomputed lookups.
+pub(crate) fn precompute_connectors(
+    visible: &[&TreeEntry],
+    start_depth: usize,
+) -> Vec<String> {
+    let n = visible.len();
+    if n == 0 {
+        return Vec::new();
+    }
+
+    let max_depth = visible.iter().map(|e| e.depth).max().unwrap_or(0);
+
+    // For each depth d, track whether we've seen an entry at depth <= d
+    // scanning backward. `has_later_at_depth[d]` is true if, from the current
+    // position forward, there exists an entry with depth <= d.
+    // We store per-entry: for each depth d, does a later entry have depth <= d?
+    // And: does a later sibling at the same depth exist?
+
+    // Backward pass: for each entry i, compute:
+    //   has_continuation[i][d] = exists j > i where visible[j].depth <= d
+    //   has_sibling_after[i] = exists j > i where visible[j].depth == depth_i
+    //                          AND all entries between i+1..j have depth >= depth_i
+
+    // Efficient approach: track the minimum depth seen so far (scanning backward).
+    // For has_continuation at depth d: min_depth_after[i] <= d.
+    // For has_sibling_after: need the next entry at same depth with no shallower
+    // entry in between.
+
+    // min_depth_after[i] = min depth among visible[i+1..]
+    let mut min_depth_after = vec![usize::MAX; n];
+    {
+        let mut min_so_far = usize::MAX;
+        for i in (0..n - 1).rev() {
+            min_so_far = min_so_far.min(visible[i + 1].depth);
+            min_depth_after[i] = min_so_far;
+        }
+    }
+
+    // For has_sibling_after: for each entry i at depth d, check if among
+    // entries i+1.. there is one at depth d before any at depth < d.
+    // We can precompute this with a backward pass per depth, but that's
+    // O(max_depth * n). Instead, do a single backward pass tracking the
+    // next index at each depth using a stack-like approach.
+    //
+    // next_same_depth_before_shallower[i] = true if the next entry at depth <= d
+    // (where d = visible[i].depth) has depth == d (i.e., it's a sibling, not a
+    // shallower ancestor).
+    let mut has_sibling = vec![false; n];
+    {
+        // last_at_depth[d] = most recent index (scanning backward) where depth == d
+        // and no shallower entry appeared between that index and the current scan position.
+        // When we encounter depth d, we clear all last_at_depth entries for depths > d
+        // (they're no longer valid siblings — a shallower entry intervened).
+        let mut last_at_depth: Vec<Option<usize>> = vec![None; max_depth + 1];
+        for i in (0..n).rev() {
+            let d = visible[i].depth;
+            // Check if there's a later entry at the same depth with no shallower in between.
+            if last_at_depth[d].is_some() {
+                has_sibling[i] = true;
+            }
+            // Record this entry at its depth.
+            last_at_depth[d] = Some(i);
+            // Invalidate deeper depths: a shallower entry breaks sibling chains.
+            for slot in last_at_depth.iter_mut().skip(d + 1) {
+                *slot = None;
+            }
+        }
+    }
+
+    // Build prefixes
+    let mut result = Vec::with_capacity(n);
+    for i in 0..n {
+        let depth = visible[i].depth;
+        let mut prefix = String::new();
+
+        for d in start_depth..depth {
+            if min_depth_after[i] <= d {
+                prefix.push_str("│   ");
+            } else {
+                prefix.push_str("    ");
+            }
+        }
+
+        if has_sibling[i] {
+            prefix.push_str("├── ");
+        } else {
+            prefix.push_str("└── ");
+        }
+
+        result.push(prefix);
+    }
+
+    result
 }
 
 fn status_symbol(status: FileStatus) -> (&'static str, &'static str) {
@@ -284,6 +388,7 @@ pub(crate) fn build_tree_lines(
         }
     };
 
+    let connectors = precompute_connectors(&visible, indent_offset);
     let mut lines = Vec::new();
 
     for (vi, &entry) in visible.iter().enumerate() {
@@ -293,7 +398,7 @@ pub(crate) fn build_tree_lines(
         let prefix = if use_indicator {
             "..".to_string()
         } else {
-            compute_connector_prefix(&visible, vi, indent_offset)
+            connectors[vi].clone()
         };
 
         let (icon, icon_color) = if entry.file_idx.is_some() {
