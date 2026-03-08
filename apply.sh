@@ -287,6 +287,7 @@ if command -v cargo &>/dev/null; then
 	(cd "$WORKSPACE_ROOT/tools" && cargo build --release 2>&1)
 	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/md" "$HOME/.cargo/bin/md"
 	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/gd" "$HOME/.cargo/bin/gd"
+	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/boom" "$HOME/.cargo/bin/boom"
 fi
 
 # --- Zsh ---
