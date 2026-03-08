@@ -436,8 +436,6 @@ default_layout "compact"
 // Options:
 //   - true (default)
 //   - false
-//
-mouse_mode false
 advanced_mouse_actions false
 
 // Toggle having pane frames around the panes
