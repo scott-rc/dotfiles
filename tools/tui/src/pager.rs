@@ -29,6 +29,7 @@ pub enum Key {
     AltLeft,
     AltRight,
     AltBackspace,
+    Super(char),
     PageUp,
     PageDown,
     Home,
@@ -52,6 +53,8 @@ pub fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
         KeyCode::Char('b') | KeyCode::Left if mods.contains(KeyModifiers::ALT) => Key::AltLeft,
         KeyCode::Char('f') | KeyCode::Right if mods.contains(KeyModifiers::ALT) => Key::AltRight,
         KeyCode::Backspace if mods.contains(KeyModifiers::ALT) => Key::AltBackspace,
+        // Super/Cmd combos (requires Kitty keyboard protocol)
+        KeyCode::Char(c) if mods.contains(KeyModifiers::SUPER) => Key::Super(c),
         // Plain chars
         KeyCode::Char(c) => Key::Char(c),
         // Nav keys
@@ -236,6 +239,18 @@ mod tests {
         assert_eq!(
             crossterm_to_key(make_key(KeyCode::Insert, KeyModifiers::NONE)),
             Key::Unknown
+        );
+    }
+
+    #[test]
+    fn super_key_parses_to_super_variant() {
+        assert_eq!(
+            crossterm_to_key(make_key(KeyCode::Char('e'), KeyModifiers::SUPER)),
+            Key::Super('e')
+        );
+        assert_eq!(
+            crossterm_to_key(make_key(KeyCode::Char('1'), KeyModifiers::SUPER)),
+            Key::Super('1')
         );
     }
 

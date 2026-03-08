@@ -1193,7 +1193,7 @@ fn stage_line_with_visual_selection_stages_range() {
     assert_eq!(state.visual_anchor, None, "visual anchor should be cleared after staging");
 }
 
-// ---- Focus mode (Ctrl-E) ----
+// ---- Focus mode (t) ----
 
 #[test]
 fn focus_toggle_shows_tree_and_focuses_it() {
@@ -1205,9 +1205,9 @@ fn focus_toggle_shows_tree_and_focuses_it() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
-    assert!(state.tree_visible, "Ctrl-E should show tree when hidden");
-    assert_eq!(state.focus, FocusPane::Tree, "Ctrl-E should focus tree");
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.tree_visible, "t should show tree when hidden");
+    assert_eq!(state.focus, FocusPane::Tree, "t should focus tree");
 }
 
 #[test]
@@ -1220,12 +1220,12 @@ fn focus_toggle_switches_between_panes() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    // First Ctrl-E: focus tree
-    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    // First t: focus tree
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.focus, FocusPane::Tree);
-    // Second Ctrl-E: back to diff
-    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
-    assert_eq!(state.focus, FocusPane::Diff, "second Ctrl-E should return focus to diff");
+    // Second t: back to diff
+    handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff, "second t should return focus to diff");
 }
 
 #[test]
@@ -1321,7 +1321,7 @@ fn tree_enter_on_expanded_directory_collapses_it() {
 }
 
 #[test]
-fn tree_enter_on_file_jumps_cursor_and_refocuses_diff() {
+fn tree_enter_on_file_jumps_cursor_and_keeps_tree_focus() {
     let mut state = make_keybinding_state();
     // tree_entries: flat file list (default from make_keybinding_state has a.rs, b.rs, c.rs)
     // file_starts = [0, 30, 60], so file 1 starts at line 30
@@ -1331,11 +1331,47 @@ fn tree_enter_on_file_jumps_cursor_and_refocuses_diff() {
     state.set_tree_cursor(1);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
-    assert_eq!(state.focus, FocusPane::Diff, "Enter on file should return focus to diff");
+    assert_eq!(state.focus, FocusPane::Tree, "Enter on file should keep focus on tree");
     // cursor_line should be at or near file_starts[1] = 30
     assert!(
         state.cursor_line >= 30 && state.cursor_line <= 31,
         "cursor should jump to file start (30), got {}",
+        state.cursor_line
+    );
+}
+
+#[test]
+fn tree_space_on_file_jumps_cursor_and_keeps_tree_focus() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(1);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char(' '), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree, "Space on file should keep focus on tree");
+    assert!(
+        state.cursor_line >= 30 && state.cursor_line <= 31,
+        "cursor should jump to file start (30), got {}",
+        state.cursor_line
+    );
+}
+
+#[test]
+fn tree_enter_on_file_in_single_file_mode_switches_active_file() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    // Start in single-file mode on file 0
+    state.set_active_file(Some(0));
+    // Select tree entry for b.rs (index 1, file_idx=Some(1))
+    state.set_tree_cursor(1);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree, "Enter should keep focus on tree");
+    assert_eq!(state.active_file(), Some(1), "active file should switch to file 1");
+    assert!(
+        state.cursor_line >= 30 && state.cursor_line <= 31,
+        "cursor should be at file 1 start (30), got {}",
         state.cursor_line
     );
 }

@@ -127,6 +127,8 @@ pub(crate) enum ActionId {
     DiscardLine,
     DiscardHunk,
     ToggleFocus,
+    FocusDiff,
+    FocusTree,
     TreeCursorDown,
     TreeCursorUp,
     TreeEnter,

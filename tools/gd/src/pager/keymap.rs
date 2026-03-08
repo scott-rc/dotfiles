@@ -172,10 +172,26 @@ fn keymap_entries() -> &'static [KeymapEntry] {
         KeymapEntry {
             action: ActionId::ToggleFocus,
             context: Normal,
-            keys: &[Key::CtrlE],
+            keys: &[Key::Char('t')],
             group: HelpGroup::Tree,
-            key_display: "Ctrl-E",
+            key_display: "t",
             label: "Toggle tree / diff focus",
+        },
+        KeymapEntry {
+            action: ActionId::FocusDiff,
+            context: Normal,
+            keys: &[Key::Char('1'), Key::Super('1')],
+            group: HelpGroup::Tree,
+            key_display: "1/Cmd-1",
+            label: "Focus diff",
+        },
+        KeymapEntry {
+            action: ActionId::FocusTree,
+            context: Normal,
+            keys: &[Key::Super('e')],
+            group: HelpGroup::Tree,
+            key_display: "Cmd-E",
+            label: "Open tree / close if focused",
         },
         KeymapEntry {
             action: ActionId::VisualSelect,

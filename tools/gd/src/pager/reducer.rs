@@ -394,6 +394,37 @@ fn dispatch_normal_action(
             }
             Some(ReducerEffect::ReRender)
         }
+        ActionId::FocusDiff => {
+            state.focus = FocusPane::Diff;
+            Some(ReducerEffect::ReRender)
+        }
+        ActionId::FocusTree => {
+            if state.focus == FocusPane::Tree && state.tree_visible {
+                // Already focused on tree — close it
+                state.tree_visible = false;
+                state.focus = FocusPane::Diff;
+            } else {
+                // Open and focus tree
+                state.tree_visible = true;
+                state.focus = FocusPane::Tree;
+                if state.tree_selection.is_none() {
+                    state.set_tree_cursor(0);
+                }
+                if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
+                    state.tree_entries = build_tree_entries(files);
+                    let content_width = compute_tree_width(&state.tree_entries);
+                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+                    let file_count = state.doc.file_count();
+                    let terminal_cols = ctx.cols as usize;
+                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
+                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                    let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                    state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                }
+                state.rebuild_tree_lines();
+            }
+            Some(ReducerEffect::ReRender)
+        }
         ActionId::TreeCursorDown => {
             tree_cursor_down(state, ch);
             Some(ReducerEffect::Continue)
@@ -411,8 +442,11 @@ fn dispatch_normal_action(
                     state.rebuild_tree_lines();
                 }
                 Some(idx) => {
-                    jump_to_tree_file(state, idx, ch);
-                    state.focus = FocusPane::Diff;
+                    if state.active_file().is_some() {
+                        set_view_to_file(state, idx, ch);
+                    } else {
+                        jump_to_tree_file(state, idx, ch);
+                    }
                 }
             }
             Some(ReducerEffect::Continue)
@@ -664,7 +698,7 @@ fn reduce_normal(
                 tree_cursor_up(state, ch);
                 return ReducerEffect::Continue;
             }
-            Key::Enter => {
+            Key::Enter | Key::Char(' ') => {
                 if let Some(effect) = dispatch_normal_action(state, ActionId::TreeEnter, ctx) {
                     return effect;
                 }

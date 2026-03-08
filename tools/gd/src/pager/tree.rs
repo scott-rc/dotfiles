@@ -323,11 +323,10 @@ pub(crate) fn build_tree_lines(
 
         if orig_idx == cursor_entry_idx {
             let reset = style::RESET;
-            let fg = style::FG_FILE_HEADER;
-            let bg = if focused {
-                style::BG_TREE_CURSOR_FOCUSED
+            let (bg, fg) = if focused {
+                (style::BG_TREE_CURSOR_FOCUSED, style::FG_TREE_CURSOR_FOCUSED)
             } else {
-                style::BG_TREE_CURSOR_UNFOCUSED
+                (style::BG_TREE_CURSOR_UNFOCUSED, style::FG_FILE_HEADER)
             };
             let rpad = " ".repeat(right_pad);
             if entry.file_idx.is_some() {

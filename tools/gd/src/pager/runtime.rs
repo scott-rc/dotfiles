@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::time::{Duration, Instant, SystemTime};
 
-use crossterm::event::{self, Event, KeyEventKind};
+use crossterm::event::{self, Event, KeyEventKind, KeyboardEnhancementFlags, PushKeyboardEnhancementFlags, PopKeyboardEnhancementFlags};
 
 use tui::pager::{
     ALT_SCREEN_OFF, ALT_SCREEN_ON, CURSOR_HIDE, CURSOR_SHOW, crossterm_to_key, get_term_size,
@@ -176,12 +176,18 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
     let _ = stdout.flush();
     let _ = crossterm::terminal::enable_raw_mode();
+    let _ = crossterm::execute!(
+        stdout,
+        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+    );
 
     let prev_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        let mut out = io::stdout();
+        let _ = crossterm::execute!(out, PopKeyboardEnhancementFlags);
         let _ = crossterm::terminal::disable_raw_mode();
-        let _ = io::stdout().write_all(format!("{CURSOR_SHOW}{ALT_SCREEN_OFF}").as_bytes());
-        let _ = io::stdout().flush();
+        let _ = out.write_all(format!("{CURSOR_SHOW}{ALT_SCREEN_OFF}").as_bytes());
+        let _ = out.flush();
         prev_hook(info);
     }));
 
@@ -368,6 +374,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
     }
 
+    let _ = crossterm::execute!(stdout, PopKeyboardEnhancementFlags);
     let _ = crossterm::terminal::disable_raw_mode();
     let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
     let _ = stdout.flush();
