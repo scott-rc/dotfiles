@@ -1,6 +1,6 @@
-# GitHub Text
+# Text Formatting
 
-These rules apply to ALL text written to GitHub -- PR titles, PR descriptions, PR comments, review comments, and any other text passed through `gh` CLI commands.
+These rules apply to ALL text that leaves the session -- commit messages, PR titles, PR descriptions, PR comments, review comments, and any other text passed through `git` or `gh` CLI commands.
 
 - **ASCII only**: Use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII gets corrupted through `gh` CLI.
 - **Backticks for code references**, fenced code blocks for multi-line examples. This also neutralizes markdown metacharacters -- bare tildes (`~`) trigger strikethrough, bare asterisks (`*`) trigger emphasis. Wrap any operator or expression containing these in backticks (e.g., `level=~"info"`, `|~`, `err.*failed`).

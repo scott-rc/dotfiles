@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# safe-text.sh -- Write GitHub-bound text to a temp file, enforcing ASCII.
+# safe-text.sh -- Write text to a temp file, enforcing ASCII.
 #
 # Usage:
 #   safe-text.sh [OPTIONS] [--file PATH | CONTENT...]
@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-prefix="gh-text"
+prefix="safe-text"
 source_file=""
 content=""
 mode=""

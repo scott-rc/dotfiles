@@ -62,7 +62,7 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 
 Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
-- references/github-text.md - Universal formatting rules for all GitHub-facing text (ASCII only, backtick code refs, safe posting)
+- references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)
 - references/commit-message-format.md - Commit message format rules (shared by inline commit path and committer agent)
@@ -71,6 +71,6 @@ Reference files:
 Scripts:
 - scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Fix operation)
-- scripts/safe-text.sh - Writes GitHub-bound text to a temp file with ASCII enforcement; used by committer and pr-writer agents
+- scripts/safe-text.sh - Writes text to a temp file with ASCII enforcement and optional mode rules (`--commit-msg`, `--title`); used by committer, pr-writer, and inline commit paths
 - scripts/check-ci.sh - Checks CI status for the current branch and prints a grouped summary (failed/pending/passed)
 - scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun

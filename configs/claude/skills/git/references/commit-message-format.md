@@ -17,7 +17,6 @@ Steps for any operation that commits inline (without delegating to the `committe
 1. Stage files: `git add <file1> ...`
 2. Run `git diff --staged` to review what will be committed
 3. Draft message per the rules above (or use a provided message)
-4. Write message to a temp file, then `git commit -F <file>`
+4. Pipe message through `safe-text.sh --commit-msg --prefix commit-msg`, then `git commit -F <file>`
 5. Error: pre-commit hook failure -- read the error output, fix the issue, re-stage, retry. MUST NOT use `--no-verify`.
-6. Error: UTF-8 warning -- rewrite the message using ASCII-only characters, then `git commit --amend -F <file>`.
-7. Report: `git log -1 --oneline`
+6. Report: `git log -1 --oneline`
