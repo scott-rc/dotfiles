@@ -359,11 +359,17 @@ pub(crate) fn sync_tree_cursor(state: &mut PagerState, content_height: usize) {
     };
     let mut new_entry_idx = file_idx_to_entry_idx(&state.tree_entries, new_cursor);
     if !state.tree_visible_to_entry.contains(&new_entry_idx) {
-        let target_depth = state.tree_entry(new_entry_idx).map_or(0, |e| e.depth);
-        new_entry_idx = state.tree_entries[..new_entry_idx]
-            .iter()
-            .rposition(|e| e.file_idx.is_none() && e.depth < target_depth)
-            .unwrap_or(0);
+        // Find the nearest visible entry at or before the target.
+        // This handles multiply-nested collapsed dirs where the immediate
+        // parent directory is itself hidden by a collapsed ancestor.
+        let pos = state
+            .tree_visible_to_entry
+            .partition_point(|&idx| idx <= new_entry_idx);
+        new_entry_idx = if pos > 0 {
+            state.tree_visible_to_entry[pos - 1]
+        } else {
+            state.tree_visible_to_entry.first().copied().unwrap_or(0)
+        };
     }
     if new_entry_idx != state.tree_cursor() {
         state.set_tree_cursor(new_entry_idx);

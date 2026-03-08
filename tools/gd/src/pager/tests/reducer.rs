@@ -1820,3 +1820,106 @@ fn toggle_focus_syncs_cursor_to_current_file() {
     handle_key(&mut state, Key::Char('t'), 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
     assert_eq!(state.tree_cursor(), 2, "tree cursor should sync to file 2 when re-focusing via t");
 }
+
+#[test]
+fn cursor_memory_stale_entry_clamped_when_file_shrinks() {
+    // Simulate: save a position deep in file 0, then reconstruct with fewer
+    // lines so the saved position exceeds the file range. On restore, cursor
+    // must be clamped within the new file range.
+    let mut state = make_single_file_state();
+
+    // Scroll deep into file 0
+    for _ in 0..20 {
+        handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    }
+    let deep_cursor = state.cursor_line;
+    assert!(deep_cursor > 10, "cursor should be deep in file 0");
+
+    // Switch to file 1 (saves file 0 position)
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.active_file(), Some(1));
+
+    // Shrink file 0's content: move file_starts[1] closer to file_starts[0]
+    // File 0 was [0..30), make it [0..8) by changing file_starts[1] to 8
+    state.doc.file_starts[1] = 8;
+    // Inject stale position (beyond new file 0 end)
+    state.file_positions.insert(0, (deep_cursor, deep_cursor));
+
+    // Switch back to file 0 — cursor must be clamped
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.active_file(), Some(0));
+    let file0_end = state.file_end(0);
+    assert!(
+        state.cursor_line < file0_end,
+        "cursor {} should be clamped within file 0 range [0..{})",
+        state.cursor_line,
+        file0_end
+    );
+}
+
+#[test]
+fn tree_enter_on_directory_in_single_file_mode_toggles_collapse() {
+    let mut state = make_keybinding_state();
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
+
+    // Enter single file mode
+    state.set_active_file(Some(0));
+
+    // Build tree with a directory
+    let tree_entries = vec![
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    state.tree_entries = tree_entries;
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0); // on directory
+    state.rebuild_tree_lines();
+
+    let was_collapsed = state.tree_entries[0].collapsed;
+
+    // Press Enter on directory — should toggle collapse, not change file
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+
+    assert_eq!(
+        state.tree_entries[0].collapsed, !was_collapsed,
+        "Enter on directory should toggle collapse"
+    );
+    assert_eq!(
+        state.active_file(),
+        Some(0),
+        "active file should not change when toggling directory"
+    );
+}
+
+#[test]
+fn next_file_at_last_single_file_is_noop() {
+    let mut state = make_single_file_state();
+    // Navigate to last file
+    state.set_active_file(Some(2));
+    state.cursor_line = 61;
+
+    let before_cursor = state.cursor_line;
+    let before_active = state.active_file();
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    assert_eq!(state.active_file(), before_active, "should stay on last file");
+    assert_eq!(state.cursor_line, before_cursor, "cursor should not move");
+}
+
+#[test]
+fn prev_file_at_first_single_file_is_noop() {
+    let mut state = make_single_file_state();
+    // Already on file 0
+    let before_cursor = state.cursor_line;
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    assert_eq!(state.active_file(), Some(0), "should stay on first file");
+    assert_eq!(state.cursor_line, before_cursor, "cursor should not move");
+}

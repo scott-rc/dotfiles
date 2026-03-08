@@ -815,3 +815,70 @@ fn test_build_tree_lines_output_identical_nested_tree() {
     // Mapping should cover all visible entries
     assert_eq!(mapping.len(), lines.len());
 }
+
+#[test]
+fn test_precompute_connectors_empty_input() {
+    let result = precompute_connectors(&[], 0);
+    assert!(result.is_empty(), "empty input should produce empty output");
+}
+
+#[test]
+fn test_precompute_connectors_all_directories() {
+    let entries = [
+        entry("src", 0, None),
+        entry("lib", 1, None),
+        entry("core", 2, None),
+        entry("tests", 0, None),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 0),
+            "all-directories mismatch at index {i}"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_mixed_collapsed_expanded() {
+    let mut entries = [
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("lib", 0, None),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 1, Some(2)),
+    ];
+    entries[0].collapsed = true;
+    entries[2].collapsed = false;
+    // Collapsed state doesn't affect connector computation (it's about
+    // visible entries passed in, not the collapsed field)
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    let precomputed = precompute_connectors(&refs, 0);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 0),
+            "mixed collapsed/expanded mismatch at index {i}"
+        );
+    }
+}
+
+#[test]
+fn test_precompute_connectors_start_depth_beyond_all_entries() {
+    let entries = [
+        entry("a.rs", 0, Some(0)),
+        entry("b.rs", 0, Some(1)),
+    ];
+    let refs: Vec<&TreeEntry> = entries.iter().collect();
+    // start_depth=5, all entries at depth 0 → connector loop is empty
+    let precomputed = precompute_connectors(&refs, 5);
+    for i in 0..refs.len() {
+        assert_eq!(
+            precomputed[i],
+            compute_connector_prefix(&refs, i, 5),
+            "start_depth beyond entries mismatch at index {i}"
+        );
+    }
+}

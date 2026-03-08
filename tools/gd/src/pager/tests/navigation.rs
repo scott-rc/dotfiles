@@ -922,3 +922,88 @@ fn tree_prev_file_at_first_returns_none() {
     let result = tree_prev_file(&state);
     assert_eq!(result, None, "should return None when at first entry (a dir)");
 }
+
+#[test]
+fn test_sync_tree_cursor_doubly_nested_collapse_lands_on_visible_ancestor() {
+    // Tree structure:
+    //   0: src/        (dir, depth 0, collapsed=true)
+    //   1:   core/     (dir, depth 1)
+    //   2:     a.rs    (file_idx=0, depth 2)
+    //   3: README.md   (file_idx=1, depth 0)
+    //
+    // With src/ collapsed, tree_visible_to_entry = [0, 3]
+    // core/ (entry 1) is hidden because it's inside collapsed src/.
+    // Cursor on file 0 (a.rs, entry 2) should land on src/ (entry 0),
+    // NOT on core/ (entry 1) which is invisible.
+    let tree_entries = vec![
+        TreeEntry {
+            label: "src".into(),
+            depth: 0,
+            file_idx: None,
+            status: None,
+            collapsed: true,
+        },
+        TreeEntry {
+            label: "core".into(),
+            depth: 1,
+            file_idx: None,
+            status: None,
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "a.rs".into(),
+            depth: 2,
+            file_idx: Some(0),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "README.md".into(),
+            depth: 0,
+            file_idx: Some(1),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+    ];
+
+    let line_map: Vec<LineInfo> = (0..10)
+        .map(|i| LineInfo {
+            file_idx: usize::from(i >= 5),
+            path: if i < 5 { "src/core/a.rs" } else { "README.md" }.into(),
+            new_lineno: Some(i as u32 + 1),
+            old_lineno: None,
+            line_kind: Some(LineKind::Context),
+            hunk_idx: None,
+        })
+        .collect();
+
+    let mut state = PagerState::new(
+        vec!["line".into(); 10],
+        line_map,
+        vec![0, 5],
+        vec![],
+        tree_entries,
+        120,
+    );
+
+    assert_eq!(
+        state.tree_visible_to_entry,
+        vec![0, 3],
+        "only src/ (collapsed) and README.md should be visible"
+    );
+
+    // Cursor is in file 0 (a.rs) which is under collapsed src/ > core/
+    state.cursor_line = 2;
+
+    sync_tree_cursor(&mut state, 20);
+
+    assert_eq!(
+        state.tree_cursor(),
+        0,
+        "should land on src/ (entry 0, visible ancestor), not core/ (entry 1, hidden)"
+    );
+    assert!(
+        state.tree_visible_to_entry.contains(&state.tree_cursor()),
+        "tree cursor must be a visible entry"
+    );
+}
