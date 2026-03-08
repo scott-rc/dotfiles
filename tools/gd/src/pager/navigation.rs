@@ -255,6 +255,7 @@ pub(crate) fn nav_U_up(state: &PagerState, content_height: usize) -> NavDUResult
     }
 }
 
+#[cfg(test)]
 fn tree_cursor_visible_pos(state: &PagerState) -> Option<usize> {
     let cursor = state.tree_cursor();
     state
@@ -263,6 +264,7 @@ fn tree_cursor_visible_pos(state: &PagerState) -> Option<usize> {
         .position(|&ei| ei == cursor)
 }
 
+#[cfg(test)]
 pub(crate) fn tree_next_file(state: &PagerState) -> Option<usize> {
     let pos = tree_cursor_visible_pos(state)?;
     state.tree_visible_to_entry[pos + 1..]
@@ -271,6 +273,7 @@ pub(crate) fn tree_next_file(state: &PagerState) -> Option<usize> {
         .next()
 }
 
+#[cfg(test)]
 pub(crate) fn tree_prev_file(state: &PagerState) -> Option<usize> {
     let pos = tree_cursor_visible_pos(state)?;
     state.tree_visible_to_entry[..pos]

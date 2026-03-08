@@ -1570,32 +1570,29 @@ fn make_tree_file_jump_state() -> PagerState {
 }
 
 #[test]
-fn next_file_tree_visible_skips_collapsed_dir() {
+fn next_file_tree_visible_uses_nav_d_down() {
     let mut state = make_tree_file_jump_state();
-    // Set cursor on collapsed dir (entry 0), tree_visible_to_entry=[0,3]
     state.set_tree_cursor(0);
     state.rebuild_tree_lines();
     state.cursor_line = 0;
 
     handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
 
-    // Should jump to file_idx=2 (README.md), skipping collapsed children
-    assert_eq!(state.tree_cursor(), 3, "tree cursor should move to README.md entry");
-    assert_eq!(state.cursor_line, 20, "cursor should be at file_starts[2]");
+    // Uses nav_D_down, jumps to next file header (file_starts[1]=10)
+    assert_eq!(state.cursor_line, 10, "cursor should jump to next file via nav_D_down");
 }
 
 #[test]
-fn prev_file_tree_visible_skips_collapsed_dir() {
+fn prev_file_tree_visible_uses_nav_u_up() {
     let mut state = make_tree_file_jump_state();
-    // Set cursor on README.md (entry 3)
     state.set_tree_cursor(3);
     state.rebuild_tree_lines();
     state.cursor_line = 20;
 
     handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
 
-    // No visible file before README.md (entry 0 is a directory), so should be noop
-    assert_eq!(state.cursor_line, 20, "cursor should not move when no prev file is visible");
+    // Uses nav_U_up, jumps to previous file header (file_starts[1]=10)
+    assert_eq!(state.cursor_line, 10, "cursor should jump to prev file via nav_U_up");
 }
 
 #[test]
@@ -1613,13 +1610,13 @@ fn next_file_tree_hidden_uses_nav_d_down() {
 #[test]
 fn next_file_tree_visible_any_focus() {
     let mut state = make_tree_file_jump_state();
-    state.focus = FocusPane::Diff; // Not tree focus, but tree is visible
+    state.focus = FocusPane::Diff;
     state.set_tree_cursor(0);
     state.rebuild_tree_lines();
     state.cursor_line = 0;
 
     handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
 
-    // Tree-driven navigation should apply regardless of focus mode
-    assert_eq!(state.tree_cursor(), 3, "tree-driven nav should work in Diff focus when tree is visible");
+    // Uses nav_D_down regardless of tree visibility or focus
+    assert_eq!(state.cursor_line, 10, "cursor should jump to next file via nav_D_down");
 }

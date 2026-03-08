@@ -9,8 +9,7 @@ use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
 use super::navigation::{
     nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line, sync_active_file_to_cursor,
-    jump_to_tree_file, sync_tree_cursor, tree_cursor_down, tree_cursor_up, tree_next_file,
-    tree_prev_file, viewport_bounds,
+    jump_to_tree_file, sync_tree_cursor, tree_cursor_down, tree_cursor_up, viewport_bounds,
 };
 use super::rendering::{enforce_scrolloff, format_copy_ref, resolve_lineno};
 use super::search::{
@@ -25,17 +24,6 @@ use super::types::{ActionId, FocusPane, KeyContext, KeyResult, Mode};
 #[derive(Debug, Clone)]
 pub(crate) enum ReducerEvent {
     Key(Key),
-}
-
-fn apply_tree_file_jump(state: &mut PagerState, file_idx: usize, ch: usize) {
-    let entry_idx = file_idx_to_entry_idx(&state.tree_entries, file_idx);
-    state.set_tree_cursor(entry_idx);
-    state.rebuild_tree_lines();
-    if let Some(&start) = state.doc.file_starts.get(file_idx) {
-        state.cursor_line = start;
-        let (rs, _, _, max_top) = viewport_bounds(state, ch);
-        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
-    }
 }
 
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
@@ -166,11 +154,7 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         ActionId::NextFile => {
-            if state.tree_visible {
-                if let Some(file_idx) = tree_next_file(state) {
-                    apply_tree_file_jump(state, file_idx, ch);
-                }
-            } else if let Some(active) = state.active_file() {
+            if let Some(active) = state.active_file() {
                 if active + 1 < state.file_count() {
                     set_view_to_file(state, active + 1, ch);
                     state.status_message = "Next file".into();
@@ -185,11 +169,7 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         ActionId::PrevFile => {
-            if state.tree_visible {
-                if let Some(file_idx) = tree_prev_file(state) {
-                    apply_tree_file_jump(state, file_idx, ch);
-                }
-            } else if let Some(active) = state.active_file() {
+            if let Some(active) = state.active_file() {
                 if active > 0 {
                     set_view_to_file(state, active - 1, ch);
                     state.status_message = "Previous file".into();
