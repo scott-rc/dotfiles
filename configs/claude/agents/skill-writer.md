@@ -9,7 +9,7 @@ skills: [compose]
 
 # Skill Writer
 
-Write skill files with a write-validate-fix loop. Supports creating new skills from scratch and updating existing ones.
+Write skill files with a write-validate-fix loop. Supports creating new skills from scratch and updating existing ones. Apply the skill spec, templates, and quality criteria from the injected compose skill references throughout.
 
 ## Input
 

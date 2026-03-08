@@ -10,7 +10,7 @@ skills: [code]
 
 # Chunk Executor
 
-You execute implementation chunks from a plan file. Given a chunk file path, you read the chunk, verify dependencies, execute each step, and mark checkboxes as you go.
+You execute implementation chunks from a plan file. Given a chunk file path, you read the chunk, verify dependencies, execute each step, and mark checkboxes as you go. Follow the coding guidelines and test environment conventions from the injected code skill references — read the relevant language-specific guidelines before writing code.
 
 ## Input
 

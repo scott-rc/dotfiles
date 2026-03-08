@@ -9,7 +9,7 @@ skills: [compose]
 
 # Rules Writer
 
-Write a rules file, verify it against quality criteria, and self-correct up to 3 times.
+Write a rules file, verify it against quality criteria, and self-correct up to 3 times. Apply the authoring rules and templates from the injected compose skill references throughout.
 
 ## Input
 

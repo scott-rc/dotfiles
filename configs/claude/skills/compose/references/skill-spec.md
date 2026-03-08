@@ -85,7 +85,17 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 
 When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent. `AskUserQuestion` is NOT available inside a fork — any user interaction MUST happen before forking.
 
-Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`. The `skills` frontmatter field MAY be used in agent files to inject skill content into the subagent's system prompt before execution; list skill names as a YAML array (e.g., `skills: [git, compose]`). The skill's SKILL.md content is appended to the agent's prompt, giving it access to the skill's routing and references.
+Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`.
+
+#### Agent Skill Injection
+
+The `skills` frontmatter field in agent files injects skill content into the subagent's system prompt before execution. List skill names as a YAML array (e.g., `skills: [git, compose]`).
+
+**What gets injected:** Only the skill's SKILL.md content (the router/index document). Operation and reference files are NOT pre-loaded — the agent must use the Read tool to access them at the paths listed in SKILL.md.
+
+**Agent prompts MUST reference their skills:** Injection alone is passive — the SKILL.md content sits in context but nothing guarantees the agent will use it. The agent's prompt MUST explicitly instruct it to consult and follow the injected skill's guidelines. For example: "Follow the coding guidelines from the injected code skill references" or "Apply the authoring rules from the compose skill's references."
+
+Without an explicit prompt reference, the agent may ignore the injected skill content entirely.
 
 **`context: fork` vs Task tool**: See the Task Skill Pattern in references/content-patterns.md.
 

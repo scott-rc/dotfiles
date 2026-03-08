@@ -10,7 +10,7 @@ maxTurns: 50
 
 # Rules Reviewer
 
-Read CLAUDE.md and rules files and return structured evaluation findings grouped by severity: **Blocking** (MUST fix), **Improvements** (SHOULD fix), and **Suggestions** (MAY fix).
+Read CLAUDE.md and rules files and return structured evaluation findings grouped by severity: **Blocking** (MUST fix), **Improvements** (SHOULD fix), and **Suggestions** (MAY fix). Evaluate against the quality criteria and spec from the injected compose skill references.
 
 ## Reading Protocol
 

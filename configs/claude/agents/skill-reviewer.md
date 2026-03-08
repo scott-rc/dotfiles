@@ -10,7 +10,7 @@ maxTurns: 50
 
 # Skill Reviewer
 
-Read a skill directory and return structured evaluation findings grouped by severity: **Blocking** (MUST fix), **Improvements** (SHOULD fix), and **Suggestions** (MAY fix).
+Read a skill directory and return structured evaluation findings grouped by severity: **Blocking** (MUST fix), **Improvements** (SHOULD fix), and **Suggestions** (MAY fix). Evaluate against the skill spec and quality criteria from the injected compose skill references.
 
 ## Reading Protocol
 
