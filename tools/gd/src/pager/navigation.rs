@@ -314,6 +314,26 @@ pub(crate) fn tree_cursor_up(state: &mut PagerState, content_height: usize) {
     move_tree_cursor(state, -1, content_height);
 }
 
+pub(crate) fn tree_cursor_top(state: &mut PagerState, content_height: usize) {
+    if state.tree_visible_to_entry.is_empty() {
+        return;
+    }
+    let first = state.tree_visible_to_entry[0];
+    state.set_tree_cursor(first);
+    state.rebuild_tree_lines();
+    ensure_tree_cursor_visible(state, content_height);
+}
+
+pub(crate) fn tree_cursor_bottom(state: &mut PagerState, content_height: usize) {
+    if state.tree_visible_to_entry.is_empty() {
+        return;
+    }
+    let last = *state.tree_visible_to_entry.last().unwrap();
+    state.set_tree_cursor(last);
+    state.rebuild_tree_lines();
+    ensure_tree_cursor_visible(state, content_height);
+}
+
 pub(crate) fn jump_to_tree_file(state: &mut PagerState, file_idx: usize, content_height: usize) {
     if let Some(&start) = state.doc.file_starts.get(file_idx) {
         let (rs, re) = visible_range(state);

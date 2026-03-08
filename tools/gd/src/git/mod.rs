@@ -278,6 +278,7 @@ pub fn revert_patch(repo: &Path, patch: &str) -> Result<(), String> {
     apply_patch_raw(repo, &["--reverse"], patch)
 }
 
+#[cfg(test)]
 pub fn stage_untracked(repo: &Path, path: &str) -> Result<(), String> {
     let out = Command::new("git")
         .args(["add", path])

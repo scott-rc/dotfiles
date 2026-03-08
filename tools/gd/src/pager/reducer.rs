@@ -9,7 +9,8 @@ use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
 use super::navigation::{
     nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line, sync_active_file_to_cursor,
-    jump_to_tree_file, sync_tree_cursor, tree_cursor_down, tree_cursor_up, viewport_bounds,
+    jump_to_tree_file, sync_tree_cursor, tree_cursor_bottom, tree_cursor_down, tree_cursor_top,
+    tree_cursor_up, viewport_bounds,
 };
 use super::rendering::{enforce_scrolloff, format_copy_ref, resolve_lineno};
 use super::search::{
@@ -425,14 +426,6 @@ fn dispatch_normal_action(
             }
             Some(ReducerEffect::ReRender)
         }
-        ActionId::TreeCursorDown => {
-            tree_cursor_down(state, ch);
-            Some(ReducerEffect::Continue)
-        }
-        ActionId::TreeCursorUp => {
-            tree_cursor_up(state, ch);
-            Some(ReducerEffect::Continue)
-        }
         ActionId::TreeEnter => {
             let sel = state.tree_selection?.get();
             let file_idx = state.tree_entries.get(sel)?.file_idx;
@@ -696,6 +689,14 @@ fn reduce_normal(
             }
             Key::Char('k') => {
                 tree_cursor_up(state, ch);
+                return ReducerEffect::Continue;
+            }
+            Key::Char('g') | Key::Home => {
+                tree_cursor_top(state, ch);
+                return ReducerEffect::Continue;
+            }
+            Key::Char('G') | Key::End => {
+                tree_cursor_bottom(state, ch);
                 return ReducerEffect::Continue;
             }
             Key::Enter | Key::Char(' ') => {

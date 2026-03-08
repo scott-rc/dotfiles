@@ -32,8 +32,8 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 | `k` / `Up` | Scroll up (skips headers) |
 | `d` | Half page down |
 | `u` | Half page up |
-| `g` / `Home` | Top |
-| `G` / `End` | Bottom |
+| `g` / `Home` | Top (diff or tree, based on focus) |
+| `G` / `End` | Bottom (diff or tree, based on focus) |
 | `z` | Center viewport on cursor |
 
 ### Diff Navigation
