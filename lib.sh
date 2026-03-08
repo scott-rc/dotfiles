@@ -42,6 +42,90 @@ log_error() {
 	echo -e "${RED}[ERROR]${RESET} $1" >&2
 }
 
+log_section() {
+	local title="$1"
+	if [[ $(_log_level_num "$LOG_LEVEL") -le 1 ]]; then
+		echo ""
+		echo -e "${CYAN}--- $title ---${RESET}"
+	fi
+}
+
+log_success() {
+	if [[ $(_log_level_num "$LOG_LEVEL") -le 1 ]]; then
+		echo -e "  ${GREEN}✔${RESET} $1"
+	fi
+}
+
+# Run a command with a spinner animation.
+# Usage: run_with_spinner "label" command [args...]
+# - Shows spinner while command runs
+# - On success: replaces spinner with checkmark
+# - On failure: replaces spinner with X, dumps captured output, returns non-zero
+# - In debug mode: skips spinner, shows raw output
+# - In quiet mode (warn/error): runs silently
+run_with_spinner() {
+	local label="$1"
+	shift
+
+	# Debug mode: skip spinner, show raw output
+	if [[ $(_log_level_num "$LOG_LEVEL") -le 0 ]]; then
+		echo -e "  ${CYAN}▸${RESET} $label"
+		"$@"
+		echo -e "  ${GREEN}✔${RESET} $label"
+		return
+	fi
+
+	# Silent mode (warn/error): run without any output
+	if [[ $(_log_level_num "$LOG_LEVEL") -gt 1 ]]; then
+		"$@" >/dev/null 2>&1
+		return
+	fi
+
+	local logfile
+	logfile=$(mktemp)
+
+	# Run the command and spinner in a subshell to isolate the trap
+	(
+		local spinner_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+		local pid
+
+		"$@" > "$logfile" 2>&1 &
+		pid=$!
+
+		trap 'kill $pid 2>/dev/null' EXIT
+
+		local i=0
+		while kill -0 "$pid" 2>/dev/null; do
+			local char="${spinner_chars:i%${#spinner_chars}:1}"
+			printf "\r  %s %s" "$char" "$label"
+			i=$((i + 1))
+			sleep 0.08
+		done
+
+		trap - EXIT
+
+		local exit_code=0
+		wait "$pid" || exit_code=$?
+
+		printf "\r\033[K"
+
+		exit "$exit_code"
+	)
+	local exit_code=$?
+
+	if [[ $exit_code -eq 0 ]]; then
+		echo -e "  ${GREEN}✔${RESET} $label"
+	else
+		echo -e "  ${RED}✖${RESET} $label"
+		echo -e "  ${RED}Command failed with exit code $exit_code. Output:${RESET}"
+		sed 's/^/    /' "$logfile"
+	fi
+
+	rm -f "$logfile"
+
+	return "$exit_code"
+}
+
 # Create a symlink from TARGET to SOURCE.
 # If TARGET already exists as a symlink pointing to SOURCE, do nothing.
 # Otherwise, move TARGET to TARGET.bak and create the new symlink.

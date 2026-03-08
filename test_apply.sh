@@ -251,6 +251,120 @@ assert_eq "_log_level_num warn = 2" "2" "$(_log_level_num warn)"
 assert_eq "_log_level_num error = 3" "3" "$(_log_level_num error)"
 assert_eq "_log_level_num unknown defaults to 1" "1" "$(_log_level_num unknown)"
 
+# --- log_section tests ---
+
+echo ""
+echo "log_section:"
+
+# Test: log_section outputs at LOG_LEVEL=info
+LOG_LEVEL=info
+output=$(log_section "Test Section" 2>/dev/null)
+LOG_LEVEL=error
+if [[ -n "$output" && "$output" == *"Test Section"* ]]; then
+	pass "log_section outputs at LOG_LEVEL=info"
+else
+	fail "log_section outputs at LOG_LEVEL=info" "expected output containing 'Test Section', got '$output'"
+fi
+
+# Test: log_section suppressed at LOG_LEVEL=warn
+LOG_LEVEL=warn
+output=$(log_section "Test Section" 2>/dev/null)
+LOG_LEVEL=error
+if [[ -z "$output" ]]; then
+	pass "log_section suppressed at LOG_LEVEL=warn"
+else
+	fail "log_section suppressed at LOG_LEVEL=warn" "expected no output but got '$output'"
+fi
+
+# --- log_success tests ---
+
+echo ""
+echo "log_success:"
+
+# Test: log_success outputs at LOG_LEVEL=info
+LOG_LEVEL=info
+output=$(log_success "Done" 2>/dev/null)
+LOG_LEVEL=error
+if [[ -n "$output" && "$output" == *"Done"* ]]; then
+	pass "log_success outputs at LOG_LEVEL=info"
+else
+	fail "log_success outputs at LOG_LEVEL=info" "expected output containing 'Done', got '$output'"
+fi
+
+# Test: log_success suppressed at LOG_LEVEL=warn
+LOG_LEVEL=warn
+output=$(log_success "Done" 2>/dev/null)
+LOG_LEVEL=error
+if [[ -z "$output" ]]; then
+	pass "log_success suppressed at LOG_LEVEL=warn"
+else
+	fail "log_success suppressed at LOG_LEVEL=warn" "expected no output but got '$output'"
+fi
+
+# --- run_with_spinner tests ---
+
+echo ""
+echo "run_with_spinner:"
+
+# Test: successful command shows checkmark
+LOG_LEVEL=info
+output=$(run_with_spinner "succeeds" true 2>&1)
+LOG_LEVEL=error
+if [[ "$output" == *"✔"* && "$output" == *"succeeds"* ]]; then
+	pass "successful command shows checkmark"
+else
+	fail "successful command shows checkmark" "output='$output'"
+fi
+
+# Test: failed command returns non-zero exit code
+LOG_LEVEL=info
+exit_code=0
+output=$(run_with_spinner "fails" false 2>&1) || exit_code=$?
+LOG_LEVEL=error
+if [[ $exit_code -ne 0 ]]; then
+	pass "failed command returns non-zero exit code"
+else
+	fail "failed command returns non-zero exit code" "expected non-zero, got $exit_code"
+fi
+
+# Test: failed command shows X marker
+if [[ "$output" == *"✖"* && "$output" == *"fails"* ]]; then
+	pass "failed command shows X marker"
+else
+	fail "failed command shows X marker" "output='$output'"
+fi
+
+# Test: debug mode shows raw output
+LOG_LEVEL=debug
+output=$(run_with_spinner "echoing" echo "hello from debug" 2>&1)
+LOG_LEVEL=error
+if [[ "$output" == *"hello from debug"* && "$output" == *"✔"* ]]; then
+	pass "debug mode shows raw output and checkmark"
+else
+	fail "debug mode shows raw output and checkmark" "output='$output'"
+fi
+
+# Test: captures and shows output on failure
+LOG_LEVEL=info
+exit_code=0
+output=$(run_with_spinner "failing cmd" bash -c 'echo "error details"; exit 1' 2>&1) || exit_code=$?
+LOG_LEVEL=error
+if [[ $exit_code -ne 0 && "$output" == *"error details"* ]]; then
+	pass "captures and shows output on failure"
+else
+	fail "captures and shows output on failure" "exit_code=$exit_code output='$output'"
+fi
+
+# Test: silent mode (warn) runs without output
+LOG_LEVEL=warn
+output=$(run_with_spinner "silent" echo "should not appear" 2>&1)
+LOG_LEVEL=error
+if [[ -z "$output" ]]; then
+	pass "silent mode produces no output"
+else
+	fail "silent mode produces no output" "output='$output'"
+fi
+
 # --- Summary ---
 
 echo ""

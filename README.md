@@ -14,7 +14,7 @@ This installs Homebrew, packages from `Brewfile`, Nix, and creates symlinks from
 
 ### lib.sh
 
-Shared shell library sourced by `apply.sh` and `test_apply.sh`. Contains color constants, numeric log-level functions (`log_debug`, `log_info`, `log_warn`, `log_error`), and `ensure_symlink()`.
+Shared shell library sourced by `apply.sh` and `test_apply.sh`. Contains color constants, numeric log-level functions (`log_debug`, `log_info`, `log_warn`, `log_error`), section/success formatters (`log_section`, `log_success`), `run_with_spinner()` for background commands with animated progress indicators (bypassed in debug mode), and `ensure_symlink()`.
 
 ### apply.sh
 
