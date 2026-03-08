@@ -2,73 +2,10 @@
 
 set -euo pipefail
 
-RED="\033[31m"
-GREEN="\033[32m"
-YELLOW="\033[33m"
-CYAN="\033[36m"
-RESET="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-LOG_LEVEL="${LOG_LEVEL:-info}"
-
-log_debug() {
-	if [[ "$LOG_LEVEL" == "debug" ]]; then
-		echo -e "${GREEN}[DEBUG]${RESET} $1"
-	fi
-}
-
-log_info() {
-	if [[ "$LOG_LEVEL" == "debug" || "$LOG_LEVEL" == "info" ]]; then
-		echo -e "${CYAN}[INFO]${RESET} $1"
-	fi
-}
-
-log_warn() {
-	if [[ "$LOG_LEVEL" == "debug" || "$LOG_LEVEL" == "info" || "$LOG_LEVEL" == "warn" ]]; then
-		echo -e "${YELLOW}[WARN]${RESET} $1"
-	fi
-}
-
-log_error() {
-	echo -e "${RED}[ERROR]${RESET} $1" >&2
-}
-
-# Create a symlink from TARGET to SOURCE.
-# If TARGET already exists as a symlink pointing to SOURCE, do nothing.
-# Otherwise, move TARGET to TARGET.bak and create the new symlink.
-ensure_symlink() {
-	local source="$1"
-	local target="$2"
-
-	if [ -L "$target" ]; then
-		local current_source
-		current_source=$(readlink "$target")
-		if [ "$current_source" = "$source" ]; then
-			log_debug "Symlink $target already exists and points to $source"
-			return
-		fi
-	fi
-
-	dir="$(dirname "$target")"
-
-	log_info "Creating symlink from $target to $source"
-	if [ -e "$target" ]; then
-		log_info "Moving existing file $target to $target.bak"
-		if [[ "$dir" == /etc/* ]]; then
-			sudo mv "$target" "$target.bak"
-		else
-			mv "$target" "$target.bak"
-		fi
-	fi
-
-	if [[ "$dir" == /etc/* ]]; then
-		sudo mkdir -p "$dir"
-		sudo ln -s "$source" "$target"
-	else
-		mkdir -p "$dir"
-		ln -s "$source" "$target"
-	fi
-
-}
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 # --- Pre-flight Checks ---
 
@@ -78,10 +15,10 @@ if [ -z "${HOME:-}" ]; then
 fi
 
 defaults write -g ApplePressAndHoldEnabled -bool false
+# shellcheck disable=SC2016
 defaults write NSGlobalDomain NSUserKeyEquivalents -dict-add "Minimize" '@~^$m'
 
 # Determine the workspace root (assumed to be the directory of this script)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$SCRIPT_DIR"
 CONFIGS="$WORKSPACE_ROOT/configs"
 
@@ -105,7 +42,13 @@ log_info "Installing packages from Brewfile"
 # --- Bat ---
 
 ensure_symlink "$CONFIGS/bat" "$HOME/.config/bat"
-bat cache --build
+bat_cache_dir="$(bat --cache-dir 2>/dev/null || echo "")"
+if [[ -z "$bat_cache_dir" || ! -d "$bat_cache_dir/syntaxes" || "$CONFIGS/bat" -nt "$bat_cache_dir/syntaxes" ]]; then
+	log_info "Rebuilding bat cache"
+	bat cache --build
+else
+	log_debug "bat cache is up to date"
+fi
 
 # --- Fish Shell ---
 
@@ -122,10 +65,12 @@ else
 fi
 
 # Add Homebrew to fish_user_paths (universal variable, persists across sessions)
+# shellcheck disable=SC2016
 if /opt/homebrew/bin/fish -c 'contains /opt/homebrew/bin $fish_user_paths'; then
 	log_debug "Homebrew is already in fish_user_paths"
 else
 	log_info "Adding Homebrew to fish_user_paths"
+	# shellcheck disable=SC2016
 	/opt/homebrew/bin/fish -c 'set -U fish_user_paths /opt/homebrew/bin $fish_user_paths'
 fi
 

@@ -12,6 +12,10 @@ This installs Homebrew, packages from `Brewfile`, Nix, and creates symlinks from
 
 ## Architecture
 
+### lib.sh
+
+Shared shell library sourced by `apply.sh` and `test_apply.sh`. Contains color constants, numeric log-level functions (`log_debug`, `log_info`, `log_warn`, `log_error`), and `ensure_symlink()`.
+
 ### apply.sh
 
 The main setup script that:
@@ -265,4 +269,5 @@ Codex runtime/session files remain machine-local and are not source-controlled: 
 |---------|-------------|
 | `./apply.sh` | Run setup |
 | `LOG_LEVEL=debug ./apply.sh` | Verbose setup |
+| `bash test_apply.sh` | Run lib.sh unit tests |
 | `reload` | Restart fish shell |
