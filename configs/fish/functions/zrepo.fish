@@ -25,25 +25,40 @@ function zrepo
         set dir $matches[1]
         set name (basename $dir)
     else
-        set -l choice (
+        # If this tab was previously used with zrepo, re-attach to the same repo
+        if set -q __zrepo_name; and test -n "$__zrepo_name"
             for repo in ~/Code/*/*
                 test -d "$repo/.git"; or continue
-                set -l rel (string replace -r '^.*/Code/' '' -- $repo)
-                echo $rel\t$repo
-            end | sort | fzf \
-                --with-nth=1 \
-                --delimiter='\t' \
-                --preview 'echo "  "{2}; echo; echo "  branch: "$(git -C {2} branch --show-current 2>/dev/null); echo; echo "  recent commits:"; git -C {2} log --oneline -5 --color=always 2>/dev/null | sed "s/^/    /"; echo; echo "  status:"; git -C {2} status --short 2>/dev/null | head -10 | sed "s/^/    /"' \
-                --preview-window=right:50% \
-            | cut -f2
-        )
-        if test -z "$choice"
-            return
+                if test (basename $repo) = "$__zrepo_name"
+                    set name $__zrepo_name
+                    set dir $repo
+                    break
+                end
+            end
         end
-        set name (basename $choice)
-        set dir $choice
+
+        if test -z "$name"
+            set -l choice (
+                for repo in ~/Code/*/*
+                    test -d "$repo/.git"; or continue
+                    set -l rel (string replace -r '^.*/Code/' '' -- $repo)
+                    echo $rel\t$repo
+                end | sort | fzf \
+                    --with-nth=1 \
+                    --delimiter='\t' \
+                    --preview 'echo "  "{2}; echo; echo "  branch: "$(git -C {2} branch --show-current 2>/dev/null); echo; echo "  recent commits:"; git -C {2} log --oneline -5 --color=always 2>/dev/null | sed "s/^/    /"; echo; echo "  status:"; git -C {2} status --short 2>/dev/null | head -10 | sed "s/^/    /"' \
+                    --preview-window=right:50% \
+                | cut -f2
+            )
+            if test -z "$choice"
+                return
+            end
+            set name (basename $choice)
+            set dir $choice
+        end
     end
 
+    set -g __zrepo_name $name
     printf '\e]0;%s\a' $name
     zellij attach -c $name options --default-cwd $dir
 end
