@@ -10,8 +10,8 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
    Determine whether this is new behavior (feature, endpoint, function) or a bug fix. If ambiguous, ask focused questions before proceeding.
 
 2. **Follow the TDD operation**:
-   - New behavior → Follow operations/new-feature.md
-   - Bug fix → Follow operations/fix-bug.md
+   - New behavior → Follow operations/write.md (Feature mode)
+   - Bug fix → Follow operations/write.md (Fix mode)
 
    Track all files created or modified during this phase for use in Phases 2 and 3.
 
@@ -28,7 +28,7 @@ Run a full TDD → code review convergence loop: build test-first, then review-f
    If skipping, proceed directly to Phase 3.
 
 5. **Follow the Mutation Testing operation**:
-   Follow operations/mutate.md, scoping it to the files tracked in step 2.
+   Follow operations/test.md (Mutate mode), scoping it to the files tracked in step 2.
 
 6. **Report mutation testing outcome**:
    Report to the user: score before/after, survivors killed. Confirm all tests pass before proceeding to review.
