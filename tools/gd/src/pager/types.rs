@@ -54,6 +54,14 @@ impl TreeEntryIx {
     }
 }
 
+/// Which pane has keyboard focus.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum FocusPane {
+    #[default]
+    Diff,
+    Tree,
+}
+
 /// View scope: all files or single file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ViewScope {
@@ -118,6 +126,10 @@ pub(crate) enum ActionId {
     StageHunk,
     DiscardLine,
     DiscardHunk,
+    ToggleFocus,
+    TreeCursorDown,
+    TreeCursorUp,
+    TreeEnter,
 }
 
 /// Help group for overlay layout.
@@ -128,5 +140,6 @@ pub(crate) enum HelpGroup {
     Search,
     Selection,
     Staging,
+    Tree,
     Other,
 }

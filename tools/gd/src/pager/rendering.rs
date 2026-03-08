@@ -9,7 +9,7 @@ use crate::style;
 
 use super::keymap::keymap_tooltip_lines;
 use super::state::{PagerState, visible_range};
-use super::types::Mode;
+use super::types::{FocusPane, Mode};
 
 pub(crate) fn diff_area_width(
     cols: u16,
@@ -316,6 +316,9 @@ pub(crate) fn render_content_area(
                     " ".repeat(pad),
                     style::RESET
                 );
+            }
+            if state.focus == FocusPane::Tree {
+                line = format!("{}{line}{}", style::DIM, style::NO_DIM);
             }
             let _ = write!(out, "{CLEAR_LINE}{line}");
         } else {

@@ -13,8 +13,10 @@ pub const BG_DELETED_WORD: &str = "\x1b[48;2;85;36;36m";
 /// Visual selection background (subtle blue-violet tint)
 pub const BG_VISUAL: &str = "\x1b[48;2;40;50;80m";
 
-/// Tree cursor background (subtle blue-gray tint)
-pub const BG_TREE_CURSOR: &str = "\x1b[48;2;42;53;69m";
+/// Tree cursor background when tree is focused (bold + reverse on tree FG color)
+pub const BG_TREE_CURSOR_FOCUSED: &str = "\x1b[1;7;38;2;201;209;217m";
+/// Tree cursor background when tree is unfocused (subtle blue-gray tint)
+pub const BG_TREE_CURSOR_UNFOCUSED: &str = "\x1b[48;2;42;53;69m";
 /// Cursor line background (subtle blue tint)
 pub const BG_CURSOR: &str = "\x1b[48;2;36;46;62m";
 

@@ -95,7 +95,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             keys: &[Key::Char('}')],
             group: DiffNav,
             key_display: "}",
-            label: "Next file",
+            label: "Next visible file",
         },
         KeymapEntry {
             action: ActionId::PrevFile,
@@ -103,7 +103,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             keys: &[Key::Char('{')],
             group: DiffNav,
             key_display: "{",
-            label: "Previous file",
+            label: "Previous visible file",
         },
         KeymapEntry {
             action: ActionId::ToggleSingleFile,
@@ -168,6 +168,14 @@ fn keymap_entries() -> &'static [KeymapEntry] {
             group: Other,
             key_display: "l",
             label: "Toggle tree panel",
+        },
+        KeymapEntry {
+            action: ActionId::ToggleFocus,
+            context: Normal,
+            keys: &[Key::CtrlE],
+            group: HelpGroup::Tree,
+            key_display: "Ctrl-E",
+            label: "Toggle tree / diff focus",
         },
         KeymapEntry {
             action: ActionId::VisualSelect,
@@ -311,6 +319,7 @@ fn compact_label(label: &str) -> String {
         "Toggle single file" => "single".to_string(),
         "Toggle full file context" => "context".to_string(),
         "Toggle tree panel" => "tree".to_string(),
+        "Toggle tree / diff focus" => "focus".to_string(),
         "Search" => "search".to_string(),
         "Visual select" => "sel".to_string(),
         "Yank selection" => "yank".to_string(),
@@ -355,6 +364,7 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
         tooltip_single(ActionId::ToggleSingleFile, context),
         tooltip_single(ActionId::ToggleFullContext, context),
         tooltip_single(ActionId::ToggleTree, context),
+        tooltip_single(ActionId::ToggleFocus, context),
         tooltip_single(ActionId::Search, context),
         tooltip_pair(ActionId::NextMatch, ActionId::PrevMatch, "match", context),
         tooltip_single(ActionId::VisualSelect, context),
@@ -385,7 +395,7 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
 pub(crate) fn keymap_help_lines() -> Vec<String> {
     use HelpGroup::{DiffNav, Navigation, Other, Search, Selection};
     use std::collections::HashSet;
-    let order = [Navigation, DiffNav, Search, Selection, HelpGroup::Staging, Other];
+    let order = [Navigation, DiffNav, Search, Selection, HelpGroup::Staging, HelpGroup::Tree, Other];
     let mut lines: Vec<String> = Vec::new();
     for group in order {
         let mut seen: HashSet<(&'static str, &'static str)> = HashSet::new();
@@ -399,6 +409,12 @@ pub(crate) fn keymap_help_lines() -> Vec<String> {
                 }
             }
         }
+        // For the Tree group, also add entries for keys handled outside the keymap table
+        if group == HelpGroup::Tree {
+            group_lines.push(("Enter", "Open file / toggle directory"));
+            group_lines.push(("za", "Toggle collapse"));
+            group_lines.push(("zA", "Toggle collapse recursive"));
+        }
         if !group_lines.is_empty() {
             if !lines.is_empty() {
                 lines.push(String::new());
@@ -410,6 +426,7 @@ pub(crate) fn keymap_help_lines() -> Vec<String> {
                 Selection => "Selection",
                 Other => "Other",
                 HelpGroup::Staging => "Staging",
+                HelpGroup::Tree => "Tree",
             };
             lines.push(group_name.to_string());
             for (k, l) in group_lines {

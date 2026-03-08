@@ -41,7 +41,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 | Key | Action |
 |-----|--------|
 | `]` / `[` | Next / previous hunk |
-| `}` / `{` | Next / previous file (switches file in single-file mode) |
+| `}` / `{` | Next / previous visible file (skips collapsed dirs when tree visible) |
 | `s` | Toggle single-file view |
 | `o` | Toggle full file context |
 
@@ -63,11 +63,20 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 | `c` | Copy relative file path to clipboard |
 | `C` | Copy absolute file path to clipboard |
 
-### Other
+### Tree
 
 | Key | Action |
 |-----|--------|
 | `l` | Toggle file tree sidebar |
+| `Ctrl-E` | Toggle tree / diff focus |
+| `Enter` | Open file / toggle directory (in tree focus) |
+| `za` | Toggle collapse |
+| `zA` | Toggle collapse recursive |
+
+### Other
+
+| Key | Action |
+|-----|--------|
 | `e` | Open file in `$EDITOR` at current line |
 | `R` | Reload diff |
 | `?` | Toggle keybinding hints bar |
@@ -88,7 +97,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, file header separators, and dim dashed-line hunk separators between hunks within a file.
 
-**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Supports interactive staging, unstaging, and reverting of individual diff lines and entire hunks. Startup heuristics pick sensible defaults: single-file diffs with 3 or fewer hunks open in full-context mode (showing the entire file); diffs with more than 5 files, or multi-file diffs whose rendered output exceeds 3x the terminal height, open in single-file view with full context enabled (viewing one file at a time benefits from seeing the full file). Manual toggles (`s` for view scope, `o` for full context) override the heuristics permanently for the session. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel is passive (auto-syncs to cursor position, no focus mode), defaults visible for nested or larger diffs (requires 96+ terminal columns), and defaults hidden for small flat diffs or narrow terminals. Tree width adapts dynamically to content and terminal size, auto-hiding when the terminal is too narrow to fit both an 80-column diff area and a 15-column tree panel, and auto-showing when the terminal is resized wide enough. Explicit user toggles (`l`) are respected — if the user hides the tree, it stays hidden regardless of terminal width. The user can still manually toggle the tree with `l` on narrower terminals. Long file paths are truncated with a `..` indicator. Paths that fit within the panel are never truncated. When the cursor is on a deeply nested file whose label overflows, the tree shifts its indent origin rightward to show the full label, displaying a `..` indicator on shallower entries whose connectors are scrolled off. File headers remain visible even when the tree is open. Selection uses visual select (`v` to anchor, `y` to yank). A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows a position indicator (TOP / END / %) on the right. In single-file mode it also shows a file-type icon, the dimmed file path, and a `< N/total >` chevron counter on the left.
+**Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Supports interactive staging, unstaging, and reverting of individual diff lines and entire hunks. Startup heuristics pick sensible defaults: single-file diffs with 3 or fewer hunks open in full-context mode (showing the entire file); diffs with more than 5 files, or multi-file diffs whose rendered output exceeds 3x the terminal height, open in single-file view with full context enabled (viewing one file at a time benefits from seeing the full file). Manual toggles (`s` for view scope, `o` for full context) override the heuristics permanently for the session. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel supports two focus states (`Ctrl-E` toggles): when focused, the tree cursor is bold/highlighted and the diff pane dims; when unfocused, the tree cursor shows a subtle background. `Enter` in tree focus opens a file or toggles a directory, `za`/`zA` collapse single or recursive, and `}`/`{` jump to the next/prev visible file in the tree. The tree defaults visible for nested or larger diffs (requires 96+ terminal columns), and defaults hidden for small flat diffs or narrow terminals. Tree width adapts dynamically to content and terminal size, auto-hiding when the terminal is too narrow to fit both an 80-column diff area and a 15-column tree panel, and auto-showing when the terminal is resized wide enough. Explicit user toggles (`l`) are respected — if the user hides the tree, it stays hidden regardless of terminal width. The user can still manually toggle the tree with `l` on narrower terminals. Long file paths are truncated with a `..` indicator. Paths that fit within the panel are never truncated. When the cursor is on a deeply nested file whose label overflows, the tree shifts its indent origin rightward to show the full label, displaying a `..` indicator on shallower entries whose connectors are scrolled off. File headers remain visible even when the tree is open. Selection uses visual select (`v` to anchor, `y` to yank). A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows a position indicator (TOP / END / %) on the right. In single-file mode it also shows a file-type icon, the dimmed file path, and a `< N/total >` chevron counter on the left.
 
 ## Modules
 

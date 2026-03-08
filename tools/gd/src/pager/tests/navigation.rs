@@ -802,3 +802,123 @@ diff --git a/src/foo.txt b/src/foo.txt
         "] should move cursor forward to a change group"
     );
 }
+
+// ---- Tree-driven file jumping ----
+
+use super::super::navigation::{tree_next_file, tree_prev_file};
+
+/// Helper: build a PagerState with tree entries where a directory is collapsed,
+/// hiding its children from tree_visible_to_entry.
+fn make_tree_jump_state() -> PagerState {
+    // Tree structure:
+    //   0: src/       (dir, depth 0, collapsed=true)
+    //   1:   a.rs     (file_idx=0, depth 1)
+    //   2:   b.rs     (file_idx=1, depth 1)
+    //   3: README.md  (file_idx=2, depth 0)
+    //
+    // With src/ collapsed, tree_visible_to_entry = [0, 3]
+    // (only the collapsed dir and the top-level file are visible)
+    let tree_entries = vec![
+        TreeEntry {
+            label: "src".into(),
+            depth: 0,
+            file_idx: None,
+            status: None,
+            collapsed: true,
+        },
+        TreeEntry {
+            label: "a.rs".into(),
+            depth: 1,
+            file_idx: Some(0),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "b.rs".into(),
+            depth: 1,
+            file_idx: Some(1),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "README.md".into(),
+            depth: 0,
+            file_idx: Some(2),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+    ];
+
+    let line_map: Vec<LineInfo> = (0..30)
+        .map(|i| LineInfo {
+            file_idx: if i < 10 { 0 } else if i < 20 { 1 } else { 2 },
+            path: if i < 10 {
+                "src/a.rs"
+            } else if i < 20 {
+                "src/b.rs"
+            } else {
+                "README.md"
+            }
+            .into(),
+            new_lineno: Some(i as u32 + 1),
+            old_lineno: None,
+            line_kind: Some(LineKind::Context),
+            hunk_idx: None,
+        })
+        .collect();
+
+    let mut state = PagerState::new(
+        vec!["line".into(); 30],
+        line_map,
+        vec![0, 10, 20],
+        vec![],
+        tree_entries,
+        120,
+    );
+    state.tree_visible = true;
+    state.rebuild_tree_lines();
+    // Set tree cursor to the collapsed dir entry (entry 0)
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    state
+}
+
+#[test]
+fn tree_next_file_skips_collapsed_dir() {
+    let state = make_tree_jump_state();
+    // tree_visible_to_entry should be [0, 3] (collapsed dir + README.md)
+    // Cursor is on entry 0 (collapsed dir). Next visible file should be entry 3 (README.md, file_idx=2).
+    assert_eq!(state.tree_visible_to_entry, vec![0, 3]);
+    let result = tree_next_file(&state);
+    assert_eq!(result, Some(2), "should jump to file_idx 2 (README.md), skipping collapsed children");
+}
+
+#[test]
+fn tree_prev_file_skips_collapsed_dir() {
+    let mut state = make_tree_jump_state();
+    // Move cursor to entry 3 (README.md)
+    state.set_tree_cursor(3);
+    state.rebuild_tree_lines();
+    let result = tree_prev_file(&state);
+    // No visible file before README.md (entry 0 is a directory), so None
+    // Actually, the collapsed dir has no file_idx, so prev should return None
+    assert_eq!(result, None, "no visible file before README.md when src/ is collapsed");
+}
+
+#[test]
+fn tree_next_file_at_last_returns_none() {
+    let mut state = make_tree_jump_state();
+    // Move cursor to entry 3 (README.md, last visible file)
+    state.set_tree_cursor(3);
+    state.rebuild_tree_lines();
+    let result = tree_next_file(&state);
+    assert_eq!(result, None, "should return None when at last visible file");
+}
+
+#[test]
+fn tree_prev_file_at_first_returns_none() {
+    let state = make_tree_jump_state();
+    // Cursor is on entry 0 (collapsed dir, not a file). No file before it.
+    let result = tree_prev_file(&state);
+    assert_eq!(result, None, "should return None when at first entry (a dir)");
+}

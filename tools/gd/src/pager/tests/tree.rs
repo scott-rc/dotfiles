@@ -44,7 +44,7 @@ fn test_compute_connector_prefix_nested() {
 fn test_build_tree_lines_no_header() {
     let entries = vec![entry("a.rs", 0, Some(0)), entry("b.rs", 0, Some(1))];
     let width = compute_tree_width(&entries);
-    let (lines, _mapping) = build_tree_lines(&entries, 0, width);
+    let (lines, _mapping) = build_tree_lines(&entries, 0, width, false);
     let first = crate::ansi::strip_ansi(&lines[0]);
     assert!(!first.contains("CHANGED FILES"), "header should be removed");
 }
@@ -53,9 +53,9 @@ fn test_build_tree_lines_no_header() {
 fn test_tree_cursor_line_continuous_background() {
     let entries = vec![entry("a.rs", 0, Some(0)), entry("b.rs", 0, Some(1))];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let cursor_line = &lines[0];
-    let forbidden = format!("{} {}", crate::style::RESET, crate::style::BG_TREE_CURSOR);
+    let forbidden = format!("{} {}", crate::style::RESET, crate::style::BG_TREE_CURSOR_UNFOCUSED);
     assert!(
         !cursor_line.contains(&forbidden),
         "cursor line has a background gap between icon and label:\n{cursor_line}"
@@ -179,7 +179,7 @@ fn test_resolve_tree_layout_hides_when_terminal_too_narrow() {
 fn test_tree_status_symbol_modified() {
     let entries = vec![entry_with_status("foo.rs", 0, 0, FileStatus::Modified)];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         stripped.contains("M "),
@@ -191,7 +191,7 @@ fn test_tree_status_symbol_modified() {
 fn test_tree_status_symbol_added() {
     let entries = vec![entry_with_status("foo.rs", 0, 0, FileStatus::Added)];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         stripped.contains("A "),
@@ -203,7 +203,7 @@ fn test_tree_status_symbol_added() {
 fn test_tree_status_symbol_deleted() {
     let entries = vec![entry_with_status("foo.rs", 0, 0, FileStatus::Deleted)];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         stripped.contains("D "),
@@ -215,7 +215,7 @@ fn test_tree_status_symbol_deleted() {
 fn test_tree_status_symbol_renamed() {
     let entries = vec![entry_with_status("foo.rs", 0, 0, FileStatus::Renamed)];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         stripped.contains("R "),
@@ -227,7 +227,7 @@ fn test_tree_status_symbol_renamed() {
 fn test_tree_status_symbol_untracked() {
     let entries = vec![entry_with_status("foo.rs", 0, 0, FileStatus::Untracked)];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         stripped.contains("? "),
@@ -245,7 +245,7 @@ fn test_tree_status_symbol_directory() {
         collapsed: false,
     }];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped = crate::ansi::strip_ansi(&lines[0]);
     assert!(
         !stripped.contains("M "),
@@ -365,7 +365,7 @@ fn snapshot_tree_lines_flat() {
         entry("c.rs", 0, Some(2)),
     ];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped: Vec<String> = lines.iter().map(|l| strip(l)).collect();
     assert_snapshot!(stripped.join("\n"));
 }
@@ -380,7 +380,7 @@ fn snapshot_tree_lines_nested() {
     crate::git::sort_files_for_display(&mut files);
     let entries = build_tree_entries(&files);
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped: Vec<String> = lines.iter().map(|l| strip(l)).collect();
     assert_snapshot!(stripped.join("\n"));
 }
@@ -437,7 +437,7 @@ fn test_build_tree_lines_no_truncation_when_label_fits() {
         entry("another.rs", 1, Some(3)),
     ];
     // Width 30, cursor at 0. All entries at depth 0-1 have enough budget.
-    let (lines, _) = build_tree_lines(&entries, 0, 30);
+    let (lines, _) = build_tree_lines(&entries, 0, 30, false);
     for (i, line) in lines.iter().enumerate() {
         let stripped = strip(line);
         assert!(
@@ -456,7 +456,7 @@ fn test_build_tree_lines_truncates_when_label_exceeds_budget() {
     ];
     // Width 25: depth-1 prefix = 8+2+2=12, budget=13.
     // "extremely_long_filename_that_wont_fit.rs" (40 chars) exceeds 13.
-    let (lines, _) = build_tree_lines(&entries, 0, 25);
+    let (lines, _) = build_tree_lines(&entries, 0, 25, false);
     let stripped2 = strip(&lines[2]);
     assert!(
         stripped2.contains(".."),
@@ -475,7 +475,7 @@ fn test_build_tree_lines_expands_cursor_entry() {
         entry("another_long_filename_here.rs", 1, Some(3)),
     ];
     let width = compute_tree_width(&entries);
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let stripped0 = strip(&lines[0]);
     assert!(
         !stripped0.contains(".."),
@@ -493,7 +493,7 @@ fn test_build_tree_lines_no_overflow() {
         entry("another_long_filename_here.rs", 1, Some(3)),
     ];
     let width = 25;
-    let (lines, _) = build_tree_lines(&entries, 0, width);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
     for (i, line) in lines.iter().enumerate() {
         let stripped = strip(line);
         let vis_width = stripped.chars().count();
@@ -516,7 +516,7 @@ fn test_build_tree_lines_expanded_still_truncated_when_wider_than_panel() {
         entry("e_very_very_very_long_name.rs", 0, Some(4)),
     ];
     let width = 20;
-    let (lines, _) = build_tree_lines(&entries, 2, width);
+    let (lines, _) = build_tree_lines(&entries, 2, width, false);
     for (i, line) in lines.iter().enumerate() {
         let stripped = strip(line);
         let vis_width = stripped.chars().count();
@@ -542,7 +542,7 @@ fn test_scroll_shifts_tree_for_deep_cursor() {
     // Width 28: depth-3 prefix = 16+2+2=20, budget=8, label "validate_token.rs" (18) > 8.
     // indent_offset = ceil((18-8)/4) = ceil(10/4) = 3, clamped to depth 3 → 3.
     let width = 28;
-    let (lines, _) = build_tree_lines(&entries, 3, width);
+    let (lines, _) = build_tree_lines(&entries, 3, width, false);
 
     // Shallow entries (depth < indent_offset=3) should have `..` indicator
     let stripped0 = strip(&lines[0]);
@@ -588,7 +588,7 @@ fn test_no_scroll_when_cursor_label_fits() {
     ];
     // Width 30: depth-0 prefix = 4+2+2=8, budget=22. Labels are 14 chars → fit.
     let width = 30;
-    let (lines, _) = build_tree_lines(&entries, 1, width);
+    let (lines, _) = build_tree_lines(&entries, 1, width, false);
     for (i, line) in lines.iter().enumerate() {
         let stripped = strip(line);
         assert!(
@@ -616,7 +616,7 @@ fn test_build_tree_lines_collapse_depth_reset() {
         entry("README.md", 0, Some(1)),
     ];
     let width = compute_tree_width(&entries);
-    let (lines, visible_orig) = build_tree_lines(&entries, 0, width);
+    let (lines, visible_orig) = build_tree_lines(&entries, 0, width, false);
     // Should show 2 visible lines: the collapsed "src" and "README.md"
     assert_eq!(
         lines.len(),
@@ -629,6 +629,40 @@ fn test_build_tree_lines_collapse_depth_reset() {
     assert!(
         stripped_last.contains("README.md"),
         "sibling after collapsed dir should be visible: {stripped_last:?}"
+    );
+}
+
+// ---- focus-aware cursor styling ----
+
+#[test]
+fn test_build_tree_lines_focused_cursor_uses_focused_style() {
+    let entries = vec![entry("a.rs", 0, Some(0)), entry("b.rs", 0, Some(1))];
+    let width = compute_tree_width(&entries);
+    let (lines, _) = build_tree_lines(&entries, 0, width, true);
+    let cursor_line = &lines[0];
+    assert!(
+        cursor_line.contains(crate::style::BG_TREE_CURSOR_FOCUSED),
+        "focused cursor line should contain BG_TREE_CURSOR_FOCUSED:\n{cursor_line}"
+    );
+    assert!(
+        !cursor_line.contains(crate::style::BG_TREE_CURSOR_UNFOCUSED),
+        "focused cursor line should NOT contain BG_TREE_CURSOR_UNFOCUSED:\n{cursor_line}"
+    );
+}
+
+#[test]
+fn test_build_tree_lines_unfocused_cursor_uses_unfocused_style() {
+    let entries = vec![entry("a.rs", 0, Some(0)), entry("b.rs", 0, Some(1))];
+    let width = compute_tree_width(&entries);
+    let (lines, _) = build_tree_lines(&entries, 0, width, false);
+    let cursor_line = &lines[0];
+    assert!(
+        cursor_line.contains(crate::style::BG_TREE_CURSOR_UNFOCUSED),
+        "unfocused cursor line should contain BG_TREE_CURSOR_UNFOCUSED:\n{cursor_line}"
+    );
+    assert!(
+        !cursor_line.contains(crate::style::BG_TREE_CURSOR_FOCUSED),
+        "unfocused cursor line should NOT contain BG_TREE_CURSOR_FOCUSED:\n{cursor_line}"
     );
 }
 

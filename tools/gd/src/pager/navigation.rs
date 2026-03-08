@@ -1,6 +1,7 @@
 use crate::render::LineInfo;
 
-use super::content::next_content_line;
+use super::content::{next_content_line, snap_to_content};
+use super::rendering::enforce_scrolloff;
 use super::state::{PagerState, visible_range};
 use super::tree::file_idx_to_entry_idx;
 
@@ -251,6 +252,72 @@ pub(crate) fn nav_U_up(state: &PagerState, content_height: usize) -> NavDUResult
             status_message: String::new(),
             moved: false,
         }
+    }
+}
+
+fn tree_cursor_visible_pos(state: &PagerState) -> Option<usize> {
+    let cursor = state.tree_cursor();
+    state
+        .tree_visible_to_entry
+        .iter()
+        .position(|&ei| ei == cursor)
+}
+
+pub(crate) fn tree_next_file(state: &PagerState) -> Option<usize> {
+    let pos = tree_cursor_visible_pos(state)?;
+    state.tree_visible_to_entry[pos + 1..]
+        .iter()
+        .filter_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
+        .next()
+}
+
+pub(crate) fn tree_prev_file(state: &PagerState) -> Option<usize> {
+    let pos = tree_cursor_visible_pos(state)?;
+    state.tree_visible_to_entry[..pos]
+        .iter()
+        .rev()
+        .filter_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
+        .next()
+}
+
+fn move_tree_cursor(state: &mut PagerState, delta: isize, content_height: usize) {
+    if state.tree_visible_to_entry.is_empty() {
+        return;
+    }
+    let current = state.tree_cursor();
+    let current_vis = state
+        .tree_visible_to_entry
+        .iter()
+        .position(|&ei| ei == current);
+    if let Some(pos) = current_vis {
+        let last = state.tree_visible_to_entry.len() - 1;
+        let new_pos = if delta > 0 {
+            (pos + delta as usize).min(last)
+        } else {
+            pos.saturating_sub((-delta) as usize)
+        };
+        let new_entry = state.tree_visible_to_entry[new_pos];
+        state.set_tree_cursor(new_entry);
+        state.rebuild_tree_lines();
+        ensure_tree_cursor_visible(state, content_height);
+    }
+}
+
+pub(crate) fn tree_cursor_down(state: &mut PagerState, content_height: usize) {
+    move_tree_cursor(state, 1, content_height);
+}
+
+pub(crate) fn tree_cursor_up(state: &mut PagerState, content_height: usize) {
+    move_tree_cursor(state, -1, content_height);
+}
+
+pub(crate) fn jump_to_tree_file(state: &mut PagerState, file_idx: usize, content_height: usize) {
+    if let Some(&start) = state.doc.file_starts.get(file_idx) {
+        let (rs, re) = visible_range(state);
+        let max_cursor = re.saturating_sub(1);
+        state.cursor_line = snap_to_content(&state.doc.line_map, start, rs, max_cursor);
+        sync_tree_cursor(state, content_height);
+        enforce_scrolloff(state, content_height);
     }
 }
 

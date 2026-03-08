@@ -1,12 +1,14 @@
+use std::collections::HashSet;
+
 use crate::git::diff::DiffFile;
 use crate::render::{LineInfo, RenderOutput};
 
 use super::content::{next_content_line, snap_to_content};
 use super::tree::{
-    TreeEntry, build_tree_entries, build_tree_lines, compute_tree_width, file_idx_to_entry_idx,
-    resolve_tree_layout,
+    TreeEntry, apply_collapse_state, build_tree_entries, build_tree_lines, compute_tree_width,
+    file_idx_to_entry_idx, resolve_tree_layout,
 };
-use super::types::{FileIx, KeyResult, Mode, TreeEntryIx, ViewScope};
+use super::types::{FileIx, FocusPane, KeyResult, Mode, TreeEntryIx, ViewScope};
 
 /// Context passed into the reducer (content height, total rows, terminal cols, files for tree/editor).
 #[derive(Debug)]
@@ -129,6 +131,9 @@ pub(crate) struct PagerState {
     pub(crate) view_scope_user_set: bool,
     pub(crate) full_context: bool,
     pub(crate) full_context_user_set: bool,
+    pub(crate) focus: FocusPane,
+    pub(crate) collapsed_paths: HashSet<String>,
+    pub(crate) pending_tree_key: Option<char>,
 }
 
 impl PagerState {
@@ -209,7 +214,8 @@ impl PagerState {
     }
 
     pub(crate) fn rebuild_tree_lines(&mut self) {
-        let (tl, tv) = build_tree_lines(&self.tree_entries, self.tree_cursor(), self.tree_width);
+        let focused = self.focus == FocusPane::Tree;
+        let (tl, tv) = build_tree_lines(&self.tree_entries, self.tree_cursor(), self.tree_width, focused);
         self.tree_lines = tl;
         self.tree_visible_to_entry = tv;
     }
@@ -246,7 +252,7 @@ impl PagerState {
         let tree_selection = TreeEntryIx::new(0, entry_count);
 
         let (tree_lines, tree_visible_to_entry) = if tree_visible {
-            build_tree_lines(&tree_entries, 0, tree_width)
+            build_tree_lines(&tree_entries, 0, tree_width, false)
         } else {
             (Vec::new(), Vec::new())
         };
@@ -276,6 +282,9 @@ impl PagerState {
             view_scope_user_set: false,
             full_context: false,
             full_context_user_set: false,
+            focus: FocusPane::Diff,
+            collapsed_paths: HashSet::new(),
+            pending_tree_key: None,
         }
     }
 }
@@ -450,6 +459,7 @@ pub(crate) fn remap_after_document_swap(
 
     if state.tree_visible && !files.is_empty() {
         state.tree_entries = build_tree_entries(files);
+        apply_collapse_state(&mut state.tree_entries, &state.collapsed_paths);
         let content_width = compute_tree_width(&state.tree_entries);
         let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
         let file_count = state.doc.file_count();
@@ -468,7 +478,8 @@ pub(crate) fn remap_after_document_swap(
                 .map_or(0, |li| li.file_idx);
             let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
             state.set_tree_cursor(cursor_entry_idx);
-            let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+            let focused = state.focus == FocusPane::Tree;
+            let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width, focused);
             state.tree_lines = tl;
             state.tree_visible_to_entry = tv;
         } else {

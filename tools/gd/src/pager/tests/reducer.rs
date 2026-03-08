@@ -8,11 +8,11 @@ use tui::search::{find_matches, find_nearest_match};
 use super::super::reducer::handle_key;
 use super::super::runtime::re_render;
 use super::super::state::visible_range;
-use super::super::types::{KeyResult, Mode};
+use super::super::types::{FocusPane, KeyResult, Mode};
 use std::path::Path;
 
 use super::common::{
-    StateSnapshot, add_leading_context_before_hunk_changes, assert_state_invariants,
+    StateSnapshot, add_leading_context_before_hunk_changes, assert_state_invariants, entry,
     make_diff_file, make_keybinding_state, make_mixed_content_state, make_pager_state_from_files,
     make_staging_state, make_two_file_diff,
 };
@@ -1191,4 +1191,435 @@ fn stage_line_with_visual_selection_stages_range() {
         "stage line with visual selection should return ApplyPatch, got {result:?}"
     );
     assert_eq!(state.visual_anchor, None, "visual anchor should be cleared after staging");
+}
+
+// ---- Focus mode (Ctrl-E) ----
+
+#[test]
+fn focus_toggle_shows_tree_and_focuses_it() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = false;
+    state.focus = FocusPane::Diff;
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
+    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.tree_visible, "Ctrl-E should show tree when hidden");
+    assert_eq!(state.focus, FocusPane::Tree, "Ctrl-E should focus tree");
+}
+
+#[test]
+fn focus_toggle_switches_between_panes() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Diff;
+    let files = vec![
+        make_diff_file("a.rs"),
+        make_diff_file("b.rs"),
+        make_diff_file("c.rs"),
+    ];
+    // First Ctrl-E: focus tree
+    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Tree);
+    // Second Ctrl-E: back to diff
+    handle_key(&mut state, Key::CtrlE, 40, 40, 120, &files, p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff, "second Ctrl-E should return focus to diff");
+}
+
+#[test]
+fn escape_in_tree_focus_returns_to_diff() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    handle_key(&mut state, Key::Escape, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff, "Escape should return focus to diff");
+}
+
+#[test]
+fn j_in_tree_focus_moves_tree_cursor() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.tree_cursor(), 1, "j in tree focus should advance tree cursor");
+}
+
+#[test]
+fn k_in_tree_focus_moves_cursor_up() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(1);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char('k'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.tree_cursor(), 0, "k in tree focus should move tree cursor up");
+}
+
+#[test]
+fn k_in_tree_focus_clamps_at_zero() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char('k'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.tree_cursor(), 0, "k at top should clamp at 0");
+}
+
+#[test]
+fn j_in_diff_focus_scrolls_diff() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = true;
+    state.focus = FocusPane::Diff;
+    state.cursor_line = 1;
+    let cursor_before = state.cursor_line;
+    handle_key(&mut state, Key::Char('j'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.cursor_line > cursor_before, "j in diff focus should scroll diff");
+}
+
+// ---- TreeEnter (context-sensitive Enter in tree) ----
+
+#[test]
+fn tree_enter_on_collapsed_directory_expands_it() {
+    let mut state = make_keybinding_state();
+    // Replace tree_entries with a directory + files structure
+    state.tree_entries = vec![
+        entry("src", 0, None),      // 0: directory
+        entry("a.rs", 1, Some(0)),  // 1: file
+        entry("b.rs", 1, Some(1)),  // 2: file
+        entry("c.rs", 0, Some(2)),  // 3: file
+    ];
+    state.tree_entries[0].collapsed = true;
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(!state.tree_entries[0].collapsed, "Enter on collapsed directory should expand it");
+}
+
+#[test]
+fn tree_enter_on_expanded_directory_collapses_it() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),      // 0: directory
+        entry("a.rs", 1, Some(0)),  // 1: file
+        entry("b.rs", 1, Some(1)),  // 2: file
+        entry("c.rs", 0, Some(2)),  // 3: file
+    ];
+    state.tree_entries[0].collapsed = false;
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.tree_entries[0].collapsed, "Enter on expanded directory should collapse it");
+}
+
+#[test]
+fn tree_enter_on_file_jumps_cursor_and_refocuses_diff() {
+    let mut state = make_keybinding_state();
+    // tree_entries: flat file list (default from make_keybinding_state has a.rs, b.rs, c.rs)
+    // file_starts = [0, 30, 60], so file 1 starts at line 30
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    // Select tree entry for b.rs (index 1, file_idx=Some(1))
+    state.set_tree_cursor(1);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.focus, FocusPane::Diff, "Enter on file should return focus to diff");
+    // cursor_line should be at or near file_starts[1] = 30
+    assert!(
+        state.cursor_line >= 30 && state.cursor_line <= 31,
+        "cursor should jump to file start (30), got {}",
+        state.cursor_line
+    );
+}
+
+#[test]
+fn enter_when_diff_focused_scrolls_down() {
+    let mut state = make_keybinding_state();
+    state.focus = FocusPane::Diff;
+    state.cursor_line = 1;
+    let cursor_before = state.cursor_line;
+    handle_key(&mut state, Key::Enter, 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.cursor_line > cursor_before, "Enter in diff focus should scroll down");
+}
+
+// ---- za / zA collapse control ----
+
+#[test]
+fn za_on_expanded_directory_collapses_it() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    state.tree_entries[0].collapsed = false;
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    // Press z then a
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('a'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.tree_entries[0].collapsed, "za on expanded directory should collapse it");
+    assert!(state.collapsed_paths.contains("src"), "collapsed_paths should track 'src'");
+}
+
+#[test]
+fn za_on_collapsed_directory_expands_it() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    state.tree_entries[0].collapsed = true;
+    state.collapsed_paths.insert("src".to_string());
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('a'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(!state.tree_entries[0].collapsed, "za on collapsed directory should expand it");
+    assert!(!state.collapsed_paths.contains("src"), "collapsed_paths should remove 'src'");
+}
+
+#[test]
+fn za_collapses_directory_and_all_descendants() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),       // 0
+        entry("lib", 1, None),       // 1
+        entry("a.rs", 2, Some(0)),   // 2
+        entry("bin", 1, None),       // 3
+        entry("b.rs", 2, Some(1)),   // 4
+        entry("c.rs", 0, Some(2)),   // 5
+    ];
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    // Press z then A (recursive)
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('A'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(state.tree_entries[0].collapsed, "zA should collapse cursor dir");
+    assert!(state.tree_entries[1].collapsed, "zA should collapse descendant dir 'lib'");
+    assert!(state.tree_entries[3].collapsed, "zA should collapse descendant dir 'bin'");
+}
+
+#[test]
+fn za_on_collapsed_expands_all_descendants() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),
+        entry("lib", 1, None),
+        entry("a.rs", 2, Some(0)),
+        entry("bin", 1, None),
+        entry("b.rs", 2, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    // Collapse all directories
+    state.tree_entries[0].collapsed = true;
+    state.tree_entries[1].collapsed = true;
+    state.tree_entries[3].collapsed = true;
+    state.collapsed_paths.insert("src".to_string());
+    state.collapsed_paths.insert("src/lib".to_string());
+    state.collapsed_paths.insert("src/bin".to_string());
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    // Press z then A (recursive expand)
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('A'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(!state.tree_entries[0].collapsed, "zA should expand cursor dir");
+    assert!(!state.tree_entries[1].collapsed, "zA should expand descendant 'lib'");
+    assert!(!state.tree_entries[3].collapsed, "zA should expand descendant 'bin'");
+}
+
+#[test]
+fn za_on_file_entry_is_noop() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(1); // file entry
+    state.rebuild_tree_lines();
+    let lines_before = state.tree_lines.len();
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('a'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert_eq!(state.tree_lines.len(), lines_before, "za on file entry should be a noop");
+}
+
+#[test]
+fn z_followed_by_non_a_cancels_pending() {
+    let mut state = make_keybinding_state();
+    state.tree_entries = vec![
+        entry("src", 0, None),
+        entry("a.rs", 1, Some(0)),
+        entry("b.rs", 1, Some(1)),
+        entry("c.rs", 0, Some(2)),
+    ];
+    state.tree_entries[0].collapsed = false;
+    state.tree_visible = true;
+    state.focus = FocusPane::Tree;
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    handle_key(&mut state, Key::Char('z'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char('x'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+    assert!(!state.tree_entries[0].collapsed, "zx should not toggle collapse");
+    assert!(state.pending_tree_key.is_none(), "pending should be cleared after non-a key");
+}
+
+#[test]
+fn collapsed_paths_survives_remap_after_document_swap() {
+    use crate::pager::state::{capture_view_anchor, remap_after_document_swap, Document};
+    use crate::render;
+
+    let files = vec![
+        make_diff_file("src/a.rs"),
+        make_diff_file("src/b.rs"),
+    ];
+    let mut state = make_pager_state_from_files(&files, true);
+    // Collapse the "src" directory and track it
+    if let Some(dir_idx) = state.tree_entries.iter().position(|e| e.file_idx.is_none()) {
+        state.tree_entries[dir_idx].collapsed = true;
+        state.collapsed_paths.insert("src".to_string());
+    }
+    state.rebuild_tree_lines();
+    let anchor = capture_view_anchor(&state);
+    let output = render::render(&files, 80, false);
+    let new_doc = Document::from_render_output(output);
+    remap_after_document_swap(&mut state, anchor, new_doc, &files, 120);
+    // The "src" directory should still be collapsed after remap
+    if let Some(dir_idx) = state.tree_entries.iter().position(|e| e.file_idx.is_none()) {
+        assert!(
+            state.tree_entries[dir_idx].collapsed,
+            "collapsed state should survive remap_after_document_swap"
+        );
+    } else {
+        panic!("expected a directory entry after remap");
+    }
+}
+
+#[test]
+fn single_child_chain_defaults_to_collapsed() {
+    let files = vec![make_diff_file("src/lib/foo.rs")];
+    let entries = super::super::tree::build_tree_entries(&files);
+    let chain_dir = entries.iter().find(|e| e.file_idx.is_none());
+    assert!(chain_dir.is_some(), "should have a dir entry");
+    assert!(
+        chain_dir.unwrap().collapsed,
+        "single-child chain directory should default to collapsed"
+    );
+}
+
+// ---- Tree-driven file jumping via NextFile/PrevFile ----
+
+use super::super::tree::TreeEntry;
+use crate::git::diff::FileStatus;
+use crate::render::LineInfo;
+use super::super::state::PagerState;
+
+/// Build a state with a collapsed directory hiding its children from tree_visible_to_entry.
+fn make_tree_file_jump_state() -> PagerState {
+    let tree_entries = vec![
+        TreeEntry { label: "src".into(), depth: 0, file_idx: None, status: None, collapsed: true },
+        TreeEntry { label: "a.rs".into(), depth: 1, file_idx: Some(0), status: Some(FileStatus::Modified), collapsed: false },
+        TreeEntry { label: "b.rs".into(), depth: 1, file_idx: Some(1), status: Some(FileStatus::Modified), collapsed: false },
+        TreeEntry { label: "README.md".into(), depth: 0, file_idx: Some(2), status: Some(FileStatus::Modified), collapsed: false },
+    ];
+
+    let line_map: Vec<LineInfo> = (0..30)
+        .map(|i| LineInfo {
+            file_idx: if i < 10 { 0 } else if i < 20 { 1 } else { 2 },
+            path: if i < 10 { "src/a.rs" } else if i < 20 { "src/b.rs" } else { "README.md" }.into(),
+            new_lineno: Some(i as u32 + 1),
+            old_lineno: None,
+            line_kind: Some(LineKind::Context),
+            hunk_idx: None,
+        })
+        .collect();
+
+    let mut state = PagerState::new(
+        vec!["line".into(); 30],
+        line_map,
+        vec![0, 10, 20],
+        vec![],
+        tree_entries,
+        120,
+    );
+    state.tree_visible = true;
+    state.rebuild_tree_lines();
+    state
+}
+
+#[test]
+fn next_file_tree_visible_skips_collapsed_dir() {
+    let mut state = make_tree_file_jump_state();
+    // Set cursor on collapsed dir (entry 0), tree_visible_to_entry=[0,3]
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    state.cursor_line = 0;
+
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    // Should jump to file_idx=2 (README.md), skipping collapsed children
+    assert_eq!(state.tree_cursor(), 3, "tree cursor should move to README.md entry");
+    assert_eq!(state.cursor_line, 20, "cursor should be at file_starts[2]");
+}
+
+#[test]
+fn prev_file_tree_visible_skips_collapsed_dir() {
+    let mut state = make_tree_file_jump_state();
+    // Set cursor on README.md (entry 3)
+    state.set_tree_cursor(3);
+    state.rebuild_tree_lines();
+    state.cursor_line = 20;
+
+    handle_key(&mut state, Key::Char('{'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    // No visible file before README.md (entry 0 is a directory), so should be noop
+    assert_eq!(state.cursor_line, 20, "cursor should not move when no prev file is visible");
+}
+
+#[test]
+fn next_file_tree_hidden_uses_nav_d_down() {
+    let mut state = make_keybinding_state();
+    state.tree_visible = false;
+    state.cursor_line = 1;
+
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    // Should use nav_D_down behavior, jumping to file_starts[1]=30
+    assert!(state.cursor_line >= 30, "cursor should jump to second file area via nav_D_down");
+}
+
+#[test]
+fn next_file_tree_visible_any_focus() {
+    let mut state = make_tree_file_jump_state();
+    state.focus = FocusPane::Diff; // Not tree focus, but tree is visible
+    state.set_tree_cursor(0);
+    state.rebuild_tree_lines();
+    state.cursor_line = 0;
+
+    handle_key(&mut state, Key::Char('}'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+
+    // Tree-driven navigation should apply regardless of focus mode
+    assert_eq!(state.tree_cursor(), 3, "tree-driven nav should work in Diff focus when tree is visible");
 }

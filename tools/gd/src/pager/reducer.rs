@@ -9,7 +9,8 @@ use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
 use super::navigation::{
     nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line, sync_active_file_to_cursor,
-    sync_tree_cursor, viewport_bounds,
+    jump_to_tree_file, sync_tree_cursor, tree_cursor_down, tree_cursor_up, tree_next_file,
+    tree_prev_file, viewport_bounds,
 };
 use super::rendering::{enforce_scrolloff, format_copy_ref, resolve_lineno};
 use super::search::{
@@ -18,12 +19,23 @@ use super::search::{
 };
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
 use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
-use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx, resolve_tree_layout, MIN_DIFF_WIDTH};
-use super::types::{ActionId, KeyContext, KeyResult, Mode};
+use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx, resolve_tree_layout, tree_entry_path, MIN_DIFF_WIDTH};
+use super::types::{ActionId, FocusPane, KeyContext, KeyResult, Mode};
 
 #[derive(Debug, Clone)]
 pub(crate) enum ReducerEvent {
     Key(Key),
+}
+
+fn apply_tree_file_jump(state: &mut PagerState, file_idx: usize, ch: usize) {
+    let entry_idx = file_idx_to_entry_idx(&state.tree_entries, file_idx);
+    state.set_tree_cursor(entry_idx);
+    state.rebuild_tree_lines();
+    if let Some(&start) = state.doc.file_starts.get(file_idx) {
+        state.cursor_line = start;
+        let (rs, _, _, max_top) = viewport_bounds(state, ch);
+        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+    }
 }
 
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
@@ -154,7 +166,11 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         ActionId::NextFile => {
-            if let Some(active) = state.active_file() {
+            if state.tree_visible {
+                if let Some(file_idx) = tree_next_file(state) {
+                    apply_tree_file_jump(state, file_idx, ch);
+                }
+            } else if let Some(active) = state.active_file() {
                 if active + 1 < state.file_count() {
                     set_view_to_file(state, active + 1, ch);
                     state.status_message = "Next file".into();
@@ -169,7 +185,11 @@ fn dispatch_normal_action(
             Some(ReducerEffect::Continue)
         }
         ActionId::PrevFile => {
-            if let Some(active) = state.active_file() {
+            if state.tree_visible {
+                if let Some(file_idx) = tree_prev_file(state) {
+                    apply_tree_file_jump(state, file_idx, ch);
+                }
+            } else if let Some(active) = state.active_file() {
                 if active > 0 {
                     set_view_to_file(state, active - 1, ch);
                     state.status_message = "Previous file".into();
@@ -369,7 +389,111 @@ fn dispatch_normal_action(
         }
         // Handled by dispatch_search_action in Search mode
         ActionId::SearchSubmit | ActionId::SearchCancel => None,
+        ActionId::ToggleFocus => {
+            if state.focus == FocusPane::Tree {
+                state.focus = FocusPane::Diff;
+            } else {
+                state.tree_visible = true;
+                state.focus = FocusPane::Tree;
+                if state.tree_selection.is_none() {
+                    state.set_tree_cursor(0);
+                }
+                // Rebuild tree if it was hidden
+                if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
+                    state.tree_entries = build_tree_entries(files);
+                    let content_width = compute_tree_width(&state.tree_entries);
+                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+                    let file_count = state.doc.file_count();
+                    let terminal_cols = ctx.cols as usize;
+                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
+                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                    let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                    state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
+                }
+                state.rebuild_tree_lines();
+            }
+            Some(ReducerEffect::ReRender)
+        }
+        ActionId::TreeCursorDown => {
+            tree_cursor_down(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        ActionId::TreeCursorUp => {
+            tree_cursor_up(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        ActionId::TreeEnter => {
+            let sel = state.tree_selection?.get();
+            let file_idx = state.tree_entries.get(sel)?.file_idx;
+            match file_idx {
+                None => {
+                    state.tree_entries[sel].collapsed = !state.tree_entries[sel].collapsed;
+                    state.rebuild_tree_lines();
+                }
+                Some(idx) => {
+                    jump_to_tree_file(state, idx, ch);
+                    state.focus = FocusPane::Diff;
+                }
+            }
+            Some(ReducerEffect::Continue)
+        }
     }
+}
+
+fn toggle_collapse_single(state: &mut PagerState) {
+    let sel = match state.tree_selection {
+        Some(s) => s.get(),
+        None => return,
+    };
+    if state.tree_entries.get(sel).map_or(true, |e| e.file_idx.is_some()) {
+        return;
+    }
+    let path = tree_entry_path(&state.tree_entries, sel);
+    state.tree_entries[sel].collapsed = !state.tree_entries[sel].collapsed;
+    if state.tree_entries[sel].collapsed {
+        state.collapsed_paths.insert(path);
+    } else {
+        state.collapsed_paths.remove(&path);
+    }
+    state.rebuild_tree_lines();
+}
+
+fn toggle_collapse_recursive(state: &mut PagerState) {
+    let sel = match state.tree_selection {
+        Some(s) => s.get(),
+        None => return,
+    };
+    let cursor_depth = match state.tree_entries.get(sel) {
+        Some(e) if e.file_idx.is_none() => e.depth,
+        _ => return,
+    };
+    let target = !state.tree_entries[sel].collapsed;
+
+    // Apply to cursor entry
+    state.tree_entries[sel].collapsed = target;
+    let path = tree_entry_path(&state.tree_entries, sel);
+    if target {
+        state.collapsed_paths.insert(path);
+    } else {
+        state.collapsed_paths.remove(&path);
+    }
+
+    // Apply to all descendant directories
+    for i in (sel + 1)..state.tree_entries.len() {
+        if state.tree_entries[i].depth <= cursor_depth {
+            break;
+        }
+        if state.tree_entries[i].file_idx.is_none() {
+            state.tree_entries[i].collapsed = target;
+            let p = tree_entry_path(&state.tree_entries, i);
+            if target {
+                state.collapsed_paths.insert(p);
+            } else {
+                state.collapsed_paths.remove(&p);
+            }
+        }
+    }
+    state.rebuild_tree_lines();
 }
 
 fn dispatch_staging_action(
@@ -520,6 +644,54 @@ fn reduce_normal(
     if matches!(key, Key::Escape) && state.visual_anchor.is_some() {
         state.visual_anchor = None;
         return ReducerEffect::Continue;
+    }
+
+    if matches!(key, Key::Escape) && state.focus == FocusPane::Tree {
+        state.focus = FocusPane::Diff;
+        return ReducerEffect::Continue;
+    }
+
+    if state.focus == FocusPane::Tree {
+        // Two-key sequence: z + a/A for collapse control
+        if let Some('z') = state.pending_tree_key {
+            state.pending_tree_key = None;
+            match key {
+                Key::Char('a') => {
+                    toggle_collapse_single(state);
+                    return ReducerEffect::Continue;
+                }
+                Key::Char('A') => {
+                    toggle_collapse_recursive(state);
+                    return ReducerEffect::Continue;
+                }
+                _ => {
+                    // Cancel pending sequence
+                    return ReducerEffect::Continue;
+                }
+            }
+        }
+
+        match key {
+            Key::Char('z') => {
+                state.pending_tree_key = Some('z');
+                return ReducerEffect::Continue;
+            }
+            Key::Char('j') => {
+                tree_cursor_down(state, ch);
+                return ReducerEffect::Continue;
+            }
+            Key::Char('k') => {
+                tree_cursor_up(state, ch);
+                return ReducerEffect::Continue;
+            }
+            Key::Enter => {
+                if let Some(effect) = dispatch_normal_action(state, ActionId::TreeEnter, ctx) {
+                    return effect;
+                }
+                return ReducerEffect::Continue;
+            }
+            _ => {}
+        }
     }
 
     if let Some(action) = keymap_lookup(*key, KeyContext::Normal)

@@ -294,7 +294,7 @@ fn resize_with_tree_visible_keeps_valid_selection_and_cursor() {
     state.set_tree_cursor(1);
     state.set_active_file(Some(1));
     state.cursor_line = 4;
-    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width);
+    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width, false);
     state.tree_lines = tl;
     state.tree_visible_to_entry = tv;
     re_render(&mut state, &files, false, 40);

@@ -17,6 +17,7 @@ pub enum Key {
     Escape,
     Backspace,
     CtrlC,
+    CtrlE,
     CtrlD,
     CtrlH,
     CtrlL,
@@ -42,6 +43,7 @@ pub fn crossterm_to_key(key_event: crossterm::event::KeyEvent) -> Key {
     match key_event.code {
         // Ctrl combos
         KeyCode::Char('c') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlC,
+        KeyCode::Char('e') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlE,
         KeyCode::Char('d') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlD,
         KeyCode::Char('h') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlH,
         KeyCode::Char('l') if mods.contains(KeyModifiers::CONTROL) => Key::CtrlL,
@@ -234,6 +236,14 @@ mod tests {
         assert_eq!(
             crossterm_to_key(make_key(KeyCode::Insert, KeyModifiers::NONE)),
             Key::Unknown
+        );
+    }
+
+    #[test]
+    fn ctrl_e_parses_to_ctrl_e_key() {
+        assert_eq!(
+            crossterm_to_key(make_key(KeyCode::Char('e'), KeyModifiers::CONTROL)),
+            Key::CtrlE
         );
     }
 }

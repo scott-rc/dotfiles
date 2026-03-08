@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::git::diff::{DiffFile, FileStatus};
 use crate::style;
 
@@ -90,6 +92,13 @@ pub fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
         i += 1;
     }
 
+    // Default single-child chains (label contains `/`) to collapsed.
+    for e in &mut entries {
+        if e.file_idx.is_none() && e.label.contains('/') {
+            e.collapsed = true;
+        }
+    }
+
     entries
 }
 
@@ -153,6 +162,37 @@ pub(crate) fn file_idx_to_entry_idx(tree_entries: &[TreeEntry], file_idx: usize)
         .unwrap_or(0)
 }
 
+/// Reconstruct the full `/`-joined path of a tree entry by walking backward
+/// from `idx` to find parent directories at decreasing depth.
+pub fn tree_entry_path(entries: &[TreeEntry], idx: usize) -> String {
+    let entry = &entries[idx];
+    if entry.depth == 0 {
+        return entry.label.clone();
+    }
+    let mut parts = vec![entry.label.as_str()];
+    let mut target_depth = entry.depth - 1;
+    for i in (0..idx).rev() {
+        if entries[i].depth == target_depth && entries[i].file_idx.is_none() {
+            parts.push(entries[i].label.as_str());
+            if target_depth == 0 {
+                break;
+            }
+            target_depth -= 1;
+        }
+    }
+    parts.reverse();
+    parts.join("/")
+}
+
+/// Re-apply collapse state from `collapsed_paths` to tree entries after a rebuild.
+pub fn apply_collapse_state(entries: &mut [TreeEntry], collapsed_paths: &HashSet<String>) {
+    for i in 0..entries.len() {
+        if entries[i].file_idx.is_none() {
+            entries[i].collapsed = collapsed_paths.contains(&tree_entry_path(entries, i));
+        }
+    }
+}
+
 pub(crate) fn compute_connector_prefix(
     visible: &[&TreeEntry],
     idx: usize,
@@ -199,6 +239,7 @@ pub(crate) fn build_tree_lines(
     tree_entries: &[TreeEntry],
     cursor_entry_idx: usize,
     width: usize,
+    focused: bool,
 ) -> (Vec<String>, Vec<usize>) {
     let mut visible: Vec<&TreeEntry> = Vec::new();
     let mut visible_orig: Vec<usize> = Vec::new();
@@ -283,7 +324,11 @@ pub(crate) fn build_tree_lines(
         if orig_idx == cursor_entry_idx {
             let reset = style::RESET;
             let fg = style::FG_FILE_HEADER;
-            let bg = style::BG_TREE_CURSOR;
+            let bg = if focused {
+                style::BG_TREE_CURSOR_FOCUSED
+            } else {
+                style::BG_TREE_CURSOR_UNFOCUSED
+            };
             let rpad = " ".repeat(right_pad);
             if entry.file_idx.is_some() {
                 if let Some(st) = entry.status {
