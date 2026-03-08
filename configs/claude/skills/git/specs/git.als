@@ -212,16 +212,19 @@ one sig GatherK, ConfirmK, DelegateK, WriteK, PublishK, ReportK, LoopK, VerifyK 
  * reference these predicates directly, making all checks instantaneous.
  */
 pred hasStep[op: Operation, k: StepKind, p: Int] {
-    -- Commit: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> delegate(4) -> report(5)
+    -- Commit: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> delegate(4) -> publish(5) -> delegate(6) -> report(7)
     -- write(1) = inline commit (simple path); delegate(2) = committer (complex path);
-    -- confirm(3) = cohesion choice if mixed concerns;
-    -- delegate(4) = committer re-invocation with user's file selection.
+    -- confirm(3) = amend or update description needed?;
+    -- delegate(4) = committer amend (message rewrite) or pr-writer description update;
+    -- publish(5) = force-push if amend path taken; delegate(6) = pr-writer update.
     (op = Commit and k = GatherK   and p = 0) or
     (op = Commit and k = WriteK    and p = 1) or
     (op = Commit and k = DelegateK and p = 2) or
     (op = Commit and k = ConfirmK  and p = 3) or
     (op = Commit and k = DelegateK and p = 4) or
-    (op = Commit and k = ReportK   and p = 5) or
+    (op = Commit and k = PublishK  and p = 5) or
+    (op = Commit and k = DelegateK and p = 6) or
+    (op = Commit and k = ReportK   and p = 7) or
 
     -- Squash: gather(0) -> delegate(1) -> write(2) -> verify(3) -> confirm(4) -> delegate(5) -> report(6)
     -- delegate(1) = optional commit of uncommitted changes; write(2) = rebase;
@@ -242,14 +245,17 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Rebase and k = VerifyK  and p = 2) or
     (op = Rebase and k = ReportK  and p = 3) or
 
-    -- Push: gather(0) -> publish(1) -> verify(2) -> delegate(3) -> report(4)
+    -- Push: gather(0) -> publish(1) -> verify(2) -> delegate(3) -> confirm(4) -> delegate(5) -> report(6)
     -- publish(1) = git push to remote; verify(2) = check PR state;
-    -- delegate(3) = pr-writer creates/updates PR.
+    -- delegate(3) = pr-writer creates/updates PR; confirm(4) = update description?;
+    -- delegate(5) = pr-writer rewrites description.
     (op = Push and k = GatherK   and p = 0) or
     (op = Push and k = PublishK  and p = 1) or
     (op = Push and k = VerifyK   and p = 2) or
     (op = Push and k = DelegateK and p = 3) or
-    (op = Push and k = ReportK   and p = 4) or
+    (op = Push and k = ConfirmK  and p = 4) or
+    (op = Push and k = DelegateK and p = 5) or
+    (op = Push and k = ReportK   and p = 6) or
 
     -- Correct: gather(0) -> write(1) -> write(2) -> delegate(3) -> confirm(4) -> publish(5) -> report(6)
     -- gather(0) = understand correction, detect base, scan all artifacts;
@@ -265,11 +271,12 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Correct and k = PublishK  and p = 5) or
     (op = Correct and k = ReportK   and p = 6) or
 
-    -- Fix: gather(0) -> report(1) -> confirm(2) -> delegate(3) -> delegate(4) -> verify(5) -> write(6) -> report(7)
-    -- gather(0) = fetch CI failures + PR comments; report(1) = summarize findings;
-    -- confirm(2) = classify threads (human reviewer threads need approval);
-    -- delegate(3) = ci-triager / fix subagent; delegate(4) = explore subagent;
-    -- verify(5) = run linter/tests; write(6) = inline commit of fixes.
+    -- Fix: gather(0) -> report(1) -> confirm(2) -> delegate(3) -> delegate(4) -> verify(5) -> write(6) -> publish(7) -> report(8)
+    -- gather(0) = detect CI failures and review threads in parallel;
+    -- report(1) = summarize what was found; confirm(2) = classify threads, approve plan;
+    -- delegate(3) = CITriager (GitHub Actions) or ExploreSubagent (bulk threads);
+    -- delegate(4) = FixSubagent applies code fixes; verify(5) = run linter/tests;
+    -- write(6) = inline commit of fixes; publish(7) = GitHubWriter posts replies.
     (op = Fix and k = GatherK   and p = 0) or
     (op = Fix and k = ReportK   and p = 1) or
     (op = Fix and k = ConfirmK  and p = 2) or
@@ -277,16 +284,17 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Fix and k = DelegateK and p = 4) or
     (op = Fix and k = VerifyK   and p = 5) or
     (op = Fix and k = WriteK    and p = 6) or
-    (op = Fix and k = ReportK   and p = 7)
+    (op = Fix and k = PublishK  and p = 7) or
+    (op = Fix and k = ReportK   and p = 8)
 }
 
 pred maxPos[op: Operation, p: Int] {
-    (op = Commit  and p = 5) or
+    (op = Commit  and p = 7) or
     (op = Squash  and p = 6) or
     (op = Rebase  and p = 3) or
-    (op = Push    and p = 4) or
-    (op = Correct and p = 6) or
-    (op = Fix     and p = 7)
+    (op = Push    and p = 6) or
+    (op = Fix     and p = 8) or
+    (op = Correct and p = 6)
 }
 
 
@@ -340,10 +348,13 @@ assert publishPrecededByGather {
             some gp: Int | hasStep[op, GatherK, gp] and gp < pp
 }
 
--- INV-P2: ConfirmK precedes PublishK when both present in the same operation
+-- INV-P2: ConfirmK precedes PublishK when both present in the same operation.
+-- Push is exempt: its PublishK (git push) and ConfirmK (update description?)
+-- guard independent concerns — the push is the primary action, not a
+-- side-effect that needs user gating.
 assert confirmPrecedesPublish {
     all op: Operation, cp: Int, pp: Int |
-        (hasStep[op, ConfirmK, cp] and hasStep[op, PublishK, pp])
+        (op != Push and hasStep[op, ConfirmK, cp] and hasStep[op, PublishK, pp])
         implies cp < pp
 }
 
