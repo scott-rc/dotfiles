@@ -100,6 +100,16 @@ one sig Fix extends Operation {} {
     invokes     = none
 }
 
+-- Split analyzes a large branch, proposes a stack grouped by concern,
+-- creates branches, commits each via committer, and opens PRs via pr-writer.
+-- ExploreSubagent analyzes the diff in step 2.
+one sig Split extends Operation {} {
+    produces    = CommitArt + PRArt
+    delegatesTo = Committer + PRWriter + ExploreSubagent
+    mutates     = CommitArt + PRArt
+    invokes     = none
+}
+
 
 -- ═══ References ═════════════════════════════════════════════
 
@@ -107,11 +117,11 @@ one sig Fix extends Operation {} {
 
 one sig GitPatterns extends Reference {} {
     -- Consumed by all operations.
-    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix
+    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Split
 }
 
 one sig GitHubText extends Reference {} {
-    consumedBy = Commit + Push + Correct + Fix
+    consumedBy = Commit + Push + Correct + Fix + Split
 }
 
 -- PRWriterRules provides delegation context and commit-forwarding rules for
@@ -120,7 +130,7 @@ one sig GitHubText extends Reference {} {
 -- describe intermediate states (fixups, reverts, mid-PR bugs) that must not
 -- appear in the final PR description.
 one sig PRWriterRules extends Reference {} {
-    consumedBy = Commit + Push + Correct
+    consumedBy = Commit + Push + Correct + Split
 }
 
 one sig BulkThreads extends Reference {} {
@@ -132,14 +142,14 @@ one sig BuildkiteHandling extends Reference {} {
 }
 
 one sig CommitMessageFormat extends Reference {} {
-    consumedBy = Commit + Squash + Correct + Fix
+    consumedBy = Commit + Squash + Correct + Fix + Split
 }
 
 -- Scripts modeled as Reference instances
 
 one sig SafeText extends Reference {} {
     -- Indirect: ops delegate to Committer/PRWriter agents, which call the script.
-    consumedBy = Commit + Squash + Push + Correct + Fix
+    consumedBy = Commit + Squash + Push + Correct + Fix + Split
 }
 
 one sig GetPRComments extends Reference {} {
@@ -187,6 +197,9 @@ one sig IntFix extends Intent {} {
 }
 one sig IntFixAndPush extends Intent {} {
     routesTo = Fix + Push
+}
+one sig IntSplit extends Intent {} {
+    routesTo = Split
 }
 
 
@@ -285,7 +298,21 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Fix and k = VerifyK   and p = 5) or
     (op = Fix and k = WriteK    and p = 6) or
     (op = Fix and k = PublishK  and p = 7) or
-    (op = Fix and k = ReportK   and p = 8)
+    (op = Fix and k = ReportK   and p = 8) or
+
+    -- Split: gather(0) -> delegate(1) -> confirm(2) -> write(3) -> delegate(4) -> publish(5) -> verify(6) -> report(7)
+    -- gather(0) = detect base, get diff stats; delegate(1) = Explore analyzes diff;
+    -- confirm(2) = user approves stack; write(3) = create branches + checkout files;
+    -- delegate(4) = committer for each branch; publish(5) = push + pr-writer;
+    -- verify(6) = diff last-stack vs reference; report(7) = summary.
+    (op = Split and k = GatherK   and p = 0) or
+    (op = Split and k = DelegateK and p = 1) or
+    (op = Split and k = ConfirmK  and p = 2) or
+    (op = Split and k = WriteK    and p = 3) or
+    (op = Split and k = DelegateK and p = 4) or
+    (op = Split and k = PublishK  and p = 5) or
+    (op = Split and k = VerifyK   and p = 6) or
+    (op = Split and k = ReportK   and p = 7)
 }
 
 pred maxPos[op: Operation, p: Int] {
@@ -294,7 +321,8 @@ pred maxPos[op: Operation, p: Int] {
     (op = Rebase  and p = 3) or
     (op = Push    and p = 6) or
     (op = Fix     and p = 8) or
-    (op = Correct and p = 6)
+    (op = Correct and p = 6) or
+    (op = Split   and p = 7)
 }
 
 
@@ -321,11 +349,12 @@ assert githubWriterDelegatedCorrectly {
             GitHubTextArt in op.produces
 }
 
--- INV-D4: ExploreSubagent only used by ops that consume BulkThreads reference
-assert exploreSubagentMatchesBulkThreads {
+-- INV-D4: ExploreSubagent only used by ops that have a DelegateK step
+-- (relaxed from BulkThreads-only: Split also uses ExploreSubagent for diff analysis)
+assert exploreSubagentHasDelegation {
     all op: Operation |
         ExploreSubagent in op.delegatesTo implies
-            op in BulkThreads.consumedBy
+            some p: Int | hasStep[op, DelegateK, p]
 }
 
 -- INV-D5: Every mutated artifact type is also produced
@@ -464,7 +493,7 @@ assert githubTextMatchesProduction {
 check committerDelegatedCorrectly        for 5 but 4 Int
 check prWriterDelegatedCorrectly         for 5 but 4 Int
 check githubWriterDelegatedCorrectly     for 5 but 4 Int
-check exploreSubagentMatchesBulkThreads  for 5 but 4 Int
+check exploreSubagentHasDelegation       for 5 but 4 Int
 check mutatesSubsetOfProduces            for 5 but 4 Int
 check ciTriagerImpliesFixSubagent        for 5 but 4 Int
 

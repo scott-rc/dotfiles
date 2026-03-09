@@ -1,7 +1,7 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, or review code.
-argument-hint: "[commit | squash | push | rebase | fix | correct] [context]"
+description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, or split a branch into stacked PRs.
+argument-hint: "[commit | squash | push | rebase | fix | correct | split] [context]"
 ---
 
 # Git Operations
@@ -38,6 +38,10 @@ See operations/fix.md for detailed instructions.
 Propagate a user correction about what a change does to all affected artifacts (commit message, branch context, changesets, PR title/description).
 See operations/correct.md for detailed instructions.
 
+### Split
+Split a large branch into stacked branches for easier code review. Analyzes the diff, proposes a stack grouped by concern, creates branches, and opens PRs.
+See operations/split.md for detailed instructions.
+
 ## Combined Operations
 
 Multi-operation sequences and ambiguous phrasings that need explicit routing:
@@ -53,6 +57,8 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix
 - **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Push (Refresh Description mode) (all PR body modifications, even targeted section edits, go through pr-writer)
 - **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
+- **"split"** / **"split this branch"** / **"split for review"** / **"stack this"** → Split
+- **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
 
 ## Monitoring
 

@@ -104,7 +104,7 @@ git diff --name-only origin/<base>...HEAD
 git diff --stat origin/<base>...HEAD
 ```
 
-**Why triple-dot**: `git diff A...B` diffs against the merge-base of A and B, showing only changes introduced on the branch. Double-dot (`..`) diffs the two endpoints directly, so if main has advanced past the branch point, main's new commits appear as deletions. Triple-dot is correct regardless of rebase state.
+Use triple-dot (`...`); double-dot shows base-branch changes as deletions when main has advanced.
 
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
@@ -112,7 +112,7 @@ Ask the user to verify these files match the branch's intended scope. If unexpec
 
 ## CI Detection
 
-Use these two steps to verify CI is configured and check status. Referenced by fix-ci.md.
+Use these two steps to verify CI is configured and check status. Referenced by fix.md.
 
 **Step 1 -- Verify CI is configured**: Run `gh pr checks --json name,state 2>/dev/null` (or `gh run list --branch $(git branch --show-current) --limit 1` if no PR exists). If the command returns no check runs and no runs exist, inform the user that no CI checks were found and stop.
 
