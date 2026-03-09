@@ -7,7 +7,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 1. **Gather state**: Detect base branch per references/git-patterns.md. Record the current branch as the reference branch -- it is kept untouched throughout. Run:
    - `git fetch origin`
    - `git diff --stat origin/<base>...HEAD` to see file count and line totals
-   - `git log --oneline origin/<base>...HEAD` to see commit count and scope
+   - `git log --oneline origin/<base>..HEAD` to see commit count and scope
 
    If the branch has fewer than 2 files changed AND fewer than 200 lines changed total, inform the user the branch is small enough to review as-is and stop.
 
