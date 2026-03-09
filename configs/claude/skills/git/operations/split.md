@@ -4,65 +4,100 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 
 ## Instructions
 
-1. **Gather state**: Detect base branch per references/git-patterns.md. Record the current branch as the reference branch -- it is kept untouched throughout. Run:
+### Phase 1: Planning (orchestrator, steps 0–4)
+
+0. **Resume detection**: Check for a state file at `./tmp/branches/<sanitized-reference-branch>/split-state.json` where the branch name is sanitized by replacing `/` with `--`. If the file exists with `"status": "in-progress"`, ask via AskUserQuestion: "Found an in-progress split with N of M branches completed. Resume or start fresh?" — Resume regenerates the orchestrator prompt from the state file (step 4 template) and enters plan mode; Start fresh deletes the state file and continues to step 1.
+
+1. **Gather state**: Record the current branch as the reference branch — it stays untouched throughout. Detect base branch per references/git-patterns.md (Base Branch Detection). Run:
    - `git fetch origin`
-   - `git diff --stat origin/<base>...HEAD` to see file count and line totals
-   - `git log --oneline origin/<base>..HEAD` to see commit count and scope
+   - `git diff --stat origin/<base>...HEAD` for file count and line totals (triple-dot: excludes base-branch-only changes)
+   - `git log --oneline origin/<base>..HEAD` for commit count and scope (double-dot: walks reachable commits)
 
-   If the branch has fewer than 2 files changed AND fewer than 200 lines changed total, inform the user the branch is small enough to review as-is and stop.
+   If fewer than 2 files changed AND fewer than 200 lines changed total, inform the user and stop.
 
-2. **Analyze diff** (delegate to `Explore` subagent): Spawn an `Explore` subagent to analyze the full diff. Pass: the output of `git diff origin/<base>...HEAD` and the file stat summary from step 1. If the diff exceeds ~10,000 lines, pass `--stat` output instead and instruct the subagent to selectively read individual file diffs as needed. The subagent MUST:
-   - Group files by logical concern (e.g., schema changes, infra, client refactor, tests, frontend, config)
-   - Check cross-group imports and dependencies to identify coupling constraints -- coupled files prefer the same group, but a later branch can fix compilation issues introduced by an earlier branch, so perfect isolation is not required
-   - For each group: list files, estimate line count, suggest a theme name and review focus
-   - Propose an ordering that respects dependencies (foundational changes first, dependent changes after)
-   - Return structured output: ordered list of groups with files, theme names, estimated sizes, and dependency notes
+2. **Analyze diff**: Delegate to an `Explore` subagent. Pass the output of `git diff origin/<base>...HEAD` and the stat summary. If the diff exceeds ~10,000 lines, pass `--stat` output instead and instruct the subagent to read individual file diffs selectively. The subagent MUST:
+   - Group changes by **logical concern** — a file MAY appear in multiple groups
+   - For each group: return theme, review focus, **changes** (plain-English bullets describing what to implement), relevant files, estimated line count, and dependency notes
+   - Propose an ordering (foundational changes first)
 
-3. **Propose stack** (confirm): Present the proposed stack to the user via AskUserQuestion. For each branch in stack order show:
-   - Stack position (e.g., "Branch 1 of 3")
-   - Proposed branch name using the `sc/` prefix convention from references/git-patterns.md
-   - Theme and review focus
-   - File list
-   - Estimated size (lines changed)
+3. **Propose stack**: Present the stack via AskUserQuestion. For each branch show:
+   - Stack position, proposed name (`sc/` prefix per references/git-patterns.md Branch Naming), theme and review focus
+   - Changes bullets, relevant files (noting any overlaps with other branches), estimated size
 
-   Notes to include in the prompt:
-   - Each stacked branch MUST compile and pass CI independently
-   - Splits don't need to be perfectly clean -- a later branch can change or undo work from an earlier branch, since the reference branch guarantees the final combined state
+   Notes to include: files may appear in multiple branches; each branch should compile independently (aspirational, not required); the reference branch is a guide, not an exact target. Ask the user to approve, modify, or reject. Apply modifications and confirm before proceeding.
 
-   Ask the user to approve the proposed stack, modify it (e.g., rename a branch, merge two groups, reorder), or reject it.
+4. **Write state file and enter plan mode**: Write `./tmp/branches/<sanitized-reference-branch>/split-state.json`:
 
-   If the user modifies the stack, apply their changes and confirm the revised plan before proceeding.
-
-4. **Validate file assignments and create/commit each branch** (write): Before creating any branches, validate that no file appears in more than one group. If duplicates exist, report which files are assigned to multiple groups and ask the user to resolve the conflict before proceeding.
-
-   Then, for each branch in stack order:
-   - Check out the branch: `git checkout -b <branch-name> origin/<base-branch>` for the first branch in the stack; `git checkout -b <branch-name> <previous-stack-branch>` for subsequent branches
-   - Pull files for that branch from the reference: `git checkout <reference-branch> -- <file1> <file2> ...`
-   - Write the branch context file (path per references/git-patterns.md "Branch Context File") with the theme and review focus for that branch -- this MUST be written before delegating to `committer`, as the committer reads it
-   - Delegate to the `committer` agent with: "Commit all staged and unstaged changes. This is branch N of M in a stacked split for review. Theme: <theme>. Branch context: <one-line description>." MUST NOT pass a pre-written commit message -- the committer drafts it from the diff
-
-5. **Push and create PRs** (publish): For each branch in stack order:
-   - `git push -u origin <branch-name>`
-   - Spawn `pr-writer` with `mode: create` per references/pr-writer-rules.md. Key fields:
-     - `base_branch`: the previous branch in the stack (or `origin/<base-branch>` for the first)
-     - `commit_messages`:
-       - First branch: `git log origin/<base>..HEAD --format=%B`
-       - Subsequent branches: `git log <previous-stack-branch>..HEAD --format=%B`
-     - `branch_context`: contents of the branch context file written in step 4
-     - `context`: "Branch N of M in a stacked split. The reference branch (<reference-branch>) holds the final combined state. This branch isolates: <theme>."
-     - See references/pr-writer-rules.md for the full delegation field spec.
-
-   Record the PR URL returned for each branch.
-
-6. **Verify** (verify): Run:
+   ```json
+   {
+     "reference_branch": "sc/big-feature",
+     "base_branch": "main",
+     "status": "approved | in-progress | complete",
+     "repo_root": "/absolute/path/to/repo",
+     "stack": [
+       {
+         "position": 1,
+         "branch_name": "sc/big-feature-schema",
+         "theme": "Database schema changes",
+         "review_focus": "Migration safety, index coverage",
+         "changes": [
+           "Add user_preferences table with JSON column",
+           "Add index on users.email for new lookup pattern"
+         ],
+         "relevant_files": ["db/migrations/001.sql", "db/schema.prisma"],
+         "estimated_lines": 45,
+         "status": "pending | writing | committed | pushed | pr-created | failed | skipped",
+         "pr_url": null,
+         "error": null
+       }
+     ]
+   }
    ```
-   git diff <last-stack-branch> <reference-branch>
+
+   Write the orchestrator prompt (below) to the plan file (the path provided by the plan mode system message). Enter plan mode via `EnterPlanMode`, then `ExitPlanMode` for user approval.
+
+   **Orchestrator prompt template** (fill `<...>` values from the state file):
+
+   ```markdown
+   # Goal
+
+   Execute the stacked branch split defined in <state-file-path>.
+
+   # Context
+
+   - State file: <state-file-path>
+   - Reference branch: <reference_branch> (guide for what to implement — not an exact-match target)
+   - Base branch: <base_branch>
+   - Stack: <N> branches
+
+   # Requirements
+
+   1. Read the state file to get the full stack and all context.
+   2. For each branch in stack order (skip any with status `pr-created`):
+      a. Create branch: `git checkout -b <name> origin/<base>` for the first; `git checkout -b <name> <previous-branch>` for subsequent.
+      b. Generate scoped reference diff: `git diff origin/<base>...<reference_branch> -- <relevant_files>` (triple-dot) as guidance.
+      c. Delegate to code-writer with `mode: apply`, `task`: "Implement the following changes for the '<theme>' concern: <changes bullets>. Use the reference diff below as a guide — implement the changes naturally, do not copy mechanically. Reference diff: <scoped diff>", `files`: relevant_files, `constraints`: "Branch <N> of <M> in a stacked split. Previous branches implemented: <summary of earlier themes>. Do not re-implement or undo their work. Branch should compile and lint independently."
+      d. Write the branch context file (path per references/git-patterns.md "Branch Context File") with theme and review focus.
+      e. Delegate to committer: "Commit all staged and unstaged changes. This is branch N of M in a stacked split. Theme: <theme>." MUST NOT pass a pre-written commit message.
+      f. Update state file: set branch status to `committed`.
+   3. Push each committed branch and create PRs:
+      - `git push -u origin <branch-name>`
+      - Delegate to pr-writer per references/pr-writer-rules.md:
+        - `mode`: create
+        - `base_branch`: previous stack branch (or `origin/<base>` for the first)
+        - `commit_messages`: run `git log <base-for-this-branch>..HEAD --format=%B` and pass the captured output verbatim
+        - `branch_context`: contents of this branch's context file
+        - `context`: "Branch N of M in a stacked split. Base is <previous-stack-branch>. The reference branch (<reference_branch>) shows the original combined intent."
+      - Update state file: set status to `pr-created`, record PR URL.
+   4. Verify: `git diff --stat <last-stack-branch> <reference_branch>`. This is informational — divergence is expected since agents implement changes naturally. Empty diff means exact match; non-empty shows the summary.
+   5. Check out the reference branch. Report all branches with PR URLs, themes, sizes, and the verification summary.
+
+   # Error Handling
+
+   - If code-writer fails after retries, ask the user: retry / skip / stop.
+   - Update the state file on every status change so the split can be resumed.
    ```
-   If the diff is empty, the split is complete and correct.
 
-   If the diff is non-empty, also run `git diff --stat <last-stack-branch> <reference-branch>` for a quick summary of what differs. Report the discrepancy to the user: list the files that differ and their change counts. Do NOT attempt auto-repair -- stop and let the user decide how to proceed.
+### Phase 2: Execution (plan-mode orchestrator prompt)
 
-7. **Report**: Check out the reference branch: `git checkout <reference-branch>`. Report:
-   - All created branches with their PR URLs, estimated sizes, and review focus areas
-   - Verification result (complete and correct, or discrepancy details)
-   - Reminder that each stacked branch must compile and pass CI, but later branches can refine earlier ones -- the reference branch is the authoritative final state
+The orchestrator prompt above drives execution. It reads the state file for all context — no prior conversation knowledge is assumed. See the Requirements section in the prompt for full step details.
