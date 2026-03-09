@@ -18,6 +18,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 2. **Analyze diff**: Delegate to an `Explore` subagent. Pass the output of `git diff origin/<base>...HEAD` and the stat summary. If the diff exceeds ~10,000 lines, pass `--stat` output instead and instruct the subagent to read individual file diffs selectively. The subagent MUST:
    - Group changes by **logical concern** — a file MAY appear in multiple groups
    - For each group: return theme, review focus, **changes** (plain-English bullets describing what to implement), relevant files, estimated line count, and dependency notes
+   - Include associated generated files (test snapshots, codegen output) in each group's relevant_files alongside their source files
    - Propose an ordering (foundational changes first)
 
 3. **Propose stack**: Present the stack via AskUserQuestion. For each branch show:
@@ -76,7 +77,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
    2. For each branch in stack order (skip any with status `pr-created`):
       a. Create branch: `git checkout -b <name> origin/<base>` for the first; `git checkout -b <name> <previous-branch>` for subsequent.
       b. Generate scoped reference diff: `git diff origin/<base>...<reference_branch> -- <relevant_files>` (triple-dot) as guidance.
-      c. Delegate to code-writer with `mode: apply`, `task`: "Implement the following changes for the '<theme>' concern: <changes bullets>. Use the reference diff below as a guide — implement the changes naturally, do not copy mechanically. Reference diff: <scoped diff>", `files`: relevant_files, `constraints`: "Branch <N> of <M> in a stacked split. Previous branches implemented: <summary of earlier themes>. Do not re-implement or undo their work. Branch should compile and lint independently."
+      c. Delegate to code-writer with `mode: apply`, `task`: "Implement the following changes for the '<theme>' concern: <changes bullets>. Use the reference diff below as a guide — implement the changes naturally, do not copy mechanically. Reference diff: <scoped diff>", `files`: relevant_files, `constraints`: "Branch <N> of <M> in a stacked split. Previous branches implemented: <summary of earlier themes>. Do not re-implement or undo their work. Only modify files in this branch's relevant_files list — do not touch files scoped to other branches. Branch should compile and lint independently."
       d. Write the branch context file (path per references/git-patterns.md "Branch Context File") with theme and review focus.
       e. Delegate to committer: "Commit all staged and unstaged changes. This is branch N of M in a stacked split. Theme: <theme>." MUST NOT pass a pre-written commit message.
       f. Update state file: set branch status to `committed`.
@@ -92,10 +93,15 @@ Split a large branch into stacked branches grouped by logical concern, creating 
    4. Verify: `git diff --stat <last-stack-branch> <reference_branch>`. This is informational — divergence is expected since agents implement changes naturally. Empty diff means exact match; non-empty shows the summary.
    5. Check out the reference branch. Report all branches with PR URLs, themes, sizes, and the verification summary.
 
+   # Cross-Branch Compatibility
+
+   When branch N changes an interface or type that code inherited from earlier in the stack still uses (e.g., removing fields from a struct that later-branch code calls with), the branch must remain compilable. Include in the code-writer's `task` a note: "This branch inherits code that later branches will modify. If you change a public interface, keep backward-compatible signatures (optional/deprecated fields) so inherited callers still compile." Do not fix this inline — re-delegate to the code-writer if compilation fails due to interface changes.
+
    # Error Handling
 
    - If code-writer fails after retries, ask the user: retry / skip / stop.
    - Update the state file on every status change so the split can be resumed.
+   - If the code-writer doesn't apply expected snapshot or generated file changes, re-delegate with explicit instruction to apply those file changes directly from the reference diff — regeneration may not be possible if required services aren't running.
    ```
 
 ### Phase 2: Execution (plan-mode orchestrator prompt)
