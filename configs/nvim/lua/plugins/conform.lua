@@ -10,6 +10,7 @@ return {
 			typescriptreact = { "oxfmt" },
 			json = { "oxfmt" },
 			yaml = { "oxfmt" },
+			["yaml.jinja"] = { "oxfmt" },
 			html = { "oxfmt" },
 			css = { "oxfmt" },
 			markdown = { "oxfmt" },
