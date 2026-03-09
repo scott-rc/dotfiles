@@ -1,38 +1,32 @@
 #!/usr/bin/env bash
-# safe-text.sh -- Write text to a temp file, enforcing ASCII.
+# safe-text.sh -- ASCII text filter. Prints sanitized text to stdout.
 #
 # Usage:
 #   safe-text.sh [OPTIONS] [--file PATH | CONTENT...]
 #
 # Reads content from --file, positional args, or stdin (in that order).
-# Replaces common non-ASCII characters with ASCII equivalents, then writes
-# the result to a temp file. Prints the temp file path to stdout.
+# Replaces common non-ASCII characters with ASCII equivalents, then prints
+# the result to stdout.
 #
 # Options:
-#   --prefix PREFIX       Temp file prefix (default: "gh-text")
 #   --file PATH           Read content from PATH instead of args/stdin
 #   --commit-msg          Enable commit message rules: capitalize first
-#                         letter, warn on subject >72 chars
+#                         letter, error if subject >72 chars
 #   --title               Enable title rules: capitalize first letter,
-#                         warn on length >70 chars
+#                         error if length >70 chars
 #
 # Exit codes:
-#   0  Success (temp file path on stdout)
-#   1  No content provided or content is empty after trimming
+#   0  Success (sanitized text on stdout)
+#   1  Content empty, or subject/title exceeds length limit
 
 set -euo pipefail
 
-prefix="safe-text"
 source_file=""
 content=""
 mode=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --prefix)
-      prefix="$2"
-      shift 2
-      ;;
     --file)
       source_file="$2"
       shift 2
@@ -101,19 +95,17 @@ if [[ -n "$mode" ]]; then
   case "$mode" in
     commit-msg)
       if [[ "$local_len" -gt 72 ]]; then
-        echo "warning: subject line is ${local_len} chars (limit 72)" >&2
+        echo "error: subject line is ${local_len} chars (limit 72)" >&2
+        exit 1
       fi
       ;;
     title)
       if [[ "$local_len" -gt 70 ]]; then
-        echo "warning: title is ${local_len} chars (limit 70)" >&2
+        echo "error: title is ${local_len} chars (limit 70)" >&2
+        exit 1
       fi
       ;;
   esac
 fi
 
-# Write to temp file
-tmpfile="$(mktemp "/tmp/${prefix}-XXXXXX")"
-printf '%s\n' "$content" > "$tmpfile"
-
-echo "$tmpfile"
+printf '%s\n' "$content"

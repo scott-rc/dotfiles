@@ -15,7 +15,7 @@ Commit outstanding changes with a well-formatted message.
    - `git diff --stat <files>` shows 100 or fewer lines changed total
    If any condition is false, the commit is **complex**.
 5. **Commit (simple -- inline)**: Stage files, draft message, and commit per the Inline Commit Procedure in references/commit-message-format.md.
-6. **Commit (complex -- delegate)**: Delegate to the `committer` agent. If a session file set was determined, pass: "Stage and commit only these files: `<file list>`". Otherwise, pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously. MUST NOT pass branch context, summaries, or change descriptions to the committer -- it reads the diff itself.
+6. **Commit (complex -- delegate)**: Delegate to the `committer` agent. If a session file set was determined, pass: "Stage and commit only these files: `<file list>`". Otherwise, pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously. The committer pipes messages through `safe-text.sh --commit-msg` which enforces a 72-character subject limit -- if it rejects the message, shorten the subject and retry. MUST NOT pass branch context, summaries, or change descriptions to the committer -- it reads the diff itself.
 7. **If the agent returns `needs-user-input`** (mixed concerns): present the groups from `## Cohesion` as AskUserQuestion options. Re-invoke the agent with: "Stage and commit only these files: `<file list>`".
 8. **Report**: show the commit hash and title from the agent's `## Commit` section (complex path) or from `git log -1 --oneline` (simple path, already reported in step 5).
 

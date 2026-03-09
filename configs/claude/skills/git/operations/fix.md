@@ -76,9 +76,9 @@ After both complete, route based on results:
 
 9. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-10. **Post approved replies**: All posted text MUST follow references/github-text.md. For each approved reply, write the body to a temp file, pipe through `~/.claude/skills/git/scripts/safe-text.sh` (no mode flag), and post:
-    - Review reply: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@"$TMPFILE"`
-    - PR comment: `gh pr comment {pr_number} --repo {owner}/{repo} --body-file "$TMPFILE"`
+10. **Post approved replies**: All posted text MUST follow references/github-text.md. For each approved reply, pipe through `~/.claude/skills/git/scripts/safe-text.sh` (no mode flag) and redirect to a file, then post:
+    - Review reply: `echo "reply" | ~/.claude/skills/git/scripts/safe-text.sh > /tmp/reply.txt && gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@/tmp/reply.txt`
+    - PR comment: `echo "comment" | ~/.claude/skills/git/scripts/safe-text.sh > /tmp/reply.txt && gh pr comment {pr_number} --repo {owner}/{repo} --body-file /tmp/reply.txt`
     Clean up temp files after posting.
 
 11. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
