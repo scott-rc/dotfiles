@@ -6,6 +6,7 @@ return {
 			local wanted = {
 				"bash",
 				"css",
+				"cue",
 				"diff",
 				"fish",
 				"go",
