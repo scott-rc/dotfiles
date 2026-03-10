@@ -33,6 +33,7 @@ return {
 					draw = {
 						padding = 1,
 						treesitter = { "lsp" },
+						cursorline_priority = 20001,
 						columns = {
 							{ "kind_icon" },
 							{ "label", "label_description", gap = 1 },

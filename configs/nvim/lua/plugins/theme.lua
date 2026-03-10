@@ -38,7 +38,6 @@ return {
 			vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { fg = "#565f89", bg = editor_bg })
 			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelp", { bg = editor_bg })
 			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelpBorder", { fg = "#565f89", bg = editor_bg })
-			vim.api.nvim_set_hl(0, "BlinkCmpKind", { bg = editor_bg })
 		end
 
 		apply_theme()
