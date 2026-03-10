@@ -1,36 +1,28 @@
 #!/usr/bin/env bash
-# safe-text.sh -- ASCII text filter. Prints sanitized text to stdout.
+# sanitize.sh -- In-place ASCII text sanitizer.
 #
 # Usage:
-#   safe-text.sh [OPTIONS] [--file PATH | CONTENT...]
+#   sanitize.sh [--commit-msg | --title] <file>
 #
-# Reads content from --file, positional args, or stdin (in that order).
-# Replaces common non-ASCII characters with ASCII equivalents, then prints
-# the result to stdout.
+# Operates in-place on the given file. Replaces common non-ASCII characters
+# with ASCII equivalents and strips any remaining non-ASCII.
 #
 # Options:
-#   --file PATH           Read content from PATH instead of args/stdin
 #   --commit-msg          Enable commit message rules: capitalize first
 #                         letter, error if subject >72 chars
 #   --title               Enable title rules: capitalize first letter,
 #                         error if length >70 chars
 #
 # Exit codes:
-#   0  Success (sanitized text on stdout)
-#   1  Content empty, or subject/title exceeds length limit
+#   0  Success (file modified in place)
+#   1  Content empty, subject/title exceeds length limit, or no file given
 
 set -euo pipefail
 
-source_file=""
-content=""
 mode=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --file)
-      source_file="$2"
-      shift 2
-      ;;
     --commit-msg)
       mode="commit-msg"
       shift
@@ -40,22 +32,24 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      if [[ -n "$content" ]]; then
-        content="$content $1"
-      else
-        content="$1"
-      fi
-      shift
+      break
       ;;
   esac
 done
 
-# Read content from file, args, or stdin
-if [[ -n "$source_file" ]]; then
-  content="$(cat "$source_file")"
-elif [[ -z "$content" ]] && [[ ! -t 0 ]]; then
-  content="$(cat)"
+if [[ $# -lt 1 ]]; then
+  echo "error: no file specified" >&2
+  exit 1
 fi
+
+target="$1"
+
+if [[ ! -f "$target" ]]; then
+  echo "error: file not found: $target" >&2
+  exit 1
+fi
+
+content="$(cat "$target")"
 
 # Bail if empty
 trimmed="${content#"${content%%[![:space:]]*}"}"
@@ -90,7 +84,7 @@ if [[ -n "$mode" ]]; then
     content="${upper}${content:1}"
   fi
 
-  # Length warnings
+  # Length checks
   local_len="${#first_line}"
   case "$mode" in
     commit-msg)
@@ -108,4 +102,7 @@ if [[ -n "$mode" ]]; then
   esac
 fi
 
-printf '%s\n' "$content"
+# Write atomically via temp file + mv
+tmpfile="$(mktemp "${target}.tmp.XXXXXX")"
+printf '%s\n' "$content" > "$tmpfile"
+mv "$tmpfile" "$target"

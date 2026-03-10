@@ -12,8 +12,10 @@ Push commits and create/update PR.
    - If changes exist, run the Commit operation first
 
 3. **Push to remote**:
-   - `git push -u origin HEAD`
-   - If push is rejected (non-fast-forward), present options via AskUserQuestion: "Rebase onto remote", "Force push (--force-with-lease)", "Abort push"
+   - `git fetch origin`
+   - Check if the remote branch exists and has commits not in local: `git rev-list HEAD..origin/<branch> --count 2>/dev/null`. If the remote branch doesn't exist (first push), skip to push.
+   - If remote is ahead (count > 0), show the remote-only commits: `git log --oneline HEAD..origin/<branch>` and present options via AskUserQuestion: "Force push (--force-with-lease)", "Rebase onto remote", "Abort push". MUST NOT rebase without showing the remote commits first.
+   - `git push -u origin HEAD` (or `--force-with-lease` if the user chose that)
 
 4. **Check for existing PR** on this branch:
    ```bash

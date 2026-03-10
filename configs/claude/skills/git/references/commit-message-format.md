@@ -16,7 +16,7 @@ Steps for any operation that commits inline (without delegating to the `committe
 1. Stage files: `git add <file1> ...`
 2. Run `git diff --staged` to review what will be committed
 3. Draft message per the rules above (or use a provided message)
-4. Sanitize: `MSG=$(echo "$MESSAGE" | safe-text.sh --commit-msg) && git commit -m "$MSG"`
-5. If `safe-text.sh` rejects the message (exit 1 -- subject too long or empty), shorten and re-run step 4.
+4. Sanitize and commit: write the message to `./tmp/commit-msg.txt` using the Write tool, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit -F ./tmp/commit-msg.txt`
+5. If `sanitize.sh` rejects the message (exit 1 -- subject too long or empty), shorten and re-run step 4.
 6. Error: pre-commit hook failure -- read the error output, fix the issue, re-stage, retry. MUST NOT use `--no-verify`.
 7. Report: `git log -1 --oneline`

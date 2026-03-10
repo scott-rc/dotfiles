@@ -1,7 +1,7 @@
 ---
 name: pr-writer
 description: Writes PR titles and descriptions from git diffs following strict formatting guidelines, preserving bot-appended content. Creates new PRs or updates existing ones.
-tools: Bash
+tools: Bash, Write
 model: sonnet
 maxTurns: 150
 ---
@@ -29,7 +29,7 @@ All GitHub-facing text MUST follow these rules:
 
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII corrupts through the `gh` CLI.
 - Backticks for code references, fenced code blocks for multi-line examples.
-- Write body content through `~/.claude/skills/git/scripts/safe-text.sh` (pipe or `--file`); redirect stdout to a file for `--body-file`.
+- Write body content to a file and sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh`; then use the file for `--body-file`.
 
 ### Cardinal Rules
 
@@ -107,19 +107,18 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
 3. **Create or update**:
 
-   Write the body to a draft file, then sanitize through `~/.claude/skills/git/scripts/safe-text.sh`:
+   Write the body to `./tmp/pr-body.txt` and the title to `./tmp/pr-title.txt` using the Write tool, then sanitize in place:
 
    ```bash
-   DRAFT=$(mktemp /tmp/pr-draft-XXXXXX)
-   # ... write body to $DRAFT ...
-   ~/.claude/skills/git/scripts/safe-text.sh --file "$DRAFT" > /tmp/pr-body.txt
-   TITLE=$(echo "<title>" | ~/.claude/skills/git/scripts/safe-text.sh --title)
+   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-body.txt
+   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-title.txt
+   TITLE=$(cat ./tmp/pr-title.txt)
    ```
 
    **Create mode**:
 
    ```bash
-   gh pr create --title "$TITLE" --base <base_branch> --body-file /tmp/pr-body.txt
+   gh pr create --title "$TITLE" --base <base_branch> --body-file ./tmp/pr-body.txt
    ```
 
    **Update mode**:
@@ -128,7 +127,7 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
    - **Before posting**, verify every factual claim in your new draft against the diff. For claims about before/after states (types, signatures, behavior), find the corresponding `-` and `+` lines in the diff and confirm they match. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, "raw strings" when the diff shows branded types, or journey language like "was flaky" for code that is entirely new in the PR). Do not trust branch context or commit messages for before/after facts -- only the diff.
 
    ```bash
-   gh pr edit <pr_number> --title "$TITLE" --body-file /tmp/pr-body.txt
+   gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr-body.txt
    ```
 
    Clean up temp files after posting.

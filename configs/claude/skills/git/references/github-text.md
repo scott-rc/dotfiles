@@ -4,15 +4,31 @@ These rules apply to ALL text that leaves the session -- commit messages, PR tit
 
 - **ASCII only**: Use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`. Non-ASCII gets corrupted through `gh` CLI.
 - **Backticks for code references**, fenced code blocks for multi-line examples. This also neutralizes markdown metacharacters -- bare tildes (`~`) trigger strikethrough, bare asterisks (`*`) trigger emphasis. Wrap any operator or expression containing these in backticks (e.g., `level=~"info"`, `|~`, `err.*failed`).
-- **Safe posting**: Use `~/.claude/skills/git/scripts/safe-text.sh` as an ASCII text filter. Pipe content or pass `--file <draft>`; it replaces common non-ASCII (em dashes, curly quotes, ellipsis, bullets, NBSP) and strips any remaining non-ASCII, then prints sanitized text to stdout. Capture into a variable or redirect to a file for `--body-file` / `-F body=@file`. Exits 1 if content is empty or subject/title exceeds length limit.
+- **Safe posting**: Write text to a temp file using the Write tool, then sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh`. The script replaces common non-ASCII (em dashes, curly quotes, ellipsis, bullets, NBSP) and strips any remaining non-ASCII. On success the file is modified in place (exit 0). Exits 1 if content is empty or subject/title exceeds length limit (file unchanged).
 
   ```bash
   # Commit message (capitalizes first letter, errors if >72 chars)
-  MSG=$(echo "message" | ~/.claude/skills/git/scripts/safe-text.sh --commit-msg)
+  # Write message to ./tmp/commit-msg.txt using Write tool, then:
+  ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt
+  git commit -F ./tmp/commit-msg.txt
+
   # PR title (capitalizes first letter, errors if >70 chars)
-  TITLE=$(echo "title" | ~/.claude/skills/git/scripts/safe-text.sh --title)
-  # PR body (ASCII enforcement only -- redirect to file for --body-file)
-  ~/.claude/skills/git/scripts/safe-text.sh --file "$DRAFT" > /tmp/pr-body.txt
+  # Write title to ./tmp/pr-title.txt using Write tool, then:
+  ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-title.txt
+
+  # PR body (ASCII enforcement only)
+  # Write body to ./tmp/pr-body.txt using Write tool, then:
+  ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-body.txt
+
+  # Review reply
+  # Write reply to ./tmp/reply.txt using Write tool, then:
+  ~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt
+  gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt
+
+  # PR comment
+  # Write comment to ./tmp/comment.txt using Write tool, then:
+  ~/.claude/skills/git/scripts/sanitize.sh ./tmp/comment.txt
+  gh pr comment {pr_number} --repo {owner}/{repo} --body-file ./tmp/comment.txt
   ```
 
 - **No invented metrics**: MUST NOT cite specific numbers, percentages, multipliers, or performance claims unless they appear literally in the diff or commit message. Phrases like "reduces by 2.8x" or "cuts latency by 40%" are hallucination risks when the source material contains no such figures.

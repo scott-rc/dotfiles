@@ -30,7 +30,7 @@ After both complete, route based on results:
      - **transient** or **flake**: report the classification to the user (the triager already reran the job). Stop.
      - **real**: proceed to the fix step using the trimmed logs and root cause from the triager's report.
 
-   - **Buildkite**: Skip triaging. Fetch logs per references/buildkite-handling.md. MUST NOT use `ci-triager` for Buildkite -- treat all failures as real. Truncate logs to the last 200 lines per job.
+   - **Buildkite**: Fetch logs per references/buildkite-handling.md. MUST NOT use `ci-triager` for Buildkite. Truncate logs to the last 200 lines per job. **Before dispatching a fix subagent**, present a summary of failed jobs (job name + one-line failure snippet from each log) and ask the user via AskUserQuestion with options: "Fix all", "Skip (likely flakes)", "Let me choose". If "Let me choose", present each job individually and let the user select which to fix. Only dispatch fixes for jobs the user selected.
 
 2. **Fix the issues**: Spawn a general-purpose subagent (model: sonnet) with:
    - For GitHub Actions: the triager's full report as task context (root cause analysis, trimmed failure logs, relevant file paths)
@@ -76,10 +76,7 @@ After both complete, route based on results:
 
 9. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-10. **Post approved replies**: All posted text MUST follow references/github-text.md. For each approved reply, pipe through `~/.claude/skills/git/scripts/safe-text.sh` (no mode flag) and redirect to a file, then post:
-    - Review reply: `echo "reply" | ~/.claude/skills/git/scripts/safe-text.sh > /tmp/reply.txt && gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -F body=@/tmp/reply.txt`
-    - PR comment: `echo "comment" | ~/.claude/skills/git/scripts/safe-text.sh > /tmp/reply.txt && gh pr comment {pr_number} --repo {owner}/{repo} --body-file /tmp/reply.txt`
-    Clean up temp files after posting.
+10. **Post approved replies**: Write each reply to a temp file using the Write tool, sanitize, and post per the examples in references/github-text.md (review reply or PR comment as appropriate). Clean up temp files after posting.
 
 11. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
 

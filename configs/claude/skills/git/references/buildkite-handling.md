@@ -8,6 +8,8 @@ Note: Buildkite runs sharded checks (e.g., ~80 parallel "node-api" jobs) that sh
 
 The `buildkite` script is a project-local CI script located under `.ai/skills/ci/` (typically a `.mjs` file). Run it via `direnv exec . <path-to-script>`. Requires `BUILDKITE_API_TOKEN` env var.
 
+Example invocation: `direnv exec . .ai/skills/ci/scripts/buildkite.mjs failed <org> <pipeline> <build>`. MUST NOT invoke via `node` — the script uses a zx shebang and requires direct execution.
+
 ## Getting Failure Logs
 
 Build URL format: `https://buildkite.com/<org>/<pipeline>/builds/<number>...`. Obtain the URL via `gh pr checks --json name,state,link | jq -r '.[] | select(.state == "FAILURE") | .link'`.

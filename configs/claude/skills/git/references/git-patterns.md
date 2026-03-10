@@ -21,7 +21,7 @@ Shared patterns used across git skill operations. Reference this file for consis
 
 - `get-pr-comments` -- `~/.claude/skills/git/scripts/get-pr-comments.sh`
 - `get-failed-runs` -- `~/.claude/skills/git/scripts/get-failed-runs.sh`
-- `safe-text` -- `~/.claude/skills/git/scripts/safe-text.sh`
+- `sanitize` -- `~/.claude/skills/git/scripts/sanitize.sh`
 - `check-ci` -- `~/.claude/skills/git/scripts/check-ci.sh`
 - `rerun` -- `~/.claude/skills/git/scripts/rerun.sh`
 - `buildkite` -- project-local CI script for querying the Buildkite API. Locate under the project's `.ai/skills/ci/` directory (typically a `.mjs` file). Run via `direnv exec .`. Requires `BUILDKITE_API_TOKEN` env var. Commands: `failed <org> <pipeline> <build>` lists failed jobs; `failed-logs <org> <pipeline> <build>` gets logs for all failed jobs.

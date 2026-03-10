@@ -1,7 +1,7 @@
 ---
 name: committer
 description: Analyzes changes, drafts a commit message, stages, and commits. Supports new commits, amends, and squashes. Keeps large diffs out of the main conversation context.
-tools: Bash
+tools: Bash, Write
 model: sonnet
 maxTurns: 150
 ---
@@ -31,7 +31,11 @@ The caller's prompt determines the mode:
 - Draft the message solely from the diff content.
 - Imperative mood, start with a capital letter, under 72 chars, explain _why_ not _what_
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
-- Pipe the message through safe-text.sh into a variable: `MSG=$(echo "..." | ~/.claude/skills/git/scripts/safe-text.sh --commit-msg) && git commit -m "$MSG"`. Same for `--amend`.
+- Write the message to `../tmp/commit-msg.txt` using the Write tool, then sanitize and commit:
+  ```
+  ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ../tmp/commit-msg.txt && git commit -F ../tmp/commit-msg.txt
+  ```
+  Same pattern for `--amend` (use `git commit --amend -F ../tmp/commit-msg.txt`).
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
 
 ## Workflow
@@ -54,11 +58,11 @@ The caller's prompt determines the mode:
 
 4. **Stage and commit**:
    - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
-   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or `MSG=$(echo "new message" | ~/.claude/skills/git/scripts/safe-text.sh --commit-msg) && git commit --amend -m "$MSG"`
+   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or write new message to `./tmp/commit-msg.txt` using the Write tool, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
    - Squash: changes are already staged, draft message from the staged diff, `git commit`
 
 5. **Handle errors after commit**:
-   - **UTF-8 warning** ("commit message did not conform to UTF-8"): `MSG=$(echo "corrected message" | ~/.claude/skills/git/scripts/safe-text.sh --commit-msg) && git commit --amend -m "$MSG"`.
+   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write corrected message to `./tmp/commit-msg.txt` using the Write tool, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
    - **Pre-commit hook failure**: read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`.
 
 6. **Return result**:
