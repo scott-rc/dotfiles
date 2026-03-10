@@ -29,15 +29,16 @@ return {
 			vim.api.nvim_set_hl(0, "@function.call", fn_hl)
 			vim.api.nvim_set_hl(0, "@method.call", fn_hl)
 
-			-- Completion menu: consistent background, visible border, subtle selection
-			local pmenu_bg = vim.api.nvim_get_hl(0, { name = "Pmenu", link = false }).bg
-			vim.api.nvim_set_hl(0, "BlinkCmpMenu", { bg = pmenu_bg })
-			vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { fg = "#565f89", bg = pmenu_bg })
+			-- Completion menu: consistent background, transparent borders, subtle selection
+			local editor_bg = vim.api.nvim_get_hl(0, { name = "Normal", link = false }).bg
+			vim.api.nvim_set_hl(0, "BlinkCmpMenu", { bg = editor_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { fg = "#565f89", bg = editor_bg })
 			vim.api.nvim_set_hl(0, "BlinkCmpMenuSelection", { bg = "#1c3d6a" })
-			vim.api.nvim_set_hl(0, "BlinkCmpDoc", { bg = pmenu_bg })
-			vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { fg = "#565f89", bg = pmenu_bg })
-			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelp", { bg = pmenu_bg })
-			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelpBorder", { fg = "#565f89", bg = pmenu_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpDoc", { bg = editor_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpDocBorder", { fg = "#565f89", bg = editor_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelp", { bg = editor_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpSignatureHelpBorder", { fg = "#565f89", bg = editor_bg })
+			vim.api.nvim_set_hl(0, "BlinkCmpKind", { bg = editor_bg })
 		end
 
 		apply_theme()
