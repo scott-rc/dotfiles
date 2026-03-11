@@ -1,0 +1,586 @@
+#!/usr/bin/env python3
+"""Parse and query Claude Code session transcripts.
+
+Reads JSONL transcript files from ~/.claude/projects/ and provides
+subcommands for listing, searching, and inspecting sessions.
+"""
+
+import argparse
+import json
+import os
+import sys
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+PROJECTS_DIR = Path.home() / ".claude" / "projects"
+
+
+def parse_timestamp(ts):
+    """Parse ISO 8601 timestamp string."""
+    if not ts:
+        return None
+    try:
+        # Handle Z suffix and fractional seconds
+        ts = ts.replace("Z", "+00:00")
+        return datetime.fromisoformat(ts)
+    except (ValueError, TypeError):
+        return None
+
+
+def iter_transcripts(project_filter=None):
+    """Yield (path, project_dir) for all transcript JSONL files."""
+    if not PROJECTS_DIR.exists():
+        return
+    for project_dir in sorted(PROJECTS_DIR.iterdir()):
+        if not project_dir.is_dir():
+            continue
+        if project_filter and project_filter not in project_dir.name:
+            continue
+        for jsonl in project_dir.rglob("*.jsonl"):
+            if jsonl.name.startswith("."):
+                continue
+            yield jsonl, project_dir
+
+
+def decode_project_path(dirname):
+    """Decode project directory name back to a readable path.
+
+    The encoding replaces each / with -. To reverse it we try to reconstruct
+    a real filesystem path by greedily matching existing directories.
+    Falls back to simple replacement when the path doesn't exist locally.
+    """
+    if not dirname.startswith("-"):
+        return dirname
+
+    # Try to resolve by walking the filesystem greedily
+    segments = dirname[1:].split("-")  # drop leading empty segment
+    path = Path("/")
+    i = 0
+    while i < len(segments):
+        # Try longest match first (handles multi-hyphen directory names)
+        matched = False
+        for end in range(len(segments), i, -1):
+            candidate = "-".join(segments[i:end])
+            if (path / candidate).exists():
+                path = path / candidate
+                i = end
+                matched = True
+                break
+        if not matched:
+            # No filesystem match — append remaining as-is
+            path = path / "-".join(segments[i:])
+            break
+
+    return str(path)
+
+
+def parse_session(path):
+    """Parse a transcript file into a session dict with metadata."""
+    messages = []
+    session_id = None
+    cwd = None
+    git_branch = None
+    slug = None
+    version = None
+    is_sidechain = False
+    agent_id = None
+    first_ts = None
+    last_ts = None
+    models = set()
+    tools_used = defaultdict(int)
+    user_messages = []
+    assistant_texts = []
+    input_tokens = 0
+    output_tokens = 0
+    cache_read = 0
+    cache_create = 0
+
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                messages.append(entry)
+                entry_type = entry.get("type", "")
+
+                # Skip non-message types
+                if entry_type not in ("user", "assistant"):
+                    continue
+
+                # Extract metadata from first message
+                if session_id is None:
+                    session_id = entry.get("sessionId")
+                    cwd = entry.get("cwd")
+                    git_branch = entry.get("gitBranch")
+                    slug = entry.get("slug")
+                    version = entry.get("version")
+                    is_sidechain = entry.get("isSidechain", False)
+                    agent_id = entry.get("agentId")
+
+                ts = parse_timestamp(entry.get("timestamp"))
+                if ts:
+                    if first_ts is None or ts < first_ts:
+                        first_ts = ts
+                    if last_ts is None or ts > last_ts:
+                        last_ts = ts
+
+                msg = entry.get("message", {})
+                content = msg.get("content", "")
+
+                # Track models and usage
+                model = msg.get("model")
+                if model:
+                    models.add(model)
+                usage = msg.get("usage", {})
+                if usage:
+                    input_tokens += usage.get("input_tokens", 0)
+                    output_tokens += usage.get("output_tokens", 0)
+                    cache_read += usage.get("cache_read_input_tokens", 0)
+                    cache_create += usage.get("cache_creation_input_tokens", 0)
+
+                # Extract text and tool use info
+                if isinstance(content, str):
+                    if entry_type == "user":
+                        user_messages.append(content)
+                elif isinstance(content, list):
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") == "text":
+                            text = item.get("text", "")
+                            if entry_type == "user":
+                                user_messages.append(text)
+                            elif entry_type == "assistant":
+                                assistant_texts.append(text)
+                        elif item.get("type") == "tool_use":
+                            tools_used[item.get("name", "unknown")] += 1
+    except (OSError, IOError):
+        return None
+
+    if not messages:
+        return None
+
+    # Derive a summary from the first user message (skip system/suggestion prompts)
+    first_prompt = ""
+    for msg in user_messages:
+        if msg and not msg.startswith("[SUGGESTION MODE"):
+            first_prompt = msg[:200]
+            break
+
+    duration = None
+    if first_ts and last_ts:
+        duration = (last_ts - first_ts).total_seconds()
+
+    return {
+        "path": str(path),
+        "session_id": session_id,
+        "slug": slug,
+        "cwd": cwd,
+        "git_branch": git_branch,
+        "version": version,
+        "is_sidechain": is_sidechain,
+        "agent_id": agent_id,
+        "first_ts": first_ts,
+        "last_ts": last_ts,
+        "duration_secs": duration,
+        "models": sorted(models),
+        "tools_used": dict(tools_used),
+        "total_messages": len(messages),
+        "user_message_count": len(user_messages),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_read_tokens": cache_read,
+        "cache_create_tokens": cache_create,
+        "first_prompt": first_prompt,
+        "is_subagent": "/subagents/" in str(path),
+    }
+
+
+def format_duration(secs):
+    """Format seconds into a human-readable duration."""
+    if secs is None:
+        return "?"
+    if secs < 60:
+        return f"{secs:.0f}s"
+    if secs < 3600:
+        return f"{secs / 60:.0f}m"
+    return f"{secs / 3600:.1f}h"
+
+
+def format_tokens(n):
+    """Format token count with K/M suffix."""
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.0f}K"
+    return str(n)
+
+
+def format_ts(ts):
+    """Format timestamp for display."""
+    if ts is None:
+        return "?"
+    return ts.strftime("%Y-%m-%d %H:%M")
+
+
+def cmd_list(args):
+    """List sessions with summary info."""
+    sessions = []
+    for path, project_dir in iter_transcripts(args.project):
+        session = parse_session(path)
+        if session is None:
+            continue
+        if args.no_subagents and session["is_subagent"]:
+            continue
+        if args.no_sidechains and session["is_sidechain"]:
+            continue
+        sessions.append(session)
+
+    # Sort by start time, most recent first
+    sessions.sort(key=lambda s: s["first_ts"] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+
+    if args.limit:
+        sessions = sessions[: args.limit]
+
+    if args.json:
+        for s in sessions:
+            s["first_ts"] = format_ts(s["first_ts"])
+            s["last_ts"] = format_ts(s["last_ts"])
+        json.dump(sessions, sys.stdout, indent=2, default=str)
+        print()
+        return
+
+    if not sessions:
+        print("No sessions found.")
+        return
+
+    for s in sessions:
+        ts = format_ts(s["first_ts"])
+        dur = format_duration(s["duration_secs"])
+        tokens = format_tokens(s["input_tokens"] + s["output_tokens"])
+        tools = ", ".join(f"{k}:{v}" for k, v in sorted(s["tools_used"].items(), key=lambda x: -x[1])[:4])
+        prompt = s["first_prompt"][:80].replace("\n", " ").strip()
+        flags = []
+        if s["is_subagent"]:
+            flags.append("sub")
+        if s["is_sidechain"]:
+            flags.append("side")
+        flag_str = f" [{','.join(flags)}]" if flags else ""
+        branch = f" ({s['git_branch']})" if s["git_branch"] else ""
+        sid = s["session_id"][:8] if s["session_id"] else "?"
+
+        print(f"{ts}  {dur:>5}  {tokens:>5}  {sid}{flag_str}{branch}")
+        if prompt:
+            print(f"  {prompt}")
+        if tools:
+            print(f"  tools: {tools}")
+        print()
+
+
+def cmd_show(args):
+    """Show detailed session transcript."""
+    # Find session by ID prefix
+    target = args.session_id
+    found = None
+    for path, _ in iter_transcripts():
+        if target in path.stem or target in str(path):
+            found = path
+            break
+
+    if not found:
+        # Try matching session ID in the JSONL content
+        for path, _ in iter_transcripts():
+            try:
+                with open(path) as f:
+                    first_line = f.readline()
+                    entry = json.loads(first_line)
+                    if entry.get("sessionId", "").startswith(target):
+                        found = path
+                        break
+            except (json.JSONDecodeError, OSError):
+                continue
+
+    if not found:
+        print(f"Session not found: {target}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Transcript: {found}\n")
+
+    with open(found) as f:
+        for line in f:
+            try:
+                entry = json.loads(line.strip())
+            except json.JSONDecodeError:
+                continue
+
+            entry_type = entry.get("type", "")
+            if entry_type not in ("user", "assistant"):
+                if not args.all:
+                    continue
+
+            ts = entry.get("timestamp", "")[:19]
+            msg = entry.get("message", {})
+            content = msg.get("content", "")
+
+            if entry_type == "user":
+                texts = []
+                if isinstance(content, str):
+                    texts.append(content)
+                elif isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict):
+                            if item.get("type") == "text":
+                                texts.append(item.get("text", ""))
+                            elif item.get("type") == "tool_result":
+                                result = item.get("content", "")
+                                if isinstance(result, str):
+                                    preview = result[:200].replace("\n", "\\n")
+                                    texts.append(f"[tool_result: {preview}]")
+                                elif isinstance(result, list):
+                                    for r in result:
+                                        if isinstance(r, dict) and r.get("type") == "text":
+                                            preview = r.get("text", "")[:200].replace("\n", "\\n")
+                                            texts.append(f"[tool_result: {preview}]")
+
+                for text in texts:
+                    if text.startswith("[SUGGESTION MODE"):
+                        if not args.all:
+                            continue
+                    display = text if args.full else text[:500]
+                    print(f"\033[36m[{ts}] USER:\033[0m {display}")
+
+            elif entry_type == "assistant":
+                model = msg.get("model", "")
+                if isinstance(content, list):
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") == "thinking" and args.thinking:
+                            thinking = item.get("thinking", "")
+                            display = thinking if args.full else thinking[:300]
+                            print(f"\033[33m[{ts}] THINKING ({model}):\033[0m {display}")
+                        elif item.get("type") == "text":
+                            text = item.get("text", "")
+                            display = text if args.full else text[:500]
+                            print(f"\033[32m[{ts}] ASSISTANT ({model}):\033[0m {display}")
+                        elif item.get("type") == "tool_use":
+                            name = item.get("name", "?")
+                            inp = item.get("input", {})
+                            if args.full:
+                                inp_str = json.dumps(inp, indent=2)
+                            else:
+                                inp_str = json.dumps(inp)[:200]
+                            print(f"\033[35m[{ts}] TOOL_USE ({name}):\033[0m {inp_str}")
+                elif isinstance(content, str):
+                    display = content if args.full else content[:500]
+                    print(f"\033[32m[{ts}] ASSISTANT ({model}):\033[0m {display}")
+
+            elif args.all:
+                print(f"\033[90m[{ts}] {entry_type}:\033[0m {json.dumps(entry)[:200]}")
+
+
+def cmd_search(args):
+    """Search across sessions for a pattern."""
+    pattern = args.pattern.lower()
+    matches = []
+
+    for path, project_dir in iter_transcripts(args.project):
+        try:
+            with open(path) as f:
+                for line_num, line in enumerate(f, 1):
+                    try:
+                        entry = json.loads(line.strip())
+                    except json.JSONDecodeError:
+                        continue
+
+                    msg = entry.get("message", {})
+                    content = msg.get("content", "")
+                    entry_type = entry.get("type", "")
+                    ts = entry.get("timestamp", "")[:19]
+                    session_id = entry.get("sessionId", "")[:8]
+
+                    texts = []
+                    if isinstance(content, str):
+                        texts.append(content)
+                    elif isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict):
+                                if item.get("type") == "text":
+                                    texts.append(item.get("text", ""))
+                                elif item.get("type") == "thinking":
+                                    texts.append(item.get("thinking", ""))
+
+                    for text in texts:
+                        if pattern in text.lower():
+                            # Find the matching line for context
+                            idx = text.lower().index(pattern)
+                            start = max(0, idx - 40)
+                            end = min(len(text), idx + len(pattern) + 40)
+                            context = text[start:end].replace("\n", " ")
+                            matches.append({
+                                "session_id": session_id,
+                                "path": str(path),
+                                "timestamp": ts,
+                                "type": entry_type,
+                                "context": context,
+                            })
+
+        except (OSError, IOError):
+            continue
+
+    if not matches:
+        print("No matches found.")
+        return
+
+    limit = args.limit or 20
+    for m in matches[:limit]:
+        sid = m["session_id"]
+        print(f"\033[36m{m['timestamp']}  {sid}  [{m['type']}]\033[0m")
+        print(f"  ...{m['context']}...")
+        print(f"  {m['path']}")
+        print()
+
+    if len(matches) > limit:
+        print(f"... and {len(matches) - limit} more matches")
+
+
+def cmd_stats(args):
+    """Show aggregate statistics across sessions."""
+    total_sessions = 0
+    total_subagents = 0
+    total_sidechains = 0
+    total_input = 0
+    total_output = 0
+    total_cache_read = 0
+    total_cache_create = 0
+    total_duration = 0
+    tool_counts = defaultdict(int)
+    model_counts = defaultdict(int)
+    project_counts = defaultdict(int)
+    sessions_by_day = defaultdict(int)
+
+    for path, project_dir in iter_transcripts(args.project):
+        session = parse_session(path)
+        if session is None:
+            continue
+
+        total_sessions += 1
+        if session["is_subagent"]:
+            total_subagents += 1
+        if session["is_sidechain"]:
+            total_sidechains += 1
+        total_input += session["input_tokens"]
+        total_output += session["output_tokens"]
+        total_cache_read += session["cache_read_tokens"]
+        total_cache_create += session["cache_create_tokens"]
+        if session["duration_secs"]:
+            total_duration += session["duration_secs"]
+        for tool, count in session["tools_used"].items():
+            tool_counts[tool] += count
+        for model in session["models"]:
+            model_counts[model] += 1
+        project_counts[project_dir.name] += 1
+        if session["first_ts"]:
+            day = session["first_ts"].strftime("%Y-%m-%d")
+            sessions_by_day[day] += 1
+
+    print(f"Total sessions:   {total_sessions}")
+    print(f"  Main sessions:  {total_sessions - total_subagents}")
+    print(f"  Subagents:      {total_subagents}")
+    print(f"  Sidechains:     {total_sidechains}")
+    print(f"Total duration:   {format_duration(total_duration)}")
+    print()
+    print(f"Token usage:")
+    print(f"  Input:          {format_tokens(total_input)}")
+    print(f"  Output:         {format_tokens(total_output)}")
+    print(f"  Cache read:     {format_tokens(total_cache_read)}")
+    print(f"  Cache create:   {format_tokens(total_cache_create)}")
+    print(f"  Total:          {format_tokens(total_input + total_output)}")
+    print()
+
+    if model_counts:
+        print("Models:")
+        for model, count in sorted(model_counts.items(), key=lambda x: -x[1]):
+            print(f"  {model}: {count} sessions")
+        print()
+
+    if tool_counts:
+        print("Tool usage (top 15):")
+        for tool, count in sorted(tool_counts.items(), key=lambda x: -x[1])[:15]:
+            print(f"  {tool}: {count}")
+        print()
+
+    if project_counts:
+        print("Projects (top 10):")
+        for proj, count in sorted(project_counts.items(), key=lambda x: -x[1])[:10]:
+            readable = decode_project_path(proj)
+            print(f"  {readable}: {count} sessions")
+        print()
+
+    if sessions_by_day:
+        print("Recent activity (last 14 days):")
+        days = sorted(sessions_by_day.keys(), reverse=True)[:14]
+        max_count = max(sessions_by_day[d] for d in days) if days else 1
+        bar_width = 50
+        for day in days:
+            count = sessions_by_day[day]
+            bar_len = round(count / max_count * bar_width) if max_count else 0
+            bar = "#" * bar_len
+            print(f"  {day}  {bar} {count}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and query Claude Code session transcripts",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    # list
+    ls = sub.add_parser("list", aliases=["ls"], help="List sessions")
+    ls.add_argument("-n", "--limit", type=int, help="Limit number of results")
+    ls.add_argument("-p", "--project", help="Filter by project name substring")
+    ls.add_argument("--no-subagents", action="store_true", help="Exclude subagent sessions")
+    ls.add_argument("--no-sidechains", action="store_true", help="Exclude sidechain sessions")
+    ls.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # show
+    sh = sub.add_parser("show", help="Show a session transcript")
+    sh.add_argument("session_id", help="Session ID or prefix to find")
+    sh.add_argument("--full", action="store_true", help="Show full message content (no truncation)")
+    sh.add_argument("--thinking", action="store_true", help="Include thinking blocks")
+    sh.add_argument("--all", action="store_true", help="Include all entry types (progress, snapshots, etc.)")
+
+    # search
+    se = sub.add_parser("search", help="Search across session transcripts")
+    se.add_argument("pattern", help="Text pattern to search for (case-insensitive)")
+    se.add_argument("-n", "--limit", type=int, help="Limit number of results")
+    se.add_argument("-p", "--project", help="Filter by project name substring")
+
+    # stats
+    st = sub.add_parser("stats", help="Show aggregate statistics")
+    st.add_argument("-p", "--project", help="Filter by project name substring")
+
+    args = parser.parse_args()
+
+    if args.command in ("list", "ls"):
+        cmd_list(args)
+    elif args.command == "show":
+        cmd_show(args)
+    elif args.command == "search":
+        cmd_search(args)
+    elif args.command == "stats":
+        cmd_stats(args)
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

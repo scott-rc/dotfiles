@@ -31,12 +31,14 @@ The caller's prompt determines the mode:
 - Draft the message solely from the diff content.
 - Imperative mood, start with a capital letter, under 72 chars, explain _why_ not _what_
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
-- Write the message to `../tmp/commit-msg.txt` using the Write tool, then sanitize and commit:
+- ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`
+- Write the message to `./tmp/commit-msg.txt` using the Write tool, then sanitize and commit:
   ```
-  ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ../tmp/commit-msg.txt && git commit -F ../tmp/commit-msg.txt
+  ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit -F ./tmp/commit-msg.txt
   ```
-  Same pattern for `--amend` (use `git commit --amend -F ../tmp/commit-msg.txt`).
+  Same pattern for `--amend` (use `git commit --amend -F ./tmp/commit-msg.txt`).
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
+- Multi-concern commits (common after squash): give each distinct concern its own sentence in the body. Do not bury a secondary concern as a trailing clause. Order by significance (diff size and user-facing impact); when ambiguous, order by diff size. Use a blank-line-separated paragraph only when a concern needs additional explanation.
 
 ## Workflow
 

@@ -9,6 +9,10 @@ Canonical source for inline commit paths. The committer agent maintains a synced
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff
 
+## Multi-concern commits
+
+When a commit (typically after squash) spans multiple distinct concerns, give each concern its own sentence in the body; use a blank-line-separated paragraph only when a concern needs additional explanation beyond one sentence. Do not bury a secondary concern as a trailing clause of another sentence -- a reviewer scanning the message will miss it. Order by significance: primary change first, then secondary changes, each clearly separated. Significance is judged by diff size and user-facing impact; when ambiguous, order by diff size.
+
 ## Inline Commit Procedure
 
 Steps for any operation that commits inline (without delegating to the `committer` agent):
