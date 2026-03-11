@@ -8,6 +8,8 @@ Auto-detect and fix CI failures, unresolved review threads, and PR description q
 
 Run these three checks in parallel:
 
+User-provided instructions (e.g., "fix and ensure contributing is up to date") supplement but do not replace Detection. MUST run all three checks regardless of additional context. Handle side-requests as a separate concern after the standard fix paths complete.
+
 1. **Review threads**: Run `~/.claude/skills/git/scripts/get-pr-comments.sh --count` to get the unresolved thread count.
 2. **CI status**: Follow the "CI Detection" pattern in references/git-patterns.md (steps 1 and 2). Group checks by status (failed, pending, passed).
 3. **PR description quality**: Fetch the current PR body (`gh pr view --json body,number -q '.body'`). If no PR exists, skip. Detect base branch per references/git-patterns.md. Run `git diff --stat origin/<base>...HEAD` and assess:
@@ -17,7 +19,7 @@ Run these three checks in parallel:
    - **Missing diff coverage**: The `--stat` output shows file groups (e.g., `.claude/`, `.github/`, `docs/`, test files) that the body doesn't mention at all -- not even in passing.
    - **Missing verification info**: The diff includes CI workflow files (`.github/workflows/`, `.buildkite/`), deploy configs, or build system changes, but the body says nothing about how to verify locally or what CI triggers.
 
-   If none of these trigger, mark the description as OK.
+   If none of these trigger, mark the description as OK. Note: review threads that flag description inaccuracy are handled by Review Path step 3 classification, not here.
 
 After all three complete, route based on results:
 
@@ -27,7 +29,7 @@ After all three complete, route based on results:
 - **Description issues only** (CI green, no unresolved threads): follow the Description path below.
 - **Neither** (CI green, no unresolved threads, description OK): report that everything is green. Then run `CronList` — if any job's prompt contains `/git fix`, cancel it with `CronDelete` and tell the user the loop has stopped because all checks passed and all threads are resolved. This is safe because cron jobs are session-scoped; parallel loops on other branches run in separate sessions.
 
-If any of the above paths apply AND the description quality check also flagged issues, run the Description path after all other paths complete.
+If CI, Review, or Combined path ran AND the description quality check (wall of text, missing coverage, or missing verification info) also flagged issues, run the Description path after all other paths complete. Description threads found by Review Path step 3 are handled by Review Path step 8 — they do not trigger this rule.
 
 ---
 
@@ -62,9 +64,13 @@ If any of the above paths apply AND the description quality check also flagged i
 
 2. **Present a summary**: Run `get-pr-comments.sh --summary` and present its compact output. For large thread sets, group by file and show counts rather than listing every thread individually.
 
-3. **Classify threads by commenter type**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
+3. **Classify threads**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
 
-4. **Gather context and fix**: Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary.
+   Independently classify each thread by **target**: **code threads** (feedback about source code, tests, configs, or CI files) vs **description threads** (feedback about the PR title, summary, or description text being inaccurate, misleading, or incomplete — the comment discusses what the PR *says*, not what it *does*). Classify each thread on both axes independently — a thread may be both a bot thread and a description thread.
+
+4. **Gather context and fix**: This step applies to **code threads** only. Skip if all threads are description threads.
+
+   Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary.
 
    Then spawn a `code-writer` subagent (model: sonnet) with:
    - Per-thread context: file path, line number(s), full comment bodies from all comments in each thread (later replies often contain clarifications)
@@ -86,16 +92,19 @@ If any of the above paths apply AND the description quality check also flagged i
 
    The `{owner}/{repo}` and `{comment_id}` come from the PR comments data returned by get-pr-comments.sh. Use `gh api graphql` to resolve the REST comment ID from a node ID if needed.
 
-7. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git push`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in the next step.
+7. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git push`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in step 9.
 
-8. **Draft replies**: After code fixes are committed, draft a reply for each thread:
-   - **Fixed** (code was changed): add a thumbs-up reaction (`gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="+1"`) and reply "Fixed in <commit-url>" using the commit hash from step 7. For bot threads, post directly. Human thread replies go through approval in step 9.
+8. **Handle description threads**: If description threads were classified in step 3, route them to the Description Path starting at step 1 (Ensure branch context). Pass the thread comments as quality findings in step 2. Do NOT send description threads to the code-writer. Description threads produce no code commit, so replies in step 9 reference the PR URL (not a commit hash). Skip this step if no description threads exist.
+
+9. **Draft replies**: After code fixes are committed, draft a reply for each code thread and each description thread:
+   - **Fixed** (code was changed): add a thumbs-up reaction (`gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="+1"`) and reply "Fixed in <commit-url>" using the commit hash from step 7. For bot threads, post directly. Human thread replies go through approval in step 10.
+   - **Description refreshed** (description thread handled in step 8): add a thumbs-up reaction and reply with the PR URL (no commit hash — description refreshes don't produce code commits). Bot/human approval rules still apply.
    - **Already addressed** (no code change needed): reply concisely that it's already addressed.
    - **Needs discussion**: draft a thoughtful response.
 
-9. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
+10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-10. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
+11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
 
     ```bash
     gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt
@@ -107,7 +116,7 @@ If any of the above paths apply AND the description quality check also flagged i
 
     Clean up temp files after all replies are posted.
 
-11. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
+12. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
 
 ---
 
@@ -123,7 +132,7 @@ When both CI failures and unresolved review threads exist:
 
 ### Description Path
 
-Improve a PR description that is a wall of text, missing diff coverage, or lacks verification info.
+Improve a PR description that is a wall of text, missing diff coverage, or lacks verification info. Also invoked by Review Path step 8 when review threads flag description inaccuracy.
 
 1. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from `references/git-patterns.md`.
