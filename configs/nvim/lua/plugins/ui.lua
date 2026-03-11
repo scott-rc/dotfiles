@@ -29,6 +29,70 @@ return {
 					duration = { step = 5, total = 30 },
 				},
 			},
+			picker = {
+				enabled = true,
+				matcher = {
+					frecency = true,
+					cwd_bonus = true,
+					smartcase = true,
+				},
+				layout = {
+					preset = "vertical",
+					cycle = true,
+				},
+				layouts = {
+					vertical = {
+						layout = {
+							backdrop = false,
+							width = 0.5,
+							min_width = 80,
+							height = 0.8,
+							min_height = 30,
+							box = "vertical",
+							border = true,
+							title = "{title} {live} {flags}",
+							title_pos = "center",
+							{ win = "input", height = 1, border = "bottom" },
+							{ win = "list", border = "none" },
+							{ win = "preview", title = "{preview}", height = 0.6, border = "top" },
+						},
+					},
+				},
+				sources = {
+					files = { hidden = true },
+				},
+				win = {
+					input = {
+						keys = {
+							["<Esc>"] = { "close", mode = { "n", "i" } },
+							["<A-BS>"] = { "<c-w>", mode = { "i" }, expr = true, desc = "delete word" },
+							["<C-u>"] = { "<c-u>", mode = { "i" }, expr = true, desc = "clear prompt" },
+						},
+					},
+				},
+			},
+		},
+		keys = {
+			-- File / grep
+			{ "<D-f>", function() Snacks.picker.smart() end, mode = { "n", "v", "i" }, desc = "Smart find files" },
+			{ "<D-g>", function() Snacks.picker.grep() end, mode = { "n", "v", "i" }, desc = "Live grep" },
+			{ "<D-k>", function() Snacks.picker.smart() end, mode = { "n", "v", "i" }, desc = "Smart find files" },
+			{ "<D-p>", function() Snacks.picker.commands() end, mode = { "n", "v", "i" }, desc = "Commands" },
+			{ "<leader>b", function() Snacks.picker.buffers() end, desc = "Buffers" },
+			{ "<leader>f", function() Snacks.picker.smart() end, desc = "Smart find files" },
+			{ "<leader>m", function() Snacks.picker.keymaps() end, desc = "Keymaps" },
+			{ "<leader>p", function() Snacks.picker.commands() end, desc = "Commands" },
+			{ "<leader>r", function() Snacks.picker.grep() end, desc = "Live grep" },
+			-- LSP
+			{ "<D-S-o>", function() Snacks.picker.lsp_symbols() end, mode = { "n", "v", "i" }, desc = "LSP document symbols" },
+			{ "<leader>ld", function() Snacks.picker.diagnostics() end, desc = "Diagnostics" },
+			{ "<leader>ls", function() Snacks.picker.lsp_symbols() end, desc = "LSP document symbols" },
+			{ "<leader>lS", function() Snacks.picker.lsp_workspace_symbols() end, desc = "LSP workspace symbols" },
+			-- Git
+			{ "<leader>gc", function() Snacks.picker.git_log() end, desc = "Git commits" },
+			{ "<leader>gC", function() Snacks.picker.git_log_file() end, desc = "Git buffer commits" },
+			{ "<leader>gB", function() Snacks.picker.git_branches() end, desc = "Git branches" },
+			{ "<leader>gf", function() Snacks.picker.git_status() end, desc = "Git status" },
 		},
 	},
 
