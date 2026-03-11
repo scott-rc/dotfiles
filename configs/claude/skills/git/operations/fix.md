@@ -95,7 +95,7 @@ If any of the above paths apply AND the description quality check also flagged i
 
 10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using the Write tool, sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
+11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
 
     ```bash
     gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt

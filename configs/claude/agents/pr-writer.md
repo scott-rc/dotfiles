@@ -1,7 +1,7 @@
 ---
 name: pr-writer
 description: Writes PR titles and descriptions from git diffs following strict formatting guidelines, preserving bot-appended content. Creates new PRs or updates existing ones.
-tools: Bash, Write
+tools: Bash
 model: sonnet
 maxTurns: 150
 ---
@@ -107,7 +107,7 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
 3. **Create or update**:
 
-   Write the body to `./tmp/pr-body.txt` and the title to `./tmp/pr-title.txt` using the Write tool, then sanitize in place:
+   Write the body to `./tmp/pr-body.txt` and the title to `./tmp/pr-title.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/<file>.txt` ... `EOF`), then sanitize in place:
 
    ```bash
    ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-body.txt

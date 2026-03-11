@@ -1,7 +1,7 @@
 ---
 name: committer
 description: Analyzes changes, drafts a commit message, stages, and commits. Supports new commits, amends, and squashes. Keeps large diffs out of the main conversation context.
-tools: Bash, Write
+tools: Bash
 model: sonnet
 maxTurns: 150
 ---
@@ -32,7 +32,7 @@ The caller's prompt determines the mode:
 - Imperative mood, start with a capital letter, under 72 chars, explain _why_ not _what_
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`
-- Write the message to `./tmp/commit-msg.txt` using the Write tool, then sanitize and commit:
+- Write the message to `./tmp/commit-msg.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/commit-msg.txt` ... `EOF`), then sanitize and commit:
   ```
   ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit -F ./tmp/commit-msg.txt
   ```
@@ -60,11 +60,11 @@ The caller's prompt determines the mode:
 
 4. **Stage and commit**:
    - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
-   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or write new message to `./tmp/commit-msg.txt` using the Write tool, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
+   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or write new message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
    - Squash: changes are already staged, draft message from the staged diff, `git commit`
 
 5. **Handle errors after commit**:
-   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write corrected message to `./tmp/commit-msg.txt` using the Write tool, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
+   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write corrected message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
    - **Pre-commit hook failure**: read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`.
 
 6. **Return result**:
