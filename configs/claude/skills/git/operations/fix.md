@@ -95,7 +95,17 @@ If any of the above paths apply AND the description quality check also flagged i
 
 10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-11. **Post approved replies and bot replies**: Write each reply to a temp file using the Write tool, sanitize, and post per the examples in references/github-text.md (review reply or PR comment as appropriate). Clean up temp files after posting.
+11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using the Write tool, sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
+
+    ```bash
+    gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt
+    ```
+
+    Where `{comment_id}` is the REST ID of the **first comment in the thread** being replied to (available from the get-pr-comments.sh output), and `{owner}`, `{repo}`, `{pull_number}` also come from that script's output.
+
+    MUST NOT create new standalone review comments by passing `commit_id`, `path`, `line`, or `side` parameters -- that opens a new thread instead of replying in the existing one. MUST NOT use `gh pr comment` for review thread replies -- that posts a PR-level comment, not an in-thread reply.
+
+    Clean up temp files after all replies are posted.
 
 12. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
 
