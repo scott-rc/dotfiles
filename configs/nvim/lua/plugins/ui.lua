@@ -29,6 +29,9 @@ return {
 					duration = { step = 5, total = 30 },
 				},
 			},
+			explorer = {
+				replace_netrw = true,
+			},
 			picker = {
 				enabled = true,
 				matcher = {
@@ -60,6 +63,20 @@ return {
 				},
 				sources = {
 					files = { hidden = true },
+					explorer = {
+						follow_file = true,
+						auto_close = false,
+						jump = { close = false },
+						layout = { layout = { position = "right" } },
+						win = {
+							list = {
+								keys = {
+									["<CR>"] = { "confirm", function(picker) picker:focus("list") end },
+									["l"] = { "confirm", function(picker) picker:focus("list") end },
+								},
+							},
+						},
+					},
 				},
 				win = {
 					input = {
@@ -93,6 +110,10 @@ return {
 			{ "<leader>gC", function() Snacks.picker.git_log_file() end, desc = "Git buffer commits" },
 			{ "<leader>gB", function() Snacks.picker.git_branches() end, desc = "Git branches" },
 			{ "<leader>gf", function() Snacks.picker.git_status() end, desc = "Git status" },
+			-- Explorer
+			{ "<leader>e", function() Snacks.explorer() end, desc = "Explorer" },
+			{ "<C-e>", function() Snacks.explorer() end, desc = "Explorer" },
+			{ "<D-e>", function() Snacks.explorer() end, mode = { "n", "v", "i" }, desc = "Explorer" },
 		},
 	},
 

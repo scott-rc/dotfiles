@@ -9,7 +9,7 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 vim.api.nvim_create_autocmd("BufEnter", {
 	group = augroup,
 	callback = function()
-		if vim.bo.buftype == "" and vim.bo.filetype ~= "neo-tree" then
+		if vim.bo.buftype == "" and vim.bo.filetype ~= "snacks_picker_list" then
 			vim.g._last_file_win = vim.api.nvim_get_current_win()
 		end
 	end,

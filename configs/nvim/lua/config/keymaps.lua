@@ -76,7 +76,7 @@ vim.keymap.set("i", "<D-]>", "<Esc><C-i>", { desc = "Go forward" })
 -- Focus primary buffer (D-1)
 local function is_file_win(w)
 	local buf = vim.api.nvim_win_get_buf(w)
-	return vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "neo-tree"
+	return vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "snacks_picker_list"
 end
 
 vim.keymap.set({ "n", "v", "i" }, "<D-1>", function()
