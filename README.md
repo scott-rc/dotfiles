@@ -61,7 +61,7 @@ Configuration directories symlinked to their expected locations:
 | `nix/` | `/etc/nix/nix.conf` (sudo) |
 | `orbstack/` | `~/.orbstack/config/docker.json` |
 | `starship/` | `~/.config/starship.toml` |
-| `nvim/` | `~/.config/nvim` — modular Neovim config with lazy.nvim plugin manager, native LSP (0.11+), Telescope, Neo-tree, smooth scrolling (snacks.nvim), format-on-save (conform.nvim) |
+| `nvim/` | `~/.config/nvim` — modular Neovim config with lazy.nvim plugin manager, native LSP (0.11+), snacks.nvim (picker, explorer, scroll, indent), satellite.nvim, format-on-save (conform.nvim) |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
 | `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin) |
 | `zsh/` | `~/.zshrc` |

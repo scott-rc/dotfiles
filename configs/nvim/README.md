@@ -19,13 +19,12 @@ configs/nvim/
     └── plugins/              # lazy.nvim auto-discovers all files here
         ├── theme.lua         # github-nvim-theme
         ├── treesitter.lua    # nvim-treesitter + treesitter-context
-        ├── neo-tree.lua      # neo-tree + toggle helper + neo-tree autocmds
-        ├── telescope.lua     # telescope + extensions + all telescope keymaps
         ├── gitsigns.lua      # gitsigns
-        ├── ui.lua            # mini.icons, snacks, scrollbar, lualine, scrollEOF
-        ├── editing.lua       # which-key, hydra, multicursor.nvim, vim-sleuth, copilot
-        ├── completion.lua    # blink.cmp, schemastore
-        └── conform.lua       # conform.nvim (format-on-save)
+        ├── ui.lua            # mini.icons, snacks (picker, explorer, scroll, indent), satellite.nvim, lualine, scrollEOF
+        ├── editing.lua       # which-key, hydra, multicursor.nvim, vim-sleuth, copilot.lua
+        ├── completion.lua    # blink.cmp, blink-copilot, schemastore
+        ├── conform.lua       # conform.nvim (format-on-save)
+        └── jinja.lua         # Jinja2 (ftdetect only, no plugin)
 ```
 
 ## Load Order
@@ -59,7 +58,6 @@ init.lua
 
 - **Plugin-specific keymaps stay in plugin specs** -- keeps keymaps co-located with the plugin config and enables lazy-loading
 - **General keymaps in `lua/config/keymaps.lua`** -- vim motions, navigation, leader shortcuts not tied to any plugin
-- **Neo-tree has its own augroup** (`neotree_config`) -- its autocmds (state persistence, directory-open, winfixwidth) are self-contained in `plugins/neo-tree.lua`
 - **`lsp/` directory uses Neovim 0.11 native feature** -- no `nvim-lspconfig` plugin needed; Neovim auto-loads configs from `lsp/*.lua` when matching filetypes are opened
 
 ## Formatting
