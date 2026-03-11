@@ -24,6 +24,7 @@ Shared patterns used across git skill operations. Reference this file for consis
 - `sanitize` -- `~/.claude/skills/git/scripts/sanitize.sh`
 - `check-ci` -- `~/.claude/skills/git/scripts/check-ci.sh`
 - `rerun` -- `~/.claude/skills/git/scripts/rerun.sh`
+- `branch-context-path` -- `~/.claude/skills/git/scripts/branch-context-path.sh`
 - `buildkite` -- project-local CI script for querying the Buildkite API. Locate under the project's `.ai/skills/ci/` directory (typically a `.mjs` file). Run via `direnv exec .`. Requires `BUILDKITE_API_TOKEN` env var. Commands: `failed <org> <pipeline> <build>` lists failed jobs; `failed-logs <org> <pipeline> <build>` gets logs for all failed jobs.
 
 ## Fish Functions
@@ -66,13 +67,13 @@ All new branches MUST use the `sc/` prefix, e.g. `sc/fix-login-redirect`.
 
 ## Branch Context File
 
-Path: `./tmp/branches/<sanitized-branch>/context.md` where the branch name is sanitized by replacing `/` with `--` (e.g., `sc/fix-login` becomes `sc--fix-login`):
+Resolve the path with:
 
 ```bash
-branch=$(git rev-parse --abbrev-ref HEAD | sed 's|/|--|g')
+~/.claude/skills/git/scripts/branch-context-path.sh
 ```
 
-The `./tmp/branches/<sanitized-branch>/` directory holds all per-branch artifacts (context, review findings, etc.).
+This outputs `./tmp/branches/<sanitized-branch>/context.md` (e.g., `./tmp/branches/sc--fix-login/context.md`). The parent directory holds all per-branch artifacts (context, review findings, etc.).
 
 Read this file when it exists and forward its contents as `branch_context` to the pr-writer agent.
 
@@ -144,7 +145,7 @@ Read or create the branch context file that captures the "why" for the current b
 
 6. **Ask targeted questions**: Ask via AskUserQuestion: "What problem are you solving or what triggered this work?". Then ask "What's the expected outcome when this branch merges?". Then ask "Any related issues, PRs, or links?" with a "Skip" option. Synthesize the answers into a concise purpose statement (1-3 sentences) plus any links provided. Cross-check any factual claims about before/after states against `git diff origin/<base>...HEAD`.
 
-7. **Write the file**: Create the branch context file (`./tmp/branches/<sanitized-branch>/context.md`). The file MUST contain only:
+7. **Write the file**: Create the branch context file at the path from `~/.claude/skills/git/scripts/branch-context-path.sh`. The file MUST contain only:
    - 1-3 sentences of purpose/motivation (the "why")
    - Related links, if given (each on its own line)
 

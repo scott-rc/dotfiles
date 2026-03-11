@@ -80,3 +80,4 @@ Scripts:
 - scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`); used by committer, pr-writer, and inline commit paths
 - scripts/check-ci.sh - Checks CI status for the current branch and prints a grouped summary (failed/pending/passed)
 - scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun
+- scripts/branch-context-path.sh - Prints the branch context file path for the current branch (`./tmp/branches/<sanitized-branch>/context.md`)

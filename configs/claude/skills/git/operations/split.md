@@ -6,7 +6,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 
 ### Phase 1: Planning (orchestrator, steps 0–4)
 
-0. **Resume detection**: Check for a state file at `./tmp/branches/<sanitized-reference-branch>/split-state.json` where the branch name is sanitized by replacing `/` with `--`. If the file exists with `"status": "in-progress"`, ask via AskUserQuestion: "Found an in-progress split with N of M branches completed. Resume or start fresh?" — Resume regenerates the orchestrator prompt from the state file (step 4 template) and enters plan mode; Start fresh deletes the state file and continues to step 1.
+0. **Resume detection**: Derive the branch directory by running `~/.claude/skills/git/scripts/branch-context-path.sh` and stripping the filename. Check for `split-state.json` in that directory. If the file exists with `"status": "in-progress"`, ask via AskUserQuestion: "Found an in-progress split with N of M branches completed. Resume or start fresh?" — Resume regenerates the orchestrator prompt from the state file (step 4 template) and enters plan mode; Start fresh deletes the state file and continues to step 1.
 
 1. **Gather state**: Record the current branch as the reference branch — it stays untouched throughout. Detect base branch per references/git-patterns.md (Base Branch Detection). Run:
    - `git fetch origin`
@@ -27,7 +27,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 
    Notes to include: files may appear in multiple branches; each branch should compile independently (aspirational, not required); the reference branch is a guide, not an exact target. Ask the user to approve, modify, or reject. Apply modifications and confirm before proceeding.
 
-4. **Write state file and enter plan mode**: Write `./tmp/branches/<sanitized-reference-branch>/split-state.json`:
+4. **Write state file and enter plan mode**: Write `split-state.json` to the branch directory (derived from `~/.claude/skills/git/scripts/branch-context-path.sh` — strip the filename to get the directory):
 
    ```json
    {
