@@ -75,7 +75,7 @@ Reference files:
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
 
 Scripts:
-- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` flag filters to threads needing a reply (used by Fix operation)
+- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` filters to threads needing a reply, `--count` prints just the integer count, `--summary` prints a compact summary (one header line plus one line per thread) (used by Fix operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Fix operation)
 - scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`); used by committer, pr-writer, and inline commit paths
 - scripts/check-ci.sh - Checks CI status for the current branch and prints a grouped summary (failed/pending/passed)

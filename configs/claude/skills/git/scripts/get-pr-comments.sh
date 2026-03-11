@@ -5,13 +5,25 @@ set -euo pipefail
 # Outputs structured JSON to stdout. Errors go to stderr.
 #
 # Usage:
-#   get-pr-comments.sh              # All unresolved threads
+#   get-pr-comments.sh              # All unresolved threads (full JSON)
 #   get-pr-comments.sh --unreplied  # Only threads where the current user hasn't replied
+#   get-pr-comments.sh --count      # Print integer count of unresolved threads
+#   get-pr-comments.sh --summary    # Print compact human-readable summary
+#
+# Flags can be combined:
+#   get-pr-comments.sh --unreplied --count    # Count of unreplied threads
+#   get-pr-comments.sh --unreplied --summary  # Summary of unreplied threads
+#
+# --count and --summary are mutually exclusive; if both are passed, --summary wins.
 
 unreplied=false
+output_count=false
+output_summary=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --unreplied) unreplied=true; shift ;;
+    --count) output_count=true; shift ;;
+    --summary) output_summary=true; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -80,35 +92,70 @@ if [ "$unreplied" = true ]; then
   thread_filter="$thread_filter | select((.comments.nodes | length) > 0) | select((.comments.nodes | last | .author.login) != \$me)"
 fi
 
-echo "$result" | jq \
-  --argjson prNumber "$pr_number" \
-  --arg prUrl "$pr_url" \
-  --arg owner "$owner" \
-  --arg repo "$repo" \
-  --arg me "${current_user:-}" \
-"
-{
-  prNumber: \$prNumber,
-  prUrl: \$prUrl,
-  owner: \$owner,
-  repo: \$repo,
-  unresolvedThreads: [
+if [[ "$output_summary" == true ]]; then
+  label="Unresolved"
+  if [[ "$unreplied" == true ]]; then
+    label="Unreplied"
+  fi
+  echo "$result" | jq -r \
+    --arg me "${current_user:-}" \
+    --arg label "$label" \
+  "
+  [
     $thread_filter
     | {
         path: .path,
         line: .line,
-        startLine: .startLine,
-        diffSide: .diffSide,
-        comments: [
-          .comments.nodes[]
-          | { id: .databaseId, author: .author.login, body: .body, createdAt: .createdAt }
-        ]
+        comment: .comments.nodes[0]
       }
-  ],
-  reviewSummaries: [
-    .data.repository.pullRequest.reviews.nodes[]
-    | select(.body != null and .body != \"\")
-    | { author: .author.login, body: .body, state: .state, createdAt: .createdAt }
-  ]
-}
-"
+  ] | \"\(\$label): \(length)\",(
+    .[]
+    | .comment as \$c
+    | (\$c.body
+        | (capture(\"<!-- DESCRIPTION START -->(?<desc>[\\\\s\\\\S]*?)<!-- DESCRIPTION END -->\") // {desc: .}) | .desc | gsub(\"^\\\\s+|\\\\s+$\"; \"\")
+        | .[0:120]) as \$body
+    | \"\(.path):\(.line) — \((\$c.author.login // \"unknown\")) (id: \(\$c.databaseId)) — \(\$body)\"
+  )
+  "
+elif [[ "$output_count" == true ]]; then
+  echo "$result" | jq \
+    --arg me "${current_user:-}" \
+  "
+  [
+    $thread_filter
+  ] | length
+  "
+else
+  echo "$result" | jq \
+    --argjson prNumber "$pr_number" \
+    --arg prUrl "$pr_url" \
+    --arg owner "$owner" \
+    --arg repo "$repo" \
+    --arg me "${current_user:-}" \
+  "
+  {
+    prNumber: \$prNumber,
+    prUrl: \$prUrl,
+    owner: \$owner,
+    repo: \$repo,
+    unresolvedThreads: [
+      $thread_filter
+      | {
+          path: .path,
+          line: .line,
+          startLine: .startLine,
+          diffSide: .diffSide,
+          comments: [
+            .comments.nodes[]
+            | { id: .databaseId, author: (.author.login // \"unknown\"), body: .body, createdAt: .createdAt }
+          ]
+        }
+    ],
+    reviewSummaries: [
+      .data.repository.pullRequest.reviews.nodes[]
+      | select(.body != null and .body != \"\")
+      | { author: (.author.login // \"unknown\"), body: .body, state: .state, createdAt: .createdAt }
+    ]
+  }
+  "
+fi

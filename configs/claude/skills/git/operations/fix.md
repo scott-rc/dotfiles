@@ -8,7 +8,7 @@ Auto-detect and fix CI failures, unresolved review threads, and PR description q
 
 Run these three checks in parallel:
 
-1. **Review threads**: Run `~/.claude/skills/git/scripts/get-pr-comments.sh` to get unresolved thread count and thread list.
+1. **Review threads**: Run `~/.claude/skills/git/scripts/get-pr-comments.sh --count` to get the unresolved thread count.
 2. **CI status**: Follow the "CI Detection" pattern in references/git-patterns.md (steps 1 and 2). Group checks by status (failed, pending, passed).
 3. **PR description quality**: Fetch the current PR body (`gh pr view --json body,number -q '.body'`). If no PR exists, skip. Detect base branch per references/git-patterns.md. Run `git diff --stat origin/<base>...HEAD` and assess:
 
@@ -58,44 +58,38 @@ If any of the above paths apply AND the description quality check also flagged i
 
 ### Review Path
 
-1. **Check for PR**: If `get-pr-comments` exited with an error (no PR exists), inform the user and stop.
+1. **Check for PR**: If Detection step 1 reported no PR, stop.
 
-2. **If no unresolved threads**, report that all review feedback has been addressed and stop.
+2. **Present a summary**: Run `get-pr-comments.sh --summary` and present its compact output. For large thread sets, group by file and show counts rather than listing every thread individually.
 
-3. **Present a summary**:
-   - Total count of unresolved threads
-   - Group by file path, showing for each thread: file, line number, and a one-line preview of the first comment
-   - Include any review summaries (these provide high-level context from the reviewer)
-   - If many threads exist, group by file and show counts rather than listing every thread individually
+3. **Classify threads by commenter type**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
 
-4. **Classify threads by commenter type**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
-
-5. **Gather context and fix**: Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary. Then spawn a fix subagent (model: sonnet) with:
+4. **Gather context and fix**: Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary. Then spawn a fix subagent (model: sonnet) with:
    - Per-thread context: file path, line number(s), full comment bodies from all comments in each thread (later replies often contain clarifications), and the current code at those locations
    - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt
    - Instruction to: read the files at the referenced locations, apply the fix the reviewer requested, run the resolved lint and test commands, and consult the project's CLAUDE.md for project-specific build/test commands
    - For bot threads: after reading context at each thread location, classify each as **Applicable** (the bot's finding is valid — fix the code) or **Not applicable** (false positive or red herring — the flagged pattern is intentional, the suggestion doesn't fit this context, or the issue was already addressed — do NOT fix the code)
    - Group threads by file path to minimize context switching; one subagent handles all threads
 
-6. **Verify fixes**: Run linter/tests per the "Local Fix Commands" section in references/git-patterns.md. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, mark it as unresolved and continue with remaining threads.
+5. **Verify fixes**: Run linter/tests per the "Local Fix Commands" section in references/git-patterns.md. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, mark it as unresolved and continue with remaining threads.
 
-7. **React to not-applicable bot threads**: For each bot thread classified as not applicable in step 5:
+6. **React to not-applicable bot threads**: For each bot thread classified as not applicable in step 4:
    - Add a thumbs-down reaction to the first comment: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="-1"`
    - Draft a brief reply explaining why the finding doesn't apply (e.g., "False positive -- this pattern is intentional because ..." or "Not applicable -- the flagged code path is unreachable from ...")
-   - Post the reply directly (bots are autonomous per step 4) -- write to temp file, sanitize, and post per references/github-text.md
+   - Post the reply directly (bots are autonomous per step 3) -- write to temp file, sanitize, and post per references/github-text.md
 
    The `{owner}/{repo}` and `{comment_id}` come from the PR comments data returned by get-pr-comments.sh. Use `gh api graphql` to resolve the REST comment ID from a node ID if needed.
 
-8. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git push`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in the next step.
+7. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git push`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in the next step.
 
-9. **Draft replies**: After code fixes are committed, draft a reply for each thread:
-   - **Fixed** (code was changed): add a thumbs-up reaction (`gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="+1"`) and reply "Fixed in <commit-url>" using the commit hash from step 8. For bot threads, post directly. Human thread replies go through approval in step 10.
+8. **Draft replies**: After code fixes are committed, draft a reply for each thread:
+   - **Fixed** (code was changed): add a thumbs-up reaction (`gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="+1"`) and reply "Fixed in <commit-url>" using the commit hash from step 7. For bot threads, post directly. Human thread replies go through approval in step 9.
    - **Already addressed** (no code change needed): reply concisely that it's already addressed.
    - **Needs discussion**: draft a thoughtful response.
 
-10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
+9. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
+10. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
 
     ```bash
     gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt
@@ -107,7 +101,7 @@ If any of the above paths apply AND the description quality check also flagged i
 
     Clean up temp files after all replies are posted.
 
-12. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
+11. **Report**: Confirm which threads were fixed, which replies were posted, which were skipped, and which remain unresolved.
 
 ---
 
