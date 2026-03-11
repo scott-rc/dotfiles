@@ -23,7 +23,7 @@ configs/nvim/
         ├── telescope.lua     # telescope + extensions + all telescope keymaps
         ├── gitsigns.lua      # gitsigns
         ├── ui.lua            # mini.icons, snacks, scrollbar, lualine, scrollEOF
-        ├── editing.lua       # which-key, hydra, vim-visual-multi, vim-sleuth, copilot
+        ├── editing.lua       # which-key, hydra, multicursor.nvim, vim-sleuth, copilot
         ├── completion.lua    # blink.cmp, schemastore
         └── conform.lua       # conform.nvim (format-on-save)
 ```

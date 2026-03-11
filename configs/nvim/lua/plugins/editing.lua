@@ -113,16 +113,29 @@ return {
 		end,
 	},
 
-	-- Multi-cursor (cmd+d select next, cmd+shift+d undo selection)
+	-- Multi-cursor (cmd+d select next, cmd+shift+d remove cursor)
 	{
-		"mg979/vim-visual-multi",
-		branch = "master",
-		init = function()
-			vim.g.VM_maps = {
-				["Find Under"] = "<D-d>",
-				["Find Subword Under"] = "<D-d>",
-				["Remove Region"] = "<D-S-d>",
-			}
+		"jake-stewart/multicursor.nvim",
+		config = function()
+			local mc = require("multicursor-nvim")
+			mc.setup()
+
+			local map = vim.keymap.set
+
+			-- Add cursor at next/previous match of word or selection
+			map({ "n", "x" }, "<D-d>", function() mc.matchAddCursor(1) end)
+			map({ "n", "x" }, "<D-S-d>", mc.deleteCursor)
+
+			-- Escape: clear cursors, or re-enable disabled ones, or nohlsearch
+			map("n", "<esc>", function()
+				if not mc.cursorsEnabled() then
+					mc.enableCursors()
+				elseif mc.hasCursors() then
+					mc.clearCursors()
+				else
+					vim.cmd("nohlsearch")
+				end
+			end)
 		end,
 	},
 
