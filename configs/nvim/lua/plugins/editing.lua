@@ -143,5 +143,13 @@ return {
 	{ "tpope/vim-sleuth" },
 
 	-- GitHub Copilot
-	{ "github/copilot.vim" },
+	{
+		"zbirenbaum/copilot.lua",
+		cmd = "Copilot",
+		event = "InsertEnter",
+		opts = {
+			suggestion = { enabled = false },
+			panel = { enabled = false },
+		},
+	},
 }

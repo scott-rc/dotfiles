@@ -2,6 +2,9 @@ return {
 	{
 		"saghen/blink.cmp",
 		version = "1.*",
+		dependencies = {
+			"fang2hou/blink-copilot",
+		},
 		opts = {
 			appearance = {
 				nerd_font_variant = "mono",
@@ -49,7 +52,15 @@ return {
 				},
 			},
 			sources = {
-				default = { "lsp", "buffer" },
+				default = { "lsp", "copilot", "buffer" },
+				providers = {
+					copilot = {
+						name = "copilot",
+						module = "blink-copilot",
+						score_offset = 100,
+						async = true,
+					},
+				},
 			},
 			signature = {
 				enabled = true,
