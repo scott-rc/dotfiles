@@ -31,7 +31,7 @@ Push commits and create/update PR with title/description per guidelines. Also ha
 See operations/push.md for detailed instructions.
 
 ### Fix
-Auto-detect and fix CI failures and unresolved review threads; draft and post replies.
+Auto-detect and fix CI failures, unresolved review threads, and PR description quality issues.
 See operations/fix.md for detailed instructions.
 
 ### Correct
@@ -62,7 +62,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 
 ## Monitoring
 
-Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, or both) and handles it. The loop is session-scoped and auto-expires after 3 days.
+Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, description quality, or any combination) and handles it. The loop is session-scoped and auto-expires after 3 days.
 
 ## References
 

@@ -19,6 +19,12 @@ Commit outstanding changes with a well-formatted message.
 7. **If the agent returns `needs-user-input`** (mixed concerns): present the groups from `## Cohesion` as AskUserQuestion options. Re-invoke the agent with: "Stage and commit only these files: `<file list>`".
 8. **Report**: show the commit hash and title from the agent's `## Commit` section (complex path) or from `git log -1 --oneline` (simple path, already reported in step 5).
 
+9. **Context enrichment**: If on main/master, skip this step. If the branch context file exists and does NOT contain the `N/A` sentinel, check whether this commit introduces files in a new concern area not reflected in the context. Run `git diff --name-only HEAD~1..HEAD 2>/dev/null` (skip this step if the command fails, e.g., first commit on an orphan branch) and check if any files fall under a top-level directory (e.g., `.claude/`, `.github/`, `docs/`, CI config dirs) that the branch context does not mention. If a clearly distinct new category appears, suggest via AskUserQuestion: "This commit adds <category> changes not mentioned in branch context. Update context?" with options:
+   - **"Update it"** -- run the Branch Context Creation pattern (update path) from `references/git-patterns.md`.
+   - **"Skip"** -- proceed without updating.
+
+   Only trigger when the new concern is clearly a distinct category -- not a new file in an existing concern area already covered by the context.
+
 ---
 
 ## Amend

@@ -30,11 +30,17 @@ Push commits and create/update PR.
 
 6. **Detect base branch and read context**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists and does not contain the `N/A` sentinel (path and sentinel per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md.
 
-7. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
+7. **Context adequacy check**: Run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or too thin. Present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
+   - **"Update it"** -- run the Branch Context Creation pattern (update path) from `references/git-patterns.md`, then continue.
+   - **"Continue as-is"** -- proceed with existing context.
 
-8. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
+   Skip this check if the branch context file is missing (step 8/9 handles that) or contains the `N/A` sentinel.
 
-9. **Report PR URL** to the user.
+8. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
+
+9. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
+
+10. **Report PR URL** to the user.
 
 ---
 
@@ -51,9 +57,13 @@ Update the PR description without pushing new commits.
      - **"Just rewrite from the diff"** -- proceed without `context`.
    - If the file has real content: proceed normally (`branch_context` carries the motivation).
 
-3. **Delegate to `pr-writer` agent** per references/pr-writer-rules.md with:
+3. **Context adequacy check**: If the branch context file has real content (not missing, not `N/A`), detect base branch per references/git-patterns.md, then run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
+   - **"Update it"** -- run the Branch Context Creation pattern (update path) from `references/git-patterns.md`, then continue.
+   - **"Continue as-is"** -- proceed with existing context.
+
+4. **Delegate to `pr-writer` agent** per references/pr-writer-rules.md with:
    - `mode`: `update`
-   - `base_branch`: detect per references/git-patterns.md
+   - `base_branch`: from step 3 (or detect per references/git-patterns.md if step 3 was skipped)
    - `pr_number`: from step 1
    - `commit_messages`: read via `git log origin/<base>..HEAD --format=%B`
    - `branch_context` (optional): read the branch context file if it exists and does not contain the `N/A` sentinel
@@ -61,8 +71,8 @@ Update the PR description without pushing new commits.
 
    PR text MUST follow references/github-text.md.
 
-4. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), present options via AskUserQuestion: "Force push (--force-with-lease)" or "Skip push". Only push if the user accepts.
+5. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), present options via AskUserQuestion: "Force push (--force-with-lease)" or "Skip push". Only push if the user accepts.
 
-5. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, re-invoke the pr-writer with explicit correction context.
+6. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, re-invoke the pr-writer with explicit correction context.
 
-6. **Report**: Confirm update, show PR URL.
+7. **Report**: Confirm update, show PR URL.
