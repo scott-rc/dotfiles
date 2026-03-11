@@ -77,6 +77,7 @@ If CI, Review, or Combined path ran AND the description quality check (wall of t
    - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt as constraints
    - Reference to the project's CLAUDE.md for project-specific build/test commands
    - For bot threads: classify each as **Applicable** (the bot's finding is valid — fix the code) or **Not applicable** (false positive or red herring — the flagged pattern is intentional, the suggestion doesn't fit this context, or the issue was already addressed — do NOT fix the code)
+   - Include a standing instruction for the code-writer to self-classify each applicable finding's fix approach: if it's a security or correctness bug (path traversal, injection, data loss, missing validation with observable wrong behavior), write a failing test demonstrating the bug first, then fix. If it's consistency or style (pattern matching, naming, formatting), fix and verify existing tests pass — no new test required. Tiebreaker: if the missing handling could cause data loss or silent wrong results, treat as test-first.
    - Group threads by file path to minimize context switching; one subagent handles all threads
 
    **Anti-inline rules:**
