@@ -43,12 +43,12 @@ If any of the above paths apply AND the description quality check also flagged i
 
    - **Buildkite**: Fetch logs per references/buildkite-handling.md. MUST NOT use `ci-triager` for Buildkite. Truncate logs to the last 200 lines per job. **Before dispatching a fix subagent**, present a summary of failed jobs (job name + one-line failure snippet from each log) and ask the user via AskUserQuestion with options: "Fix all", "Skip (likely flakes)", "Let me choose". If "Let me choose", present each job individually and let the user select which to fix. Only dispatch fixes for jobs the user selected.
 
-2. **Fix the issues**: Spawn a general-purpose subagent (model: sonnet) with:
+2. **Fix the issues**: Spawn a `code-writer` subagent (model: sonnet) with:
    - For GitHub Actions: the triager's full report as task context (root cause analysis, trimmed failure logs, relevant file paths)
    - For Buildkite: the truncated failure logs
-   - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt
-   - Instruction to: read the source files identified in the report/logs, apply the fix, run the resolved lint and test commands, and consult the project's CLAUDE.md for project-specific build/test commands
-   - One subagent per failed check
+   - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt as constraints
+   - Reference to the project's CLAUDE.md for project-specific build/test commands
+   - One subagent per failed GitHub Actions run; a single subagent handles all Buildkite failures
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 
@@ -64,14 +64,20 @@ If any of the above paths apply AND the description quality check also flagged i
 
 3. **Classify threads by commenter type**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
 
-4. **Gather context and fix**: Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary. Then spawn a fix subagent (model: sonnet) with:
-   - Per-thread context: file path, line number(s), full comment bodies from all comments in each thread (later replies often contain clarifications), and the current code at those locations
-   - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt
-   - Instruction to: read the files at the referenced locations, apply the fix the reviewer requested, run the resolved lint and test commands, and consult the project's CLAUDE.md for project-specific build/test commands
-   - For bot threads: after reading context at each thread location, classify each as **Applicable** (the bot's finding is valid — fix the code) or **Not applicable** (false positive or red herring — the flagged pattern is intentional, the suggestion doesn't fit this context, or the issue was already addressed — do NOT fix the code)
+4. **Gather context and fix**: Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary.
+
+   Then spawn a `code-writer` subagent (model: sonnet) with:
+   - Per-thread context: file path, line number(s), full comment bodies from all comments in each thread (later replies often contain clarifications)
+   - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md, passed inline in the prompt as constraints
+   - Reference to the project's CLAUDE.md for project-specific build/test commands
+   - For bot threads: classify each as **Applicable** (the bot's finding is valid — fix the code) or **Not applicable** (false positive or red herring — the flagged pattern is intentional, the suggestion doesn't fit this context, or the issue was already addressed — do NOT fix the code)
    - Group threads by file path to minimize context switching; one subagent handles all threads
 
-5. **Verify fixes**: Run linter/tests per the "Local Fix Commands" section in references/git-patterns.md. Re-read changed code to confirm each thread is addressed. If any fix is incomplete after 2 attempts, mark it as unresolved and continue with remaining threads.
+   **Anti-inline rules:**
+   - The orchestrator MUST NOT read source files to analyze or diagnose findings — pass thread details (file, line, comment body) to the code-writer and let it investigate
+   - MUST delegate even for a single thread — the bulk threshold only gates the Explore subagent, not delegation itself
+
+5. **Scope-check fixes**: The code-writer spawned in step 4 runs its own verification internally — re-running here would duplicate work. Instead, run `git diff --name-only` and compare against the file paths from the thread list. Flag any unexpected files (not referenced by any thread) to the user via AskUserQuestion before proceeding. If any fix is incomplete after 2 attempts, mark it as unresolved and continue with remaining threads.
 
 6. **React to not-applicable bot threads**: For each bot thread classified as not applicable in step 4:
    - Add a thumbs-down reaction to the first comment: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="-1"`

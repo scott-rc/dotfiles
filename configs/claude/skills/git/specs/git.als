@@ -288,7 +288,7 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     -- gather(0) = detect CI failures and review threads in parallel;
     -- report(1) = summarize what was found; confirm(2) = classify threads, approve plan;
     -- delegate(3) = CITriager (GitHub Actions) or ExploreSubagent (bulk threads);
-    -- delegate(4) = FixSubagent applies code fixes; verify(5) = run linter/tests;
+    -- delegate(4) = FixSubagent applies code fixes; verify(5) = scope-check changed files;
     -- write(6) = inline commit of fixes; publish(7) = GitHubWriter posts replies.
     (op = Fix and k = GatherK   and p = 0) or
     (op = Fix and k = ReportK   and p = 1) or
