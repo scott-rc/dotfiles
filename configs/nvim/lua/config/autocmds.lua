@@ -50,9 +50,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				end
 				vim.schedule(function()
 					if at_def or #defs == 0 then
-						require("telescope.builtin").lsp_references({ include_declaration = false })
+						Snacks.picker.lsp_references()
 					else
-						require("telescope.builtin").lsp_definitions()
+						Snacks.picker.lsp_definitions()
 					end
 				end)
 			end)
@@ -60,15 +60,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			buffer = args.buf,
 			desc = "Go to definition / references",
 		})
-		vim.keymap.set("n", "gd", require("telescope.builtin").lsp_definitions, {
+		vim.keymap.set("n", "gd", function() Snacks.picker.lsp_definitions() end, {
 			buffer = args.buf,
-			desc = "Go to definition (Telescope)",
+			desc = "Go to definition",
 		})
 		vim.keymap.set("n", "grr", function()
-			require("telescope.builtin").lsp_references({ include_declaration = false })
+			Snacks.picker.lsp_references()
 		end, {
 			buffer = args.buf,
-			desc = "Find references (Telescope)",
+			desc = "Find references",
 		})
 		vim.keymap.set("n", "<C-Space>", vim.lsp.buf.hover, {
 			buffer = args.buf,

@@ -12,6 +12,7 @@ return {
 	-- Smooth scrolling + indent guides
 	{
 		"folke/snacks.nvim",
+		priority = 1000,
 		lazy = false,
 		opts = {
 			indent = {
@@ -34,6 +35,12 @@ return {
 			},
 			picker = {
 				enabled = true,
+				actions = {
+					explorer_preview = function(picker)
+						picker:action("confirm")
+						picker:focus("list")
+					end,
+				},
 				matcher = {
 					frecency = true,
 					cwd_bonus = true,
@@ -71,8 +78,9 @@ return {
 						win = {
 							list = {
 								keys = {
-									["<CR>"] = { "confirm", function(picker) picker:focus("list") end },
-									["l"] = { "confirm", function(picker) picker:focus("list") end },
+									["<CR>"] = { "explorer_preview", desc = "Open and stay" },
+									["<Space>"] = { "explorer_preview", desc = "Open and stay" },
+									["l"] = { "explorer_preview", desc = "Open and stay" },
 								},
 							},
 						},
@@ -111,9 +119,23 @@ return {
 			{ "<leader>gB", function() Snacks.picker.git_branches() end, desc = "Git branches" },
 			{ "<leader>gf", function() Snacks.picker.git_status() end, desc = "Git status" },
 			-- Explorer
-			{ "<leader>e", function() Snacks.explorer() end, desc = "Explorer" },
-			{ "<C-e>", function() Snacks.explorer() end, desc = "Explorer" },
-			{ "<D-e>", function() Snacks.explorer() end, mode = { "n", "v", "i" }, desc = "Explorer" },
+			{ "<leader>e", function() Snacks.explorer.open() end, desc = "Explorer" },
+			{ "<C-e>", function() Snacks.explorer.open() end, desc = "Explorer" },
+			{
+				"<D-e>",
+				function()
+					local picker = Snacks.picker.get({ source = "explorer" })[1]
+					if not picker then
+						Snacks.explorer.open()
+					elseif picker:is_focused() then
+						picker:close()
+					else
+						picker:focus()
+					end
+				end,
+				mode = { "n", "v", "i" },
+				desc = "Toggle/focus explorer",
+			},
 		},
 	},
 
