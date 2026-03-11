@@ -25,7 +25,7 @@ After all three complete, route based on results:
 - **Unresolved threads only** (CI green or no CI, description OK): follow the Review path below.
 - **Both CI failures and unresolved threads** (description OK): follow the Combined path below.
 - **Description issues only** (CI green, no unresolved threads): follow the Description path below.
-- **Neither** (CI green, no unresolved threads, description OK): report that everything is green and stop.
+- **Neither** (CI green, no unresolved threads, description OK): report that everything is green. Then run `CronList` — if any job's prompt contains `/git fix`, cancel it with `CronDelete` and tell the user the loop has stopped because all checks passed and all threads are resolved. This is safe because cron jobs are session-scoped; parallel loops on other branches run in separate sessions.
 
 If any of the above paths apply AND the description quality check also flagged issues, run the Description path after all other paths complete.
 

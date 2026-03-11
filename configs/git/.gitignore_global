@@ -1,6 +1,7 @@
 **/*.local.*
 .DS_Store
 .worktrees
+.claude/scheduled_tasks.lock
 .cursor/mcp.json
 .idea
 .vscode/*
