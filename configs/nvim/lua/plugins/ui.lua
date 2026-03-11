@@ -101,14 +101,14 @@ return {
 
 	-- Scrollbar with git indicators
 	{
-		"petertriho/nvim-scrollbar",
+		"lewis6991/satellite.nvim",
 		dependencies = { "lewis6991/gitsigns.nvim" },
-		config = function()
-			require("scrollbar").setup({
-				handlers = { cursor = false },
-			})
-			require("scrollbar.handlers.gitsigns").setup()
-		end,
+		opts = {
+			handlers = {
+				cursor = { enable = false },
+				gitsigns = { enable = true },
+			},
+		},
 	},
 
 	-- Statusline
