@@ -8,7 +8,12 @@ Commit outstanding changes with a well-formatted message.
 
 1. **Check branch protection**: MUST follow main branch protection per references/git-patterns.md. If on main/master and not dotfiles, present branch options via AskUserQuestion. If chosen, create and switch to the branch before committing. Branch name MUST follow the `sc/` prefix convention defined there.
 2. **Branch context file (orchestrator -- do NOT delegate)**: If on main/master, skip this step. Otherwise, check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If missing, MUST run the Branch Context Creation pattern from `references/git-patterns.md` **before** proceeding to step 3. This step requires user interaction and MUST complete at the orchestrator level -- the committer subagent cannot prompt the user.
-3. **Determine scope**: MUST identify the session file set -- files modified in this conversation. Skip this step if the user asked to "commit all", "commit everything", or provided their own file list. If `git status` shows modified files outside the session file set, ask the user which files to include before proceeding. If the user says to skip the extra files, proceed with only the session file set.
+3. **Determine scope**: MUST identify the session file set -- files modified in this conversation. Skip the user prompt if:
+   - The user asked to "commit all" or "commit everything" → stage everything
+   - The user provided their own file list → use that list
+   - The user said "commit this", "commit these changes", "commit my changes", or "commit what I changed" → use only the session file set
+   If the resolved file set is empty (no files to stage), inform the user there is nothing to commit and stop.
+   If none of those apply and `git status` shows modified files outside the session file set, ask the user which files to include before proceeding. If the user says to skip the extra files, proceed with only the session file set.
 4. **Evaluate complexity**: A commit is **simple** when ALL are true:
    - Session file set is known (from this conversation) or user provided a file list
    - 5 or fewer files

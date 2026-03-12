@@ -54,7 +54,9 @@ See operations/sync.md for detailed instructions.
 
 Multi-operation sequences and ambiguous phrasings that need explicit routing:
 
-- **"commit and push"** → Commit, then push
+- **"commit this"** / **"commit these changes"** / **"commit my changes"** / **"commit what I changed"** → Commit (session-scoped: session files only, no ask)
+- **"commit this and push"** / **"commit these changes and push"** → Commit (session-scoped), then Push
+- **"commit and push"** → Commit (default scope), then Push
 - **"amend and push"** → Commit (amend mode), then push
 - **"squash and push"** → Squash, then push (push's uncommitted-changes check is redundant after squash)
 - **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then Push (Refresh Description mode). Set `context` to note the squash. After refresh, offer force push since history was rewritten.
