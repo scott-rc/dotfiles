@@ -84,6 +84,7 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 
 Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands, git-spice integration
+- references/git-spice-cli.md - git-spice (`gs`) CLI quick reference: commands, flags, and configuration options
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)

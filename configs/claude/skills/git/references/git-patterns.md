@@ -10,8 +10,10 @@ Shared patterns used across git skill operations. Reference this file for consis
 - Dotfiles Exception
 - Main Branch Protection
 - Branch Naming
+- Branch Context File
 - Fetch Safety
 - Scope Verification
+- Downstream PR Safety
 - CI Detection
 - CI System Detection
 - Branch Context Creation
@@ -208,7 +210,7 @@ Succeeds (exit 0) if git-spice is initialized for this repo.
 
 ### Initialization
 
-Only auto-initialize during stacking workflows (Split, Stack). Other operations (Push, Rebase, Squash) check but do not init.
+Auto-initialize whenever any operation needs git-spice and it is not yet initialized. Do NOT prompt the user — initialize silently.
 
 ```bash
 gs repo init --trunk <base> --remote origin --no-prompt
@@ -216,6 +218,15 @@ git config spice.branchCreate.prefix sc/
 ```
 
 The `sc/` prefix maintains the existing branch naming convention.
+
+### Ensure Git-Spice
+
+A composite pattern that all operations use before running any `gs` command:
+
+1. **Detect**: Run the Detection check above. If git-spice is already initialized, skip to step 3.
+2. **Initialize**: Run initialization silently (no user prompt): `gs repo init --trunk <base> --remote origin --no-prompt` and `git config spice.branchCreate.prefix sc/`, where `<base>` is the base branch from Base Branch Detection.
+3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `gs branch track --base <base> --no-prompt` to track it.
+4. **Done**: git-spice is ready to use.
 
 ### Tracked Branch Check
 
@@ -238,6 +249,18 @@ gs branch submit --no-publish --force --no-prompt
 ```
 
 `--no-publish` skips PR creation (pr-writer handles that separately).
+
+### Commit via Git-Spice
+
+For tracked branches, use `gs commit create` instead of `git commit`. This commits and auto-restacks any upstack branches:
+```bash
+gs commit create -m "<message>" --no-prompt
+```
+
+With staging:
+```bash
+gs commit create -a -m "<message>" --no-prompt
+```
 
 ### Stack Submit
 

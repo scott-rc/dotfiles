@@ -178,6 +178,10 @@ one sig GetFailedRuns extends Reference {} {
     consumedBy = Fix
 }
 
+one sig GitSpiceCLI extends Reference {} {
+    consumedBy = Commit + Squash + Rebase + Push + Split + Stack + Sync
+}
+
 
 -- ═══ Routing ═════════════════════════════════════════════════
 
