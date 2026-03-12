@@ -19,6 +19,23 @@ Shared patterns used across git skill operations. Reference this file for consis
 - Branch Context Creation
 - Local Fix Commands
 - Git-Spice
+  - Detection
+  - Initialization
+  - Ensure Git-Spice
+  - Tracked Branch Check
+  - Push via Git-Spice
+  - Commit via Git-Spice
+  - Amend via Git-Spice
+  - Squash via Git-Spice
+  - Rebase Conflict Resolution
+  - Branch Fold
+  - Stack Submit
+  - Restack
+  - Navigation
+  - Sync
+  - Branch Reorder
+  - Non-Interactive Rule
+  - Command Name
 
 ## Script Paths
 
@@ -112,7 +129,7 @@ Use triple-dot (`...`); double-dot shows base-branch changes as deletions when m
 
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
-- Offer to fix with `git rebase -i origin/<base>`
+- Offer to fix with `gs branch edit` (interactive rebase scoped to the current branch's commits)
 
 ## Downstream PR Safety
 
@@ -261,6 +278,46 @@ With staging:
 ```bash
 gs commit create -a -m "<message>" --no-prompt
 ```
+
+### Amend via Git-Spice
+
+Use `gs commit amend` instead of `git commit --amend` + `gs upstack restack`. This amends the last commit AND auto-restacks any upstack branches in one atomic operation:
+```bash
+gs commit amend --no-prompt
+```
+
+### Squash via Git-Spice
+
+Use `gs branch squash` to squash all commits on the current branch into one and auto-restack upstack branches:
+```bash
+gs branch squash --no-prompt
+```
+
+With an explicit message:
+```bash
+gs branch squash -m "<message>" --no-prompt
+```
+
+### Rebase Conflict Resolution
+
+After resolving conflicts manually, use `gs rebase continue` (alias `gs rbc`) to resume — this auto-restacks upstack branches after the continue:
+```bash
+gs rebase continue --no-prompt
+```
+
+To cancel the rebase entirely, use `gs rebase abort` (alias `gs rba`):
+```bash
+gs rebase abort
+```
+
+### Branch Fold
+
+Merge the current branch into its base, delete the current branch, and rebase upstack branches onto the next downstack:
+```bash
+gs branch fold --no-prompt
+```
+
+This is destructive (deletes the branch). Always confirm with the user before executing.
 
 ### Stack Submit
 

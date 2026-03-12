@@ -1,6 +1,6 @@
 # git-spice CLI Reference
 
-Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: https://abhinav.github.io/git-spice/
+Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: https://abhinav.github.io/git-spice/ — LLM-friendly full reference: https://abhinav.github.io/git-spice/llms-full.txt
 
 ## Repository
 
@@ -18,9 +18,9 @@ Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: 
 - `gs branch restack [--branch NAME] [--no-prompt]` — Rebase onto base
 - `gs branch edit` — Interactive rebase of commits in branch
 - `gs branch split [--at COMMIT:NAME] [--branch NAME]` — Split branch at commits
-- `gs branch squash [-m MSG] [--no-edit] [--no-verify] [--branch NAME]` — Squash all commits
+- `gs branch squash [-m MSG] [--no-edit] [--no-verify] [--branch NAME] [--no-prompt]` — Squash all commits
 - `gs branch fold [--branch NAME]` — Merge into base and delete
-- `gs branch onto [onto] [--branch NAME]` — Move to different base
+- `gs branch onto [onto] [--branch NAME]` — Move to different base (alias: `gs bon`)
 - `gs branch diff [--branch NAME]` — Show diff from base
 - `gs branch submit [--fill] [--draft|--no-draft] [--publish|--no-publish] [-w] [--force] [--no-verify] [-l LABEL] [-r REVIEWER] [-a ASSIGNEE] [--title T] [--body B] [--no-prompt]` — Create/update PR
 
@@ -28,7 +28,7 @@ Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: 
 
 - `gs stack submit [--fill] [--draft|--no-draft] [-w] [--update-only|--no-update-only] [-l LABEL] [-r REVIEWER] [-a ASSIGNEE] [--no-prompt]` — Submit entire stack
 - `gs stack restack [--branch NAME] [--no-prompt]` — Restack all branches in stack
-- `gs stack edit [--editor STRING] [--branch NAME]` — Edit branch order
+- `gs stack edit [--editor STRING] [--branch NAME]` — Edit branch order (alias: `gs se`)
 - `gs stack delete [--force] [--no-prompt]` — Delete all branches in stack
 
 ## Navigation
@@ -43,7 +43,7 @@ Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: 
 
 - `gs upstack submit [--branch NAME] [--no-prompt]` — Submit current + above
 - `gs upstack restack [--skip-start] [--branch NAME] [--no-prompt]` — Restack current + above
-- `gs upstack onto [onto] [--branch NAME] [--no-prompt]` — Move branch + above to new base
+- `gs upstack onto [onto] [--branch NAME] [--no-prompt]` — Move branch + above to new base (alias: `gs uso`)
 - `gs upstack delete [--force]` — Delete all above
 
 ## Downstack
@@ -54,9 +54,16 @@ Quick reference for git-spice (`gs`) commands used by the git skill. Full docs: 
 
 ## Commit
 
-- `gs commit create [-m MSG] [-a] [--no-verify]` — Commit and restack upstack
-- `gs commit amend` — Amend last commit and restack
+- `gs commit create [-m MSG] [-a] [--no-verify] [--no-prompt]` — Commit and restack upstack (alias: `gs cc`)
+- `gs commit amend [-m MSG] [-a/--all] [--no-verify] [--no-prompt]` — Amend last commit and auto-restack upstack branches (alias: `gs ca`)
 - `gs commit split` — Split last commit and restack
+
+## Rebase
+
+Prefer these over `git rebase --continue/--abort` — they auto-restack upstack branches after resuming.
+
+- `gs rebase continue [--no-prompt]` — Resume a paused rebase and auto-restack upstack branches (alias: `gs rbc`)
+- `gs rebase abort` — Cancel the current rebase and restore pre-rebase state (alias: `gs rba`)
 
 ## Logging
 

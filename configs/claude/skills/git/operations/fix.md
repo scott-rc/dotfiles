@@ -4,6 +4,8 @@ Auto-detect and fix CI failures, unresolved review threads, and PR description q
 
 ## Instructions
 
+0. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-patterns.md. Required because commit-and-push steps use `gs branch submit`.
+
 ### Detection
 
 Run these three checks in parallel:

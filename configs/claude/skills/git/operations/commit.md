@@ -21,7 +21,7 @@ Commit outstanding changes with a well-formatted message.
    - `git diff --stat <files>` shows 100 or fewer lines changed total
    If any condition is false, the commit is **complex**.
 6. **Commit (simple -- inline)**: Stage files, draft message, and commit using `gs commit create -m "<message>" --no-prompt` instead of `git commit -m "<message>"`. This commits and auto-restacks any upstack branches. Follow the message format in references/commit-message-format.md. Report via `git log -1 --oneline`.
-7. **Commit (complex -- delegate)**: Delegate to the `committer` agent. If a session file set was determined, pass: "Stage and commit only these files: `<file list>`". Otherwise, pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously. The committer sanitizes messages via `sanitize.sh --commit-msg` which enforces a 72-character subject limit -- if it rejects the message, shorten the subject and retry. MUST NOT pass branch context, summaries, or change descriptions to the committer -- it reads the diff itself. After the committer returns, run `gs upstack restack` to restack any dependent branches.
+7. **Commit (complex -- delegate)**: Delegate to the `committer` agent. If a session file set was determined, pass: "Stage and commit only these files: `<file list>`". Otherwise, pass no additional prompt -- the agent gathers context, drafts a message, stages, and commits autonomously. The committer sanitizes messages via `sanitize.sh --commit-msg` which enforces a 72-character subject limit -- if it rejects the message, shorten the subject and retry. MUST NOT pass branch context, summaries, or change descriptions to the committer -- it reads the diff itself. The committer MUST use `gs commit create --no-prompt` (per the Commit via Git-Spice pattern) which auto-restacks any upstack branches.
 8. **If the agent returns `needs-user-input`** (mixed concerns): present the groups from `## Cohesion` as AskUserQuestion options. Re-invoke the agent with: "Stage and commit only these files: `<file list>`".
 9. **Report**: show the commit hash and title from the agent's `## Commit` section (complex path) or from `git log -1 --oneline` (simple path, already reported in step 6).
 
@@ -45,7 +45,7 @@ Fold outstanding changes into the last commit.
 
 4. **Record pre-amend state**: Record the current file set (`git diff --name-only origin/<base>...HEAD`) and the current commit message (`git log -1 --format=%B`).
 
-5. **Amend the commit**: Stage changed files (`git diff --name-only` then `git add <file1> ...`), then `git commit --amend --no-edit`. If the pre-commit hook fails, read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`. After amending, run `gs upstack restack` to restack any dependent branches.
+5. **Amend the commit**: Stage changed files (`git diff --name-only` then `git add <file1> ...`), then `gs commit amend --no-prompt`. This amends the last commit AND auto-restacks any upstack branches in one atomic operation. If the pre-commit hook fails, read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`.
 
 6. **Compare file sets**: Record the post-amend file set (`git diff --name-only origin/<base>...HEAD`) and compare against the pre-amend file set from step 4. If the file sets are identical, keep the original message and skip to step 8.
 

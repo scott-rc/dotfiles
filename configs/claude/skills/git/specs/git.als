@@ -95,7 +95,7 @@ one sig Correct extends Operation {} {
 -- Buildkite the triager is bypassed and FixSubagent handles everything.
 one sig Fix extends Operation {} {
     produces    = CommitArt + GitHubTextArt
-    delegatesTo = CITriager + FixSubagent + ExploreSubagent + GitHubWriter + Committer
+    delegatesTo = CITriager + FixSubagent + ExploreSubagent + GitHubWriter
     mutates     = CommitArt
     invokes     = none
 }
@@ -111,7 +111,10 @@ one sig Split extends Operation {} {
 }
 
 -- Stack navigates and manages stacked branches via git-spice.
--- Simple inline operation: no artifacts produced, no delegation.
+-- Includes destructive sub-operations (fold, delete, branch-squash) that
+-- modify git branch topology, but these are not modeled as domain artifacts
+-- (CommitArt/PRArt/GitHubTextArt). No delegation -- all sub-operations run
+-- inline via gs commands. ConfirmK gates destructive sub-operations.
 one sig Stack extends Operation {} {
     produces    = none
     delegatesTo = none
@@ -160,6 +163,7 @@ one sig BuildkiteHandling extends Reference {} {
 }
 
 one sig CommitMessageFormat extends Reference {} {
+    -- Split consumes indirectly: delegates to Committer which has its own synced copy.
     consumedBy = Commit + Squash + Correct + Fix + Split
 }
 
@@ -179,7 +183,7 @@ one sig GetFailedRuns extends Reference {} {
 }
 
 one sig GitSpiceCLI extends Reference {} {
-    consumedBy = Commit + Squash + Rebase + Push + Split + Stack + Sync
+    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Split + Stack + Sync
 }
 
 
@@ -342,12 +346,14 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Split and k = VerifyK   and p = 6) or
     (op = Split and k = ReportK   and p = 7) or
 
-    -- Stack: gather(0) -> write(1) -> report(2)
-    -- gather(0) = check git-spice init; write(1) = navigate/restack/track;
-    -- report(2) = show stack state.
+    -- Stack: gather(0) -> confirm(1) -> write(2) -> report(3)
+    -- gather(0) = check git-spice init; confirm(1) = user confirmation for destructive ops (fold/delete);
+    -- write(2) = navigate/restack/track/fold/delete/diff/branch-squash;
+    -- report(3) = show stack state.
     (op = Stack and k = GatherK  and p = 0) or
-    (op = Stack and k = WriteK   and p = 1) or
-    (op = Stack and k = ReportK  and p = 2) or
+    (op = Stack and k = ConfirmK and p = 1) or
+    (op = Stack and k = WriteK   and p = 2) or
+    (op = Stack and k = ReportK  and p = 3) or
 
     -- Sync: gather(0) -> write(1) -> report(2)
     -- gather(0) = check git-spice init; write(1) = gs repo sync or git fetch+rebase;
@@ -365,7 +371,7 @@ pred maxPos[op: Operation, p: Int] {
     (op = Fix     and p = 8) or
     (op = Correct and p = 6) or
     (op = Split   and p = 7) or
-    (op = Stack   and p = 2) or
+    (op = Stack   and p = 3) or
     (op = Sync    and p = 2)
 }
 
