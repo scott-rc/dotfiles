@@ -131,6 +131,8 @@ return {
 				sources = {
 					files = { hidden = true },
 					explorer = {
+						hidden = true,
+						ignored = true,
 						follow_file = true,
 						auto_close = false,
 						jump = { close = false },
