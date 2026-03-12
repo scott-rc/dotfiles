@@ -1,5 +1,6 @@
 # Brewfile - managed by brew bundle
 # Run `brew bundle` to install all packages
+# Test comment for git-spice validation
 
 # Shell
 brew "fish"
