@@ -13,6 +13,7 @@ Push commits and create/update PR.
 
 3. **Push to remote**:
    - `git fetch origin`
+   - **Git-spice check**: If the branch is tracked by git-spice (per references/git-patterns.md Git-Spice > Detection and Git-Spice > Tracked Branch Check), use `gs branch submit --no-publish --no-prompt` instead of the manual push below. For force push: `gs branch submit --no-publish --force --no-prompt`. Skip the remote-ahead check (git-spice handles this). Continue to step 4.
    - Check if the remote branch exists and has commits not in local: `git rev-list HEAD..origin/<branch> --count 2>/dev/null`. If the remote branch doesn't exist (first push), skip to push.
    - If remote is ahead (count > 0), show the remote-only commits: `git log --oneline HEAD..origin/<branch>` and present options via AskUserQuestion: "Force push (--force-with-lease)", "Rebase onto remote", "Abort push". MUST NOT rebase without showing the remote commits first.
    - `git push -u origin HEAD` (or `--force-with-lease` if the user chose that)

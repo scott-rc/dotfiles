@@ -1,7 +1,7 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, or split a branch into stacked PRs.
-argument-hint: "[commit | squash | push | rebase | fix | correct | split] [context]"
+description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, split a branch into stacked PRs, navigate stacks, or sync.
+argument-hint: "[commit | squash | push | rebase | fix | correct | split | stack | sync] [context]"
 ---
 
 # Git Operations
@@ -42,6 +42,14 @@ See operations/correct.md for detailed instructions.
 Split a large branch into stacked branches for easier code review. Analyzes the diff, proposes a stack grouped by concern, creates branches, and opens PRs.
 See operations/split.md for detailed instructions.
 
+### Stack
+Navigate and manage stacked branches tracked by git-spice — move up/down, restack, list, track/untrack branches.
+See operations/stack.md for detailed instructions.
+
+### Sync
+Fetch latest, clean up merged branches, and restack the stack.
+See operations/sync.md for detailed instructions.
+
 ## Combined Operations
 
 Multi-operation sequences and ambiguous phrasings that need explicit routing:
@@ -59,6 +67,11 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
 - **"split"** / **"split this branch"** / **"split for review"** / **"stack this"** → Split
 - **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
+- **"sync"** / **"pull latest"** / **"update from main"** → Sync
+- **"go up"** / **"next branch"** / **"go down"** / **"previous branch"** → Stack (navigate)
+- **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
+- **"show stack"** / **"list branches"** / **"where am I"** → Stack (list)
+- **"track this branch"** → Stack (track)
 
 ## Monitoring
 
@@ -67,7 +80,7 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 ## References
 
 Reference files:
-- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
+- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands, git-spice integration
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)

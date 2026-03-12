@@ -24,6 +24,7 @@ brew "hyperfine"
 
 # Git
 brew "git-delta"
+brew "git-spice"
 brew "gitui"
 brew "lazygit"
 

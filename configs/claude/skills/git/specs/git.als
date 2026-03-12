@@ -110,6 +110,24 @@ one sig Split extends Operation {} {
     invokes     = none
 }
 
+-- Stack navigates and manages stacked branches via git-spice.
+-- Simple inline operation: no artifacts produced, no delegation.
+one sig Stack extends Operation {} {
+    produces    = none
+    delegatesTo = none
+    mutates     = none
+    invokes     = none
+}
+
+-- Sync fetches, cleans merged branches, and restacks via git-spice.
+-- Simple inline operation: no artifacts produced, no delegation.
+one sig Sync extends Operation {} {
+    produces    = none
+    delegatesTo = none
+    mutates     = none
+    invokes     = none
+}
+
 
 -- ═══ References ═════════════════════════════════════════════
 
@@ -117,7 +135,7 @@ one sig Split extends Operation {} {
 
 one sig GitPatterns extends Reference {} {
     -- Consumed by all operations.
-    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Split
+    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Split + Stack + Sync
 }
 
 one sig GitHubText extends Reference {} {
@@ -200,6 +218,12 @@ one sig IntFixAndPush extends Intent {} {
 }
 one sig IntSplit extends Intent {} {
     routesTo = Split
+}
+one sig IntStack extends Intent {} {
+    routesTo = Stack
+}
+one sig IntSync extends Intent {} {
+    routesTo = Sync
 }
 
 
@@ -302,9 +326,9 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
 
     -- Split: gather(0) -> delegate(1) -> confirm(2) -> write(3) -> delegate(4) -> publish(5) -> verify(6) -> report(7)
     -- gather(0) = detect base, get diff stats; delegate(1) = Explore analyzes diff;
-    -- confirm(2) = user approves stack; write(3) = create branches + checkout files;
-    -- delegate(4) = committer for each branch; publish(5) = push + pr-writer;
-    -- verify(6) = diff last-stack vs reference; report(7) = summary.
+    -- confirm(2) = user approves stack; write(3) = gs branch create + code-writer implements;
+    -- delegate(4) = committer for each branch; publish(5) = gs stack submit + pr-writer updates;
+    -- verify(6) = final check; report(7) = summary.
     (op = Split and k = GatherK   and p = 0) or
     (op = Split and k = DelegateK and p = 1) or
     (op = Split and k = ConfirmK  and p = 2) or
@@ -312,7 +336,21 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Split and k = DelegateK and p = 4) or
     (op = Split and k = PublishK  and p = 5) or
     (op = Split and k = VerifyK   and p = 6) or
-    (op = Split and k = ReportK   and p = 7)
+    (op = Split and k = ReportK   and p = 7) or
+
+    -- Stack: gather(0) -> write(1) -> report(2)
+    -- gather(0) = check git-spice init; write(1) = navigate/restack/track;
+    -- report(2) = show stack state.
+    (op = Stack and k = GatherK  and p = 0) or
+    (op = Stack and k = WriteK   and p = 1) or
+    (op = Stack and k = ReportK  and p = 2) or
+
+    -- Sync: gather(0) -> write(1) -> report(2)
+    -- gather(0) = check git-spice init; write(1) = gs repo sync or git fetch+rebase;
+    -- report(2) = summarize results.
+    (op = Sync and k = GatherK  and p = 0) or
+    (op = Sync and k = WriteK   and p = 1) or
+    (op = Sync and k = ReportK  and p = 2)
 }
 
 pred maxPos[op: Operation, p: Int] {
@@ -322,7 +360,9 @@ pred maxPos[op: Operation, p: Int] {
     (op = Push    and p = 6) or
     (op = Fix     and p = 8) or
     (op = Correct and p = 6) or
-    (op = Split   and p = 7)
+    (op = Split   and p = 7) or
+    (op = Stack   and p = 2) or
+    (op = Sync    and p = 2)
 }
 
 
@@ -467,6 +507,12 @@ assert invokedOpsReachable {
             some i: Intent | op2 in i.routesTo
 }
 
+-- INV-D7: Stack and Sync are read-only (no artifacts produced, mutated, or delegated)
+assert stackSyncReadOnly {
+    Stack.produces = none and Stack.mutates = none and no Stack.delegatesTo and
+    Sync.produces = none and Sync.mutates = none and no Sync.delegatesTo
+}
+
 -- INV-REF-1: References are leaves — all references have non-empty consumedBy.
 -- The type system enforces this (consumedBy: some Operation), but we assert it
 -- explicitly to document the architectural intent.
@@ -496,6 +542,7 @@ check githubWriterDelegatedCorrectly     for 5 but 4 Int
 check exploreSubagentHasDelegation       for 5 but 4 Int
 check mutatesSubsetOfProduces            for 5 but 4 Int
 check ciTriagerImpliesFixSubagent        for 5 but 4 Int
+check stackSyncReadOnly                 for 5 but 4 Int
 
 -- Publish safety
 check publishPrecededByGather            for 5 but 4 Int
