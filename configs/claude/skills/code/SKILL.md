@@ -12,11 +12,11 @@ Load and apply the user's coding style preferences when producing or reviewing c
 
 ### Write
 Load preferences and write code — Apply mode (no TDD) for refactoring, config, and glue; Feature mode (red-green-refactor) for new behavior; Fix mode (regression-first) for bug fixes.
-See operations/write.md for detailed instructions.
+MUST read operations/write.md before executing.
 
 ### Test
 Improve or evaluate test coverage — Coverage mode (characterization tests for untested code) or Mutate mode (mutation testing to find and kill survivors).
-See operations/test.md for detailed instructions.
+MUST read operations/test.md before executing.
 
 ### Plan
 Decompose a coding task into ordered chunks with TDD structure for testable behavior.
@@ -24,11 +24,11 @@ Delegate immediately to the compose skill: `skill: "compose", args: "$ARGUMENTS"
 
 ### Review
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis. Supports an evaluate-fix loop mode for iterative convergence.
-See operations/review.md for detailed instructions.
+MUST read operations/review.md before executing.
 
 ### Benchmark
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
-See operations/benchmark.md for detailed instructions.
+MUST read operations/benchmark.md before executing.
 
 ## Combined Operations
 

@@ -12,4 +12,4 @@ Adapts text to match the user's established writing voice, tone, and structural 
 
 ### Rewrite
 Takes input text and rewrites it in the user's voice, adapting tone and structure to the target context (PR description, review comment, Slack message, etc.).
-See operations/rewrite.md for detailed instructions.
+MUST read operations/rewrite.md before executing.

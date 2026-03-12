@@ -16,39 +16,39 @@ Route to the appropriate operation based on user intent.
 
 ### Commit
 Commit outstanding changes with a well-formatted message. Also handles amend (fold changes into the last commit) -- see the Amend mode in `operations/commit.md`.
-See operations/commit.md for detailed instructions.
+MUST read operations/commit.md before executing.
 
 ### Squash
 Squash all commits on the current branch into a single commit.
-See operations/squash.md for detailed instructions.
+MUST read operations/squash.md before executing.
 
 ### Rebase
 Fetch latest and rebase onto base branch.
-See operations/rebase.md for detailed instructions.
+MUST read operations/rebase.md before executing.
 
 ### Push
 Push commits and create/update PR with title/description per guidelines. Also handles refresh description (update PR description without new commits) -- see the Refresh Description mode in `operations/push.md`.
-See operations/push.md for detailed instructions.
+MUST read operations/push.md before executing.
 
 ### Fix
 Auto-detect and fix CI failures, unresolved review threads, and PR description quality issues.
-See operations/fix.md for detailed instructions.
+MUST read operations/fix.md before executing.
 
 ### Correct
 Propagate a user correction about what a change does to all affected artifacts (commit message, branch context, changesets, PR title/description).
-See operations/correct.md for detailed instructions.
+MUST read operations/correct.md before executing.
 
 ### Split
 Split a large branch into stacked branches for easier code review. Analyzes the diff, proposes a stack grouped by concern, creates branches, and opens PRs.
-See operations/split.md for detailed instructions.
+MUST read operations/split.md before executing.
 
 ### Stack
 Navigate and manage stacked branches tracked by git-spice — move up/down, reorder, restack, list, track/untrack branches, fold a branch into its base, delete a branch or stack, show branch diff, or squash branch commits.
-See operations/stack.md for detailed instructions.
+MUST read operations/stack.md before executing.
 
 ### Sync
 Fetch latest, clean up merged branches, and restack the stack.
-See operations/sync.md for detailed instructions.
+MUST read operations/sync.md before executing.
 
 ## Combined Operations
 

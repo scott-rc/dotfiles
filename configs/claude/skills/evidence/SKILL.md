@@ -18,7 +18,7 @@ After resolving, dispatch to Verify via the Task tool (`subagent_type: general-p
 
 ### Verify
 Gathers supporting, contradicting, and inconclusive evidence for one or more claims and writes results to `tmp/evidence-<slug>.md`.
-See operations/verify.md for detailed instructions.
+MUST read operations/verify.md before executing.
 
 ## Combined Operations
 

@@ -13,4 +13,4 @@ Facilitate collaborative brainstorming sessions to generate and refine ideas.
 
 ### Brainstorm
 Conduct a multi-round brainstorming session on a topic, then synthesize the best ideas.
-See operations/brainstorm.md for detailed instructions.
+MUST read operations/brainstorm.md before executing.
