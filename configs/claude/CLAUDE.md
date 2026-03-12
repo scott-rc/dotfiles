@@ -12,16 +12,18 @@ RFC 2119 keywords (MUST, MUST NOT, SHALL, SHOULD, etc.) carry their defined mean
 
 Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
 
-**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision, and reading file lists or directory structures to scope a delegation (determining which files to pass as context). Test: "am I gathering info to choose what to do next?"
+**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision, and reading file lists or directory structures to scope a delegation (determining which files to pass as context). Test: "am I gathering info to choose what to do next?" Diagnosing a behavioral problem in an agent or skill (e.g., "why did pr-writer produce identical output?") requires reading that agent/skill's implementation — this IS a routing read. Stop there: once you know which files need changing and why, delegate.
 
 **Work gets delegated** — file analysis, diff review, artifact generation, multi-step execution. Test: "does this consume context I'll need later?"
 
 **Stop before investigation becomes implementation** — reading a few files to identify what to delegate is a routing read. Reading files to figure out how to implement is doing the subagent's job.
 
+**Heuristic**: if you've read more than 2-3 non-trivial files (excluding file lists, directory outputs, and small lookups) to understand a problem you plan to delegate, you've likely crossed the line. Delegate now with what you know and include the file paths as context for the subagent.
+
 User interaction and state transitions stay in the orchestrator.
 
 **Do NOT:**
-- Read source files to analyze or diagnose problems that will be delegated (reading file lists to scope is fine — see routing reads above)
+- Read source files beyond what routing reads permit — reading to identify *what* to delegate is allowed (see routing reads above); reading to figure out *how* to implement is not
 - Design implementations or prescribe code changes for subagents
 - Re-read files a subagent already summarized
 - Reduce a subagent to a transcriber by over-specifying the solution
