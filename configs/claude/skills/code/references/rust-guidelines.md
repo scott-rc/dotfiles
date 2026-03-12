@@ -2,7 +2,7 @@
 
 ## Error Handling
 
-No custom error types, `Result` types, or error enums. Fatal errors use `eprintln!()` + `process::exit(1)`. Recoverable errors use `unwrap_or()` or `unwrap_or_else()` with safe defaults. Error messages MUST include context:
+For CLI tools and small binaries: no custom error types, `Result` types, or error enums. Fatal errors use `eprintln!()` + `process::exit(1)`. Recoverable errors use `unwrap_or()` or `unwrap_or_else()` with safe defaults. For libraries and larger projects, use idiomatic error handling (`thiserror`, `anyhow`, or custom error types) as appropriate. Error messages MUST include context:
 
 ```rust
 let repo = git::repo_root(&cwd).unwrap_or_else(|| {

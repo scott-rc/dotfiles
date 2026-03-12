@@ -61,7 +61,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - Propose 2–5 non-overlapping scopes, each with a name, concrete file list, focus, and scope-specific criteria beyond the standard checklist
    - Return the scopes as a structured list
 
-   Present the proposed scopes to the user via AskUserQuestion for confirmation or adjustment before proceeding.
+   Present the proposed scopes to the user via AskUserQuestion for confirmation or adjustment before proceeding. (Skipped in loop mode — use proposed scopes directly.)
 
 10. **Spawn review subagents**:
     Spawn parallel Task subagents (type: code-reviewer), one per scope. Pass each subagent:
@@ -92,7 +92,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     If no Blocking or Improvement findings exist after the initial evaluation, the review converged on the first pass — skip to step 20.
 
 16. **Fix findings**:
-    Delegate all Blocking and Improvement findings to a code-writer subagent — no pause, no user confirmation. Pass:
+    Delegate all Blocking and Improvement findings to a code-writer subagent (direct dispatch — intra-skill delegation, skill recursion not applicable). Use Apply mode for style, convention, and structural fixes. If a finding is a behavioral correctness issue (e.g., missing error check, wrong return value), use Fix mode so a regression test is written first. No pause, no user confirmation. Pass:
     - The findings grouped by file, with file paths and line numbers
     - The guideline files loaded in step 4
     - Project context (repo root, conventions observed)

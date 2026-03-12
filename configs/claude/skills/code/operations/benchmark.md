@@ -10,7 +10,7 @@ Write a benchmark that captures the performance target, then write or optimize c
    Clarify what metric matters (throughput, latency, memory, binary size) and what the target is. If the user provides a specific target (e.g., "under 50ms", "10k ops/sec"), use it directly. If the goal is vague (e.g., "make it faster"), proceed to step 3.
 
 3. **Establish baseline** (conditional):
-   If the user says "make it faster" or "optimize this" without a specific target:
+   If no specific performance target was provided:
    - Spawn a Task subagent (type: Explore) to read the target code, identify hot paths and performance-relevant code structure, and return a concise analysis (function signatures, loop structures, allocation patterns, I/O calls)
    - Benchmark the current code to establish a baseline measurement
    - Present the baseline and propose 1-3 concrete targets via AskUserQuestion (e.g., "2x faster", "Under 50ms", a context-specific target)

@@ -1,6 +1,6 @@
 # Coding Guidelines Index
 
-Reference files for coding and testing conventions, loaded by TDD, coverage, benchmark, and mutation operations.
+Reference files for coding and testing conventions, loaded by the Write, Test, Review, and Benchmark operations.
 
 ## Core Guidelines (all operations)
 

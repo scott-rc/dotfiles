@@ -9,9 +9,17 @@ Load coding guidelines, write code, and verify it — supports three modes: Appl
 1. **Load coding guidelines**: Follow references/load-guidelines.md.
 
 2. **Identify the mode**:
-   - **Apply** — no tests needed: refactoring under existing coverage, config, glue code, one-liners, or user opts out of TDD. Key test: "does this change what the system does when it runs?" If yes → Feature mode, even if the underlying API already exists.
+   - **Apply** — no tests needed: refactoring under existing coverage, config, glue code, one-liners, or user opts out of TDD
    - **Feature** — new behavior that warrants test-first development
    - **Fix** — a bug to correct; requires a regression test before the fix
+
+   **Key test**: "does this change what the system does when it runs?" If yes → Feature mode, even if the underlying API already exists.
+
+   Common misclassifications — these are Feature mode, not Apply:
+   - "ensure X uses URL params for state" — adds server-side param reading + client-side sync (new behavior)
+   - "make the API return pagination metadata" — adds response fields (new behavior)
+   - "add caching to the handler" — adds cache logic (new behavior)
+   - "sync state between X and Y" — adds synchronization that didn't exist (new behavior)
 
    If the mode is ambiguous, ask the user before proceeding.
 
