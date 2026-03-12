@@ -206,7 +206,7 @@ Custom CLI tools.
 | `code/` | Applies coding style preferences, enforces TDD, runs code reviews, manages benchmarks, and evaluates test quality via mutation testing |
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity |
 | `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
-| `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, and GitHub interactions |
+| `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, stacked PRs via git-spice, and GitHub interactions |
 | `brainstorm/` | Facilitates collaborative brainstorming sessions to generate, explore, and refine ideas on any topic |
 
 Each skill follows this directory structure:

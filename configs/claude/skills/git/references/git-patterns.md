@@ -16,6 +16,7 @@ Shared patterns used across git skill operations. Reference this file for consis
 - CI System Detection
 - Branch Context Creation
 - Local Fix Commands
+- Git-Spice
 
 ## Script Paths
 
@@ -178,3 +179,86 @@ Detect language from the repository root and use the appropriate commands. Subag
 ### Fallback
 If none of the above match, skip automated lint fixing and instruct the subagent to check for project-specific tooling.
 
+## Git-Spice
+
+git-spice (`gs`) manages stacked branches — tracking topology, restacking after rebases, and submitting stacked PRs with navigation comments.
+
+### Detection
+
+Check if the repo is initialized:
+```bash
+git rev-parse --verify refs/spice/data 2>/dev/null
+```
+Succeeds (exit 0) if git-spice is initialized for this repo.
+
+### Initialization
+
+Only auto-initialize during stacking workflows (Split, Stack). Other operations (Push, Rebase, Squash) check but do not init.
+
+```bash
+gs repo init --trunk <base> --remote origin --no-prompt
+git config spice.branchCreate.prefix sc/
+```
+
+The `sc/` prefix maintains the existing branch naming convention.
+
+### Tracked Branch Check
+
+Check if a branch is tracked by git-spice:
+```bash
+gs log short 2>/dev/null | grep -q '<branch>'
+```
+Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches.
+
+### Push via Git-Spice
+
+For tracked branches, replace `git push -u origin HEAD`:
+```bash
+gs branch submit --no-publish --no-prompt
+```
+
+Force push:
+```bash
+gs branch submit --no-publish --force --no-prompt
+```
+
+`--no-publish` skips PR creation (pr-writer handles that separately).
+
+### Stack Submit
+
+Push all branches in the stack and create/update PRs with navigation comments:
+```bash
+gs stack submit --no-prompt
+```
+
+### Restack
+
+Rebase current branch and all above it onto their bases:
+```bash
+gs upstack restack
+```
+
+### Navigation
+
+```bash
+gs up        # move to the branch above
+gs down      # move to the branch below
+gs top       # move to the top of the stack
+gs bottom    # move to the bottom of the stack
+gs trunk     # move to the trunk branch
+```
+
+### Sync
+
+Fetch, clean merged branches, and restack:
+```bash
+gs repo sync --restack --no-prompt
+```
+
+### Non-Interactive Rule
+
+MUST always pass `--no-prompt` to any `gs` command that accepts it, to avoid hanging on interactive prompts.
+
+### Command Name
+
+Use `gs` (the installed binary at `/opt/homebrew/bin/gs`). The fish config has `alias git-spice=/opt/homebrew/bin/gs` for interactive use, but `gs` works directly in bash.

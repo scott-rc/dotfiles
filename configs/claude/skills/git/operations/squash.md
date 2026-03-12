@@ -23,4 +23,6 @@ Squash all commits on the current branch into a single commit.
 
 8. **Squash into a single commit**: `git reset --soft origin/<base>`. Read the branch context file if it exists (path per references/git-patterns.md "Branch Context File"). Spawn the `committer` agent with prompt: "Squash commit. Original commit messages:\n<full commit messages captured in step 3>". If branch context exists, append: "\nBranch purpose:\n<branch context contents>"
 
-9. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. Note: Push's uncommitted-changes check is redundant after squash -- skip it. If no remote tracking branch, just report the result.
+9. **Restack dependents**: Check if git-spice is initialized for this repo (per references/git-patterns.md Git-Spice > Detection). If initialized, check if the current branch is tracked (per references/git-patterns.md Git-Spice > Tracked Branch Check). If both checks pass, run `gs upstack restack` to update any dependent branches that sit on top of this one after the squash rewrote history.
+
+10. **Report**: Show the squashed commit hash and message. If the branch tracks a remote, present options via AskUserQuestion: "Push" or "Skip". If the user accepts, run the Push operation. Note: Push's uncommitted-changes check is redundant after squash -- skip it. If no remote tracking branch, just report the result.
