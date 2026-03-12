@@ -10,7 +10,7 @@ These rules apply to ALL text that leaves the session -- commit messages, PR tit
   # Commit message (capitalizes first letter, errors if >72 chars)
   # Write message to ./tmp/commit-msg.txt using Bash heredoc, then:
   ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt
-  git commit -F ./tmp/commit-msg.txt
+  gs commit create -m "$(cat ./tmp/commit-msg.txt)" --no-prompt
 
   # PR title (capitalizes first letter, errors if >70 chars)
   # Write title to ./tmp/pr-title.txt using Bash heredoc, then:

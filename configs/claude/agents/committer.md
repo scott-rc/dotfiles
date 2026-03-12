@@ -33,10 +33,8 @@ The caller's prompt determines the mode:
 - No prefix conventions (no `type:`, `scope:`, `feat:`, etc.) -- just a plain sentence.
 - ASCII only: use `--` instead of em dashes, straight quotes instead of curly quotes, `...` instead of `…`
 - Write the message to `./tmp/commit-msg.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/commit-msg.txt` ... `EOF`), then sanitize and commit:
-  ```
-  ~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit -F ./tmp/commit-msg.txt
-  ```
-  Same pattern for `--amend` (use `git commit --amend -F ./tmp/commit-msg.txt`).
+  - New commit: `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && gs commit create -m "$(cat ./tmp/commit-msg.txt)" --no-prompt` (`gs commit create` does NOT support `-F`; use `$(cat ...)` to inline the message)
+  - Amend: `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`, then `gs upstack restack`
 - No invented metrics: never cite specific numbers, percentages, or performance claims unless they appear literally in the diff.
 - Multi-concern commits (common after squash): give each distinct concern its own sentence in the body. Do not bury a secondary concern as a trailing clause. Order by significance (diff size and user-facing impact); when ambiguous, order by diff size. Use a blank-line-separated paragraph only when a concern needs additional explanation.
 
@@ -59,12 +57,12 @@ The caller's prompt determines the mode:
    Stop here. The caller will ask the user which group to commit and re-invoke.
 
 4. **Stage and commit**:
-   - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, `git commit`
-   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or write new message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
-   - Squash: changes are already staged, draft message from the staged diff, `git commit`
+   - New commit: stage the specific files identified in step 2 (`git add <file1> <file2> ...`), draft message, then `gs commit create -m "$(cat ./tmp/commit-msg.txt)" --no-prompt`
+   - Amend: stage all currently modified files from `git diff --name-only` (`git add <file1> <file2> ...`), then `git commit --amend --no-edit` or write new message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`. Follow with `gs upstack restack`.
+   - Squash: changes are already staged, draft message from the staged diff, then `gs commit create -m "$(cat ./tmp/commit-msg.txt)" --no-prompt`
 
 5. **Handle errors after commit**:
-   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write corrected message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`
+   - **UTF-8 warning** ("commit message did not conform to UTF-8"): write corrected message to `./tmp/commit-msg.txt` using Bash heredoc, then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt`, then `gs upstack restack`
    - **Pre-commit hook failure**: read the error, fix the issue, re-stage, and retry. MUST NOT use `--no-verify`.
 
 6. **Return result**:

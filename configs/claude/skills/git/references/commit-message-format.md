@@ -20,7 +20,9 @@ Steps for any operation that commits inline (without delegating to the `committe
 1. Stage files: `git add <file1> ...`
 2. Run `git diff --staged` to review what will be committed
 3. Draft message per the rules above (or use a provided message)
-4. Sanitize and commit: write the message to `./tmp/commit-msg.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/commit-msg.txt` ... `EOF`), then `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit -F ./tmp/commit-msg.txt`
+4. Sanitize and commit: write the message to `./tmp/commit-msg.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/commit-msg.txt` ... `EOF`), then:
+   - **New commit**: `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && gs commit create -m "$(cat ./tmp/commit-msg.txt)" --no-prompt` (`gs commit create` does NOT support `-F`; use `$(cat ...)` to inline the message)
+   - **Amend**: `~/.claude/skills/git/scripts/sanitize.sh --commit-msg ./tmp/commit-msg.txt && git commit --amend -F ./tmp/commit-msg.txt` (gs has no amend equivalent), then `gs upstack restack`
 5. If `sanitize.sh` rejects the message (exit 1 -- subject too long or empty), shorten and re-run step 4.
 6. Error: pre-commit hook failure -- read the error output, fix the issue, re-stage, retry. MUST NOT use `--no-verify`.
 7. Report: `git log -1 --oneline`
