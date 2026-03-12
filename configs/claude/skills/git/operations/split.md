@@ -16,16 +16,15 @@ Split a large branch into stacked branches grouped by logical concern, creating 
    If fewer than 2 files changed AND fewer than 200 lines changed total, inform the user and stop.
 
 2. **Analyze diff**: Delegate to an `Explore` subagent. Pass the output of `git diff origin/<base>...HEAD` and the stat summary. If the diff exceeds ~10,000 lines, pass `--stat` output instead and instruct the subagent to read individual file diffs selectively. The subagent MUST:
+   - Propose **no more than 5 groups** — if there are many small concerns, merge them into larger coherent groups rather than listing each separately
    - Group changes by **logical concern** -- a file MAY appear in multiple groups
    - For each group: return theme, review focus, **changes** (plain-English bullets describing what to implement), relevant files, estimated line count, and dependency notes
    - Include associated generated files (test snapshots, codegen output) in each group's relevant_files alongside their source files
    - Propose an ordering (foundational changes first)
 
-3. **Propose stack**: Present the stack via AskUserQuestion. For each branch show:
-   - Stack position, proposed name (`sc/` prefix per references/git-patterns.md Branch Naming), theme and review focus
-   - Changes bullets, relevant files (noting any overlaps with other branches), estimated size
+3. **Propose stack**: Present the recommended grouping in full detail via AskUserQuestion. For each branch show stack position, proposed name (`sc/` prefix per references/git-patterns.md Branch Naming), theme and review focus, changes bullets, relevant files (noting any overlaps with other branches), and estimated size. Include a note that other stack sizes are available (e.g., "Option A: 2 branches", "Option B: 3 branches (recommended)", "Option C: 4 branches") and the user can request a different size. The recommended option should balance reviewability with avoiding excessive branch count.
 
-   Notes to include: files may appear in multiple branches; each branch should compile independently (aspirational, not required); the reference branch is a guide, not an exact target. Ask the user to approve, modify, or reject. Apply modifications and confirm before proceeding.
+   Notes to include: files may appear in multiple branches; each branch should compile independently (aspirational, not required); the reference branch is a guide, not an exact target. Ask the user to approve, request a different size, or modify. Apply modifications and confirm before proceeding.
 
 4. **Write state file and enter plan mode**: Write `split-state.json` to the branch directory (derived from `~/.claude/skills/git/scripts/branch-context-path.sh` -- strip the filename to get the directory):
 
@@ -81,6 +80,8 @@ Split a large branch into stacked branches grouped by logical concern, creating 
       ```bash
       gs repo init --trunk <base_branch> --remote origin --no-prompt
       git config spice.branchCreate.prefix sc/
+      # Untrack the reference branch so `gs stack submit` does not try to submit it
+      gs branch untrack <reference_branch> --no-prompt 2>/dev/null || true
       ```
       Update state file: set `gs_initialized: true`.
    3. For each branch in stack order (skip any with status `pr-created`):
@@ -88,21 +89,30 @@ Split a large branch into stacked branches grouped by logical concern, creating 
          ```bash
          gs branch create <name> --no-commit --no-prompt
          ```
-         This creates the branch tracking the correct base in git-spice's topology.
-      b. Generate scoped reference diff: `git diff origin/<base>...<reference_branch> -- <relevant_files>` (triple-dot) as guidance. Check the line count of this diff. If it exceeds ~4000 lines (~4000 lines risks exceeding the code-writer's effective context budget; the Explore subagent in Phase 1 has a higher ~10,000-line threshold because it reads selectively), do NOT pass the full diff to code-writer. Instead, pass `git diff --stat origin/<base>...<reference_branch> -- <relevant_files>` as a summary, and include in the code-writer task: "The full reference diff is too large to pass directly. Use `git diff origin/<base>...<reference_branch> -- <file>` to read individual file diffs as needed."
+         This creates the branch tracking the correct base in git-spice's topology. The branch is created from the base — the working tree should already be clean. MUST NOT run broad cleanup commands (`git checkout -- .`, `git clean -fd`). If specific files need resetting, target them by path.
+      b. Generate scoped reference diff: `git diff origin/<base>...<reference_branch> -- <relevant_files>` (triple-dot) as guidance. Check the line count of this diff. If it exceeds ~4000 lines, do NOT pass the full diff to code-writer. Instead, pass `git diff --stat origin/<base>...<reference_branch> -- <relevant_files>` as a summary, and include in the code-writer task: "The full reference diff is too large to pass directly. Use `git diff origin/<base>...<reference_branch> -- <file>` to read individual file diffs as needed."
       c. Delegate to code-writer -- one or more sequential delegations per branch. A single code-writer handles a focused subset of the changes; if the branch has many files or distinct sub-concerns (e.g., rename across 50 files, then wire up a new module), split into multiple sequential code-writer calls on the same branch. Each call picks up where the previous left off. Do not try to cram everything into one delegation.
          - `mode`: apply
          - `files`: the subset of relevant_files for this delegation (all of them if using a single call)
          - `task`: "Implement the following changes for the '<theme>' concern: <changes bullets for this delegation>. Use the reference diff below as a guide -- implement the changes naturally, do not copy mechanically. If this branch's changes affect test snapshots or generated files, update them as part of implementation -- do not leave them for manual fixup. Reference diff: <scoped diff or stat summary>"
-         - `constraints`: "Branch <N> of <M> in a stacked split. Previous branches implemented: <summary of earlier themes>. Do not re-implement or undo their work. Only modify files in this branch's relevant_files list -- do not touch files scoped to other branches. Verify your changes compile and pass lint before finishing -- run the project's type checker and linter. If the branch adds a new command, module, or public API, ensure all registration and wiring points are updated (e.g., command registries, export maps, help text groups). If tests use snapshots, run the test suite with the snapshot update flag to regenerate them after your changes."
+         - `constraints`:
+           - **Scope**: "Branch <N> of <M> in a stacked split. Previous branches implemented: <summary of earlier themes>. Do not re-implement or undo their work. Only modify files in this branch's relevant_files list."
+           - **Exclusions**: "This branch does NOT implement: <summary of themes from later branches>. If the reference diff includes changes for those themes in shared files, omit them."
+           - **Independence**: "Each branch MUST compile and pass tests independently. Do not import packages, reference modules, or depend on files that are introduced in later branches."
+           - **Shared files**: "Config, docs, and build files often contain changes spanning multiple branches. Only apply changes relevant to this branch's theme."
+           - **Verification**: "Run the project's type checker and linter before finishing. If the branch adds a new command, module, or public API, ensure all registration and wiring points are updated (e.g., command registries, export maps, help text groups). If tests use snapshots, run the test suite with the snapshot update flag to regenerate them after your changes."
+
+         **Anti-patterns:**
+         - Do NOT use `git checkout <reference_branch> -- <files>` to copy files wholesale from the reference branch. The code-writer implements changes from scratch using the reference diff as guidance.
       d. Verify the branch: run the project's type checker, linter, and tests for affected files (e.g., `tsc --noEmit`, `lint`, `test <affected files>`). If verification fails, re-delegate to code-writer using the same parameters as step c, appending the verification errors to the task. Do NOT fix issues inline -- always re-delegate. If verification still reports errors after two code-writer re-delegations, ask the user via AskUserQuestion: retry / skip verification / stop.
       e. Write the branch context file (path per references/git-patterns.md "Branch Context File") for EVERY branch. Write 1-3 sentences of purpose/motivation that naturally incorporate the theme and stack position (e.g., "Branch 2 of 4 in a stacked split. <theme purpose>. Review focus: <review_focus>.").
       f. Delegate to committer: "Commit all staged and unstaged changes. This is branch N of M in a stacked split. Theme: <theme>." MUST NOT pass a pre-written commit message.
       g. Update state file: set branch status to `committed`.
    4. Submit the stack -- push all branches and create PRs with navigation comments:
       ```bash
-      gs stack submit --no-prompt
+      gs stack submit --fill --no-prompt
       ```
+      (The reference branch was untracked in step 2 and will not be submitted.)
    5. For each branch, delegate to pr-writer per references/pr-writer-rules.md to update the auto-generated PR description with a quality one:
       - `mode`: update
       - `base_branch`: previous stack branch (or `origin/<base>` for the first)

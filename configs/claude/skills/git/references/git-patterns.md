@@ -323,7 +323,7 @@ This is destructive (deletes the branch). Always confirm with the user before ex
 
 Push all branches in the stack and create/update PRs with navigation comments:
 ```bash
-gs stack submit --no-prompt
+gs stack submit --fill --no-prompt
 ```
 
 ### Restack
