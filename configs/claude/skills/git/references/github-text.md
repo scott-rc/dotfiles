@@ -32,3 +32,12 @@ These rules apply to ALL text that leaves the session -- commit messages, PR tit
   ```
 
 - **No invented metrics**: MUST NOT cite specific numbers, percentages, multipliers, or performance claims unless they appear literally in the diff or commit message. Phrases like "reduces by 2.8x" or "cuts latency by 40%" are hallucination risks when the source material contains no such figures.
+
+## Concurrent Agents
+
+When multiple agents run in parallel and each uses the safe posting pattern, temp file paths MUST be unique per agent. Use a distinguishing suffix -- PR number for update mode, sanitized branch name for create mode -- to prevent clobbering.
+
+```
+./tmp/pr-20135-body.txt    # good: PR-specific
+./tmp/pr-body.txt          # bad: shared path, clobbered by parallel agents
+```

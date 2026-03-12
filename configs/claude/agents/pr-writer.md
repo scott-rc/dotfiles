@@ -95,7 +95,20 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
 1. **Gather diff context**:
 
+   In update mode, first resolve the head branch from the PR:
+
    ```bash
+   HEAD_BRANCH=$(gh pr view <pr_number> --json headRefName -q .headRefName)
+   ```
+
+   Then diff against that branch (update mode) or HEAD (create mode):
+
+   ```bash
+   # Update mode
+   git diff --stat origin/<base_branch>...$HEAD_BRANCH
+   git diff origin/<base_branch>...$HEAD_BRANCH
+
+   # Create mode
    git diff --stat origin/<base_branch>...HEAD
    git diff origin/<base_branch>...HEAD
    ```
@@ -107,30 +120,41 @@ Replaces the ad-hoc command system -- where each module exported loose named fie
 
 3. **Create or update**:
 
-   Write the body to `./tmp/pr-body.txt` and the title to `./tmp/pr-title.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/<file>.txt` ... `EOF`), then sanitize in place:
+   Write the body and title to PR-specific temp file paths to avoid clobbering when multiple agents run in parallel.
+
+   **Update mode** -- use the PR number as the suffix:
 
    ```bash
-   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-body.txt
-   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-title.txt
-   TITLE=$(cat ./tmp/pr-title.txt)
+   mkdir -p ./tmp && cat <<'EOF' > ./tmp/pr-<pr_number>-body.txt
+   ...
+   EOF
+   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-<pr_number>-body.txt
+   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-<pr_number>-title.txt
+   TITLE=$(cat ./tmp/pr-<pr_number>-title.txt)
    ```
 
-   **Create mode**:
-
-   ```bash
-   gh pr create --title "$TITLE" --base <base_branch> --body-file ./tmp/pr-body.txt
-   ```
-
-   **Update mode**:
    - Fetch current body: `gh pr view <pr_number> --json body -q .body`
    - If the existing body contains bot-appended content (sections not in your new description, e.g., Cursor BugBot, Dependabot), append it to the new body
    - **Before posting**, verify every factual claim in your new draft against the diff. For claims about before/after states (types, signatures, behavior), find the corresponding `-` and `+` lines in the diff and confirm they match. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, "raw strings" when the diff shows branded types, or journey language like "was flaky" for code that is entirely new in the PR). Do not trust branch context or commit messages for before/after facts -- only the diff.
 
    ```bash
-   gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr-body.txt
+   gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr-<pr_number>-body.txt
    ```
 
-   Clean up temp files after posting.
+   **Create mode** -- use the base branch name (slashes replaced with dashes) as the suffix:
+
+   ```bash
+   BRANCH_SLUG=$(echo "<base_branch>" | tr '/' '-')
+   mkdir -p ./tmp && cat <<'EOF' > ./tmp/pr-${BRANCH_SLUG}-body.txt
+   ...
+   EOF
+   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-${BRANCH_SLUG}-body.txt
+   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-${BRANCH_SLUG}-title.txt
+   TITLE=$(cat ./tmp/pr-${BRANCH_SLUG}-title.txt)
+   gh pr create --title "$TITLE" --base <base_branch> --body-file ./tmp/pr-${BRANCH_SLUG}-body.txt
+   ```
+
+   Clean up the PR-specific temp files after posting.
 
 ## Output Format
 

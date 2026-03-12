@@ -112,6 +112,21 @@ Ask the user to verify these files match the branch's intended scope. If unexpec
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
 - Offer to fix with `git rebase -i origin/<base>`
 
+## Downstream PR Safety
+
+Before any force push, check for open PRs that target the current branch as their base:
+
+```bash
+gh pr list --base "$(git branch --show-current)" --state open --json number,title,headRefName --jq '.[]'
+```
+
+If any exist, warn the user and present options via AskUserQuestion:
+- "Update their bases first" — for each downstream PR, run `gh pr edit <number> --base <new-base>` where `<new-base>` is this branch's own base (detected per Base Branch Detection above); then proceed with the force push
+- "Force push anyway" — proceed without updating bases (risk: GitHub may auto-merge downstream PRs)
+- "Abort" — stop the operation
+
+This check applies to ANY force push — whether from Push, Squash, Amend, Rebase, or ad-hoc operations. It does NOT apply to regular pushes (non-force), since those only add commits and cannot cause auto-merges.
+
 ## CI Detection
 
 Use these two steps to verify CI is configured and check status. Referenced by fix.md.
@@ -254,6 +269,14 @@ Fetch, clean merged branches, and restack:
 ```bash
 gs repo sync --restack --no-prompt
 ```
+
+### Branch Reorder
+
+Move branches to a new position in the stack using these commands:
+
+- `gs upstack onto <destination> --no-prompt` (alias: `gs uso`) — Move the current branch AND all branches above it to a new base. Use when reordering within a stack.
+- `gs branch onto <destination> --no-prompt` (alias: `gs bon`) — Move ONLY the current branch to a new base, leaving upstack branches where they are. Use when extracting a branch from the stack.
+- `gs stack edit` (alias: `gs se`) — Open an editor to reorder branches in a linear stack. Requires the stack to be linear (no branch can have multiple branches above it).
 
 ### Non-Interactive Rule
 

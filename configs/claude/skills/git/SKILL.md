@@ -43,7 +43,7 @@ Split a large branch into stacked branches for easier code review. Analyzes the 
 See operations/split.md for detailed instructions.
 
 ### Stack
-Navigate and manage stacked branches tracked by git-spice — move up/down, restack, list, track/untrack branches.
+Navigate and manage stacked branches tracked by git-spice — move up/down, reorder, restack, list, track/untrack branches.
 See operations/stack.md for detailed instructions.
 
 ### Sync
@@ -71,6 +71,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
 - **"sync"** / **"pull latest"** / **"update from main"** → Sync
 - **"go up"** / **"next branch"** / **"go down"** / **"previous branch"** → Stack (navigate)
+- **"reorder"** / **"move this branch"** / **"put this on top of X"** / **"rebase X after Y"** / **"rebase onto"** / **"change the base"** → Stack (reorder)
 - **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
 - **"show stack"** / **"list branches"** / **"where am I"** → Stack (list)
 - **"track this branch"** → Stack (track)

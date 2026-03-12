@@ -20,6 +20,14 @@ Canonical payload for spawning the `pr-writer` agent. Pass these fields in the t
 - Commit messages often describe intermediate states (fixups, reverts, mid-PR bugs that were later corrected) that MUST NOT appear in the PR description
 - After a squash this is a single message; with multiple commits it is the full set
 
+## Stacked PR Batch Updates
+
+When updating descriptions for multiple PRs in a stack:
+
+- `pr-writer` agents MAY be spawned in parallel -- the agent uses PR-specific temp file paths and resolves the head branch from the PR number (not `HEAD`), so parallel execution is safe (see also: references/github-text.md Concurrent Agents for the underlying temp-file uniqueness rule)
+- After all agents complete, the caller MUST verify descriptions are distinct: fetch titles and first body lines via `gh pr view <number> --json title,body` for each PR and confirm they are not identical
+- If duplicates are found, re-spawn the affected agents sequentially
+
 ## Boundaries
 
 - MUST NOT include diff summaries, file lists, change descriptions, pre-drafted PR text, workflow commands, or references to skill/reference files -- the agent gathers its own diff and follows its own rules
