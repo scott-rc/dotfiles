@@ -2,7 +2,67 @@ return {
 	-- Icons (file + folder-name-specific, e.g. src, test, node_modules)
 	{
 		"echasnovski/mini.icons",
-		opts = {},
+		opts = {
+			directory = {
+				-- Config / meta
+				[".devcontainer"] = { glyph = "󰒓", hl = "MiniIconsCyan" },
+				[".vscode"] = { glyph = "󰨞", hl = "MiniIconsAzure" },
+				["config"] = { glyph = "󰒓", hl = "MiniIconsCyan" },
+				["configs"] = { glyph = "󰒓", hl = "MiniIconsCyan" },
+				-- Source / app structure
+				["api"] = { glyph = "󰒍", hl = "MiniIconsGreen" },
+				["components"] = { glyph = "", hl = "MiniIconsPurple" },
+				["controllers"] = { glyph = "󰘳", hl = "MiniIconsBlue" },
+				["hooks"] = { glyph = "󰛢", hl = "MiniIconsOrange" },
+				["layouts"] = { glyph = "󰕰", hl = "MiniIconsBlue" },
+				["middleware"] = { glyph = "󰕳", hl = "MiniIconsOrange" },
+				["models"] = { glyph = "", hl = "MiniIconsPurple" },
+				["pages"] = { glyph = "󰈈", hl = "MiniIconsBlue" },
+				["routes"] = { glyph = "󰑪", hl = "MiniIconsGreen" },
+				["services"] = { glyph = "󱜢", hl = "MiniIconsAzure" },
+				["views"] = { glyph = "󰈈", hl = "MiniIconsBlue" },
+				["workers"] = { glyph = "󰓥", hl = "MiniIconsOrange" },
+				-- Assets / static
+				["assets"] = { glyph = "󰉏", hl = "MiniIconsYellow" },
+				["fonts"] = { glyph = "", hl = "MiniIconsYellow" },
+				["icons"] = { glyph = "󰀺", hl = "MiniIconsYellow" },
+				["images"] = { glyph = "󰉏", hl = "MiniIconsYellow" },
+				["public"] = { glyph = "󰉋", hl = "MiniIconsGreen" },
+				["static"] = { glyph = "󰉋", hl = "MiniIconsYellow" },
+				["styles"] = { glyph = "󰌜", hl = "MiniIconsPurple" },
+				-- Testing
+				["__tests__"] = { glyph = "󰙨", hl = "MiniIconsGreen" },
+				["fixtures"] = { glyph = "󰙨", hl = "MiniIconsGreen" },
+				["mocks"] = { glyph = "󰙨", hl = "MiniIconsGreen" },
+				["spec"] = { glyph = "󰙨", hl = "MiniIconsGreen" },
+				-- Build output / deps
+				["dist"] = { glyph = "", hl = "MiniIconsGrey" },
+				["out"] = { glyph = "", hl = "MiniIconsGrey" },
+				["target"] = { glyph = "", hl = "MiniIconsGrey" },
+				["vendor"] = { glyph = "󰏖", hl = "MiniIconsOrange" },
+				["deps"] = { glyph = "󰏖", hl = "MiniIconsOrange" },
+				-- Infra / CI
+				[".circleci"] = { glyph = "", hl = "MiniIconsGreen" },
+				[".gitlab"] = { glyph = "", hl = "MiniIconsOrange" },
+				["docker"] = { glyph = "󰡨", hl = "MiniIconsAzure" },
+				["k8s"] = { glyph = "󱃾", hl = "MiniIconsAzure" },
+				["kubernetes"] = { glyph = "󱃾", hl = "MiniIconsAzure" },
+				["deploy"] = { glyph = "󰜟", hl = "MiniIconsAzure" },
+				["terraform"] = { glyph = "󱁢", hl = "MiniIconsPurple" },
+				["infra"] = { glyph = "󱁢", hl = "MiniIconsPurple" },
+				-- Misc
+				["examples"] = { glyph = "󰉋", hl = "MiniIconsCyan" },
+				["migrations"] = { glyph = "󰁯", hl = "MiniIconsYellow" },
+				["scripts"] = { glyph = "󰆍", hl = "MiniIconsGreen" },
+				["shared"] = { glyph = "󰕳", hl = "MiniIconsBlue" },
+				["templates"] = { glyph = "󰈙", hl = "MiniIconsCyan" },
+				["tools"] = { glyph = "󰛊", hl = "MiniIconsYellow" },
+				["types"] = { glyph = "󰊄", hl = "MiniIconsPurple" },
+				["utils"] = { glyph = "󰠱", hl = "MiniIconsYellow" },
+				["helpers"] = { glyph = "󰠱", hl = "MiniIconsYellow" },
+				["logs"] = { glyph = "󰌱", hl = "MiniIconsGrey" },
+			},
+		},
 		config = function(_, opts)
 			require("mini.icons").setup(opts)
 			MiniIcons.mock_nvim_web_devicons()
