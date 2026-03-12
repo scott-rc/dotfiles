@@ -9,7 +9,7 @@ Load coding guidelines, write code, and verify it — supports three modes: Appl
 1. **Load coding guidelines**: Follow references/load-guidelines.md.
 
 2. **Identify the mode**:
-   - **Apply** — no tests needed: refactoring under existing coverage, config, glue code, one-liners, or user opts out of TDD
+   - **Apply** — no tests needed: refactoring under existing coverage, config, glue code, one-liners, or user opts out of TDD. Key test: "does this change what the system does when it runs?" If yes → Feature mode, even if the underlying API already exists.
    - **Feature** — new behavior that warrants test-first development
    - **Fix** — a bug to correct; requires a regression test before the fix
 
