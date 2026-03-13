@@ -56,7 +56,7 @@ If CI, Review, or Combined path ran AND the description quality check (wall of t
 
    If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before accepting the subagent's changes. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
 
-3. **Commit and push**: Summarize what failed, why, what was fixed, and whether local verification passed. Stage changed files, commit with message "Fix <workflow/check name> CI failure: <brief cause>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git-spice branch submit --no-publish --no-prompt`.
+3. **Commit and push**: Summarize what failed, why, what was fixed, and whether local verification passed. Stage changed files, commit with message "Fix <workflow/check name> CI failure: <brief cause>" per the Inline Commit Procedure in references/commit-message-format.md. Then check PR existence via the Stack Metadata via JSON pattern in references/git-patterns.md (`.change` field): if a PR exists, push with `git-spice branch submit --update-only --no-prompt`; otherwise use `git-spice branch submit --no-publish --no-prompt`.
 
 ---
 
@@ -95,7 +95,7 @@ If CI, Review, or Combined path ran AND the description quality check (wall of t
 
    The `{owner}/{repo}` and `{comment_id}` come from the PR comments data returned by get-pr-comments.sh. Use `gh api graphql` to resolve the REST comment ID from a node ID if needed.
 
-7. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md, then push with `git-spice branch submit --no-publish --no-prompt`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in step 9.
+7. **Commit and push**: Stage changed files. Commit with message "Address PR review feedback: <brief summary of threads fixed>" per the Inline Commit Procedure in references/commit-message-format.md. Then check PR existence via the Stack Metadata via JSON pattern in references/git-patterns.md (`.change` field): if a PR exists, push with `git-spice branch submit --update-only --no-prompt`; otherwise use `git-spice branch submit --no-publish --no-prompt`. Record the commit hash with `git rev-parse HEAD` — it is needed for reply links in step 9.
 
 8. **Handle description threads**: If description threads were classified in step 3, route them to the Description Path starting at step 1 (Ensure branch context). Pass the thread comments as quality findings in step 2. Do NOT send description threads to the code-writer. Description threads produce no code commit, so replies in step 9 reference the PR URL (not a commit hash). Skip this step if no description threads exist.
 

@@ -23,6 +23,7 @@ Shared patterns used across git skill operations. Reference this file for consis
   - Initialization
   - Ensure Git-Spice
   - Tracked Branch Check
+  - Stack Metadata via JSON
   - Push via Git-Spice
   - Commit via Git-Spice
   - Amend via Git-Spice
@@ -244,23 +245,48 @@ A composite pattern that all operations use before running any `git-spice` comma
 
 Check if a branch is tracked by git-spice:
 ```bash
-git-spice log short 2>&1 | grep -q '<branch>'
+git-spice log short --json 2>/dev/null | jq -e 'select(.name == "<branch>")' >/dev/null
 ```
-Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches. Note: `git-spice log short` requires `2>&1` (not `2>/dev/null`) because git-spice writes to stderr or uses tty detection that suppresses output under plain redirects.
+Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches.
+
+### Stack Metadata via JSON
+
+`git-spice log short --json` outputs one JSON object per line (JSONL). Each object has these fields:
+
+- `.name` — branch name
+- `.change` — object with `.id` (e.g. `"#2315"`) and `.url`; absent if no PR exists
+- `.push` — object with `.ahead` (local commits not pushed) and `.behind` (remote commits not local, indicating divergence from rebase/amend); absent if not applicable
+- `.down` — object with `.name` (base branch) and `.needsRestack` (boolean); absent on trunk
+- `.current` — boolean; only present on trunk when it is checked out
+- `.ups` — array of upstream branch objects; only present on trunk
+- `.worktree` — worktree path string; only present when the branch is checked out in a worktree
+
+jq recipes:
+
+- All branches in the stack: `jq -r '.name'`
+- Branches with existing PRs: `jq -r 'select(.change != null) | "\(.name) \(.change.id)"'`
+- Check if specific branch has a PR: `jq -e 'select(.name == "<branch>") | .change' 2>/dev/null`
+- Branches needing push (ahead > 0): `jq -r 'select(.push.ahead > 0) | .name'`
+- Branches with divergence (behind > 0, needs force push): `jq -r 'select(.push.behind > 0) | .name'`
 
 ### Push via Git-Spice
 
-For tracked branches, replace `git push -u origin HEAD`:
+For tracked branches, replace `git push -u origin HEAD`. Choose the flag based on whether a PR already exists:
+
+- `--no-publish` — for branches WITHOUT an existing PR (push code only; pr-writer creates the PR separately)
+- `--update-only` — for branches WITH an existing PR (update remote ref and existing CR metadata, no warning noise)
+
+Without PR:
 ```bash
 git-spice branch submit --no-publish --no-prompt
-```
-
-Force push:
-```bash
 git-spice branch submit --no-publish --force --no-prompt
 ```
 
-`--no-publish` skips PR creation (pr-writer handles that separately).
+With existing PR:
+```bash
+git-spice branch submit --update-only --no-prompt
+git-spice branch submit --update-only --force --no-prompt
+```
 
 ### Commit via Git-Spice
 
@@ -303,17 +329,22 @@ Use `git-spice branch fold --no-prompt` to merge into base, delete current branc
 
 ### Stack Submit
 
-Push all branches in the stack and create/update PRs with navigation comments:
+Push all branches in the stack and create/update PRs with navigation comments. Choose the flag based on whether PRs already exist:
+
+- `--fill` — when creating PRs for branches that don't have them yet
+- `--update-only` — when all branches already have PRs (pr-writer handles descriptions)
+
+Creating PRs:
 ```bash
 git-spice stack submit --fill --no-prompt
+git-spice stack submit --fill --force --no-prompt
 ```
 
-When PRs already exist and you want to skip PR creation (pr-writer handles that separately):
+Updating existing PRs:
 ```bash
-git-spice stack submit --no-publish --no-prompt
+git-spice stack submit --update-only --no-prompt
+git-spice stack submit --update-only --force --no-prompt
 ```
-
-Note: `--no-publish` on branches with existing PRs produces a benign warning (`WRN Ignoring --no-publish: <branch> was already published`) — this is expected and can be ignored.
 
 ### CR Discovery
 

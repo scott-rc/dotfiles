@@ -60,10 +60,10 @@ Users often request multiple operations together. Handle these as follows:
 - **"update skill"** / **"add operation"** / **"modify skill"** / **"change skill"** / **"add operation to"** / **"remove operation from"** / **"rename skill"** → Run Update Skill
 - **"update and review"** → Run Update Skill (includes review loop)
 - **"review skill"** / **"review a skill"** / **"evaluate skill"** → Run Review Skill
-- **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until all 3 agents pass
+- **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until both agents pass
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"review rules"** / **"review my rules"** / **"review CLAUDE.md"** → Run Review Rules
-- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until all 3 agents pass
+- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until both agents pass
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
@@ -80,6 +80,6 @@ Users often request multiple operations together. Handle these as follows:
 - references/skill-template.md - Annotated templates for SKILL.md and operation files
 - references/content-patterns.md - Reusable patterns for operation steps, task skills, and dynamic context injection
 - references/rules-template.md - Templates for CLAUDE.md and scoped rules files
-- references/multi-perspective-review.md - Three-agent parallel review loop (Sonnet/Opus/Haiku) with convergence criteria
+- references/multi-perspective-review.md - Two-agent parallel review loop (Sonnet/Opus) with convergence criteria
 - references/plan-template.md - Templates for plan artifacts: master plan, chunk files, orchestrator prompt
 - references/alloy-verification.md - Alloy behavioral spec verification procedure (formal check and structural conformance)
