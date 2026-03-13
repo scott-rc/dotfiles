@@ -1,3 +1,5 @@
+set -gx GIT_SPICE_NO_GS_WARNING 1
+
 if not status is-interactive
     return
 end
