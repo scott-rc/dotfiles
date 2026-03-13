@@ -13,34 +13,44 @@ Push commits and create/update PR.
 
 3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-patterns.md.
 
-4. **Push to remote**:
-   - `git fetch origin`
-   - Use `gs branch submit --no-publish --no-prompt` to push. For force push: run the Downstream PR Safety check from references/git-patterns.md first; after the user confirms via the safety check, use `gs branch submit --no-publish --force --no-prompt`.
+4. **Detect stack push**: Run `gs log short 2>&1` to check if other branches in the stack also need pushing. For each branch listed, compare local vs remote: `git rev-list --left-right --count origin/<branch>...<branch>` — if the output shows commits on the left (remote has commits not in local) or the remote ref doesn't exist, the branch needs pushing. If multiple branches need pushing, use the **stack push** flow:
+   - Run the Downstream PR Safety check from references/git-patterns.md for any branch that requires force push
+   - Use `gs stack submit --no-publish --no-prompt` (or `gs stack submit --no-publish --force --no-prompt` if any branch needs force push) to push all branches at once
+   - For each pushed branch that has an existing PR, run the PR description update (steps 10-11 below) — check out each branch temporarily or use `gh pr view <branch> --json ...` to get PR info
+   - Skip to step 12 (Report PR URL) after handling all branches
 
-5. **Check for existing PR** on this branch:
+   If only the current branch needs pushing (or not a git-spice stack), continue with the single-branch flow below.
+
+5. **Push to remote**:
+   - `git fetch origin`
+   - **Detect divergence**: Run `git rev-list --left-right --count origin/$(git branch --show-current)...HEAD`. If the left count > 0, local history has diverged from remote (rebase, amend, or squash occurred) and force push is needed. If the remote tracking branch doesn't exist, this is a first push (no force needed).
+   - **Regular push**: `gs branch submit --no-publish --no-prompt`
+   - **Force push**: Run the Downstream PR Safety check from references/git-patterns.md first; after the user confirms via the safety check, use `gs branch submit --no-publish --force --no-prompt`.
+
+6. **Check for existing PR** on this branch:
    ```bash
    gh pr view --json url,state,headRefOid 2>/dev/null
    ```
 
-6. **Validate the PR is current** (not stale from an old branch with the same name):
+7. **Validate the PR is current** (not stale from an old branch with the same name):
    - If the PR's `state` is `MERGED` or `CLOSED`: treat as no PR exists (create a new one)
    - If the PR is `OPEN`, verify its head commit is in current history:
      - Check: `git merge-base --is-ancestor <headRefOid> HEAD`
      - If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push"
 
-7. **Detect base branch and read context**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists and does not contain the `N/A` sentinel (path and sentinel per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md.
+8. **Detect base branch and read context**: Detect base branch per references/git-patterns.md. Read the branch context file if it exists and does not contain the `N/A` sentinel (path and sentinel per references/git-patterns.md "Branch Context File"). Forward commit messages per the Commit Message Forwarding rule in references/pr-writer-rules.md.
 
-8. **Context adequacy check**: Run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or too thin. Present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
+9. **Context adequacy check**: Run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or too thin. Present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
    - **"Update it"** -- run the Branch Context Creation pattern (update path) from `references/git-patterns.md`, then continue.
    - **"Continue as-is"** -- proceed with existing context.
 
-   Skip this check if the branch context file is missing (step 9/10 handles that) or contains the `N/A` sentinel.
+   Skip this check if the branch context file is missing (step 10/11 handles that) or contains the `N/A` sentinel.
 
-9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
+10. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
 
-10. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from `references/git-patterns.md` first. Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
+11. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from `references/git-patterns.md` first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
 
-11. **Report PR URL** to the user.
+12. **Report PR URL** to the user.
 
 ---
 

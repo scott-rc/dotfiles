@@ -18,6 +18,8 @@ keybind = cmd+w=unbind
 keybind = cmd+z=unbind
 keybind = cmd+f=unbind
 keybind = cmd+g=unbind
+keybind = cmd+[=unbind
+keybind = cmd+]=unbind
 keybind = cmd+enter=unbind
 keybind = cmd+ctrl+f=unbind
 keybind = cmd+down=unbind

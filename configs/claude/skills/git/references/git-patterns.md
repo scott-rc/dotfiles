@@ -146,6 +146,8 @@ If any exist, warn the user and present options via AskUserQuestion:
 
 This check applies to ANY force push — whether from Push, Squash, Amend, Rebase, or ad-hoc operations. It does NOT apply to regular pushes (non-force), since those only add commits and cannot cause auto-merges.
 
+**Same-stack exception**: When force-pushing via `gs stack submit --force`, git-spice manages the entire stack atomically — all branches are pushed together and their base refs are updated. Downstream PRs within the same git-spice stack are safe because git-spice restacks them automatically. The safety check still applies to downstream PRs that are NOT part of the current git-spice stack (e.g., other developers' PRs targeting your branch).
+
 ## CI Detection
 
 Use these two steps to verify CI is configured and check status. Referenced by fix.md.
@@ -325,6 +327,13 @@ Push all branches in the stack and create/update PRs with navigation comments:
 ```bash
 gs stack submit --fill --no-prompt
 ```
+
+When PRs already exist and you want to skip PR creation (pr-writer handles that separately):
+```bash
+gs stack submit --no-publish --no-prompt
+```
+
+Note: `--no-publish` on branches with existing PRs produces a benign warning (`WRN Ignoring --no-publish: <branch> was already published`) — this is expected and can be ignored.
 
 ### Restack
 
