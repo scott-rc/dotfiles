@@ -34,7 +34,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
      "base_branch": "main",
      "status": "approved | in-progress | complete",
      "repo_root": "/absolute/path/to/repo",
-     "gs_initialized": false,
+     "git_spice_initialized": false,
      "stack": [
        {
          "position": 1,
@@ -76,18 +76,18 @@ Split a large branch into stacked branches grouped by logical concern, creating 
    # Requirements
 
    1. Read the state file to get the full stack and all context.
-   2. Initialize git-spice (if not already -- check `gs_initialized` in state file):
+   2. Initialize git-spice (if not already -- check `git_spice_initialized` in state file):
       ```bash
-      gs repo init --trunk <base_branch> --remote origin --no-prompt
+      git-spice repo init --trunk <base_branch> --remote origin --no-prompt
       git config spice.branchCreate.prefix sc/
-      # Untrack the reference branch so `gs stack submit` does not try to submit it
-      gs branch untrack <reference_branch> --no-prompt 2>/dev/null || true
+      # Untrack the reference branch so `git-spice stack submit` does not try to submit it
+      git-spice branch untrack <reference_branch> --no-prompt 2>/dev/null || true
       ```
-      Update state file: set `gs_initialized: true`.
+      Update state file: set `git_spice_initialized: true`.
    3. For each branch in stack order (skip any with status `pr-created`):
       a. Create branch via git-spice:
          ```bash
-         gs branch create <name> --no-commit --no-prompt
+         git-spice branch create <name> --no-commit --no-prompt
          ```
          This creates the branch tracking the correct base in git-spice's topology. The branch is created from the base — the working tree should already be clean. MUST NOT run broad cleanup commands (`git checkout -- .`, `git clean -fd`). If specific files need resetting, target them by path.
       b. Generate scoped reference diff: `git diff origin/<base>...<reference_branch> -- <relevant_files>` (triple-dot) as guidance. Check the line count of this diff. If it exceeds ~4000 lines, do NOT pass the full diff to code-writer. Instead, pass `git diff --stat origin/<base>...<reference_branch> -- <relevant_files>` as a summary, and include in the code-writer task: "The full reference diff is too large to pass directly. Use `git diff origin/<base>...<reference_branch> -- <file>` to read individual file diffs as needed."
@@ -110,13 +110,13 @@ Split a large branch into stacked branches grouped by logical concern, creating 
       g. Update state file: set branch status to `committed`.
    4. Submit the stack -- push all branches and create PRs with navigation comments:
       ```bash
-      gs stack submit --fill --no-prompt
+      git-spice stack submit --fill --no-prompt
       ```
       (The reference branch was untracked in step 2 and will not be submitted.)
    5. For each branch, delegate to pr-writer per references/pr-writer-rules.md to update the auto-generated PR description with a quality one:
       - `mode`: update
       - `base_branch`: previous stack branch (or `origin/<base>` for the first)
-      - `pr_number`: extract from `gs` output or `gh pr view <branch> --json number -q .number`
+      - `pr_number`: extract from git-spice output or `gh pr view <branch> --json number -q .number`
       - `commit_messages`: run `git log <base-for-this-branch>..HEAD --format=%B` and pass the captured output verbatim
       - `branch_context`: contents of this branch's context file
       - `context`: "Branch N of M in a stacked split. Base is <previous-stack-branch>. The reference branch (<reference_branch>) shows the original combined intent."

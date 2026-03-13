@@ -13,19 +13,26 @@ Push commits and create/update PR.
 
 3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-patterns.md.
 
-4. **Detect stack push**: Run `gs log short 2>&1` to check if other branches in the stack also need pushing. For each branch listed, compare local vs remote: `git rev-list --left-right --count origin/<branch>...<branch>` — if the output shows commits on the left (remote has commits not in local) or the remote ref doesn't exist, the branch needs pushing. If multiple branches need pushing, use the **stack push** flow:
+4. **Detect stack push**: Run `git-spice log short 2>&1` to check if other branches in the stack also need pushing. For each branch listed, compare local vs remote: `git rev-list --left-right --count origin/<branch>...<branch>` — if the output shows commits on the left (remote has commits not in local) or the remote ref doesn't exist, the branch needs pushing. If multiple branches need pushing, use the **stack push** flow:
    - Run the Downstream PR Safety check from references/git-patterns.md for any branch that requires force push
-   - Use `gs stack submit --no-publish --no-prompt` (or `gs stack submit --no-publish --force --no-prompt` if any branch needs force push) to push all branches at once
-   - For each pushed branch that has an existing PR, run the PR description update (steps 10-11 below) — check out each branch temporarily or use `gh pr view <branch> --json ...` to get PR info
-   - Skip to step 12 (Report PR URL) after handling all branches
+   - Check if each branch in the stack has an existing PR: `gh pr view <branch> --json number,url 2>/dev/null`
+
+   **If ALL branches already have PRs**: Use `git-spice stack submit --no-publish --no-prompt` (or `git-spice stack submit --no-publish --force --no-prompt` if any branch needs force push) to push all branches at once. For each branch with new commits, delegate to pr-writer with `mode: update`. Skip to the **Report** step.
+
+   **If SOME or NO branches have PRs**: Use `git-spice stack submit --fill --no-prompt` (or `git-spice stack submit --fill --force --no-prompt` if any branch needs force push) to push all branches and create stub PRs with navigation comments for branches that lack them. Then for EACH branch in the stack:
+   - If the branch just got a new PR (didn't have one before): check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If missing, check out the branch (`git-spice branch checkout <branch> --no-prompt`), run the Branch Context Creation pattern from references/git-patterns.md, then continue. Delegate to pr-writer with `mode: update` to replace the stub description.
+   - If the branch already had a PR and received new commits: delegate to pr-writer with `mode: update`.
+   - After processing all branches, check out back to the original branch if any checkout was performed.
+
+   Skip to the **Report** step after handling all branches.
 
    If only the current branch needs pushing (or not a git-spice stack), continue with the single-branch flow below.
 
 5. **Push to remote**:
    - `git fetch origin`
    - **Detect divergence**: Run `git rev-list --left-right --count origin/$(git branch --show-current)...HEAD`. If the left count > 0, local history has diverged from remote (rebase, amend, or squash occurred) and force push is needed. If the remote tracking branch doesn't exist, this is a first push (no force needed).
-   - **Regular push**: `gs branch submit --no-publish --no-prompt`
-   - **Force push**: Run the Downstream PR Safety check from references/git-patterns.md first; after the user confirms via the safety check, use `gs branch submit --no-publish --force --no-prompt`.
+   - **Regular push**: `git-spice branch submit --no-publish --no-prompt`
+   - **Force push**: Run the Downstream PR Safety check from references/git-patterns.md first; after the user confirms via the safety check, use `git-spice branch submit --no-publish --force --no-prompt`.
 
 6. **Check for existing PR** on this branch:
    ```bash

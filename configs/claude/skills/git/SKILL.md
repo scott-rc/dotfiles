@@ -78,7 +78,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"fold this branch"** / **"merge into base"** → Stack (fold)
 - **"delete this branch"** / **"remove from stack"** → Stack (delete)
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
-- **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `gs branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, committer delegation, and optional push
+- **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, committer delegation, and optional push
 
 ## Monitoring
 
@@ -88,7 +88,7 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 
 Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands, git-spice integration
-- references/git-spice-cli.md - git-spice (`gs`) CLI quick reference: commands, flags, and configuration options
+- references/git-spice-cli.md - git-spice CLI quick reference: commands, flags, and configuration options
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)

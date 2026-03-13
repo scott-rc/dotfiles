@@ -129,7 +129,7 @@ Use triple-dot (`...`); double-dot shows base-branch changes as deletions when m
 
 Ask the user to verify these files match the branch's intended scope. If unexpected files appear:
 - Offer to investigate with `git log --oneline origin/<base>..HEAD`
-- Offer to fix with `gs branch edit` (interactive rebase scoped to the current branch's commits)
+- Offer to fix with `git-spice branch edit` (interactive rebase scoped to the current branch's commits)
 
 ## Downstream PR Safety
 
@@ -146,7 +146,7 @@ If any exist, warn the user and present options via AskUserQuestion:
 
 This check applies to ANY force push — whether from Push, Squash, Amend, Rebase, or ad-hoc operations. It does NOT apply to regular pushes (non-force), since those only add commits and cannot cause auto-merges.
 
-**Same-stack exception**: When force-pushing via `gs stack submit --force`, git-spice manages the entire stack atomically — all branches are pushed together and their base refs are updated. Downstream PRs within the same git-spice stack are safe because git-spice restacks them automatically. The safety check still applies to downstream PRs that are NOT part of the current git-spice stack (e.g., other developers' PRs targeting your branch).
+**Same-stack exception**: When force-pushing via `git-spice stack submit --force`, git-spice manages the entire stack atomically — all branches are pushed together and their base refs are updated. Downstream PRs within the same git-spice stack are safe because git-spice restacks them automatically. The safety check still applies to downstream PRs that are NOT part of the current git-spice stack (e.g., other developers' PRs targeting your branch).
 
 ## CI Detection
 
@@ -217,7 +217,7 @@ If none of the above match, skip automated lint fixing and instruct the subagent
 
 ## Git-Spice
 
-git-spice (`gs`) manages stacked branches — tracking topology, restacking after rebases, and submitting stacked PRs with navigation comments.
+git-spice manages stacked branches — tracking topology, restacking after rebases, and submitting stacked PRs with navigation comments.
 
 ### Detection
 
@@ -232,7 +232,7 @@ Succeeds (exit 0) if git-spice is initialized for this repo.
 Auto-initialize whenever any operation needs git-spice and it is not yet initialized. Do NOT prompt the user — initialize silently.
 
 ```bash
-gs repo init --trunk <base> --remote origin --no-prompt
+git-spice repo init --trunk <base> --remote origin --no-prompt
 git config spice.branchCreate.prefix sc/
 ```
 
@@ -240,83 +240,83 @@ The `sc/` prefix maintains the existing branch naming convention.
 
 ### Ensure Git-Spice
 
-A composite pattern that all operations use before running any `gs` command:
+A composite pattern that all operations use before running any `git-spice` command:
 
 1. **Detect**: Run the Detection check above. If git-spice is already initialized, skip to step 3.
-2. **Initialize**: Run initialization silently (no user prompt): `gs repo init --trunk <base> --remote origin --no-prompt` and `git config spice.branchCreate.prefix sc/`, where `<base>` is the base branch from Base Branch Detection.
-3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `gs branch track --base <base> --no-prompt` to track it.
+2. **Initialize**: Run initialization silently (no user prompt): `git-spice repo init --trunk <base> --remote origin --no-prompt` and `git config spice.branchCreate.prefix sc/`, where `<base>` is the base branch from Base Branch Detection.
+3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `git-spice branch track --base <base> --no-prompt` to track it.
 4. **Done**: git-spice is ready to use.
 
 ### Tracked Branch Check
 
 Check if a branch is tracked by git-spice:
 ```bash
-gs log short 2>&1 | grep -q '<branch>'
+git-spice log short 2>&1 | grep -q '<branch>'
 ```
-Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches. Note: `gs log short` requires `2>&1` (not `2>/dev/null`) because `gs` writes to stderr or uses tty detection that suppresses output under plain redirects.
+Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches. Note: `git-spice log short` requires `2>&1` (not `2>/dev/null`) because git-spice writes to stderr or uses tty detection that suppresses output under plain redirects.
 
 ### Push via Git-Spice
 
 For tracked branches, replace `git push -u origin HEAD`:
 ```bash
-gs branch submit --no-publish --no-prompt
+git-spice branch submit --no-publish --no-prompt
 ```
 
 Force push:
 ```bash
-gs branch submit --no-publish --force --no-prompt
+git-spice branch submit --no-publish --force --no-prompt
 ```
 
 `--no-publish` skips PR creation (pr-writer handles that separately).
 
 ### Commit via Git-Spice
 
-For tracked branches, use `gs commit create` instead of `git commit`. This commits and auto-restacks any upstack branches:
+For tracked branches, use `git-spice commit create` instead of `git commit`. This commits and auto-restacks any upstack branches:
 ```bash
-gs commit create -m "<message>" --no-prompt
+git-spice commit create -m "<message>" --no-prompt
 ```
 
 With staging:
 ```bash
-gs commit create -a -m "<message>" --no-prompt
+git-spice commit create -a -m "<message>" --no-prompt
 ```
 
 ### Amend via Git-Spice
 
-Use `gs commit amend` instead of `git commit --amend` + `gs upstack restack`. This amends the last commit AND auto-restacks any upstack branches in one atomic operation:
+Use `git-spice commit amend` instead of `git commit --amend` + `git-spice upstack restack`. This amends the last commit AND auto-restacks any upstack branches in one atomic operation:
 ```bash
-gs commit amend --no-prompt
+git-spice commit amend --no-prompt
 ```
 
 ### Squash via Git-Spice
 
-Use `gs branch squash` to squash all commits on the current branch into one and auto-restack upstack branches:
+Use `git-spice branch squash` to squash all commits on the current branch into one and auto-restack upstack branches:
 ```bash
-gs branch squash --no-prompt
+git-spice branch squash --no-prompt
 ```
 
 With an explicit message:
 ```bash
-gs branch squash -m "<message>" --no-prompt
+git-spice branch squash -m "<message>" --no-prompt
 ```
 
 ### Rebase Conflict Resolution
 
-After resolving conflicts manually, use `gs rebase continue` (alias `gs rbc`) to resume — this auto-restacks upstack branches after the continue:
+After resolving conflicts manually, use `git-spice rebase continue` (alias `git-spice rbc`) to resume — this auto-restacks upstack branches after the continue:
 ```bash
-gs rebase continue --no-prompt
+git-spice rebase continue --no-prompt
 ```
 
-To cancel the rebase entirely, use `gs rebase abort` (alias `gs rba`):
+To cancel the rebase entirely, use `git-spice rebase abort` (alias `git-spice rba`):
 ```bash
-gs rebase abort
+git-spice rebase abort
 ```
 
 ### Branch Fold
 
 Merge the current branch into its base, delete the current branch, and rebase upstack branches onto the next downstack:
 ```bash
-gs branch fold --no-prompt
+git-spice branch fold --no-prompt
 ```
 
 This is destructive (deletes the branch). Always confirm with the user before executing.
@@ -325,12 +325,12 @@ This is destructive (deletes the branch). Always confirm with the user before ex
 
 Push all branches in the stack and create/update PRs with navigation comments:
 ```bash
-gs stack submit --fill --no-prompt
+git-spice stack submit --fill --no-prompt
 ```
 
 When PRs already exist and you want to skip PR creation (pr-writer handles that separately):
 ```bash
-gs stack submit --no-publish --no-prompt
+git-spice stack submit --no-publish --no-prompt
 ```
 
 Note: `--no-publish` on branches with existing PRs produces a benign warning (`WRN Ignoring --no-publish: <branch> was already published`) — this is expected and can be ignored.
@@ -339,38 +339,38 @@ Note: `--no-publish` on branches with existing PRs produces a benign warning (`W
 
 Rebase current branch and all above it onto their bases:
 ```bash
-gs upstack restack
+git-spice upstack restack
 ```
 
 ### Navigation
 
 ```bash
-gs up        # move to the branch above
-gs down      # move to the branch below
-gs top       # move to the top of the stack
-gs bottom    # move to the bottom of the stack
-gs trunk     # move to the trunk branch
+git-spice up        # move to the branch above
+git-spice down      # move to the branch below
+git-spice top       # move to the top of the stack
+git-spice bottom    # move to the bottom of the stack
+git-spice trunk     # move to the trunk branch
 ```
 
 ### Sync
 
 Fetch, clean merged branches, and restack:
 ```bash
-gs repo sync --restack --no-prompt
+git-spice repo sync --restack --no-prompt
 ```
 
 ### Branch Reorder
 
 Move branches to a new position in the stack using these commands:
 
-- `gs upstack onto <destination> --no-prompt` (alias: `gs uso`) — Move the current branch AND all branches above it to a new base. Use when reordering within a stack.
-- `gs branch onto <destination> --no-prompt` (alias: `gs bon`) — Move ONLY the current branch to a new base, leaving upstack branches where they are. Use when extracting a branch from the stack.
-- `gs stack edit` (alias: `gs se`) — Open an editor to reorder branches in a linear stack. Requires the stack to be linear (no branch can have multiple branches above it).
+- `git-spice upstack onto <destination> --no-prompt` (alias: `git-spice uso`) — Move the current branch AND all branches above it to a new base. Use when reordering within a stack.
+- `git-spice branch onto <destination> --no-prompt` (alias: `git-spice bon`) — Move ONLY the current branch to a new base, leaving upstack branches where they are. Use when extracting a branch from the stack.
+- `git-spice stack edit` (alias: `git-spice se`) — Open an editor to reorder branches in a linear stack. Requires the stack to be linear (no branch can have multiple branches above it).
 
 ### Non-Interactive Rule
 
-MUST always pass `--no-prompt` to any `gs` command that accepts it, to avoid hanging on interactive prompts.
+MUST always pass `--no-prompt` to any `git-spice` command that accepts it, to avoid hanging on interactive prompts.
 
 ### Command Name
 
-Use `gs` (the installed binary at `/opt/homebrew/bin/gs`). The fish config has `alias git-spice=/opt/homebrew/bin/gs` for interactive use, but `gs` works directly in bash.
+Use `git-spice` (the installed binary). The fish config has `alias gs=git-spice` for interactive convenience, but `git-spice` is the canonical binary name and MUST be used in skill operations.
