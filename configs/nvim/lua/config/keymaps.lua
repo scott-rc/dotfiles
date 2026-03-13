@@ -6,8 +6,8 @@ vim.keymap.set({ "n", "v", "i" }, "fd", "<Esc>", { desc = "Escape" })
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 
 -- Option+Delete word deletion (Ghostty sends Alt/ESC prefix for Option key)
-vim.keymap.set("i", "<M-BS>", "<C-w>", { desc = "Delete word backward" })
--- Cmd+Backspace: Ghostty sends \x15 (Ctrl-U) which already does delete-to-beginning in insert mode
+vim.keymap.set({ "i", "c" }, "<M-BS>", "<C-w>", { desc = "Delete word backward" })
+-- Cmd+Backspace: Ghostty sends \x15 (Ctrl-U) which already does delete-to-beginning in insert/cmdline mode
 
 -- Move lines with Option+j/k
 vim.keymap.set("n", "<M-j>", "<cmd>m .+1<CR>==", { desc = "Move line down" })

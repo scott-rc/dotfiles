@@ -80,6 +80,14 @@ return {
 				animate = { enabled = false },
 			},
 			scope = { enabled = true },
+			input = {
+				win = {
+					keys = {
+						["<A-BS>"] = { "<c-w>", mode = { "i" }, expr = true, desc = "delete word" },
+						["<D-BS>"] = { "<c-u>", mode = { "i" }, expr = true, desc = "delete to start" },
+					},
+				},
+			},
 			scroll = {
 				animate = {
 					duration = { step = 10, total = 100 },
@@ -157,6 +165,7 @@ return {
 							["<Esc>"] = { "close", mode = { "n", "i" } },
 							["<A-BS>"] = { "<c-w>", mode = { "i" }, expr = true, desc = "delete word" },
 							["<C-u>"] = { "<c-u>", mode = { "i" }, expr = true, desc = "clear prompt" },
+							["<D-BS>"] = { "<c-u>", mode = { "i" }, expr = true, desc = "delete to start" },
 						},
 					},
 				},
