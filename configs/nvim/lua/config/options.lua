@@ -40,6 +40,7 @@ vim.o.foldtext = ""
 vim.o.fillchars = "fold: ,foldopen:▼,foldclose:▶,foldsep:│"
 
 -- Behavior
+vim.o.autoread = true
 vim.o.mouse = "n"
 vim.o.updatetime = 250
 vim.opt.whichwrap:append("<,>,h,l")
