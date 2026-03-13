@@ -30,12 +30,6 @@ Shared patterns used across git skill operations. Reference this file for consis
   - Rebase Conflict Resolution
   - Branch Fold
   - Stack Submit
-  - Restack
-  - Navigation
-  - Sync
-  - Branch Reorder
-  - Non-Interactive Rule
-  - Command Name
   - CR Discovery
 
 ## Script Paths
@@ -237,8 +231,6 @@ git-spice repo init --trunk <base> --remote origin --no-prompt
 git config spice.branchCreate.prefix sc/
 ```
 
-The `sc/` prefix maintains the existing branch naming convention.
-
 ### Ensure Git-Spice
 
 A composite pattern that all operations use before running any `git-spice` command:
@@ -303,24 +295,11 @@ git-spice branch squash -m "<message>" --no-prompt
 
 ### Rebase Conflict Resolution
 
-After resolving conflicts manually, use `git-spice rebase continue` (alias `git-spice rbc`) to resume — this auto-restacks upstack branches after the continue:
-```bash
-git-spice rebase continue --no-prompt
-```
-
-To cancel the rebase entirely, use `git-spice rebase abort` (alias `git-spice rba`):
-```bash
-git-spice rebase abort
-```
+Use `git-spice rebase continue --no-prompt` (alias `rbc`) after resolving conflicts — auto-restacks upstack branches. To cancel: `git-spice rebase abort` (alias `rba`).
 
 ### Branch Fold
 
-Merge the current branch into its base, delete the current branch, and rebase upstack branches onto the next downstack:
-```bash
-git-spice branch fold --no-prompt
-```
-
-This is destructive (deletes the branch). Always confirm with the user before executing.
+Use `git-spice branch fold --no-prompt` to merge into base, delete current branch, and restack upstack. This is destructive — always confirm with the user.
 
 ### Stack Submit
 
@@ -335,38 +314,6 @@ git-spice stack submit --no-publish --no-prompt
 ```
 
 Note: `--no-publish` on branches with existing PRs produces a benign warning (`WRN Ignoring --no-publish: <branch> was already published`) — this is expected and can be ignored.
-
-### Restack
-
-Rebase current branch and all above it onto their bases:
-```bash
-git-spice upstack restack
-```
-
-### Navigation
-
-```bash
-git-spice up        # move to the branch above
-git-spice down      # move to the branch below
-git-spice top       # move to the top of the stack
-git-spice bottom    # move to the bottom of the stack
-git-spice trunk     # move to the trunk branch
-```
-
-### Sync
-
-Fetch, clean merged branches, and restack:
-```bash
-git-spice repo sync --restack --no-prompt
-```
-
-### Branch Reorder
-
-Move branches to a new position in the stack using these commands:
-
-- `git-spice upstack onto <destination> --no-prompt` (alias: `git-spice uso`) — Move the current branch AND all branches above it to a new base. Use when reordering within a stack.
-- `git-spice branch onto <destination> --no-prompt` (alias: `git-spice bon`) — Move ONLY the current branch to a new base, leaving upstack branches where they are. Use when extracting a branch from the stack.
-- `git-spice stack edit` (alias: `git-spice se`) — Open an editor to reorder branches in a linear stack. Requires the stack to be linear (no branch can have multiple branches above it).
 
 ### CR Discovery
 
@@ -385,11 +332,3 @@ git-spice stack submit --no-prompt
 git-spice will log `INF <branch>: Found existing CR #NNN` for each discovered PR. This is idempotent — safe to run even if git-spice already knows about the PRs (it logs "CR #NNN is up-to-date"). These commands also push, which is harmless after a push.md flow since code is already at remote HEAD.
 
 MUST run after pr-writer creates a new PR via `gh pr create`. Not needed when git-spice itself created the PR (e.g., `stack submit --fill`) or when pr-writer updates an existing PR (`mode: update`).
-
-### Non-Interactive Rule
-
-MUST always pass `--no-prompt` to any `git-spice` command that accepts it, to avoid hanging on interactive prompts.
-
-### Command Name
-
-Use `git-spice` (the installed binary). The fish config has `alias gs=git-spice` for interactive convenience, but `git-spice` is the canonical binary name and MUST be used in skill operations.
