@@ -1,6 +1,6 @@
 local augroup = vim.api.nvim_create_augroup("user_config", { clear = true })
 
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
 	group = augroup,
 	command = "checktime",
 })
