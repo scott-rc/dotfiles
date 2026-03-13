@@ -106,18 +106,17 @@ Split a large branch into stacked branches grouped by logical concern, creating 
          - Do NOT use `git checkout <reference_branch> -- <files>` to copy files wholesale from the reference branch. The code-writer implements changes from scratch using the reference diff as guidance.
       d. Verify the branch: run the project's type checker, linter, and tests for affected files (e.g., `tsc --noEmit`, `lint`, `test <affected files>`). If verification fails, re-delegate to code-writer using the same parameters as step c, appending the verification errors to the task. Do NOT fix issues inline -- always re-delegate. If verification still reports errors after two code-writer re-delegations, ask the user via AskUserQuestion: retry / skip verification / stop.
       e. Write the branch context file (path per references/git-patterns.md "Branch Context File") for EVERY branch. Write 1-3 sentences of purpose/motivation that naturally incorporate the theme and stack position (e.g., "Branch 2 of 4 in a stacked split. <theme purpose>. Review focus: <review_focus>.").
-      f. Delegate to committer: "Commit all staged and unstaged changes. This is branch N of M in a stacked split. Theme: <theme>." MUST NOT pass a pre-written commit message.
+      f. Commit all staged and unstaged changes per the Inline Commit Procedure in references/commit-message-format.md. Draft the message from the diff, noting this is branch N of M in a stacked split with theme: <theme>.
       g. Update state file: set branch status to `committed`.
    4. Submit the stack -- push all branches and create PRs with navigation comments:
       ```bash
       git-spice stack submit --fill --no-prompt
       ```
       (The reference branch was untracked in step 2 and will not be submitted.)
-   5. For each branch, delegate to pr-writer per references/pr-writer-rules.md to update the auto-generated PR description with a quality one:
-      - `mode`: update
+   5. For each branch, write an updated PR title and description inline following references/pr-writer-rules.md to replace the auto-generated stub. Gather the required context:
       - `base_branch`: previous stack branch (or `origin/<base>` for the first)
       - `pr_number`: extract from git-spice output or `gh pr view <branch> --json number -q .number`
-      - `commit_messages`: run `git log <base-for-this-branch>..HEAD --format=%B` and pass the captured output verbatim
+      - `commit_messages`: run `git log <base-for-this-branch>..HEAD --format=%B` and capture the output
       - `branch_context`: contents of this branch's context file
       - `context`: "Branch N of M in a stacked split. Base is <previous-stack-branch>. The reference branch (<reference_branch>) shows the original combined intent."
       Update state file: set status to `pr-created`, record PR URL.

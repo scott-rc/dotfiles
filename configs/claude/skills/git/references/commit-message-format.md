@@ -1,6 +1,6 @@
 # Commit Message Format
 
-Canonical source for inline commit paths. The committer agent maintains a synced copy (see agents/committer.md).
+Canonical source for commit message formatting rules.
 
 - Draft the message solely from the diff content
 - MUST NOT run `git log` or reference previous commit messages
@@ -15,7 +15,7 @@ When a commit (typically after squash) spans multiple distinct concerns, give ea
 
 ## Inline Commit Procedure
 
-Steps for any operation that commits inline (without delegating to the `committer` agent):
+Steps for committing with a properly formatted message:
 
 1. Stage files: `git add <file1> ...`
 2. Run `git diff --staged` to review what will be committed

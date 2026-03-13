@@ -12,8 +12,8 @@ Push commits and create/update PR.
    - If changes exist, run the Commit operation first
 
 3. **Gather stack metadata**: Run `git-spice log short --json 2>/dev/null` to collect all stack metadata in one pass. This also serves as the git-spice availability check.
-   - If the command fails (git-spice not installed or branch not tracked): run the Ensure Git-Spice pattern from references/git-patterns.md, then retry.
-   - Parse the JSONL output per the "Stack Metadata via JSON" section of references/git-patterns.md. For each line: `.name` is the branch name, `.change` holds PR info (null if no PR), `.push.ahead` and `.push.behind` indicate divergence vs remote, `.down.name` is the base branch.
+   - If the command fails (git-spice not installed or branch not tracked): run the Ensure Git-Spice pattern from references/git-spice-patterns.md, then retry.
+   - Parse the JSONL output per the "Stack Metadata via JSON" section of references/git-spice-patterns.md. For each line: `.name` is the branch name, `.change` holds PR info (null if no PR), `.push.ahead` and `.push.behind` indicate divergence vs remote, `.down.name` is the base branch.
    - From the current branch's entry: note whether `.change` is non-null (PR exists) and extract `.push.ahead`/`.push.behind`.
    - Identify branches needing pushing: any branch where `.push.ahead > 0`, `.push.behind > 0`, or `.push` is absent (remote doesn't exist).
 
@@ -21,13 +21,12 @@ Push commits and create/update PR.
    - PR existence per branch comes from `.change != null` in the JSON — no need for per-branch `gh pr view` calls.
    - Run the Downstream PR Safety check from references/git-patterns.md for any branch where `.push.behind > 0`.
 
-   **If ALL branches already have PRs** (all `.change != null`): Use `git-spice stack submit --update-only --no-prompt` (or `git-spice stack submit --update-only --force --no-prompt` if any branch has `.push.behind > 0`) to push all branches at once. For each branch with new commits, delegate to pr-writer with `mode: update`. Skip to the **Report** step.
+   **If ALL branches already have PRs** (all `.change != null`): Use `git-spice stack submit --update-only --no-prompt` (or `git-spice stack submit --update-only --force --no-prompt` if any branch has `.push.behind > 0`) to push all branches at once. For each branch with new commits, write an updated PR title and description inline following references/pr-writer-rules.md. Skip to the **Report** step.
 
    **If SOME or NO branches have PRs**: Use `git-spice stack submit --fill --no-prompt` (or `git-spice stack submit --fill --force --no-prompt` if any branch has `.push.behind > 0`) to push all branches and create stub PRs with navigation comments for branches that lack them. Then for EACH branch in the stack:
-   - If the branch just got a new PR (`.change` was null before submit): check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If missing, check out the branch (`git-spice branch checkout <branch> --no-prompt`), run the Branch Context Creation pattern from references/git-patterns.md, then continue. Delegate to pr-writer with `mode: update` to replace the stub description.
-   - If the branch already had a PR and received new commits: delegate to pr-writer with `mode: update`.
+   - If the branch just got a new PR (`.change` was null before submit): check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If missing, check out the branch (`git-spice branch checkout <branch> --no-prompt`), run the Branch Context Creation pattern from references/git-patterns.md, then continue. Write an updated PR title and description inline following references/pr-writer-rules.md to replace the stub description.
+   - If the branch already had a PR and received new commits: write an updated PR title and description inline following references/pr-writer-rules.md.
    - After processing all branches, check out back to the original branch if any checkout was performed.
-   - After all pr-writer delegations complete, if any branches had `.change == null` in step 3's JSON (i.e., pr-writer created new PRs via `gh pr create`), run the CR Discovery pattern from references/git-patterns.md (stack form) to ensure git-spice discovers the newly created PRs. Skip CR Discovery if all branches already had PRs.
 
    Skip to the **Report** step after handling all branches.
 
@@ -36,7 +35,7 @@ Push commits and create/update PR.
 5. **Push to remote**:
    - `git fetch origin`
    - **Detect divergence**: `.push.behind > 0` from step 3 reflects pre-fetch state and is useful for anticipating whether a force push may be needed (e.g., preparing the user). After `git fetch origin`, run `git rev-list --left-right --count origin/$(git branch --show-current)...HEAD` for the authoritative post-fetch divergence state — fetch can change the picture. Left count > 0 means force push is needed. If the remote tracking branch doesn't exist, this is a first push (no force needed).
-   - **Select flag**: Use `--update-only` if the branch has a PR (`.change` is non-null from step 3); use `--no-publish` if it does not. See the Push via Git-Spice pattern in references/git-patterns.md for flag details.
+   - **Select flag**: Use `--update-only` if the branch has a PR (`.change` is non-null from step 3); use `--no-publish` if it does not. See the Push via Git-Spice pattern in references/git-spice-patterns.md for flag details.
    - **Regular push**: `git-spice branch submit <flag> --no-prompt`
    - **Force push**: Run the Downstream PR Safety check from references/git-patterns.md first; after the user confirms, use `git-spice branch submit <flag> --force --no-prompt`.
 
@@ -57,9 +56,9 @@ Push commits and create/update PR.
 
    Skip this check if the branch context file is missing (step 9/10 handles that) or contains the `N/A` sentinel.
 
-9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md. After pr-writer completes, run the CR Discovery pattern from references/git-patterns.md (single-branch form) to ensure git-spice discovers the newly created PR.
+9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write the PR title and description inline following references/pr-writer-rules.md and create the PR. After creation, run the CR Discovery pattern from references/git-spice-patterns.md (single-branch form) to ensure git-spice discovers the newly created PR.
 
-10. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
+10. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write an updated PR title and description inline following references/pr-writer-rules.md. If no new commits were pushed (e.g., force push of same content), skip the update.
 
 11. **Report PR URL** to the user.
 
@@ -74,7 +73,7 @@ Update the PR description without pushing new commits.
 2. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from references/git-patterns.md.
    - If the file contains the `N/A` sentinel (per references/git-patterns.md "Opt-out sentinel") **and** the user did not already specify a reason for the update: ask via AskUserQuestion -- "What changed or why update the description?" with options:
-     - **"I'll explain"** -- user provides the reason; use their response as the `context` field in the pr-writer delegation.
+     - **"I'll explain"** -- user provides the reason; use their response as the `context` field when writing the PR description.
      - **"Just rewrite from the diff"** -- proceed without `context`.
    - If the file has real content: proceed normally (`branch_context` carries the motivation).
 
@@ -82,8 +81,7 @@ Update the PR description without pushing new commits.
    - **"Update it"** -- run the Branch Context Creation pattern (update path) from references/git-patterns.md, then continue.
    - **"Continue as-is"** -- proceed with existing context.
 
-4. **Delegate to `pr-writer` agent** per references/pr-writer-rules.md with:
-   - `mode`: `update`
+4. **Write PR title and description inline** following references/pr-writer-rules.md. Gather the required context:
    - `base_branch`: from step 3 (or detect per references/git-patterns.md if step 3 was skipped)
    - `pr_number`: from step 1
    - `commit_messages`: read via `git log origin/<base>..HEAD --format=%B`
@@ -94,6 +92,6 @@ Update the PR description without pushing new commits.
 
 5. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), present options via AskUserQuestion: "Force push (--force-with-lease)" or "Skip push". Only push if the user accepts.
 
-6. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, re-invoke the pr-writer with explicit correction context.
+6. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, correct the description inline and re-post.
 
 7. **Report**: Confirm update, show PR URL.

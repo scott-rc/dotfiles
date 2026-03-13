@@ -12,7 +12,7 @@ RFC 2119 keywords (MUST, MUST NOT, SHALL, SHOULD, etc.) carry their defined mean
 
 Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
 
-**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision, and reading file lists or directory structures to scope a delegation (determining which files to pass as context). Test: "am I gathering info to choose what to do next?" Diagnosing a behavioral problem in an agent or skill (e.g., "why did pr-writer produce identical output?") requires reading that agent/skill's implementation — this IS a routing read. Stop there: once you know which files need changing and why, delegate.
+**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision, and reading file lists or directory structures to scope a delegation (determining which files to pass as context). Test: "am I gathering info to choose what to do next?" Diagnosing a behavioral problem in an agent or skill (e.g., "why did the skill produce identical output?") requires reading that agent/skill's implementation — this IS a routing read. Stop there: once you know which files need changing and why, delegate.
 
 **Work gets delegated** — file analysis, diff review, artifact generation, multi-step execution. Test: "does this consume context I'll need later?"
 
@@ -35,8 +35,7 @@ User interaction and state transitions stay in the orchestrator.
 
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
-- Commits — git skill (routes to `committer` for complex commits; inlines simple ones)
-- PR descriptions (create, update, or edit any part of the body) — `pr-writer`
+- Commits — git skill (inline)
 - Rules files — `rules-writer`
 - Skill files — `skill-writer`
 ---

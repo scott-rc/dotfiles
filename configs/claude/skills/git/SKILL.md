@@ -65,7 +65,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"review and push"** / **"fix reviews and push"** → Fix, then push
 - **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix (not check-ci)
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix
-- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Push (Refresh Description mode) (all PR body modifications, even targeted section edits, go through pr-writer)
+- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Push (Refresh Description mode) (all PR body modifications, even targeted section edits, go through the Refresh Description flow)
 - **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
 - **"split"** / **"split this branch"** / **"split for review"** / **"stack this"** → Split
 - **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
@@ -78,7 +78,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"fold this branch"** / **"merge into base"** → Stack (fold)
 - **"delete this branch"** / **"remove from stack"** → Stack (delete)
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
-- **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, committer delegation, and optional push
+- **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, message drafting, and optional push
 
 ## Monitoring
 
@@ -87,18 +87,19 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 ## References
 
 Reference files:
-- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands, git-spice integration
+- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
+- references/git-spice-patterns.md - git-spice patterns: detection, initialization, Ensure Git-Spice, stack metadata via JSON, push/commit/amend/squash via git-spice, rebase conflict resolution, branch fold, stack submit, CR discovery
 - references/git-spice-cli.md - git-spice skill conventions (non-interactive rule, branch prefix, command name) and links to official LLM-friendly CLI docs
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
-- references/pr-writer-rules.md - Rules for callers that spawn the pr-writer agent
+- references/pr-writer-rules.md - PR title and description writing rules
 - references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)
-- references/commit-message-format.md - Commit message format rules (shared by inline commit path and committer agent)
+- references/commit-message-format.md - Commit message format rules
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
 
 Scripts:
 - scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--unreplied` filters to threads needing a reply, `--count` prints just the integer count, `--summary` prints a compact summary (one header line plus one line per thread) (used by Fix operation)
 - scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Fix operation)
-- scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`); used by committer, pr-writer, and inline commit paths
+- scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`)
 - scripts/check-ci.sh - Checks CI status for the current branch and prints a grouped summary (failed/pending/passed)
 - scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun
 - scripts/branch-context-path.sh - Prints the branch context file path for the current branch (`./tmp/branches/<sanitized-branch>/context.md`)

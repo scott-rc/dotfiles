@@ -19,7 +19,11 @@ one sig CommitArt, PRArt, GitHubTextArt extends ArtifactType {}
 
 /** Agents that operations delegate work to */
 abstract sig DelegateAgent {}
-one sig Committer, PRWriter, GitHubWriter, CITriager, FixSubagent, ExploreSubagent extends DelegateAgent {}
+-- NOTE: GitHubWriter models inline `gh api` posting, not subagent delegation.
+-- fix.md posts review replies directly via `gh api` commands in the orchestrator.
+-- It is modeled as DelegateAgent to capture the architectural concern boundary
+-- (GitHub write access) even though no Task tool call is involved.
+one sig GitHubWriter, CITriager, CodeWriter, ExploreSubagent extends DelegateAgent {}
 
 /**
  * References provide domain knowledge (declarative or procedural)
@@ -53,14 +57,14 @@ abstract sig Operation {
 
 one sig Commit extends Operation {} {
     produces    = CommitArt + PRArt
-    delegatesTo = Committer + PRWriter
+    delegatesTo = none
     mutates     = CommitArt + PRArt
-    invokes     = none
+    invokes     = Push
 }
 
 one sig Squash extends Operation {} {
     produces    = CommitArt
-    delegatesTo = Committer
+    delegatesTo = none
     mutates     = CommitArt
     invokes     = Push
 }
@@ -74,38 +78,38 @@ one sig Rebase extends Operation {} {
 
 one sig Push extends Operation {} {
     produces    = CommitArt + PRArt
-    delegatesTo = Committer + PRWriter
+    delegatesTo = none
     mutates     = CommitArt + PRArt
     invokes     = Commit
 }
 
 -- Correct propagates a user correction to all affected artifacts.
--- Commit message amend is inlined (orchestrator already has the text).
--- Delegates to PRWriter (update description).
+-- Commit message amend and PR description update are both inline.
 -- Also directly edits branch context and changeset files (not domain artifacts).
 one sig Correct extends Operation {} {
     produces    = CommitArt + PRArt
-    delegatesTo = PRWriter
+    delegatesTo = none
     mutates     = CommitArt + PRArt
     invokes     = none
 }
 
 -- Fix unifies CI failure repair (FixCI), review feedback (FixReview), and
 -- PR comment replies (Reply). CITriager is GitHub-Actions-specific; for
--- Buildkite the triager is bypassed and FixSubagent handles everything.
+-- Buildkite the triager is bypassed and CodeWriter handles everything.
 one sig Fix extends Operation {} {
     produces    = CommitArt + GitHubTextArt
-    delegatesTo = CITriager + FixSubagent + ExploreSubagent + GitHubWriter
+    delegatesTo = CITriager + CodeWriter + ExploreSubagent + GitHubWriter
     mutates     = CommitArt
     invokes     = none
 }
 
 -- Split analyzes a large branch, proposes a stack grouped by concern,
--- creates branches, commits each via committer, and opens PRs via pr-writer.
--- ExploreSubagent analyzes the diff in step 2.
+-- creates branches, commits each inline, and opens PRs with inline descriptions.
+-- ExploreSubagent analyzes the diff in step 2; CodeWriter implements changes
+-- on each branch in step 3c.
 one sig Split extends Operation {} {
     produces    = CommitArt + PRArt
-    delegatesTo = Committer + PRWriter + ExploreSubagent
+    delegatesTo = ExploreSubagent + CodeWriter
     mutates     = CommitArt + PRArt
     invokes     = none
 }
@@ -137,21 +141,29 @@ one sig Sync extends Operation {} {
 -- Named reference instances. Each constrains its consumedBy set.
 
 one sig GitPatterns extends Reference {} {
-    -- Consumed by all operations.
+    -- Consumed by all operations (every operation file references git-patterns.md).
     consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Split + Stack + Sync
+}
+
+one sig GitSpicePatterns extends Reference {} {
+    -- Consumed by all operations that reference git-spice-patterns.md.
+    -- Split does not reference git-spice-patterns.md and is excluded.
+    consumedBy = Commit + Squash + Rebase + Push + Correct + Fix + Stack + Sync
 }
 
 one sig GitHubText extends Reference {} {
     consumedBy = Commit + Push + Correct + Fix + Split
 }
 
--- PRWriterRules provides delegation context and commit-forwarding rules for
--- callers that spawn the pr-writer agent. Commit messages are forwarded as
+-- PRWriterRules provides formatting rules and required context for inline
+-- PR title and description writing. Commit messages are forwarded as
 -- supplementary hints only -- the diff is the source of truth. Commit messages
 -- describe intermediate states (fixups, reverts, mid-PR bugs) that must not
 -- appear in the final PR description.
+-- Fix is a consumer because its Description Path (step 3 in fix.md) invokes
+-- push.md's Refresh Description mode, which follows pr-writer-rules.md.
 one sig PRWriterRules extends Reference {} {
-    consumedBy = Commit + Push + Correct + Split
+    consumedBy = Commit + Push + Correct + Fix + Split
 }
 
 one sig BulkThreads extends Reference {} {
@@ -163,14 +175,12 @@ one sig BuildkiteHandling extends Reference {} {
 }
 
 one sig CommitMessageFormat extends Reference {} {
-    -- Split consumes indirectly: delegates to Committer which has its own synced copy.
     consumedBy = Commit + Squash + Correct + Fix + Split
 }
 
 -- Scripts modeled as Reference instances
 
 one sig SafeText extends Reference {} {
-    -- Indirect: ops delegate to Committer/PRWriter agents, which call the script.
     consumedBy = Commit + Squash + Push + Correct + Fix + Split
 }
 
@@ -257,30 +267,30 @@ one sig GatherK, ConfirmK, DelegateK, WriteK, PublishK, ReportK, LoopK, VerifyK 
  * reference these predicates directly, making all checks instantaneous.
  */
 pred hasStep[op: Operation, k: StepKind, p: Int] {
-    -- Commit: gather(0) -> write(1) -> delegate(2) -> confirm(3) -> delegate(4) -> publish(5) -> delegate(6) -> report(7)
-    -- write(1) = inline commit (simple path); delegate(2) = committer (complex path);
-    -- confirm(3) = amend or update description needed?;
-    -- delegate(4) = committer amend (message rewrite) or pr-writer description update;
-    -- publish(5) = force-push if amend path taken; delegate(6) = pr-writer update.
+    -- Commit: gather(0) -> confirm(1) -> write(2) -> confirm(3) -> write(4) -> publish(5) -> write(6) -> report(7)
+    -- gather(0) = check branch, context, scope; confirm(1) = mixed concerns? user picks group;
+    -- write(2) = inline commit; confirm(3) = amend or update description needed?;
+    -- write(4) = inline amend message rewrite or inline PR description update;
+    -- publish(5) = force-push if amend path taken; write(6) = inline PR update.
     (op = Commit and k = GatherK   and p = 0) or
-    (op = Commit and k = WriteK    and p = 1) or
-    (op = Commit and k = DelegateK and p = 2) or
+    (op = Commit and k = ConfirmK  and p = 1) or
+    (op = Commit and k = WriteK    and p = 2) or
     (op = Commit and k = ConfirmK  and p = 3) or
-    (op = Commit and k = DelegateK and p = 4) or
+    (op = Commit and k = WriteK    and p = 4) or
     (op = Commit and k = PublishK  and p = 5) or
-    (op = Commit and k = DelegateK and p = 6) or
+    (op = Commit and k = WriteK    and p = 6) or
     (op = Commit and k = ReportK   and p = 7) or
 
-    -- Squash: gather(0) -> delegate(1) -> write(2) -> verify(3) -> confirm(4) -> delegate(5) -> report(6)
-    -- delegate(1) = optional commit of uncommitted changes; write(2) = rebase;
+    -- Squash: gather(0) -> write(1) -> write(2) -> verify(3) -> confirm(4) -> write(5) -> report(6)
+    -- write(1) = optional inline commit of uncommitted changes; write(2) = rebase;
     -- verify(3) = scope check; confirm(4) = squash?;
-    -- delegate(5) = committer squash.
+    -- write(5) = inline squash message.
     (op = Squash and k = GatherK   and p = 0) or
-    (op = Squash and k = DelegateK and p = 1) or
+    (op = Squash and k = WriteK    and p = 1) or
     (op = Squash and k = WriteK    and p = 2) or
     (op = Squash and k = VerifyK   and p = 3) or
     (op = Squash and k = ConfirmK  and p = 4) or
-    (op = Squash and k = DelegateK and p = 5) or
+    (op = Squash and k = WriteK    and p = 5) or
     (op = Squash and k = ReportK   and p = 6) or
 
     -- Rebase: gather(0) -> write(1) -> verify(2) -> report(3)
@@ -290,28 +300,28 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Rebase and k = VerifyK  and p = 2) or
     (op = Rebase and k = ReportK  and p = 3) or
 
-    -- Push: gather(0) -> publish(1) -> verify(2) -> delegate(3) -> confirm(4) -> delegate(5) -> report(6)
+    -- Push: gather(0) -> publish(1) -> verify(2) -> write(3) -> confirm(4) -> write(5) -> report(6)
     -- publish(1) = git push to remote; verify(2) = check PR state;
-    -- delegate(3) = pr-writer creates/updates PR; confirm(4) = update description?;
-    -- delegate(5) = pr-writer rewrites description.
+    -- write(3) = inline PR title/description create or update; confirm(4) = update description?;
+    -- write(5) = inline PR description rewrite.
     (op = Push and k = GatherK   and p = 0) or
     (op = Push and k = PublishK  and p = 1) or
     (op = Push and k = VerifyK   and p = 2) or
-    (op = Push and k = DelegateK and p = 3) or
+    (op = Push and k = WriteK    and p = 3) or
     (op = Push and k = ConfirmK  and p = 4) or
-    (op = Push and k = DelegateK and p = 5) or
+    (op = Push and k = WriteK    and p = 5) or
     (op = Push and k = ReportK   and p = 6) or
 
-    -- Correct: gather(0) -> write(1) -> write(2) -> delegate(3) -> confirm(4) -> publish(5) -> report(6)
+    -- Correct: gather(0) -> write(1) -> write(2) -> write(3) -> confirm(4) -> publish(5) -> report(6)
     -- gather(0) = understand correction, detect base, scan all artifacts;
     -- write(1) = fix branch context and changeset files directly;
     -- write(2) = inline amend of commit message;
-    -- delegate(3) = pr-writer updates description;
+    -- write(3) = inline PR title/description update;
     -- confirm(4) = force push offer; publish(5) = force push if accepted.
     (op = Correct and k = GatherK   and p = 0) or
     (op = Correct and k = WriteK    and p = 1) or
     (op = Correct and k = WriteK    and p = 2) or
-    (op = Correct and k = DelegateK and p = 3) or
+    (op = Correct and k = WriteK    and p = 3) or
     (op = Correct and k = ConfirmK  and p = 4) or
     (op = Correct and k = PublishK  and p = 5) or
     (op = Correct and k = ReportK   and p = 6) or
@@ -320,7 +330,7 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     -- gather(0) = detect CI failures and review threads in parallel;
     -- report(1) = summarize what was found; confirm(2) = classify threads, approve plan;
     -- delegate(3) = CITriager (GitHub Actions) or ExploreSubagent (bulk threads);
-    -- delegate(4) = FixSubagent applies code fixes; verify(5) = scope-check changed files;
+    -- delegate(4) = CodeWriter applies code fixes; verify(5) = scope-check changed files;
     -- write(6) = inline commit of fixes; publish(7) = GitHubWriter posts replies.
     (op = Fix and k = GatherK   and p = 0) or
     (op = Fix and k = ReportK   and p = 1) or
@@ -332,16 +342,16 @@ pred hasStep[op: Operation, k: StepKind, p: Int] {
     (op = Fix and k = PublishK  and p = 7) or
     (op = Fix and k = ReportK   and p = 8) or
 
-    -- Split: gather(0) -> delegate(1) -> confirm(2) -> write(3) -> delegate(4) -> publish(5) -> verify(6) -> report(7)
+    -- Split: gather(0) -> delegate(1) -> confirm(2) -> write(3) -> write(4) -> publish(5) -> verify(6) -> report(7)
     -- gather(0) = detect base, get diff stats; delegate(1) = Explore analyzes diff;
     -- confirm(2) = user approves stack; write(3) = gs branch create + code-writer implements;
-    -- delegate(4) = committer for each branch; publish(5) = gs stack submit + pr-writer updates;
+    -- write(4) = inline commit for each branch; publish(5) = gs stack submit + inline PR updates;
     -- verify(6) = final check; report(7) = summary.
     (op = Split and k = GatherK   and p = 0) or
     (op = Split and k = DelegateK and p = 1) or
     (op = Split and k = ConfirmK  and p = 2) or
     (op = Split and k = WriteK    and p = 3) or
-    (op = Split and k = DelegateK and p = 4) or
+    (op = Split and k = WriteK    and p = 4) or
     (op = Split and k = PublishK  and p = 5) or
     (op = Split and k = VerifyK   and p = 6) or
     (op = Split and k = ReportK   and p = 7) or
@@ -378,28 +388,14 @@ pred maxPos[op: Operation, p: Int] {
 
 -- ═══ Invariants (Assertions) ═════════════════════════════════
 
--- INV-D1: Committer agent only used by ops that produce/mutate CommitArt
-assert committerDelegatedCorrectly {
-    all op: Operation |
-        Committer in op.delegatesTo implies
-            CommitArt in (op.produces + op.mutates)
-}
-
--- INV-D2: PRWriter agent only used by ops that produce/mutate PRArt
-assert prWriterDelegatedCorrectly {
-    all op: Operation |
-        PRWriter in op.delegatesTo implies
-            PRArt in (op.produces + op.mutates)
-}
-
--- INV-D3: GitHubWriter agent only used by ops that produce GitHubTextArt
+-- INV-D1: GitHubWriter agent only used by ops that produce GitHubTextArt
 assert githubWriterDelegatedCorrectly {
     all op: Operation |
         GitHubWriter in op.delegatesTo implies
             GitHubTextArt in op.produces
 }
 
--- INV-D4: ExploreSubagent only used by ops that have a DelegateK step
+-- INV-D2: ExploreSubagent only used by ops that have a DelegateK step
 -- (relaxed from BulkThreads-only: Split also uses ExploreSubagent for diff analysis)
 assert exploreSubagentHasDelegation {
     all op: Operation |
@@ -407,17 +403,17 @@ assert exploreSubagentHasDelegation {
             some p: Int | hasStep[op, DelegateK, p]
 }
 
--- INV-D5: Every mutated artifact type is also produced
+-- INV-D3: Every mutated artifact type is also produced
 assert mutatesSubsetOfProduces {
     all op: Operation | op.mutates in op.produces
 }
 
--- INV-D6: CITriager delegation always implies FixSubagent delegation
+-- INV-D4: CITriager delegation always implies CodeWriter delegation
 -- (triager never acts alone -- it only triages, then hands off to fix)
-assert ciTriagerImpliesFixSubagent {
+assert ciTriagerImpliesCodeWriter {
     all op: Operation |
         CITriager in op.delegatesTo implies
-            FixSubagent in op.delegatesTo
+            CodeWriter in op.delegatesTo
 }
 
 -- INV-P1: PublishK always preceded by GatherK in the same operation
@@ -530,8 +526,8 @@ assert referencesAreLeaves {
     all r: Reference | some r.consumedBy
 }
 
--- INV-REF-2: GitPatterns is consumed by all operations.
-assert gitPatternsMostOps {
+-- INV-REF-2: GitPatterns is consumed by all operations (every operation file references git-patterns.md).
+assert gitPatternsAllOps {
     all op: Operation | op in GitPatterns.consumedBy
 }
 
@@ -542,16 +538,20 @@ assert githubTextMatchesProduction {
             op in GitHubText.consumedBy
 }
 
+-- INV-REF-4: GitSpicePatterns is consumed by all operations except Split.
+-- Split only references git-patterns.md, not git-spice-patterns.md.
+assert gitSpicePatternsAllOpsExceptSplit {
+    all op: Operation | op != Split implies op in GitSpicePatterns.consumedBy
+}
+
 
 -- ═══ Verification ════════════════════════════════════════════
 
 -- Delegation
-check committerDelegatedCorrectly        for 5 but 4 Int
-check prWriterDelegatedCorrectly         for 5 but 4 Int
 check githubWriterDelegatedCorrectly     for 5 but 4 Int
 check exploreSubagentHasDelegation       for 5 but 4 Int
 check mutatesSubsetOfProduces            for 5 but 4 Int
-check ciTriagerImpliesFixSubagent        for 5 but 4 Int
+check ciTriagerImpliesCodeWriter         for 5 but 4 Int
 check stackSyncReadOnly                 for 5 but 4 Int
 
 -- Publish safety
@@ -575,6 +575,7 @@ check allAgentsUsed                      for 5 but 4 Int
 check invokedOpsReachable                for 5 but 4 Int
 
 -- References
-check referencesAreLeaves                for 5 but 4 Int
-check gitPatternsMostOps                 for 5 but 4 Int
-check githubTextMatchesProduction        for 5 but 4 Int
+check referencesAreLeaves                    for 5 but 4 Int
+check gitPatternsAllOps                      for 5 but 4 Int
+check gitSpicePatternsAllOpsExceptSplit      for 5 but 4 Int
+check githubTextMatchesProduction            for 5 but 4 Int

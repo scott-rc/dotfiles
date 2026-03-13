@@ -238,9 +238,7 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `chunk-writer.md` | Writes plan chunk files with TDD structure and checkpoint tracking |
 | `code-reviewer.md` | Reviews code for quality, security, and maintainability |
 | `code-writer.md` | Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop |
-| `committer.md` | Analyzes uncommitted changes, drafts a commit message, stages files, and creates the commit, keeping large diffs out of the main conversation context |
 | `mutation-executor.md` | Executes planned source code mutations against a test suite, records killed/survived outcomes, returns results table and mutation score |
-| `pr-writer.md` | Writes PR titles and descriptions from git diffs following formatting guidelines, creates new PRs or updates existing ones |
 | `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
 | `rules-writer.md` | Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria |
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |

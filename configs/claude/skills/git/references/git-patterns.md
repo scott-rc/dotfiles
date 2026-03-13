@@ -18,20 +18,6 @@ Shared patterns used across git skill operations. Reference this file for consis
 - CI System Detection
 - Branch Context Creation
 - Local Fix Commands
-- Git-Spice
-  - Detection
-  - Initialization
-  - Ensure Git-Spice
-  - Tracked Branch Check
-  - Stack Metadata via JSON
-  - Push via Git-Spice
-  - Commit via Git-Spice
-  - Amend via Git-Spice
-  - Squash via Git-Spice
-  - Rebase Conflict Resolution
-  - Branch Fold
-  - Stack Submit
-  - CR Discovery
 
 ## Script Paths
 
@@ -91,9 +77,9 @@ Resolve the path with:
 
 This outputs `./tmp/branches/<sanitized-branch>/context.md` (e.g., `./tmp/branches/sc--fix-login/context.md`). The parent directory holds all per-branch artifacts (context, review findings, etc.).
 
-Read this file when it exists and forward its contents as `branch_context` to the pr-writer agent.
+Read this file when it exists and use its contents as `branch_context` when writing PR descriptions.
 
-**Opt-out sentinel**: If the file contains exactly `N/A` (single line, no other content), the user opted out of providing context. Treat the file as present but empty for routing purposes. pr-writer callers MUST NOT pass `N/A` as `branch_context` -- omit the field instead.
+**Opt-out sentinel**: If the file contains exactly `N/A` (single line, no other content), the user opted out of providing context. Treat the file as present but empty for routing purposes. MUST NOT use `N/A` as `branch_context` when writing PR descriptions -- omit the field instead.
 
 ## Fetch Safety
 
@@ -171,7 +157,7 @@ Read or create the branch context file that captures the "why" for the current b
 
 3. **Assess conversation context**: Before prompting the user, assess whether the current conversation already contains enough information to draft a meaningful branch context -- problem discussed, motivation clear, relevant links shared. Also assess whether the branch involves multiple distinct concerns visible in the conversation (e.g., docs site, CI workflow, tooling rules, config removal). A single-sentence summary that omits known concerns is NOT "sufficient" -- the context must cover all known concerns. If the conversation lacks sufficient context (e.g., invoked at the start of a session with no prior discussion), fall through to step 5.
 
-4. **Draft from conversation**: If context is sufficient (step 3 passed), draft a branch context: 1-3 sentences of purpose/motivation, related links if discussed, no headers/change lists/implementation details. If the conversation reveals multiple distinct concerns (e.g., docs site + CI workflow + tooling rules + config removal), enumerate each concern as a separate sentence or bullet -- the pr-writer and committer use this to decide whether to structure output as prose or numbered lists. Follow the format constraints in step 7. Then skip to step 7 (write the file).
+4. **Draft from conversation**: If context is sufficient (step 3 passed), draft a branch context: 1-3 sentences of purpose/motivation, related links if discussed, no headers/change lists/implementation details. If the conversation reveals multiple distinct concerns (e.g., docs site + CI workflow + tooling rules + config removal), enumerate each concern as a separate sentence or bullet -- downstream operations use this to decide whether to structure output as prose or numbered lists. Follow the format constraints in step 7. Then skip to step 7 (write the file).
 
 5. **Gather context**: Prompt via AskUserQuestion -- "What's the purpose of this branch?" with exactly these two options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts). The free-text input ("Type something...") serves as the direct-entry path -- no separate option is needed for it.
    - **"Help me articulate it"** -- proceed to step 6.
@@ -184,7 +170,7 @@ Read or create the branch context file that captures the "why" for the current b
    - 1-3 sentences of purpose/motivation (the "why")
    - Related links, if given (each on its own line)
 
-   Lead with the problem or trigger, not the solution. "CONTRIBUTING.md mixed audiences and couldn't scale" is why; "Add a Starship docs site" is what. If the branch includes changes with separate motivations (e.g., a cleanup alongside a feature), mention each motivation -- the reader needs to understand why the diff touches seemingly unrelated areas. For branches with 3 or more distinct concerns, each concern MUST be its own sentence or bullet -- do NOT compress them into a single compound sentence with semicolons. This gives downstream tools (pr-writer, committer) explicit concern boundaries to work from. Do NOT include headers, change lists, implementation details, or what files were modified -- the diff is the source of truth for "what". Keep the user's original phrasing where possible.
+   Lead with the problem or trigger, not the solution. "CONTRIBUTING.md mixed audiences and couldn't scale" is why; "Add a Starship docs site" is what. If the branch includes changes with separate motivations (e.g., a cleanup alongside a feature), mention each motivation -- the reader needs to understand why the diff touches seemingly unrelated areas. For branches with 3 or more distinct concerns, each concern MUST be its own sentence or bullet -- do NOT compress them into a single compound sentence with semicolons. This gives downstream operations explicit concern boundaries to work from. Do NOT include headers, change lists, implementation details, or what files were modified -- the diff is the source of truth for "what". Keep the user's original phrasing where possible.
 
 8. **Confirm with user**: Show the written content and ask via AskUserQuestion -- "Does this accurately capture the purpose?" with options:
    - **"Looks good"** -- proceed to report.
@@ -210,156 +196,3 @@ Detect language from the repository root and use the appropriate commands. Subag
 
 ### Fallback
 If none of the above match, skip automated lint fixing and instruct the subagent to check for project-specific tooling.
-
-## Git-Spice
-
-git-spice manages stacked branches — tracking topology, restacking after rebases, and submitting stacked PRs with navigation comments.
-
-### Detection
-
-Check if the repo is initialized:
-```bash
-git rev-parse --verify refs/spice/data 2>/dev/null
-```
-Succeeds (exit 0) if git-spice is initialized for this repo.
-
-### Initialization
-
-Auto-initialize whenever any operation needs git-spice and it is not yet initialized. Do NOT prompt the user — initialize silently.
-
-```bash
-git-spice repo init --trunk <base> --remote origin --no-prompt
-git config spice.branchCreate.prefix sc/
-```
-
-### Ensure Git-Spice
-
-A composite pattern that all operations use before running any `git-spice` command:
-
-1. **Detect**: Run the Detection check above. If git-spice is already initialized, skip to step 3.
-2. **Initialize**: Run initialization silently (no user prompt): `git-spice repo init --trunk <base> --remote origin --no-prompt` and `git config spice.branchCreate.prefix sc/`, where `<base>` is the base branch from Base Branch Detection.
-3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `git-spice branch track --base <base> --no-prompt` to track it.
-4. **Done**: git-spice is ready to use.
-
-### Tracked Branch Check
-
-Check if a branch is tracked by git-spice:
-```bash
-git-spice log short --json 2>/dev/null | jq -e 'select(.name == "<branch>")' >/dev/null
-```
-Exit 0 means the branch appears in git-spice's tracked stack. This is read-only — it does not switch branches.
-
-### Stack Metadata via JSON
-
-`git-spice log short --json` outputs one JSON object per line (JSONL). Each object has these fields:
-
-- `.name` — branch name
-- `.change` — object with `.id` (e.g. `"#2315"`) and `.url`; absent if no PR exists
-- `.push` — object with `.ahead` (local commits not pushed) and `.behind` (remote commits not local, indicating divergence from rebase/amend); absent if not applicable
-- `.down` — object with `.name` (base branch) and `.needsRestack` (boolean); absent on trunk
-- `.current` — boolean; only present on trunk when it is checked out
-- `.ups` — array of upstream branch objects; only present on trunk
-- `.worktree` — worktree path string; only present when the branch is checked out in a worktree
-
-jq recipes:
-
-- All branches in the stack: `jq -r '.name'`
-- Branches with existing PRs: `jq -r 'select(.change != null) | "\(.name) \(.change.id)"'`
-- Check if specific branch has a PR: `jq -e 'select(.name == "<branch>") | .change' 2>/dev/null`
-- Branches needing push (ahead > 0): `jq -r 'select(.push.ahead > 0) | .name'`
-- Branches with divergence (behind > 0, needs force push): `jq -r 'select(.push.behind > 0) | .name'`
-
-### Push via Git-Spice
-
-For tracked branches, replace `git push -u origin HEAD`. Choose the flag based on whether a PR already exists:
-
-- `--no-publish` — for branches WITHOUT an existing PR (push code only; pr-writer creates the PR separately)
-- `--update-only` — for branches WITH an existing PR (update remote ref and existing CR metadata, no warning noise)
-
-Without PR:
-```bash
-git-spice branch submit --no-publish --no-prompt
-git-spice branch submit --no-publish --force --no-prompt
-```
-
-With existing PR:
-```bash
-git-spice branch submit --update-only --no-prompt
-git-spice branch submit --update-only --force --no-prompt
-```
-
-### Commit via Git-Spice
-
-For tracked branches, use `git-spice commit create` instead of `git commit`. This commits and auto-restacks any upstack branches:
-```bash
-git-spice commit create -m "<message>" --no-prompt
-```
-
-With staging:
-```bash
-git-spice commit create -a -m "<message>" --no-prompt
-```
-
-### Amend via Git-Spice
-
-Use `git-spice commit amend` instead of `git commit --amend` + `git-spice upstack restack`. This amends the last commit AND auto-restacks any upstack branches in one atomic operation:
-```bash
-git-spice commit amend --no-prompt
-```
-
-### Squash via Git-Spice
-
-Use `git-spice branch squash` to squash all commits on the current branch into one and auto-restack upstack branches:
-```bash
-git-spice branch squash --no-prompt
-```
-
-With an explicit message:
-```bash
-git-spice branch squash -m "<message>" --no-prompt
-```
-
-### Rebase Conflict Resolution
-
-Use `git-spice rebase continue --no-prompt` (alias `rbc`) after resolving conflicts — auto-restacks upstack branches. To cancel: `git-spice rebase abort` (alias `rba`).
-
-### Branch Fold
-
-Use `git-spice branch fold --no-prompt` to merge into base, delete current branch, and restack upstack. This is destructive — always confirm with the user.
-
-### Stack Submit
-
-Push all branches in the stack and create/update PRs with navigation comments. Choose the flag based on whether PRs already exist:
-
-- `--fill` — when creating PRs for branches that don't have them yet
-- `--update-only` — when all branches already have PRs (pr-writer handles descriptions)
-
-Creating PRs:
-```bash
-git-spice stack submit --fill --no-prompt
-git-spice stack submit --fill --force --no-prompt
-```
-
-Updating existing PRs:
-```bash
-git-spice stack submit --update-only --no-prompt
-git-spice stack submit --update-only --force --no-prompt
-```
-
-### CR Discovery
-
-After pr-writer creates PRs externally (via `gh pr create`), git-spice does not know about them. Run submit so git-spice discovers existing CRs and links them internally:
-
-**Single branch:**
-```bash
-git-spice branch submit --no-prompt
-```
-
-**Stack:**
-```bash
-git-spice stack submit --no-prompt
-```
-
-git-spice will log `INF <branch>: Found existing CR #NNN` for each discovered PR. This is idempotent — safe to run even if git-spice already knows about the PRs (it logs "CR #NNN is up-to-date"). These commands also push, which is harmless after a push.md flow since code is already at remote HEAD.
-
-MUST run after pr-writer creates a new PR via `gh pr create`. Not needed when git-spice itself created the PR (e.g., `stack submit --fill`) or when pr-writer updates an existing PR (`mode: update`).

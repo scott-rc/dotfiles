@@ -8,7 +8,7 @@ Fetch latest and rebase onto base branch.
 
 2. **Detect base branch**: Detect base branch per references/git-patterns.md.
 
-3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-patterns.md.
+3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md.
 
 4. **Rebase onto base branch**: Run `git-spice upstack restack`. This rebases the current branch AND all branches above it onto their updated bases.
 

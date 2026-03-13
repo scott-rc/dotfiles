@@ -12,7 +12,7 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 
 2. **Detect base branch**: per references/git-patterns.md.
 
-3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-patterns.md. Required because steps 5 and 6 use `git-spice upstack restack` and `git-spice branch submit`.
+3. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md. Required because steps 5 and 6 use `git-spice upstack restack` and `git-spice branch submit`.
 
 4. **Scan all artifacts**: Read the following artifacts in parallel, checking each for the incorrect claim:
    - Commit message — `git log -1 --format=%B` (or `git log origin/<base>..HEAD --format=%B` for multi-commit branches)
@@ -24,10 +24,10 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 5. **Report findings**: List which artifacts contain the incorrect information and which are clean. Do NOT ask for confirmation -- proceed to fix.
 
 6. **Fix affected artifacts**: Apply corrections to all affected artifacts. Order matters -- fix upstream sources first so downstream regeneration uses correct input:
-   - Commit message -- the current message was already read in step 3. Apply the correction, then amend per the Inline Commit Procedure in references/commit-message-format.md (use `git commit --amend -F <file>`, then `git-spice upstack restack`).
+   - Commit message -- apply the correction, then amend per the Inline Commit Procedure in references/commit-message-format.md (use `git commit --amend -F <file>`, then `git-spice upstack restack`).
    - Branch context file — edit the file directly to remove or correct the claim
    - Changeset files — edit affected files directly
-   - PR title — delegate to `pr-writer` agent with `mode: update` and `context` set to the correction (title only)
-   - PR description — delegate to `pr-writer` agent with `mode: update` and `context` set to the correction
+   - PR title — write an updated title inline following references/pr-writer-rules.md with `context` set to the correction
+   - PR description — write an updated description inline following references/pr-writer-rules.md with `context` set to the correction
 
-7. **Report**: Confirm what was updated. If the commit was amended and a remote tracking branch exists, present force push options via AskUserQuestion: first run the Downstream PR Safety check from references/git-patterns.md, then determine the submit flag by checking PR existence via the Stack Metadata via JSON pattern in references/git-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`. Present options: "Force push" or "Skip push".
+7. **Report**: Confirm what was updated. If the commit was amended and a remote tracking branch exists, present force push options via AskUserQuestion: first run the Downstream PR Safety check from references/git-patterns.md, then determine the submit flag by checking PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`. Present options: "Force push" or "Skip push".

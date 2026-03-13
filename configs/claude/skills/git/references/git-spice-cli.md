@@ -26,7 +26,7 @@ Use `git-spice` (the installed binary). The fish config has `alias gs=git-spice`
 
 ### JSON Output (v0.18+)
 
-`git-spice log short --json` streams JSONL (one JSON object per line) with branch metadata. Used by the skill for tracked branch checks, PR existence detection, and divergence detection. See "Stack Metadata via JSON" in git-patterns.md for the full schema and jq recipes.
+`git-spice log short --json` streams JSONL (one JSON object per line) with branch metadata. Used by the skill for tracked branch checks, PR existence detection, and divergence detection. See the operation files for schema details and jq recipes.
 
 ### --update-only (v0.10+)
 
@@ -48,4 +48,4 @@ Available for future use; the skill currently uses `stack submit` for full-stack
 - `--reviewer <user>` — assign reviewer on submit
 - `--assign <user>` — assign assignee on submit
 
-Available for future use; pr-writer currently handles PR metadata separately.
+Available for future use; PR metadata is currently handled separately during PR writing.
