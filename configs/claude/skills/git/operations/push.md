@@ -23,6 +23,7 @@ Push commits and create/update PR.
    - If the branch just got a new PR (didn't have one before): check if the branch context file exists (path per references/git-patterns.md "Branch Context File"). If missing, check out the branch (`git-spice branch checkout <branch> --no-prompt`), run the Branch Context Creation pattern from references/git-patterns.md, then continue. Delegate to pr-writer with `mode: update` to replace the stub description.
    - If the branch already had a PR and received new commits: delegate to pr-writer with `mode: update`.
    - After processing all branches, check out back to the original branch if any checkout was performed.
+   - After all pr-writer delegations complete, run the CR Discovery pattern from references/git-patterns.md (stack form) to ensure git-spice discovers the newly created PRs.
 
    Skip to the **Report** step after handling all branches.
 
@@ -53,7 +54,7 @@ Push commits and create/update PR.
 
    Skip this check if the branch context file is missing (step 10/11 handles that) or contains the `N/A` sentinel.
 
-10. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md.
+10. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from `references/git-patterns.md` first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: create` using the Delegation Fields in references/pr-writer-rules.md. After pr-writer completes, run the CR Discovery pattern from references/git-patterns.md (single-branch form) to ensure git-spice discovers the newly created PR.
 
 11. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from `references/git-patterns.md` first (MUST follow the full pattern including the user confirmation step). Then spawn `pr-writer` with `mode: update`. If no new commits were pushed (e.g., force push of same content), skip the update.
 

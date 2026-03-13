@@ -36,6 +36,7 @@ Shared patterns used across git skill operations. Reference this file for consis
   - Branch Reorder
   - Non-Interactive Rule
   - Command Name
+  - CR Discovery
 
 ## Script Paths
 
@@ -366,6 +367,24 @@ Move branches to a new position in the stack using these commands:
 - `git-spice upstack onto <destination> --no-prompt` (alias: `git-spice uso`) — Move the current branch AND all branches above it to a new base. Use when reordering within a stack.
 - `git-spice branch onto <destination> --no-prompt` (alias: `git-spice bon`) — Move ONLY the current branch to a new base, leaving upstack branches where they are. Use when extracting a branch from the stack.
 - `git-spice stack edit` (alias: `git-spice se`) — Open an editor to reorder branches in a linear stack. Requires the stack to be linear (no branch can have multiple branches above it).
+
+### CR Discovery
+
+After pr-writer creates PRs externally (via `gh pr create`), git-spice does not know about them. Run submit so git-spice discovers existing CRs and links them internally:
+
+**Single branch:**
+```bash
+git-spice branch submit --no-prompt
+```
+
+**Stack:**
+```bash
+git-spice stack submit --no-prompt
+```
+
+git-spice will log `INF <branch>: Found existing CR #NNN` for each discovered PR. This is idempotent — safe to run even if git-spice already knows about the PRs (it logs "CR #NNN is up-to-date"). These commands also push, which is harmless after a push.md flow since code is already at remote HEAD.
+
+MUST run after pr-writer creates a new PR via `gh pr create`. Not needed when git-spice itself created the PR (e.g., `stack submit --fill`) or when pr-writer updates an existing PR (`mode: update`).
 
 ### Non-Interactive Rule
 
