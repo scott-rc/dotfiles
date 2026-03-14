@@ -63,8 +63,9 @@ Users often request multiple operations together. Handle these as follows:
 
 Global delegation rules apply. Code-skill-specific additions:
 
-- **Mode selection is a routing read** — the orchestrator chooses Apply/Feature/Fix before delegating. Reading file lists and checking test infrastructure to inform that choice is fine. Reading source files to design the implementation is not.
-- **Describe behavior, not code changes** — tell the subagent what to add/fix/test and where the code lives. Do NOT prescribe struct fields, function signatures, or file-by-file edit lists.
+- **Mode selection stays inline** — the orchestrator chooses Apply/Feature/Fix before delegating. Reading file lists and checking test infrastructure to inform that choice is fine.
+- **Simple changes stay inline** — single-file edits, config changes, and small fixes don't need a subagent. Delegate when the task spans multiple files or benefits from TDD scaffolding.
+- **Describe behavior, not code changes** — when delegating, tell the subagent what to add/fix/test and where the code lives. Do NOT prescribe struct fields, function signatures, or file-by-file edit lists.
 - **Validate subagent results** — if the result summary is empty or the subagent ran under 30 seconds on a non-trivial task, investigate before reporting success.
 
 ## References

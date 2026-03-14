@@ -6,32 +6,37 @@ RFC 2119 keywords (MUST, MUST NOT, SHALL, SHOULD, etc.) carry their defined mean
 
 ## Delegation
 
-### Behavior
+### Default: Work Inline
 
-**The orchestrator decides. Subagents do.**
+Do the work directly — read the code, make the changes, run the tests. Delegation adds overhead (context duplication, round-trip latency, loss of nuance). Only delegate when that overhead is clearly justified.
 
-Pass the *problem*, not the *solution* — don't read code, diagnose issues, or prescribe implementations before delegating.
+### When to Delegate
 
-**Routing reads stay inline** — status checks, branch names, file existence, small lookups that inform the next decision, and reading file lists or directory structures to scope a delegation (determining which files to pass as context). Test: "am I gathering info to choose what to do next?" Diagnosing a behavioral problem in an agent or skill (e.g., "why did the skill produce identical output?") requires reading that agent/skill's implementation — this IS a routing read. Stop there: once you know which files need changing and why, delegate.
+- **Scale** — task spans many files or benefits from parallel workstreams
+- **Context preservation** — the work would consume context you'll need later (large diffs, extensive analysis, multi-step execution with intermediate artifacts)
+- **Specialization** — a subagent handles the task type materially better (e.g., `rules-writer` for rules validation, `skill-writer` for skill structure)
 
-**Work gets delegated** — file analysis, diff review, artifact generation, multi-step execution. Test: "does this consume context I'll need later?"
+### When to Stay Inline
 
-**Stop before investigation becomes implementation** — reading a few files to identify what to delegate is a routing read. Reading files to figure out how to implement is doing the subagent's job.
+- Single-file edits, small fixes, config changes, typo fixes
+- Investigation and implementation are tightly coupled — understanding the problem IS the fix
+- The task is simple enough that delegation overhead exceeds the work itself
+- You can read, change, and verify in a few steps
 
-**Heuristic**: if you've read more than 2-3 non-trivial files (excluding file lists, directory outputs, and small lookups) to understand a problem you plan to delegate, you've likely crossed the line. Delegate now with what you know and include the file paths as context for the subagent.
+### When Delegating
 
-User interaction and state transitions stay in the orchestrator.
+Pass the *problem*, not the *solution* — describe what needs to change and why, not how to implement it.
 
 **Do NOT:**
-- Read source files beyond what routing reads permit — reading to identify *what* to delegate is allowed (see routing reads above); reading to figure out *how* to implement is not
 - Design implementations or prescribe code changes for subagents
 - Re-read files a subagent already summarized
 - Reduce a subagent to a transcriber by over-specifying the solution
-- Delegate trivial routing reads that inform the orchestrator's next decision
 
 ### Routing
 
-**Skills take precedence — this is a hard requirement.** Before dispatching any subagent, check whether an available skill covers the task. If a skill matches, MUST invoke it via the Skill tool — MUST NOT bypass the skill by routing directly to its subagents or doing the work inline. This applies whether or not the user used `/` syntax. The table below covers direct subagent dispatch only when no skill applies. Skills manage their own internal routing.
+**Skills take precedence for non-trivial tasks.** Before dispatching any subagent, check whether an available skill covers the task. If a skill matches and the task is non-trivial, MUST invoke it via the Skill tool — MUST NOT bypass the skill by routing directly to its subagents. Trivial changes (single-line edits, typo fixes, config tweaks) MAY be done inline even when a skill technically matches. Skills manage their own internal routing.
+
+When delegating directly (no matching skill):
 
 - Code (plan chunks) — `chunk-executor`
 - Code (ad-hoc) — `code-writer`
