@@ -110,8 +110,10 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
    ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-${BRANCH_SLUG}-body.txt
    ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-${BRANCH_SLUG}-title.txt
    TITLE=$(cat ./tmp/pr-${BRANCH_SLUG}-title.txt)
-   gh pr create --title "$TITLE" --base <base_branch> --body-file ./tmp/pr-${BRANCH_SLUG}-body.txt
+   git-spice branch submit --title "$TITLE" --body "$(cat ./tmp/pr-${BRANCH_SLUG}-body.txt)" --no-prompt
    ```
+
+   Note: `--base` is not needed because git-spice knows the base from branch tracking.
 
    Clean up the PR-specific temp files after posting.
 

@@ -31,11 +31,16 @@ Shared patterns used across git skill operations. Reference this file for consis
 
 ## Fish Functions
 
-Custom fish functions (`gbb`, `gwc`, `gwt`) MUST be called via `fish -c '...'` in the Bash tool. They use fish-specific syntax and are not available in bash.
+Custom fish functions (`gwc`, `gwt`) MUST be called via `fish -c '...'` in the Bash tool. They use fish-specific syntax and are not available in bash.
 
 ## Base Branch Detection
 
-Run `fish -c 'gbb'` to get the base branch. Accepts an optional branch argument: `fish -c 'gbb [branch]'`.
+1. **Ensure Git-Spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md if not already done in this operation.
+2. **Read base from git-spice JSON**:
+   ```bash
+   git-spice log short --json 2>/dev/null | jq -r --arg branch "$(git branch --show-current)" 'select(.name == $branch) | .down.name'
+   ```
+   After Ensure Git-Spice, the branch is tracked and `.down.name` is populated. This is the authoritative base for both regular and stacked branches. If `.down.name` is null or empty (e.g., trunk branch), fall back to `git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` with default `main`.
 
 ## Dotfiles Exception
 

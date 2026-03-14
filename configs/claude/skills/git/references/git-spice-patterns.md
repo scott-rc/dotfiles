@@ -40,8 +40,13 @@ git config spice.branchCreate.prefix sc/
 A composite pattern that all operations use before running any `git-spice` command:
 
 1. **Detect**: Run the Detection check above. If git-spice is already initialized, skip to step 3.
-2. **Initialize**: Run initialization silently (no user prompt): `git-spice repo init --trunk <base> --remote origin --no-prompt` and `git config spice.branchCreate.prefix sc/`, where `<base>` is the base branch from Base Branch Detection.
-3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `git-spice branch track --base <base> --no-prompt` to track it.
+2. **Initialize**: Run initialization silently (no user prompt):
+   ```bash
+   DEFAULT_BRANCH=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||')
+   git-spice repo init --trunk "${DEFAULT_BRANCH:-main}" --remote origin --no-prompt
+   ```
+   Then: `git config spice.branchCreate.prefix sc/`
+3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `git-spice branch track --no-prompt` to track it (git-spice auto-guesses the base by comparing against other tracked branches).
 4. **Done**: git-spice is ready to use.
 
 ## Tracked Branch Check
@@ -151,7 +156,9 @@ git-spice stack submit --update-only --force --no-prompt
 
 ## CR Discovery
 
-After PRs are created externally (via `gh pr create`), git-spice does not know about them. Run submit so git-spice discovers existing CRs and links them internally:
+Only needed when PRs are created outside of git-spice (e.g., via GitHub web UI or other tooling). The skill's push operation creates PRs through git-spice directly in Create mode (via `branch submit --title --body`), so CR Discovery is not required in the normal push flow.
+
+After PRs are created externally, git-spice does not know about them. Run submit so git-spice discovers existing CRs and links them internally:
 
 **Single branch:**
 ```bash
@@ -164,5 +171,3 @@ git-spice stack submit --no-prompt
 ```
 
 git-spice will log `INF <branch>: Found existing CR #NNN` for each discovered PR. This is idempotent — safe to run even if git-spice already knows about the PRs (it logs "CR #NNN is up-to-date"). These commands also push, which is harmless after a push.md flow since code is already at remote HEAD.
-
-MUST run after creating a new PR via `gh pr create`. Not needed when git-spice itself created the PR (e.g., `stack submit --fill`) or when updating an existing PR.

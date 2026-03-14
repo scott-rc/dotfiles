@@ -56,7 +56,7 @@ Push commits and create/update PR.
 
    Skip this check if the branch context file is missing (step 9/10 handles that) or contains the `N/A` sentinel.
 
-9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write the PR title and description inline following references/pr-writer-rules.md and create the PR. After creation, run the CR Discovery pattern from references/git-spice-patterns.md (single-branch form) to ensure git-spice discovers the newly created PR.
+9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write the PR title and description inline following references/pr-writer-rules.md and create the PR.
 
 10. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write an updated PR title and description inline following references/pr-writer-rules.md. If no new commits were pushed (e.g., force push of same content), skip the update.
 
