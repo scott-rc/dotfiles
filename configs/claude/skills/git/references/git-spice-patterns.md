@@ -14,6 +14,8 @@ git-spice patterns for stacked branch management. Reference this file for all gi
 - Amend via Git-Spice
 - Squash via Git-Spice
 - Rebase Conflict Resolution
+- Branch Split
+- Stack Navigation
 - Branch Fold
 - Stack Submit
 - CR Discovery
@@ -130,6 +132,37 @@ git-spice branch squash -m "<message>" --no-prompt
 ## Rebase Conflict Resolution
 
 Use `git-spice rebase continue --no-prompt` (alias `rbc`) after resolving conflicts — auto-restacks upstack branches. To cancel: `git-spice rebase abort` (alias `rba`).
+
+## Branch Split
+
+Use `git-spice branch split` to split a branch into multiple stacked branches at commit boundaries. Useful when commits already map cleanly to logical groups.
+
+Non-interactive (specify split points):
+```bash
+git-spice branch split --at <last-sha-of-group>:<branch-name> --at <last-sha-of-group>:<branch-name> --no-prompt
+```
+
+Each `--at` flag creates a new branch containing commits up to and including that SHA (inclusive boundary — the SHA is the final commit of the group). The final group of commits (those after the last `--at` SHA) remains on the original branch — pass `--at` flags for all groups except the last. The `--at` flag is repeatable. If the split fails due to conflicts, fall back to manual branch creation.
+
+After splitting, rename the original branch if needed:
+```bash
+git-spice branch rename <old-name> <new-name> --no-prompt
+```
+
+## Stack Navigation
+
+Move between branches in a stack. These commands switch the working tree to the target branch:
+```bash
+git-spice top        # Jump to the highest branch in the stack
+git-spice bottom     # Jump to the lowest branch in the stack
+git-spice up         # Move one branch up (prompts if multiple upstack branches)
+git-spice down       # Move one branch down
+```
+
+Checkout a specific branch by name (interactive selection if name omitted):
+```bash
+git-spice branch checkout <name>
+```
 
 ## Branch Fold
 
