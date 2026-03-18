@@ -100,6 +100,22 @@ git fetch origin <branch>:<branch>  # WRONG - fails if branch is checked out in 
 
 After fetching, reference remote branches as `origin/<branch>`.
 
+### Trunk Sync
+
+Run immediately after every `git fetch origin` and before any rebase or restack. The local trunk ref may be behind `origin/<trunk>` — especially in worktrees where trunk is rarely checked out. A stale local trunk causes git-spice restack to include already-merged commits in the branch diff.
+
+```bash
+TRUNK=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||')
+TRUNK=${TRUNK:-main}
+if ! git rev-parse --verify refs/heads/$TRUNK &>/dev/null; then
+  git update-ref refs/heads/$TRUNK origin/$TRUNK
+elif git merge-base --is-ancestor refs/heads/$TRUNK origin/$TRUNK 2>/dev/null; then
+  git update-ref refs/heads/$TRUNK origin/$TRUNK
+fi
+```
+
+If the local trunk ref doesn't exist (common in worktrees), it's created unconditionally. If it exists, `merge-base --is-ancestor` ensures only fast-forward (no local-only trunk commits lost). `update-ref` doesn't touch the working tree, so it's safe when trunk is checked out in another worktree.
+
 ## Scope Verification
 
 After rebase or before squash, verify the branch only contains expected changes.
