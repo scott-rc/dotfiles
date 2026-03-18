@@ -214,7 +214,13 @@ return {
 	},
 
 	-- Scroll past EOF
-	{ "Aasim-A/scrollEOF.nvim", event = "CursorMoved", opts = {} },
+	{
+		"Aasim-A/scrollEOF.nvim",
+		event = "CursorMoved",
+		opts = {
+			disabled_filetypes = { "terminal", "snacks_picker_list" },
+		},
+	},
 
 	-- Scrollbar with git indicators
 	{
