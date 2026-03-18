@@ -9,6 +9,7 @@ argument-hint: "[commit | squash | push | rebase | fix | correct | split | stack
 ## Current State
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
+- Stack: !`git rev-parse --verify refs/spice/data 2>/dev/null && git-spice log short 2>/dev/null || echo "(not initialized)"`
 
 Route to the appropriate operation based on user intent.
 
