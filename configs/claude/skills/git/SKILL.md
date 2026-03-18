@@ -102,4 +102,4 @@ Scripts:
 - scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`)
 - scripts/check-ci.sh - Checks CI status and prints a grouped summary (failed/pending/passed); `--pr N` targets a specific PR instead of the current branch
 - scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun
-- scripts/branch-context-path.sh - Prints the branch context file path for the current branch (`./tmp/branches/<sanitized-branch>/context.md`)
+- scripts/branch-context-path.sh - Prints the branch context file path (`./tmp/branches/<sanitized-branch>/context.md`); `--branch NAME` targets a specific branch instead of the current checkout

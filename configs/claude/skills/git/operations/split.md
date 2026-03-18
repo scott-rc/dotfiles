@@ -124,13 +124,14 @@ Split a large branch into stacked branches grouped by logical concern, creating 
          - **Compilation issues** (missing imports, forward references to later branches): delegate to code-writer with context: error output, affected file paths, branch theme, and constraint to only modify files on the current branch. Squash the fix: `git-spice branch squash --no-prompt`, then restack upstack: `git-spice upstack restack --no-prompt`.
          - **Test failures for features in later branches**: expected — note and skip.
          - **Other failures** after two fix attempts: ask the user via AskUserQuestion with options: "Retry verification fix", "Skip this branch's verification", "Stop the split".
-      e. Write the branch context file (path per references/git-patterns.md "Branch Context File") for EVERY branch. Write 1-3 sentences of purpose/motivation that naturally incorporate the theme and stack position (e.g., "Branch 2 of 4 in a stacked split. <theme purpose>. Review focus: <review_focus>.").
+      e. MUST write the branch context file for EVERY branch before proceeding to step 5. Use `branch-context-path.sh --branch <branch-name>` to get each path — do NOT rely on the current checkout. Write 1-3 sentences of purpose/motivation that naturally incorporate the theme and stack position (e.g., "Branch 2 of 4 in a stacked split. <theme purpose>. Review focus: <review_focus>.").
    5. **Submit the stack** — create PRs with proper titles and descriptions via git-spice. After step 4.b, the current branch is the renamed last-group branch (top of the stack). Navigate to the bottom before beginning the PR loop:
       a. Navigate to the bottom of the stack:
          ```bash
          git-spice bottom
          ```
       b. For each branch in stack order:
+         - Verify the branch context file exists at `./tmp/branches/<sanitized-branch>/context.md`. If missing, write it now per step 4.e before proceeding.
          - Write PR title and body per references/pr-writer-rules.md (create mode). Gather context:
            - `base_branch`: previous stack branch (or `origin/<base>` for the first)
            - `commit_messages`: `git log <base-for-this-branch>..HEAD --format=%B`
