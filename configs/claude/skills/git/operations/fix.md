@@ -140,7 +140,7 @@ Improve a PR description that is a wall of text, missing diff coverage, or lacks
 1. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from `references/git-patterns.md`.
    - If the file contains the `N/A` sentinel: ask via AskUserQuestion -- "The PR description could be improved, but there's no branch context. What's the motivation for this branch?" with options: **"I'll explain"** (user provides the reason; write it to the branch context file) or **"Skip description update"** (stop this path entirely).
-   - If the file has real content but is a single sentence AND the diff spans 20+ files or 3+ top-level directories: run the context adequacy check from push.md's "Context adequacy check" step (ask user if they want to update context before proceeding).
+   - If the file has real content but is a single sentence AND the diff spans 20+ files or 3+ top-level directories: run the context adequacy check from operations/push.md's "Context adequacy check" step (ask user if they want to update context before proceeding).
 
 2. **Present findings**: Show the user which quality issues were detected (wall of text, missing coverage, missing verification info) and ask via AskUserQuestion: "Refresh the PR description?" with options: **"Refresh it"** (proceed to step 3) or **"Skip"** (stop this path).
 
