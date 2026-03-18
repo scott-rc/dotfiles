@@ -39,14 +39,12 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - MUST NOT proceed to writing until the user selects "Looks good"
 
 5. **Write the skill**:
-   Spawn a Task subagent (type: skill-writer) in create mode. Pass:
-   - `mode`: create
-   - `skill_dir`: the absolute path from step 3
-   - `spec`: the confirmed requirements from step 4 (name, description, operations, references, frontmatter options)
-
-   Expect back: list of files created, validation status, and per-file token counts.
-
-   MUST fix any blocking issues the skill-writer reports before proceeding.
+   Read the authoring specs (references/skill-spec.md, references/skill-template.md, references/shared-rules.md) and write the skill files inline:
+   - Create `<skill_dir>/` via `mkdir -p`
+   - Write SKILL.md following the template: frontmatter (`name` matching directory, `description` per spec), Operations section (one H3 per operation), Combined Operations, References
+   - Write one `.md` per operation following the operation file template
+   - Write one `.md` per reference file with descriptive names
+   - Validate against references/quality-checklist.md; fix any issues, up to 3 iterations
 
 6. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
    Run the verification procedure from references/alloy-verification.md. Fix any failures before proceeding.

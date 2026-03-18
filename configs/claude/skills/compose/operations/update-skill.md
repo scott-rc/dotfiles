@@ -11,13 +11,11 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Read the current skill**:
-   Spawn a Task subagent (type: Explore, model: haiku) to read all files in the skill directory. The subagent MUST return a structured summary (not raw file contents):
+   Read SKILL.md and the files relevant to the planned changes. Note:
    - Frontmatter fields (name, description, argument-hint, etc.)
    - Operation names with their one-line summaries
    - Combined Operations entries
    - Reference file names with their topics
-   - Per-file line counts
-   - Return a concise summary (under 200 lines)
 
 3. **Check for Alloy spec**:
    Check if the skill has a `specs/` directory containing `.als` files. If found, read the spec to understand the skill's behavioral invariants (operations, routing, delegation, step sequences). These invariants constrain what changes are valid — use them to inform step 4 and verify in step 6.
@@ -35,21 +33,22 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    Multiple update types may apply simultaneously. Confirm all planned changes together via AskUserQuestion before proceeding. Apply them in the order listed in step 5.
 
 5. **Apply changes**:
-   Spawn a Task subagent (type: skill-writer) in update mode. Pass:
-   - `mode`: update
-   - `skill_dir`: the skill directory path from step 1
-   - `spec`: any new requirements (name, description, operations, references, frontmatter options)
-   - `update_scope`: the confirmed changes from step 4
-   - `existing_summary`: the structure summary from step 2
+   Read the authoring specs (references/skill-spec.md, references/skill-template.md, references/shared-rules.md) and apply changes inline using Edit/Write:
 
-   The skill-writer reads authoring specs, applies changes (add/modify/remove operations, add/update/remove references, update metadata, rename), and returns the list of files created/modified/removed, validation status, and per-file token counts.
+   - **Adding an operation**: write the operation file following the template, add H3 to SKILL.md Operations, update Combined Operations if applicable
+   - **Modifying an operation**: edit the operation file preserving structure (H1, summary, numbered steps), update SKILL.md H3 if name or summary changed
+   - **Removing an operation**: delete the file, remove H3 from SKILL.md and Combined Operations, list orphaned references
+   - **Adding/updating a reference**: write or edit the file, add to SKILL.md References if not listed
+   - **Removing a reference**: delete the file, remove from SKILL.md References, note operation files that linked to it
+   - **Updating SKILL.md metadata**: edit frontmatter, body, Combined Operations, or References
+   - **Renaming**: rename directory via `mv`, update `name` in frontmatter, note external references needing manual updates
 
-   Special cases requiring user interaction before delegation:
-   - **Renaming**: confirm new name candidates via AskUserQuestion before passing to skill-writer
-   - **Removing references**: if operation files link to a reference being removed, warn the user and confirm via AskUserQuestion before proceeding
-   - **Orphaned references**: if removing an operation orphans reference files, present via AskUserQuestion: "Remove orphaned file", "Keep it"
+   Special cases requiring user interaction before applying:
+   - **Renaming**: confirm new name candidates via AskUserQuestion
+   - **Removing references**: if operation files link to a reference being removed, warn and confirm via AskUserQuestion
+   - **Orphaned references**: present via AskUserQuestion: "Remove orphaned file", "Keep it"
 
-   MUST fix any blocking issues the skill-writer reports before proceeding.
+   Validate against references/quality-checklist.md; fix any issues, up to 3 iterations.
 
 6. **Verify Alloy spec** (if spec exists from step 3):
    Run the verification procedure from references/alloy-verification.md. Fix any failures before proceeding.
@@ -62,5 +61,5 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - MUST show the updated SKILL.md Operations section so the user can verify
    - If the description changed, show the full `description` field so the user can verify trigger keywords
    - If the skill was renamed, MUST show the old and new directory paths
-   - MUST note any blocking findings from the skill-writer's validation and how they were resolved, if any were found
+   - MUST note any blocking validation findings and how they were resolved
    - MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items)

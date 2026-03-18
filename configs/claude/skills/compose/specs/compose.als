@@ -19,7 +19,7 @@ one sig SkillArt, RulesArt, PromptArt, HandoffArt, PlanArt extends ArtifactType 
 
 /** Agents that write artifacts */
 abstract sig WriterAgent {}
-one sig SkillWriter, RulesWriter, CodeWriter extends WriterAgent {}
+one sig RulesWriter, CodeWriter extends WriterAgent {}
 
 /** Agents that review artifacts */
 abstract sig ReviewerAgent {}
@@ -59,9 +59,11 @@ abstract sig Operation {
     mutates:        set ArtifactType
 }
 
+-- Skill operations write inline (no writer agent) — the orchestrator
+-- reads authoring specs and applies changes directly.
 one sig CreateSkill extends Operation {} {
     produces      = SkillArt
-    writesThrough = SkillWriter
+    writesThrough = none
     reviewsWith   = SkillReviewer
     perspectives  = Sonnet + Opus + Haiku
     mutates       = SkillArt
@@ -69,7 +71,7 @@ one sig CreateSkill extends Operation {} {
 
 one sig UpdateSkill extends Operation {} {
     produces      = SkillArt
-    writesThrough = SkillWriter
+    writesThrough = none
     reviewsWith   = SkillReviewer
     perspectives  = Sonnet + Opus + Haiku
     mutates       = SkillArt
@@ -77,7 +79,7 @@ one sig UpdateSkill extends Operation {} {
 
 one sig ReviewSkill extends Operation {} {
     produces      = SkillArt
-    writesThrough = SkillWriter
+    writesThrough = none
     reviewsWith   = SkillReviewer
     perspectives  = Sonnet + Opus + Haiku
     mutates       = SkillArt
@@ -308,11 +310,11 @@ fact planTaskSteps {
 
 -- ═══ Invariants (Assertions) ═════════════════════════════════
 
--- INV-D1: Skill artifacts written only through SkillWriter
-assert skillWritesDelegatedCorrectly {
+-- INV-D1: Skill artifacts written inline (no writer agent delegation)
+assert skillWritesInline {
     all op: Operation |
         SkillArt in op.mutates implies
-            op.writesThrough = SkillWriter
+            no op.writesThrough
 }
 
 -- INV-D2: Rules artifacts written only through RulesWriter
@@ -427,7 +429,7 @@ assert referencesAreLeaves {
 -- ═══ Verification ════════════════════════════════════════════
 
 -- Delegation
-check skillWritesDelegatedCorrectly       for 5 but 38 StepBinding, 4 Int
+check skillWritesInline                   for 5 but 38 StepBinding, 4 Int
 check rulesWritesDelegatedCorrectly       for 5 but 38 StepBinding, 4 Int
 check codeWriterNeverUsed                 for 5 but 38 StepBinding, 4 Int
 check reviewerMatchesArtifact             for 5 but 38 StepBinding, 4 Int

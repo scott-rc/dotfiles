@@ -46,11 +46,11 @@ MUST read operations/plan-task.md before executing.
 
 ## Delegation
 
-Within compose, all writing MUST go through `skill-writer` or `rules-writer`. MUST NOT delegate to `code-writer` — it lacks skill/rules validation and its code-oriented workflows (TDD, build, lint) are meaningless for markdown skill files.
-
-- Skill files (operations, references, SKILL.md) — `skill-writer` (supports both create and update modes)
+- Skill files (operations, references, SKILL.md) — write inline; read the authoring specs (references/skill-spec.md, references/skill-template.md, references/quality-checklist.md) and apply them directly
 - Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
-- Review-fix cycles — same agents: `skill-writer` for skill fixes, `rules-writer` for rules fixes
+- Review-fix cycles — skill fixes inline, rules fixes via `rules-writer`
+
+MUST NOT delegate skill file writing to `code-writer` or any other subagent — skill files are markdown and benefit from the orchestrator's full context.
 
 ## Combined Operations
 

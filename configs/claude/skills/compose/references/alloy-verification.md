@@ -15,7 +15,7 @@ Run the Alloy analyzer for each `.als` file in the skill's `specs/` directory:
 The formal check verifies the Alloy model's internal consistency, but it does not verify that the markdown files match the model. After the formal check passes, verify correspondence:
 
 - **State machines**: Each operation file's numbered steps MUST map to the StepBinding facts in the spec. Verify that gather, confirm, write, review, report, and deliver steps appear in the order the spec declares.
-- **Delegation**: Each operation's agent delegation (skill-writer, rules-writer, skill-reviewer, rules-reviewer) MUST match the spec's `writesThrough` and `reviewsWith` fields.
+- **Delegation**: Each operation's delegation approach (inline for skill files, rules-writer for rules files, skill-reviewer/rules-reviewer for reviews) MUST match the spec's `writesThrough` and `reviewsWith` fields.
 - **Routing**: SKILL.md's Combined Operations section MUST match the spec's Intent routing (each intent maps to the correct operation(s)).
 - **Perspectives**: Operations that include review MUST use all three perspectives (Sonnet, Opus, Haiku) when the spec declares `perspectives = Sonnet + Opus + Haiku`.
 

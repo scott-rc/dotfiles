@@ -242,7 +242,7 @@ Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agent
 | `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
 | `rules-writer.md` | Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria |
 | `skill-reviewer.md` | Evaluates skills against a quality checklist |
-| `skill-writer.md` | Writes and validates skill files (SKILL.md, operations, references) in create or update mode |
+
 
 Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.
 

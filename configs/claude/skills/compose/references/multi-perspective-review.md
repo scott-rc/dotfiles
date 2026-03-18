@@ -13,7 +13,7 @@ After applying changes, spawn two review agents in parallel with distinct perspe
 
 The loop runs until both agents pass or 4 cycles complete. Each cycle: both agents review in parallel, findings are synthesized into Blocking / Improvements / Suggestions tiers, Blocking and Improvements issues are fixed, then both agents re-review the updated files. Suggestions: fix if quick (fewer than 3 per file), otherwise note and move on. If 4 cycles complete without both agents passing, present remaining findings to the user with "acknowledged, not addressed" status and let the user decide.
 
-**Fix delegation**: MUST use `skill-writer` (update mode) for skill file fixes and `rules-writer` for rules file fixes. Pass the review findings as the problem; let the writer agent determine the implementation. See the Delegation section in SKILL.md for agent constraints.
+**Fix delegation**: Apply skill file fixes inline using Edit/Write. Use `rules-writer` for rules file fixes. See the Delegation section in SKILL.md for constraints.
 
 ## Pass Criteria
 

@@ -14,7 +14,7 @@ Do the work directly — read the code, make the changes, run the tests. Delegat
 
 - **Scale** — task spans many files or benefits from parallel workstreams
 - **Context preservation** — the work would consume context you'll need later (large diffs, extensive analysis, multi-step execution with intermediate artifacts)
-- **Specialization** — a subagent handles the task type materially better (e.g., `rules-writer` for rules validation, `skill-writer` for skill structure)
+- **Specialization** — a subagent handles the task type materially better (e.g., `rules-writer` for rules validation)
 
 ### When to Stay Inline
 
@@ -42,7 +42,7 @@ When delegating directly (no matching skill):
 - Code (ad-hoc) — `code-writer`
 - Commits — git skill (inline)
 - Rules files — `rules-writer`
-- Skill files — `skill-writer`
+- Skill files — inline (compose skill handles directly)
 ---
 
 ## Path Resolution
