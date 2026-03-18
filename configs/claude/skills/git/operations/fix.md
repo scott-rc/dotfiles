@@ -6,6 +6,24 @@ Auto-detect and fix CI failures, unresolved review threads, and PR description q
 
 0. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md. Required because commit-and-push steps use `git-spice branch submit`.
 
+### Stack Mode
+
+When the user asks to fix "the stack" / "all PRs" / "every branch," run Fix across every branch in the stack that has a PR.
+
+1. **Enumerate branches**: Run `git-spice log short --json | jq -r 'select(.change != null) | .name'` to get all branches with PRs. If none have PRs, report and stop.
+2. **Record origin**: Save the current branch name to restore later.
+3. **Iterate bottom-to-top**: For each branch (in the order returned, which is top-to-bottom — reverse it):
+   - `git-spice branch checkout <name> --no-prompt`
+   - Run the standard Detection and path flow below (Detection through each path's final step)
+   - In the "Neither" routing, skip the cron/loop check — just report the branch as green and continue
+   - Report per-branch results before moving to the next branch
+4. **Restore**: Checkout the original branch.
+5. **Unified report**: Summarize per-branch results (what was fixed, what was already green). If ALL branches are green, check `CronList` — if a `/git fix` loop is active and all CI checks across every branch have reached terminal state, suggest canceling it.
+
+When NOT in stack mode (single-branch fix), proceed to Detection below.
+
+---
+
 ### Detection
 
 Run these three checks in parallel:

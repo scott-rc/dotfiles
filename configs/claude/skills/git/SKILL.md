@@ -80,10 +80,12 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"delete this branch"** / **"remove from stack"** → Stack (delete)
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
 - **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, message drafting, and optional push
+- **"fix the stack"** / **"fix all PRs"** / **"fix every branch"** / **"fix every PR"** → Fix (Stack Mode)
+- **"fix the stack, then monitor"** → Fix (Stack Mode), then advise `/loop 2m /git fix`
 
 ## Monitoring
 
-Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, description quality, or any combination) and handles it. The loop is session-scoped and auto-expires after 3 days.
+Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, description quality, or any combination) and handles it. When the current branch is part of a git-spice stack with multiple PRs, each tick runs Fix in Stack Mode — iterating over every branch with a PR. The loop is session-scoped and auto-expires after 3 days.
 
 ## References
 
