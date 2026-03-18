@@ -166,7 +166,33 @@ git-spice branch checkout <name>
 
 ## Branch Fold
 
-Use `git-spice branch fold --no-prompt` to merge into base, delete current branch, and restack upstack. This is destructive — always confirm with the user.
+Merge the current branch into its base, delete the current branch, and restack upstack branches. MUST confirm with the user before executing — this is destructive.
+
+**Before folding**, capture state that will be lost after the fold deletes the branch:
+- Current branch name: `git branch --show-current`
+- Current branch's base: `.down.name` from git-spice JSON
+- Current branch's PR number (if any): `.change.id` from git-spice JSON
+
+**Migrate downstream PR bases** — check for open PRs targeting the branch being folded:
+```bash
+gh pr list --base "$(git branch --show-current)" --state open --json number,title --jq '.[]'
+```
+If any exist, update each PR's base to the current branch's base BEFORE folding:
+```bash
+gh pr edit <number> --base <base-branch>
+```
+Without this step, GitHub auto-closes PRs when their base branch is deleted — and they cannot be reopened (the base ref no longer exists).
+
+**Execute:**
+```bash
+git-spice branch fold --no-prompt
+```
+
+**Cleanup** — if the folded branch had a PR, close it. Then delete the remote branch:
+```bash
+gh pr close <pr-number> --comment "Folded into <base>"
+git push origin --delete <branch-name>
+```
 
 ## Stack Submit
 

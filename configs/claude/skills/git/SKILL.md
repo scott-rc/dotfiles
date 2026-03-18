@@ -44,7 +44,7 @@ Split a large branch into stacked branches for easier code review. Analyzes the 
 MUST read operations/split.md before executing.
 
 ### Stack
-Navigate and manage stacked branches tracked by git-spice — move up/down, reorder, restack, list, track/untrack branches, fold a branch into its base, delete a branch or stack, show branch diff, or squash branch commits.
+Navigate and manage stacked branches tracked by git-spice — move up/down, reorder, restack, list, track/untrack branches, fold a branch into its base (with downstream PR migration), delete a branch or stack, show branch diff, or squash branch commits.
 MUST read operations/stack.md before executing.
 
 ### Sync
@@ -76,7 +76,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
 - **"show stack"** / **"list branches"** / **"where am I"** → Stack (list)
 - **"track this branch"** → Stack (track)
-- **"fold this branch"** / **"merge into base"** → Stack (fold)
+- **"fold this branch"** / **"merge into base"** / **"combine branches"** / **"combine upstack"** / **"combine into one PR"** → Stack (fold)
 - **"delete this branch"** / **"remove from stack"** → Stack (delete)
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
 - **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, message drafting, and optional push
