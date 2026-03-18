@@ -1,21 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Check CI status for the current branch and report a grouped summary.
-# Usage: check-ci.sh
+# Check CI status for a PR and report a grouped summary.
+# Usage: check-ci.sh [--pr N]
+
+pr_override=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pr) pr_override="$2"; shift 2 ;;
+    *) echo "Unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
 
 # Verify a PR exists
-pr_json=$(gh pr view --json number,url 2>/dev/null) || {
-  echo "No PR found for the current branch."
-  exit 0
-}
+if [[ -n "$pr_override" ]]; then
+  pr_json=$(gh pr view "$pr_override" --json number,url 2>/dev/null) || {
+    echo "No PR found for #$pr_override."
+    exit 0
+  }
+else
+  pr_json=$(gh pr view --json number,url 2>/dev/null) || {
+    echo "No PR found for the current branch."
+    exit 0
+  }
+fi
 
 pr_url=$(echo "$pr_json" | jq -r '.url')
+pr_number=$(echo "$pr_json" | jq -r '.number')
 echo "PR: $pr_url"
 echo
 
 # Fetch CI checks
-checks_raw=$(gh pr checks --json name,state 2>/dev/null) || checks_raw="[]"
+if [[ -n "$pr_override" ]]; then
+  checks_raw=$(gh pr checks "$pr_number" --json name,state 2>/dev/null) || checks_raw="[]"
+else
+  checks_raw=$(gh pr checks --json name,state 2>/dev/null) || checks_raw="[]"
+fi
 
 if [[ "$checks_raw" == "[]" ]]; then
   echo "No CI checks found."

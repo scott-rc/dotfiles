@@ -9,21 +9,25 @@ set -euo pipefail
 #   get-pr-comments.sh --unreplied  # Only threads where the current user hasn't replied
 #   get-pr-comments.sh --count      # Print integer count of unresolved threads
 #   get-pr-comments.sh --summary    # Print compact human-readable summary
+#   get-pr-comments.sh --pr 1234    # Check a specific PR number (instead of current branch)
 #
 # Flags can be combined:
 #   get-pr-comments.sh --unreplied --count    # Count of unreplied threads
 #   get-pr-comments.sh --unreplied --summary  # Summary of unreplied threads
+#   get-pr-comments.sh --pr 1234 --count      # Count for a specific PR
 #
 # --count and --summary are mutually exclusive; if both are passed, --summary wins.
 
 unreplied=false
 output_count=false
 output_summary=false
+pr_override=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --unreplied) unreplied=true; shift ;;
     --count) output_count=true; shift ;;
     --summary) output_summary=true; shift ;;
+    --pr) pr_override="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -35,20 +39,24 @@ if [ "$unreplied" = true ]; then
   }
 fi
 
-pr_json=$(gh pr view --json number,url 2>/dev/null) || {
-  echo "Error: No PR found for the current branch." >&2
-  exit 1
-}
-
-pr_number=$(echo "$pr_json" | jq -r '.number')
-pr_url=$(echo "$pr_json" | jq -r '.url')
-
 repo_json=$(gh repo view --json owner,name) || {
   echo "Error: Could not determine repository owner/name." >&2
   exit 1
 }
 owner=$(echo "$repo_json" | jq -r '.owner.login')
 repo=$(echo "$repo_json" | jq -r '.name')
+
+if [[ -n "$pr_override" ]]; then
+  pr_number="$pr_override"
+  pr_url="https://github.com/$owner/$repo/pull/$pr_number"
+else
+  pr_json=$(gh pr view --json number,url 2>/dev/null) || {
+    echo "Error: No PR found for the current branch." >&2
+    exit 1
+  }
+  pr_number=$(echo "$pr_json" | jq -r '.number')
+  pr_url=$(echo "$pr_json" | jq -r '.url')
+fi
 
 # $owner, $repo, $pr below are GraphQL variables, not shell
 # shellcheck disable=SC2016
