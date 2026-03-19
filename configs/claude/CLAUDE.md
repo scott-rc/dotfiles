@@ -45,6 +45,11 @@ When delegating directly (no matching skill):
 - Skill files — inline (compose skill handles directly)
 ---
 
+## Timezone
+
+- Assume the user is in **Eastern Time (ET)** — America/Toronto (Ottawa).
+- When displaying or printing dates and times, MUST use ET (EST/EDT as seasonally appropriate).
+
 ## Path Resolution
 
 - Always resolve `tmp/` as `./tmp/` relative to the working directory, not as `/tmp/`.
