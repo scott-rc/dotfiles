@@ -1,6 +1,8 @@
 return {
 	"lewis6991/gitsigns.nvim",
 	opts = {
+		current_line_blame = true,
+		current_line_blame_opts = { delay = 250 },
 		on_attach = function(bufnr)
 			local gs = require("gitsigns")
 
@@ -38,6 +40,7 @@ return {
 			-- Preview and blame
 			map("n", "<leader>gp", gs.preview_hunk_inline, "Preview hunk inline")
 			map("n", "<leader>gb", gs.blame_line, "Blame line")
+			map("n", "<leader>gB", gs.toggle_current_line_blame, "Toggle line blame")
 
 			-- Hunk text object
 			map({ "o", "x" }, "ih", gs.select_hunk, "Select hunk")
