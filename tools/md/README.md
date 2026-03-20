@@ -21,7 +21,7 @@ md [OPTIONS] [FILE]
 | `--no-color` | Disable ANSI color output |
 | `--no-pager` | Disable the built-in pager |
 
-When output fits in the terminal or stdout is not a TTY, the pager is skipped automatically.
+When output fits in the terminal or stdout is not a TTY, the pager is skipped automatically. The pager also works with stdin input; `e`/`v` writes to a temp file for editing.
 
 ## Features
 

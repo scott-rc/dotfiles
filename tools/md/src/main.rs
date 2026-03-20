@@ -164,10 +164,7 @@ fn main() {
         .map(|(_, r)| r as usize)
         .unwrap_or(24);
 
-    if should_page(args.no_pager, is_tty, content_lines, terminal_rows, false)
-        && file_path.is_some()
-    {
-        let fp = file_path.as_deref().unwrap();
+    if should_page(args.no_pager, is_tty, content_lines, terminal_rows, false) {
         let raw = input.clone();
         let color = style.color;
         let mut on_rerender = |plain: bool, content: &str| {
@@ -176,7 +173,7 @@ fn main() {
         };
         run_pager(
             &centered,
-            Some(fp),
+            file_path.as_deref(),
             Some(&raw),
             args.plain,
             Some(&mut on_rerender),

@@ -5,6 +5,8 @@
 ```
 configs/nvim/
 ├── init.lua                  # Entry point: leader key + requires
+├── ftplugin/
+│   └── markdown.lua          # Markdown preview keymap (<leader>mp → md in float)
 ├── lsp/                      # Neovim 0.11 native LSP configs (auto-loaded)
 │   ├── ts_ls.lua
 │   ├── gopls.lua

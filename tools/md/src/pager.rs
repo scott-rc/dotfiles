@@ -750,8 +750,22 @@ pub fn run_pager(
                 }
             }
             Key::Char('v') | Key::Char('e') => {
-                if let Some(ref fp) = state.file_path {
-                    let fp = fp.clone();
+                let edit_info = if let Some(ref fp) = state.file_path {
+                    Some((fp.clone(), false))
+                } else if let Some(ref raw) = state.raw_content {
+                    let tmp = std::env::temp_dir().join("md-stdin.md");
+                    match std::fs::write(&tmp, raw) {
+                        Ok(()) => Some((tmp.to_string_lossy().into_owned(), true)),
+                        Err(_) => {
+                            state.search_message = "Failed to write temp file".to_string();
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                if let Some((edit_path, is_temp)) = edit_info {
                     let read_only = key == Key::Char('v');
                     // Exit raw mode, mouse tracking & restore screen for editor
                     let _ = write!(stdout, "\x1b[?1000l\x1b[?1006l");
@@ -766,7 +780,7 @@ pub fn run_pager(
                             raw.lines().count(),
                         )
                     });
-                    open_in_editor(&fp, line, read_only);
+                    open_in_editor(&edit_path, line, read_only);
 
                     // Re-enter pager
                     let _ = write!(stdout, "{ALT_SCREEN_ON}{CURSOR_HIDE}");
@@ -775,8 +789,11 @@ pub fn run_pager(
                     let _ = write!(stdout, "\x1b[?1000h\x1b[?1006h");
                     let _ = stdout.flush();
                     last_size = get_term_size();
-                    if let Ok(new_raw) = std::fs::read_to_string(&fp) {
+                    if let Ok(new_raw) = std::fs::read_to_string(&edit_path) {
                         state.raw_content = Some(new_raw);
+                    }
+                    if is_temp {
+                        let _ = std::fs::remove_file(&edit_path);
                     }
                     refresh_content(&mut state, &mut on_rerender);
                 }
