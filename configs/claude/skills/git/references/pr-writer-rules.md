@@ -25,7 +25,7 @@ Gather these before writing a PR title and description:
 These override everything else. Every title and description MUST follow them.
 
 1. **The diff is the source of truth.** Every factual claim in the description MUST be verifiable against `git diff`. With multiple commits, commit messages often describe intermediate states -- fixups, reverts, mid-PR bugs that were later corrected -- and MUST NOT drive the description. After a squash, the single commit message is the author's deliberate summary of the final state; use it as a structural template (its organization, grouping, and emphasis) while still verifying every claim against the diff.
-2. **Describe the net change, not the journey.** If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug. The PR describes the end state, not intermediate steps.
+2. **Describe the net change, not the journey.** If a bug was introduced in commit 1 and fixed in commit 3, do NOT mention the bug. The PR describes the end state, not intermediate steps. In long sessions, your memory of watching code evolve through intermediate states is the most dangerous source of journey language -- more so than commit messages, because session memory feels like ground truth. It is not. Only the diff is.
 3. **Branch context provides the "why" -- not the "what".** When `branch_context` is present, it is the primary source for motivation and narrative framing. However, branch context may contain inaccurate factual claims about before/after states (types, signatures, behavior). The diff is the sole source of truth for what the code looked like before and after. If branch context claims "X was raw strings" but the diff shows branded types, the diff wins.
 
 ## Title
@@ -94,7 +94,11 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
 
    - Fetch current body: `gh pr view <pr_number> --json body -q .body`
    - If the existing body contains bot-appended content (sections not in your new description, e.g., Cursor BugBot, Dependabot), append it to the new body
-   - **Before posting**, verify every factual claim in your new draft against the diff. For claims about before/after states (types, signatures, behavior), find the corresponding `-` and `+` lines in the diff and confirm they match. Remove or correct claims that don't match the net change (e.g., "removed from both call sites" when only one existed, "raw strings" when the diff shows branded types, or journey language like "was flaky" for code that is entirely new in the PR). Do not trust branch context or commit messages for before/after facts -- only the diff.
+   - **Before posting -- verification gate** (do not skip):
+     1. **Scan for journey patterns**: Check your draft for phrases like "replaced X with Y", "migrated from", "switched from", "was previously", "the old X". Each is almost always journey language. If found, verify: do the `-` lines in the diff actually show X? If not, the phrase describes an intermediate state from session memory or commits, not the net change. Remove it.
+     2. **Verify before-states**: For each claim about what the code looked like before, find the corresponding `-` lines in the diff. If no `-` lines confirm the claimed before-state, the claim is wrong -- it likely describes an intermediate state, not the base branch. Remove or correct it.
+     3. **Verify after-states**: For each claim about what the code does now, find the corresponding `+` lines. Remove claims that don't match.
+     4. **Strip unverified claims**: Any factual claim not confirmed by steps 1-3 must be removed. Do not trust session memory, branch context, or commit messages for before/after facts.
 
    ```bash
    gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr-<pr_number>-body.txt
