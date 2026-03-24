@@ -54,10 +54,10 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
 
 1. **Gather diff context**:
 
-   In update mode, first resolve the head branch from the PR:
+   In update mode, resolve the head branch from git-spice's local state:
 
    ```bash
-   HEAD_BRANCH=$(gh pr view <pr_number> --json headRefName -q .headRefName)
+   HEAD_BRANCH=$(git-spice log short --json 2>/dev/null | jq -r --argjson pr <pr_number> 'select(.change.id == "#\($pr)") | .name')
    ```
 
    Then diff against that branch (update mode) or HEAD (create mode):

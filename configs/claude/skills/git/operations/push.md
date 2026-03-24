@@ -68,7 +68,7 @@ Push commits and create/update PR.
 
 Update the PR description without pushing new commits.
 
-1. **Check for PR**: `gh pr view --json number,url,title,body 2>/dev/null`. If none, inform the user and stop.
+1. **Check for PR**: Read stack metadata via the Stack Metadata via JSON pattern in references/git-spice-patterns.md. Check the current branch's `.change` field. If `.change` is null, inform the user that no PR exists and stop. Extract PR number from `.change.id` (strip the `#` prefix) and URL from `.change.url`.
 
 2. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from references/git-patterns.md.

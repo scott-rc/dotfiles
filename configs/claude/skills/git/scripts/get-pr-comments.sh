@@ -50,12 +50,20 @@ if [[ -n "$pr_override" ]]; then
   pr_number="$pr_override"
   pr_url="https://github.com/$owner/$repo/pull/$pr_number"
 else
-  pr_json=$(gh pr view --json number,url 2>/dev/null) || {
-    echo "Error: No PR found for the current branch." >&2
-    exit 1
-  }
-  pr_number=$(echo "$pr_json" | jq -r '.number')
-  pr_url=$(echo "$pr_json" | jq -r '.url')
+  # Try git-spice local state first, fall back to gh
+  branch=$(git branch --show-current 2>/dev/null)
+  spice_line=$(git-spice log short --json 2>/dev/null | jq -r --arg b "$branch" 'select(.name == $b and .change != null) | "\(.change.id | ltrimstr("#"))\t\(.change.url)"') || spice_line=""
+  if [[ -n "$spice_line" ]]; then
+    pr_number=$(echo "$spice_line" | cut -f1)
+    pr_url=$(echo "$spice_line" | cut -f2)
+  else
+    pr_json=$(gh pr view --json number,url 2>/dev/null) || {
+      echo "Error: No PR found for the current branch." >&2
+      exit 1
+    }
+    pr_number=$(echo "$pr_json" | jq -r '.number')
+    pr_url=$(echo "$pr_json" | jq -r '.url')
+  fi
 fi
 
 # $owner, $repo, $pr below are GraphQL variables, not shell

@@ -12,21 +12,34 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Verify a PR exists
+# Resolve PR number and URL from git-spice local state, falling back to gh
+resolve_pr_from_spice() {
+  local branch pr_line
+  branch=$(git branch --show-current 2>/dev/null) || return 1
+  pr_line=$(git-spice log short --json 2>/dev/null | jq -r --arg b "$branch" 'select(.name == $b and .change != null) | "\(.change.id | ltrimstr("#"))\t\(.change.url)"') || return 1
+  [[ -n "$pr_line" ]] || return 1
+  pr_number=$(echo "$pr_line" | cut -f1)
+  pr_url=$(echo "$pr_line" | cut -f2)
+}
+
 if [[ -n "$pr_override" ]]; then
-  pr_json=$(gh pr view "$pr_override" --json number,url 2>/dev/null) || {
+  pr_number="$pr_override"
+  pr_url="" # Will be filled by gh below
+  pr_json=$(gh pr view "$pr_override" --json url 2>/dev/null) && pr_url=$(echo "$pr_json" | jq -r '.url')
+  if [[ -z "$pr_url" ]]; then
     echo "No PR found for #$pr_override."
     exit 0
-  }
+  fi
 else
-  pr_json=$(gh pr view --json number,url 2>/dev/null) || {
-    echo "No PR found for the current branch."
-    exit 0
-  }
+  if ! resolve_pr_from_spice; then
+    pr_json=$(gh pr view --json number,url 2>/dev/null) || {
+      echo "No PR found for the current branch."
+      exit 0
+    }
+    pr_url=$(echo "$pr_json" | jq -r '.url')
+    pr_number=$(echo "$pr_json" | jq -r '.number')
+  fi
 fi
-
-pr_url=$(echo "$pr_json" | jq -r '.url')
-pr_number=$(echo "$pr_json" | jq -r '.number')
 echo "PR: $pr_url"
 echo
 
