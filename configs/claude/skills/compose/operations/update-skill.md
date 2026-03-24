@@ -17,10 +17,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Combined Operations entries
    - Reference file names with their topics
 
-3. **Check for Alloy spec**:
-   Check if the skill has a `specs/` directory containing `.als` files. If found, read the spec to understand the skill's behavioral invariants (operations, routing, delegation, step sequences). These invariants constrain what changes are valid — use them to inform step 4 and verify in step 6.
-
-4. **Determine the update scope**:
+3. **Determine the update scope**:
    If the user's request is specific (e.g., "add a deploy operation"), proceed directly. If the request is vague (e.g., "update this skill"), interview the user via AskUserQuestion about what to change. Present the current skill structure from step 2 and ask which of these update types apply:
    - Add a new operation
    - Modify an existing operation
@@ -30,9 +27,9 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Remove a reference file
    - Rename the skill
 
-   Multiple update types may apply simultaneously. Confirm all planned changes together via AskUserQuestion before proceeding. Apply them in the order listed in step 5.
+   Multiple update types may apply simultaneously. Confirm all planned changes together via AskUserQuestion before proceeding. Apply them in the order listed in step 4.
 
-5. **Apply changes**:
+4. **Apply changes**:
    Read the authoring specs (references/skill-spec.md, references/skill-template.md, references/shared-rules.md) and apply changes inline using Edit/Write:
 
    - **Adding an operation**: write the operation file following the template, add H3 to SKILL.md Operations, update Combined Operations if applicable
@@ -50,13 +47,10 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
 
    Validate against references/quality-checklist.md; fix any issues, up to 3 iterations.
 
-6. **Verify Alloy spec** (if spec exists from step 3):
-   Run the verification procedure from references/alloy-verification.md. Fix any failures before proceeding.
-
-7. **Review and iterate**:
+5. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
 
-8. **Report results**:
+6. **Report results**:
    - MUST list all files added, modified, or removed with a one-line description of each change
    - MUST show the updated SKILL.md Operations section so the user can verify
    - If the description changed, show the full `description` field so the user can verify trigger keywords

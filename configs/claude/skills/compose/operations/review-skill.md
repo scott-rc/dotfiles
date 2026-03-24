@@ -28,14 +28,11 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Flag SKILL.md over 5000 tokens as exceeding the hub size limit
    - If skipped for any reason, explicitly state: "Skipping step 4 — no token counts available."
 
-5. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
-   Run the verification procedure from references/alloy-verification.md. Add any failures as Blocking findings — include the assertion name and counterexample or conformance mismatch. If the skill has no `specs/` directory, explicitly state: "No Alloy specs found, skipping step 5."
-
-6. **Present findings**:
+5. **Present findings**:
    Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
-7. **Review-fix loop**:
+6. **Review-fix loop**:
    Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Apply fixes inline using Edit/Write — read the authoring specs (references/skill-spec.md, references/skill-template.md) if needed for guidance. Iterate until all pass or 4 cycles complete. The fix loop is the most critical phase — all prior steps exist to serve it. If context is tight, aggressively summarize prior agent outputs before entering the loop. The loop MUST run; truncation before it starts means the review was incomplete.
 
-8. **Report outcomes**:
+7. **Report outcomes**:
    Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

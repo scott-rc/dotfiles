@@ -46,13 +46,9 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Write one `.md` per reference file with descriptive names
    - Validate against references/quality-checklist.md; fix any issues, up to 3 iterations
 
-6. **Verify Alloy spec** (if the skill has a `specs/` directory containing `.als` files):
-   Run the verification procedure from references/alloy-verification.md. Fix any failures before proceeding.
-   Note: newly created skills will not have a specs/ directory unless Alloy spec files were manually added. This step applies primarily when creating skills with pre-existing behavioral specifications.
-
-7. **Review and iterate**:
+6. **Review and iterate**:
    Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
 
-8. **Report results**:
+7. **Report results**:
    - MUST list all files created with a one-line description of each
    - MUST show the full `description` field so the user can verify trigger keywords

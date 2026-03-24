@@ -32,8 +32,6 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **Error handling (state-mutating)**: State-mutating operations (commit, deploy, write files) handle likely failure modes (missing files, invalid input, conflicts) rather than failing silently
 - [ ] **Combined operation preconditions**: Combined operations that chain state-mutating operations note when a later operation has independent preconditions the orchestrator must not skip
 - [ ] **No inline heavy work**: Operations do not read more than 3 files, analyze large diffs, or generate multi-file artifacts inline when a subagent could do it
-- [ ] **Alloy spec passes**: If the skill has a `specs/` directory with `.als` files, all checks MUST return UNSAT
-- [ ] **Alloy structural conformance**: Operation step sequences, delegation, routing, and review perspectives MUST match the Alloy spec declarations (see references/alloy-verification.md)
 
 ### Improvements
 
