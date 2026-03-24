@@ -11,16 +11,15 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - SHOULD also identify related files: other CLAUDE.md files in parent/child directories, `.claude/rules/` files (including subdirectories), `~/.claude/rules/` user-level rules
 
 2. **Evaluate rules via multi-perspective review**:
-   Spawn 3 Task subagents in parallel per references/multi-perspective-review.md, all type: `rules-reviewer`:
+   Spawn 2 Task subagents in parallel per references/multi-perspective-review.md, all type: `rules-reviewer`:
 
    - **Sonnet** — checklist compliance: structure, `@file` usage, anti-patterns from references/rules-spec.md
    - **Opus** — internal consistency: contradictions between files in the hierarchy, missing guidance, edge cases
-   - **Haiku** — token efficiency: common knowledge, duplicated content, over-specification
 
    Each agent reads the target file and all related files (`@file` references, other CLAUDE.md files in the hierarchy, `.claude/rules/` files).
 
 3. **Synthesize findings**:
-   Merge results from all 3 agents into a single list grouped by severity. Deduplicate overlapping findings. Cross-reference against project-specific context the agents would not have (e.g., known issues where Claude ignores specific rules, recently changed conventions). See references/multi-perspective-review.md for disagreement handling.
+   Merge results from both agents into a single list grouped by severity. Deduplicate overlapping findings. Cross-reference against project-specific context the agents would not have (e.g., known issues where Claude ignores specific rules, recently changed conventions). See references/multi-perspective-review.md for disagreement handling.
 
 4. **Estimate token impact**:
    - Use the token counts from the rules-reviewer's output

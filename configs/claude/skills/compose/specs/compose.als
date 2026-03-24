@@ -36,7 +36,7 @@ sig Reference {
 
 /** Review perspectives (multi-perspective review loop) */
 abstract sig Perspective {}
-one sig Sonnet, Opus, Haiku extends Perspective {}
+one sig Sonnet, Opus extends Perspective {}
 
 
 -- ═══ Operations ══════════════════════════════════════════════
@@ -65,7 +65,7 @@ one sig CreateSkill extends Operation {} {
     produces      = SkillArt
     writesThrough = none
     reviewsWith   = SkillReviewer
-    perspectives  = Sonnet + Opus + Haiku
+    perspectives  = Sonnet + Opus
     mutates       = SkillArt
 }
 
@@ -73,7 +73,7 @@ one sig UpdateSkill extends Operation {} {
     produces      = SkillArt
     writesThrough = none
     reviewsWith   = SkillReviewer
-    perspectives  = Sonnet + Opus + Haiku
+    perspectives  = Sonnet + Opus
     mutates       = SkillArt
 }
 
@@ -81,7 +81,7 @@ one sig ReviewSkill extends Operation {} {
     produces      = SkillArt
     writesThrough = none
     reviewsWith   = SkillReviewer
-    perspectives  = Sonnet + Opus + Haiku
+    perspectives  = Sonnet + Opus
     mutates       = SkillArt
 }
 
@@ -89,7 +89,7 @@ one sig CreateRules extends Operation {} {
     produces      = RulesArt
     writesThrough = RulesWriter
     reviewsWith   = RulesReviewer
-    perspectives  = Sonnet + Opus + Haiku
+    perspectives  = Sonnet + Opus
     mutates       = RulesArt
 }
 
@@ -97,7 +97,7 @@ one sig ReviewRules extends Operation {} {
     produces      = RulesArt
     writesThrough = RulesWriter
     reviewsWith   = RulesReviewer
-    perspectives  = Sonnet + Opus + Haiku
+    perspectives  = Sonnet + Opus
     mutates       = RulesArt
 }
 
@@ -354,11 +354,11 @@ assert mutatingOpsHaveReview {
             some op.perspectives
 }
 
--- INV-R5: When review is present, all three perspectives MUST be used
+-- INV-R5: When review is present, both perspectives MUST be used
 assert reviewUsesAllPerspectives {
     all op: Operation |
         some op.perspectives implies
-            op.perspectives = Sonnet + Opus + Haiku
+            op.perspectives = Sonnet + Opus
 }
 
 -- INV-ROUTE-1: Every operation is reachable from at least one intent

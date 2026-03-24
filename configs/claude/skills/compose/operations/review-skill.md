@@ -12,16 +12,15 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Multi-perspective review**:
-   Spawn 3 Task subagents in parallel (all type: skill-reviewer) per references/multi-perspective-review.md:
+   Spawn 2 Task subagents in parallel (all type: skill-reviewer) per references/multi-perspective-review.md:
 
    - **Sonnet** — checklist compliance: structure validation, required fields, file links, anti-patterns from the checklist
    - **Opus** — principle consistency: progressive disclosure, workflow quality, degrees of freedom, cross-file coherence
-   - **Haiku** — token efficiency: redundancy, over-explaining, tight prose, token justification, splitting candidates
 
    Each agent receives the skill directory path and its lens as focus. Each returns findings grouped by Blocking/Improvements/Suggestions with per-file token counts. Agent outputs MUST be kept concise — the word limits in prompt templates (e.g., "under 1000 words") are binding. After receiving agent results, summarize each to key findings only before proceeding; do NOT carry full agent transcripts forward into subsequent steps.
 
 3. **Synthesize findings**:
-   Merge results from all 3 agents into a single deduplicated list grouped by severity (Blocking > Improvements > Suggestions). Where agents disagree on severity, note the disagreement and use the higher severity. Cross-reference findings against project-specific context the agents would not have (CLAUDE.md conventions, skill interdependencies). Summarize concisely — the synthesized findings list is what persists in context for the fix loop. Drop prose, keep only the structured `file:line — severity — description` format.
+   Merge results from both agents into a single deduplicated list grouped by severity (Blocking > Improvements > Suggestions). Where agents disagree on severity, note the disagreement and use the higher severity. Cross-reference findings against project-specific context the agents would not have (CLAUDE.md conventions, skill interdependencies). Summarize concisely — the synthesized findings list is what persists in context for the fix loop. Drop prose, keep only the structured `file:line — severity — description` format.
 
 4. **Estimate token usage**:
    - Use the token counts from the agents' output

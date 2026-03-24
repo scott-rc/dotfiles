@@ -17,6 +17,6 @@ The formal check verifies the Alloy model's internal consistency, but it does no
 - **State machines**: Each operation file's numbered steps MUST map to the StepBinding facts in the spec. Verify that gather, confirm, write, review, report, and deliver steps appear in the order the spec declares.
 - **Delegation**: Each operation's delegation approach (inline for skill files, rules-writer for rules files, skill-reviewer/rules-reviewer for reviews) MUST match the spec's `writesThrough` and `reviewsWith` fields.
 - **Routing**: SKILL.md's Combined Operations section MUST match the spec's Intent routing (each intent maps to the correct operation(s)).
-- **Perspectives**: Operations that include review MUST use all three perspectives (Sonnet, Opus, Haiku) when the spec declares `perspectives = Sonnet + Opus + Haiku`.
+- **Perspectives**: Operations that include review MUST use both perspectives (Sonnet, Opus) when the spec declares `perspectives = Sonnet + Opus`.
 
 If any structural conformance check fails, fix the skill files (or update the spec if the intent changed) and re-verify.
