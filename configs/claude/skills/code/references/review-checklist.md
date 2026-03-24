@@ -1,6 +1,6 @@
 # Review Checklist
 
-Criteria applied by code-reviewer subagents during code review.
+Criteria for code review evaluation.
 
 ## Test Coverage
 
@@ -32,6 +32,14 @@ Criteria applied by code-reviewer subagents during code review.
 - Is error handling present at system boundaries (user input, API responses, file I/O)?
 - Are there race conditions, missing null checks on external data, or unhandled promise rejections?
 - Are resource cleanup paths correct (streams closed, connections released, listeners removed)?
+
+## Security
+
+- Is user input validated and sanitized before use?
+- Are there hardcoded secrets, credentials, or API keys?
+- Are SQL/command injection vectors parameterized?
+- Are file paths validated against traversal attacks?
+- Do permissions follow least-privilege principle?
 
 ## Naming and Clarity
 

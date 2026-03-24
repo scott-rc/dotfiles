@@ -14,7 +14,7 @@ Do the work directly — read the code, make the changes, run the tests. Delegat
 
 - **Scale** — task spans many files or benefits from parallel workstreams
 - **Context preservation** — the work would consume context you'll need later (large diffs, extensive analysis, multi-step execution with intermediate artifacts)
-- **Specialization** — a subagent handles the task type materially better (e.g., `rules-writer` for rules validation)
+- **Specialization** — a subagent handles the task type materially better
 
 ### When to Stay Inline
 
@@ -36,13 +36,6 @@ Pass the *problem*, not the *solution* — describe what needs to change and why
 
 **Skills take precedence for non-trivial tasks.** Before dispatching any subagent, check whether an available skill covers the task. If a skill matches and the task is non-trivial, MUST invoke it via the Skill tool — MUST NOT bypass the skill by routing directly to its subagents. Trivial changes (single-line edits, typo fixes, config tweaks) MAY be done inline even when a skill technically matches. Skills manage their own internal routing.
 
-When delegating directly (no matching skill):
-
-- Code (plan chunks) — `chunk-executor`
-- Code (ad-hoc) — `code-writer`
-- Commits — git skill (inline)
-- Rules files — `rules-writer`
-- Skill files — inline (compose skill handles directly)
 ---
 
 ## Timezone

@@ -18,7 +18,7 @@ Templates for plan artifacts. Replace `<...>` placeholders with actual content.
 
 ## Chunk File Template
 
-The canonical chunk file format is defined in the chunk-writer agent's Output Format section. Chunks use one of two structures:
+The canonical chunk file format is defined in references/chunk-format.md. Chunks use one of two structures:
 
 - **TDD chunk** (adding testable behavior): Red-green-refactor step groups with explicit test-run checkboxes
 - **Non-TDD chunk** (refactoring, config, glue): Plain numbered step groups
@@ -45,26 +45,21 @@ Execute the plan in ./tmp/<plan-name>/plan.md by running each chunk as a sequent
 # Requirements
 
 1. Read plan.md to get the ordered chunk list
-2. For each chunk in order, launch a Task tool subagent (type: chunk-executor) with the prompt below, substituting CHUNK_FILE_PATH
-3. After each subagent completes, verify it reported success. If it reported failure, STOP and report the failure to the user -- do not continue to the next chunk.
+2. For each chunk in order:
+   a. Read the chunk file
+   b. Check the "Depends on" line -- if it names a dependency, verify all its checkboxes are checked. If any are unchecked, STOP and report.
+   c. Execute each unchecked `- [ ]` step in order: perform the action, then mark the checkbox `- [x]`
+   d. After completing each numbered step group, run the build command and fix errors (max 3 attempts)
+   e. After all Implementation Steps, execute each Verification checkbox
+3. After each chunk completes, verify success. If a step fails after 3 attempts, STOP and report -- do not continue to the next chunk.
 4. After all chunks complete, report the full plan as done
 
-# Anti-requirements
+# Rules
 
 - Do NOT run chunks in parallel -- each chunk may depend on the previous one
-- Do NOT skip chunks, even if they look already done -- the subagent will detect completion and return immediately
-- Do NOT modify chunk files yourself -- only subagents modify them
-
-# Chunk Subagent Prompt
-
-Use this as the prompt for each Task subagent, replacing CHUNK_FILE_PATH:
-
----
-
-Execute the implementation chunk at CHUNK_FILE_PATH.
-
-- Build command: <build command>
-- Test command: <test command>
-
----
+- Do NOT skip chunks, even if they look already done -- check for unchecked boxes
+- MUST mark each checkbox immediately after completing it
+- MUST NOT skip ahead or reorder steps
+- For TDD chunks (Red/Green/Refactor), verify test failures before implementing and test passes after
+- Execute steps as written -- do not re-evaluate design decisions made during planning
 ```

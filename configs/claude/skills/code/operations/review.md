@@ -27,8 +27,8 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 ### Quick Path (steps 5–8)
 
-5. **Spawn review subagent**:
-   Spawn a Task subagent (type: code-reviewer). Pass it:
+5. **Review the code inline**:
+   Review the code inline, using:
    - The files to review
    - references/review-checklist.md for review criteria
    - Paths to the guideline files loaded in step 4
@@ -64,7 +64,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    Present the proposed scopes to the user via AskUserQuestion for confirmation or adjustment before proceeding. (Skipped in loop mode — use proposed scopes directly.)
 
 10. **Spawn review subagents**:
-    Spawn parallel Task subagents (type: code-reviewer), one per scope. Pass each subagent:
+    Spawn parallel subagents, one per scope. Pass each:
     - The scope's name, file list, focus, and scope-specific criteria
     - references/review-checklist.md for review criteria
     - Paths to the guideline files loaded in step 4
@@ -92,7 +92,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     If no Blocking or Improvement findings exist after the initial evaluation, the review converged on the first pass — skip to step 20.
 
 16. **Fix findings**:
-    Delegate all Blocking and Improvement findings to a code-writer subagent (direct dispatch — intra-skill delegation, skill recursion not applicable). Use Apply mode for style, convention, and structural fixes. If a finding is a behavioral correctness issue (e.g., missing error check, wrong return value), use Fix mode so a regression test is written first. No pause, no user confirmation. Pass:
+    Fix all Blocking and Improvement findings directly. For style, convention, and structural fixes, apply and verify existing tests pass. For behavioral correctness issues (e.g., missing error check, wrong return value), write a regression test first. No pause, no user confirmation. Use:
     - The findings grouped by file, with file paths and line numbers
     - The guideline files loaded in step 4
     - Project context (repo root, conventions observed)
@@ -100,7 +100,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     Handle Suggestions per the project's loop rules: fix if quick (fewer than 3 per file); otherwise note and move on.
 
 17. **Re-evaluate**:
-    Spawn a review subagent (type: code-reviewer) on only the files that were fixed in step 16 — not the full original scope. Pass the same guidelines and checklist from step 4, plus the list of findings delegated in step 16 with the instruction "verify these specific issues were addressed."
+    Re-review only the files that were fixed in step 16 — not the full original scope. Pass the same guidelines and checklist from step 4, plus the list of findings delegated in step 16 with the instruction "verify these specific issues were addressed."
 
 18. **Check convergence**:
     If no Blocking or Improvement findings remain, proceed to step 20. If findings remain and iteration count < max iterations (default: 4), return to step 16. If a recurring finding persists after a fix attempt, escalate to the user or record as "acknowledged, not addressed" with rationale, per the project's loop rules.

@@ -164,7 +164,7 @@ Use these two steps to verify CI is configured and check status. Referenced by f
 
 ## CI System Detection
 
-Detect CI system by checking `.github/workflows/` (github-actions) or `.buildkite/` (buildkite). `gh pr checks` works for all systems; `gh run list` / `gh run view` / `get-failed-runs` / `ci-triager` only work for `github-actions`.
+Detect CI system by checking `.github/workflows/` (github-actions) or `.buildkite/` (buildkite). `gh pr checks` works for all systems; `gh run list` / `gh run view` / `get-failed-runs` only work for `github-actions`.
 
 ## Branch Context Creation
 
@@ -215,4 +215,4 @@ Detect language from the repository root and use the appropriate commands. Subag
 - **Test**: `cargo test`
 
 ### Fallback
-If none of the above match, skip automated lint fixing and instruct the subagent to check for project-specific tooling.
+If none of the above match, skip automated lint fixing and check for project-specific tooling.

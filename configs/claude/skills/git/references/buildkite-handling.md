@@ -1,6 +1,6 @@
 # Buildkite CI Handling
 
-How to fetch logs and handle failures from Buildkite CI. MUST NOT use `ci-triager` for Buildkite -- skip automated triage and treat all failures as real.
+How to fetch logs and handle failures from Buildkite CI. Skip automated triage for Buildkite -- treat all failures as real.
 
 ## Overview
 
@@ -14,7 +14,7 @@ Example invocation: `direnv exec . .ai/skills/ci/scripts/buildkite.mjs failed <o
 
 Build URL format: `https://buildkite.com/<org>/<pipeline>/builds/<number>...`. Obtain the URL via `gh pr checks --json name,state,link | jq -r '.[] | select(.state == "FAILURE") | .link'`.
 
-The `buildkite` script's `failed` command lists failed jobs for a build, each with `retried` (boolean) and `retried_in_job_id` fields. The `failed-logs` command returns log output for all failed jobs; truncate to the last 200 lines per job before passing to a fix subagent.
+The `buildkite` script's `failed` command lists failed jobs for a build, each with `retried` (boolean) and `retried_in_job_id` fields. The `failed-logs` command returns log output for all failed jobs; truncate to the last 200 lines per job before attempting fixes.
 
 When `failed` returns an empty array, Buildkite auto-retries may have masked failures. The `--include-retried` flag re-queries including retried jobs. Possible outcomes:
 - All returned jobs have `retried: true` — classify as auto-retried flake; log job names, add check to `handled_checks`, continue.

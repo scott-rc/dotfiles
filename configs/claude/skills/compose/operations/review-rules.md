@@ -11,7 +11,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    - SHOULD also identify related files: other CLAUDE.md files in parent/child directories, `.claude/rules/` files (including subdirectories), `~/.claude/rules/` user-level rules
 
 2. **Evaluate rules via multi-perspective review**:
-   Spawn 2 Task subagents in parallel per references/multi-perspective-review.md, all type: `rules-reviewer`:
+   Spawn 2 subagents in parallel per references/multi-perspective-review.md:
 
    - **Sonnet** — checklist compliance: structure, `@file` usage, anti-patterns from references/rules-spec.md
    - **Opus** — internal consistency: contradictions between files in the hierarchy, missing guidance, edge cases
@@ -22,7 +22,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    Merge results from both agents into a single list grouped by severity. Deduplicate overlapping findings. Cross-reference against project-specific context the agents would not have (e.g., known issues where Claude ignores specific rules, recently changed conventions). See references/multi-perspective-review.md for disagreement handling.
 
 4. **Estimate token impact**:
-   - Use the token counts from the rules-reviewer's output
+   - Use the token counts from the review agents' output
    - Flag files over ~200 lines as candidates for splitting into scoped rules
    - Flag total token cost if it seems disproportionate
 
@@ -30,7 +30,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    Group results by severity (Blocking, Improvements, Suggestions) per references/quality-checklist.md. For each finding, state: what the issue is, which file and line/section it's in, what the fix would be.
 
 6. **Review-fix loop**:
-   Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Delegate fixes to a `rules-writer` subagent. Iterate until all pass or 4 cycles complete.
+   Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Apply fixes inline using Edit/Write. Iterate until all pass or 4 cycles complete.
 
 7. **Report outcomes**:
    Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

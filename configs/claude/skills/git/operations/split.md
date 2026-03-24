@@ -121,7 +121,7 @@ Split a large branch into stacked branches grouped by logical concern, creating 
          Rename the reference branch to the last group's planned name: `git-spice branch rename <reference_branch> <last-branch-name> --no-prompt`.
       c. Verify each branch: navigate with `git-spice bottom`, then for each branch run verification per references/git-patterns.md "Local Fix Commands" (type checker, linter, tests for affected files). Move up with `git-spice up`. Update state to `verified` on success.
       d. If verification fails on a branch:
-         - **Compilation issues** (missing imports, forward references to later branches): delegate to code-writer with context: error output, affected file paths, branch theme, and constraint to only modify files on the current branch. Squash the fix: `git-spice branch squash --no-prompt`, then restack upstack: `git-spice upstack restack --no-prompt`.
+         - **Compilation issues** (missing imports, forward references to later branches): fix directly using error output, affected file paths, branch theme, and the constraint to only modify files on the current branch. Squash the fix: `git-spice branch squash --no-prompt`, then restack upstack: `git-spice upstack restack --no-prompt`.
          - **Test failures for features in later branches**: expected — note and skip.
          - **Other failures** after two fix attempts: ask the user via AskUserQuestion with options: "Retry verification fix", "Skip this branch's verification", "Stop the split".
       e. MUST write the branch context file for EVERY branch before proceeding to step 5. Use `branch-context-path.sh --branch <branch-name>` to get each path — do NOT rely on the current checkout. Write 1-3 sentences of purpose/motivation that naturally incorporate the theme and stack position (e.g., "Branch 2 of 4 in a stacked split. <theme purpose>. Review focus: <review_focus>.").
@@ -161,14 +161,14 @@ Split a large branch into stacked branches grouped by logical concern, creating 
 
    Since the original code was authored as a single branch, splitting may create branches where an earlier branch doesn't compile independently (e.g., branch 1 changes a type signature that only branch 3's code handles). The verification step (4.c) catches these. Fix options:
    - Move the dependent file to an earlier group (re-do the restructure with adjusted file assignments — restore from `split-backup` tag)
-   - Add a minimal compatibility fix on the affected branch (delegate to code-writer, then squash with `git-spice branch squash --no-prompt`)
+   - Add a minimal compatibility fix on the affected branch (then squash with `git-spice branch squash --no-prompt`)
 
    # Error Handling
 
    - Update the state file on every status change so the split can be resumed.
    - If restructuring fails (step 3), restore from the backup tag: `git checkout <reference_branch> && git reset --hard split-backup`.
    - If `git-spice branch split` fails, restore from backup and retry with adjusted commit boundaries.
-   - If verification fix (code-writer) fails after two attempts, ask the user: retry / skip / stop.
+   - If a verification fix fails after two attempts, ask the user: retry / skip / stop.
    ```
 
 ### Phase 2: Execution (plan-mode orchestrator prompt)

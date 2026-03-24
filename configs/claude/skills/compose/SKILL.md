@@ -47,10 +47,8 @@ MUST read operations/plan-task.md before executing.
 ## Delegation
 
 - Skill files (operations, references, SKILL.md) — write inline; read the authoring specs (references/skill-spec.md, references/skill-template.md, references/quality-checklist.md) and apply them directly
-- Rules files (CLAUDE.md, `.claude/rules/`) — `rules-writer`
-- Review-fix cycles — skill fixes inline, rules fixes via `rules-writer`
-
-MUST NOT delegate skill file writing to `code-writer` or any other subagent — skill files are markdown and benefit from the orchestrator's full context.
+- Rules files (CLAUDE.md, `.claude/rules/`) — write inline using the authoring specs (references/rules-spec.md, references/rules-template.md, references/quality-checklist.md)
+- Review-fix cycles — apply all fixes inline using Edit/Write
 
 ## Combined Operations
 
@@ -60,10 +58,10 @@ Users often request multiple operations together. Handle these as follows:
 - **"update skill"** / **"add operation"** / **"modify skill"** / **"change skill"** / **"add operation to"** / **"remove operation from"** / **"rename skill"** → Run Update Skill
 - **"update and review"** → Run Update Skill (includes review loop)
 - **"review skill"** / **"review a skill"** / **"evaluate skill"** → Run Review Skill
-- **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until both agents pass
+- **"improve skill"** / **"fix skill"** → Run Review Skill, apply fixes via the review-fix loop until review passes
 - **"write CLAUDE.md"** / **"write rules"** / **"write instructions"** → Run Create Rules
 - **"review rules"** / **"review my rules"** / **"review CLAUDE.md"** → Run Review Rules
-- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until both agents pass
+- **"improve CLAUDE.md"** / **"review my instructions"** / **"fix my rules"** → Run Review Rules, apply fixes via the review-fix loop until review passes
 - **"write a prompt"** / **"craft a prompt"** / **"help me prompt"** / **"delegate this"** → Run Create Prompt
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
@@ -81,4 +79,5 @@ Users often request multiple operations together. Handle these as follows:
 - references/content-patterns.md - Reusable patterns for operation steps, task skills, and dynamic context injection
 - references/rules-template.md - Templates for CLAUDE.md and scoped rules files
 - references/multi-perspective-review.md - Two-agent parallel review loop (Sonnet/Opus) with convergence criteria
+- references/chunk-format.md - Canonical chunk file structure: TDD and non-TDD templates, checkbox rules, size limits (used by Plan Task operation)
 - references/plan-template.md - Templates for plan artifacts: master plan, chunk files, orchestrator prompt

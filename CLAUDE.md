@@ -18,7 +18,6 @@
 ## Claude Code
 
 - Skills: `configs/claude/skills/`
-- Agents: `configs/claude/agents/`
 - Commands: `configs/claude/commands/`
 
 ## Build & Test

@@ -53,20 +53,10 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    Present the Plan subagent's proposed decomposition to the user. MUST use AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
    If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the decomposition (re-running the Plan subagent if the changes are substantial), and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
-5. **Write chunk files via subagents**:
-   For each approved chunk, spawn a Task tool subagent (type: chunk-writer) to write the chunk file. This keeps context manageable and ensures each chunk file gets focused attention.
+5. **Write chunk files**:
+   For each approved chunk, write a chunk file at `./tmp/<plan-name>/chunk-NN-<slug>.md` using the format from references/chunk-format.md. Expand the high-level steps into concrete checkboxes using the codebase context for specific file paths, function names, and commands. Use TDD step groups when steps involve testable behavior; use plain step groups for refactoring, config, or glue.
 
-   Supply these four sections per chunk to the chunk-writer subagent:
-   - **Chunk Details** -- number, title, slug, one-line description, dependency (prior chunk file name, or "None"), and summary (2-4 sentences from your decomposition)
-   - **High-Level Steps** -- numbered list from the decomposition
-   - **Codebase Context** -- file paths, function names, types, and patterns discovered during exploration
-   - **Build and Test** -- build and test commands
-
-   Output file path: `./tmp/<plan-name>/chunk-NN-<slug>.md` (relative to working directory)
-
-   Run chunk writer subagents in parallel when chunks have no dependency on each other's files. Run sequentially only when a chunk's writer prompt references content from an earlier chunk file.
-
-   After all subagents complete, spawn a Task subagent (type: Explore, model: haiku) to read all chunk files and verify each matches the chunk-writer Output Format (format validation) (correct sections, checkboxes, TDD structure where appropriate). The subagent MUST return a pass/fail summary per chunk. Split any chunk exceeding 25 checkboxes. If a chunk file fails validation, provide feedback and re-run the subagent.
+   After writing all chunk files, spawn a Task subagent (type: Explore, model: haiku) to read them all and verify each has the correct structure (sections, checkboxes, TDD structure where appropriate). The subagent MUST return a pass/fail summary per chunk. Split any chunk exceeding 25 checkboxes.
 
 6. **Write master plan**:
    Create `./tmp/<plan-name>/plan.md` using the Master Plan Template from references/plan-template.md.

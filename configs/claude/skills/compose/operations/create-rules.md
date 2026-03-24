@@ -46,19 +46,18 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - MUST NOT proceed to writing until the user selects "Looks good"
 
 5. **Write and verify**:
-   Delegate to `rules-writer` (Task agent) with:
-   - `mode` — `create`, `replace`, or `extend` (from step 2)
-   - `file_path` — target path (from step 2)
-   - `file_type` — one of: `project-claude-md`, `global-claude-md`, `claude-local-md`, `unconditional-rule`, `scoped-rule`, `user-rule`, `managed-policy`
-   - `scope_patterns` — glob patterns (scoped rules only, from step 1)
-   - `requirements` — user's content requirements (from step 1)
-   - `existing_content` — current file content (extend mode only, from step 2)
-   - `existing_docs` — discovered docs with summaries (from step 3)
+   Write the rules file inline:
+   - Read the authoring specs: references/rules-spec.md, references/rules-template.md, references/shared-rules.md
+   - Select the template matching `file_type` from references/rules-template.md
+   - For `create`: write a new file from the template
+   - For `replace`: overwrite with new content from the template
+   - For `extend`: merge new requirements into existing content, preserving structure
+   - For `scoped-rule`: include `paths:` frontmatter with scope patterns
 
-   The agent writes the file, verifies structure and quality, and self-corrects up to 3 times.
+   Verify against references/quality-checklist.md (Structure, Content Efficiency, Anti-pattern sections). Also verify every `@filename` reference resolves and scoped rules have valid `paths:` frontmatter. Fix and re-verify up to 3 times.
 
 6. **Review and iterate**:
-   Run the multi-perspective review loop per references/multi-perspective-review.md using `rules-reviewer` agents. Iterate until all 3 agents pass or 4 cycles complete. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items) in the report.
+   Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until both perspectives pass or 4 cycles complete. MUST include the final review status (pass/fail, number of cycles, any acknowledged-but-not-fixed items) in the report.
 
 7. **Report results**:
    Present results to the user:

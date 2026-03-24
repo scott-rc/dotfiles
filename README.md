@@ -44,7 +44,6 @@ Configuration directories symlinked to their expected locations:
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
 | `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
-| `agents/` | `~/.claude/agents/` |
 | `codex/` | `~/.codex/config.toml`, `~/.codex/rules/default.rules` |
 | `configs/claude/CLAUDE.md` | `~/.codex/AGENTS.md` (Codex global AGENTS guidance) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
@@ -227,28 +226,9 @@ Custom slash commands live in `configs/claude/commands/` (symlinked to `~/.claud
 |---------|-------------|
 | `slack-message` | Summarizes conversation findings and writes to `tmp/slack_messages/` for sharing on Slack |
 
-### Custom Agents
+### Shared Configuration (Claude Authority)
 
-Custom subagents live in `configs/claude/agents/` (symlinked to `~/.claude/agents/`) and are invoked by Claude Code as specialized sub-tasks.
-
-| Agent | Description |
-|-------|-------------|
-| `ci-triager.md` | Fetches CI failure logs, classifies as transient/flake/real, reruns transient and flake jobs, returns trimmed logs for real failures |
-| `chunk-executor.md` | Executes implementation chunks from a plan, marking checkboxes as steps are completed |
-| `chunk-writer.md` | Writes plan chunk files with TDD structure and checkpoint tracking |
-| `code-reviewer.md` | Reviews code for quality, security, and maintainability |
-| `code-writer.md` | Writes ad-hoc code changes (features, fixes, refactoring, coverage) with a full write-verify-retry loop |
-| `mutation-executor.md` | Executes planned source code mutations against a test suite, records killed/survived outcomes, returns results table and mutation score |
-| `rules-reviewer.md` | Evaluates CLAUDE.md and rules files against structure, quality, and anti-pattern criteria |
-| `rules-writer.md` | Writes CLAUDE.md and .claude/rules/ files from structured requirements, verifies against quality criteria |
-| `skill-reviewer.md` | Evaluates skills against a quality checklist |
-
-
-Agents are stateless — each invocation evaluates fresh without persistent memory, avoiding stale assumptions from prior sessions.
-
-### Shared Agent Configuration (Claude Authority)
-
-`apply.sh` links Codex and Agents to Claude-authored sources so they stay in sync:
+`apply.sh` links Codex to Claude-authored sources so they stay in sync:
 
 - `~/.codex/config.toml` → `configs/codex/config.toml`
 - `~/.codex/rules/default.rules` → `configs/codex/rules/default.rules`

@@ -60,13 +60,21 @@ Evaluate test suite quality by introducing mutations into source code and checki
    - **Adjust count** → re-run the Explore subagent with the new count
    - **Pick specific** → filter the list to user-selected mutations, then continue to step 6
 
-6. **Execute mutations via mutation-executor agent**:
-   Spawn the `mutation-executor` agent with the planned mutations list (each with index, type, file path, original code, mutated code, and description) and the test command.
+6. **Execute mutations**:
+   Run a baseline test (`<test_command>`) to confirm all tests pass. If tests already fail, stop -- fix them first.
 
-   The agent handles the full apply-test-record-revert cycle for each mutation and returns a results table with killed/survived outcomes and a mutation score.
+   For each mutation in order:
+   a. **Apply**: Edit the source file with the mutation's original → mutated code
+   b. **Run tests**: Execute `<test_command>`, capture exit code
+   c. **Record**: non-zero exit with test failures → **killed**; non-zero with compile error → **killed (compile)**; zero (tests pass) → **survived**
+   d. **Revert**: Edit back to original. MUST revert before the next mutation. If revert fails, stop.
+
+   MUST NOT stack mutations. MUST NOT modify test files. Skip mutations where the edit fails (original string not found) and note as **skipped**.
+
+   Run a final baseline test to confirm the code is back to its original state.
 
 7. **Analyze surviving mutants**:
-   Using the mutation-executor's results, for each surviving mutant identify what behavior is unguarded:
+   Using the results from step 6, for each surviving mutant identify what behavior is unguarded:
    - Which function or branch does the mutation affect?
    - What input would distinguish the original from the mutant?
    - What assertion is missing from the existing tests?

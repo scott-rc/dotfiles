@@ -96,6 +96,7 @@ Reference files:
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - PR title and description writing rules
 - references/commit-message-format.md - Commit message format rules
+- references/ci-triage.md - GitHub Actions CI failure classification: log fetching, transient/flake/real criteria, rerun commands (used by Fix operation)
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
 
 Scripts:
