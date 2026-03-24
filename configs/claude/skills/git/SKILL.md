@@ -95,7 +95,6 @@ Reference files:
 - references/git-spice-cli.md - git-spice skill conventions (non-interactive rule, branch prefix, command name) and links to official LLM-friendly CLI docs
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - PR title and description writing rules
-- references/bulk-threads.md - Threshold and pattern for handling bulk review threads via Explore subagent (used by Fix operation)
 - references/commit-message-format.md - Commit message format rules
 - references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
 

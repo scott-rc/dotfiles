@@ -84,13 +84,13 @@ If CI, Review, or Combined path ran AND the description quality check (wall of t
 
 2. **Present a summary**: Run `get-pr-comments.sh --summary` and present its compact output. For large thread sets, group by file and show counts rather than listing every thread individually.
 
-3. **Classify threads**: Use the Thread Classification rules in references/bulk-threads.md to determine which threads to fix autonomously (bots) and which require user approval (human reviewers). Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
+3. **Classify threads**: Classify each thread by commenter type — **bot threads** (bugbot, dependabot, or any automated bot) are handled autonomously; **human reviewer threads** require explicit user approval before applying code fixes. Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
 
    Independently classify each thread by **target**: **code threads** (feedback about source code, tests, configs, or CI files) vs **description threads** (feedback about the PR title, summary, or description text being inaccurate, misleading, or incomplete — the comment discusses what the PR *says*, not what it *does*). Classify each thread on both axes independently — a thread may be both a bot thread and a description thread.
 
 4. **Gather context and fix**: This step applies to **code threads** only. Skip if all threads are description threads.
 
-   Check the bulk threshold in references/bulk-threads.md (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary.
+   Check the bulk threshold (>=5 threads OR <5 touching >3 files). If at or above the threshold: spawn an Explore subagent (model: sonnet) to read each referenced file with 10-20 lines of surrounding context at each thread location and return a per-thread summary.
 
    Then spawn a `code-writer` subagent (model: sonnet) with:
    - Per-thread context: file path, line number(s), full comment bodies from all comments in each thread (later replies often contain clarifications)
