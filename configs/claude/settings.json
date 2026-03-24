@@ -92,7 +92,7 @@
     "typescript-lsp@claude-plugins-official": true
   },
   "spinnerTipsEnabled": false,
-  "effortLevel": "medium",
+  "effortLevel": "high",
   "autoMemoryEnabled": false,
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
