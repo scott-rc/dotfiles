@@ -35,11 +35,10 @@ User-provided instructions (e.g., "fix and ensure contributing is up to date") s
 3. **PR description quality**: Fetch the current PR body (`gh pr view --json body,number -q '.body'`). If no PR exists, skip. Detect base branch per references/git-patterns.md. Run `git diff --stat origin/<base>...HEAD` and assess:
 
    The description needs a refresh if ANY of:
-   - **Wall of text**: The diff spans 3+ distinct top-level directories (proxy for multiple concerns) but the body contains no numbered lists, no bullet lists, and no blank-line-separated short paragraphs (i.e., it's 2+ dense paragraphs).
    - **Missing diff coverage**: The `--stat` output shows file groups (e.g., `.claude/`, `.github/`, `docs/`, test files) that the body doesn't mention at all -- not even in passing.
    - **Missing verification info**: The diff includes CI workflow files (`.github/workflows/`, `.buildkite/`), deploy configs, or build system changes, but the body says nothing about how to verify locally or what CI triggers.
 
-   If none of these trigger, mark the description as OK. Note: review threads that flag description inaccuracy are handled by Review Path step 3 classification, not here.
+   If neither triggers, mark the description as OK. Note: review threads that flag description inaccuracy are handled by Review Path step 3 classification, not here.
 
 After all three complete, route based on results:
 
@@ -49,7 +48,7 @@ After all three complete, route based on results:
 - **Description issues only** (CI green, no unresolved threads): follow the Description path below.
 - **Neither** (CI green, no unresolved threads, description OK): report that everything is green. Then run `CronList` — if any job's prompt contains `/git fix`, check whether all CI checks have reached a terminal state (passed or failed). If any checks are still pending, in progress, or in a non-terminal state (including statuses like "OTHER"), keep the loop running and tell the user (e.g., "All passing so far, but N checks still in progress — keeping the loop active"). Only cancel with `CronDelete` when every check has reached a terminal state and all threads are resolved.
 
-If CI, Review, or Combined path ran AND the description quality check (wall of text, missing coverage, or missing verification info) also flagged issues, run the Description path after all other paths complete. Description threads found by Review Path step 3 are handled by Review Path step 8 — they do not trigger this rule.
+If CI, Review, or Combined path ran AND the description quality check (missing coverage or missing verification info) also flagged issues, run the Description path after all other paths complete. Description threads found by Review Path step 3 are handled by Review Path step 8 — they do not trigger this rule.
 
 ---
 
@@ -148,15 +147,15 @@ When both CI failures and unresolved review threads exist:
 
 ### Description Path
 
-Improve a PR description that is a wall of text, missing diff coverage, or lacks verification info. Also invoked by Review Path step 8 when review threads flag description inaccuracy.
+Improve a PR description that is missing diff coverage or lacks verification info. Also invoked by Review Path step 8 when review threads flag description inaccuracy.
 
 1. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from `references/git-patterns.md`.
    - If the file contains the `N/A` sentinel: ask via AskUserQuestion -- "The PR description could be improved, but there's no branch context. What's the motivation for this branch?" with options: **"I'll explain"** (user provides the reason; write it to the branch context file) or **"Skip description update"** (stop this path entirely).
    - If the file has real content but is a single sentence AND the diff spans 20+ files or 3+ top-level directories: run the context adequacy check from operations/push.md's "Context adequacy check" step (ask user if they want to update context before proceeding).
 
-2. **Present findings**: Show the user which quality issues were detected (wall of text, missing coverage, missing verification info) and ask via AskUserQuestion: "Refresh the PR description?" with options: **"Refresh it"** (proceed to step 3) or **"Skip"** (stop this path).
+2. **Present findings**: Show the user which quality issues were detected (missing coverage, missing verification info) and ask via AskUserQuestion: "Refresh the PR description?" with options: **"Refresh it"** (proceed to step 3) or **"Skip"** (stop this path).
 
-3. **Refresh**: Run the Refresh Description mode from operations/push.md starting at the "Write PR title and description" step -- the PR check, branch context, and adequacy steps are already covered by Detection step 3 and Description Path step 1 above. Pass the quality findings as the `context` field (e.g., "Description was flagged as a wall of text for a multi-concern PR -- restructure with numbered list").
+3. **Refresh**: Run the Refresh Description mode from operations/push.md starting at the "Write PR title and description" step -- the PR check, branch context, and adequacy steps are already covered by Detection step 3 and Description Path step 1 above. Pass the quality findings as the `context` field (e.g., "Description was missing coverage for CI workflow changes").
 
 4. **Report**: Confirm the description was updated and show the PR URL.

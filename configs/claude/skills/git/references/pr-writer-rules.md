@@ -36,13 +36,11 @@ These override everything else. Every title and description MUST follow them.
 
 ## Description
 
-- **Prose by default, structure when earned**: A typical PR is readable paragraphs. When a PR addresses 3+ distinct problems or concerns, use a numbered list so each is clearly delineated -- each item should be a concise problem/solution pair (2-3 sentences). Use bullets for ancillary items (secondary fixes, cleanups) that don't warrant their own paragraph. Semicolons joining 4+ independent clauses in one sentence are always worse than bullets.
-- **No boilerplate headers**: Do NOT use `## Summary`, `## Test plan`, `## Changes`, or similar generic headers. For multi-concern PRs, an introductory sentence plus a numbered list provides enough structure without headers.
+- **Match structure to complexity**: Use lists, headers, or sections when they help a reviewer navigate the PR.
 - **MUST NOT wrap lines**: Do NOT wrap text to 72 characters. Write each thought as one continuous line. GitHub handles wrapping.
 - **Focus on the "why"**: Explain motivation and reasoning, not just what changed.
-- **Testing and verification woven into the narrative**: Mention test coverage inline as part of the prose. Do NOT put it in a separate section or checklist. If the PR adds CI workflows, deployment pipelines, or build configuration, state how to verify locally (e.g., build command) and what triggers in CI (e.g., "deploys on push to main when docs/ changes").
 - **Link issues**: Use "Fixes #123" to auto-close; use "Related to #456" for referenced-but-not-fixed issues.
-- **Be concise**: A few sentences for a typical PR. For multi-concern PRs, prefer tighter items over more paragraphs -- a numbered list of 3 two-sentence items is more readable than 3 dense paragraphs. The diff has the details; the description orients the reviewer.
+- **Be concise**: The diff has the details; the description orients the reviewer. A few sentences suffices for a typical PR.
 - **Don't enumerate artifacts**: Do NOT list every type, helper, module, function, or file path introduced. Name only what a reviewer needs to orient themselves.
 - **Reviewer-first**: The description helps reviewers understand why the change exists and how to approach reviewing it. It is not a changelog or API reference.
 
