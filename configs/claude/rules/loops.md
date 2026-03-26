@@ -12,7 +12,7 @@ An evaluate-fix cycle that repeats until convergence. The orchestrator drives; e
 **Rules:**
 
 - MUST proceed through evaluate → fix → re-evaluate without pausing to ask the user
-- **Blocking** / **Improvements** — fix immediately; escalate only when the fix has multiple plausible approaches and no available context disambiguates
+- **Blocking** / **Improvements** — fix immediately; escalate per ask-when-unsure rules only when the fix has multiple plausible approaches and no available context disambiguates
 - **Recurring findings** — if the same finding recurs after a fix attempt, either escalate to the user or record as "acknowledged, not addressed" with rationale
 - **Suggestions** — fix if quick (fewer than 3 per file); otherwise note and move on; do not block convergence
 - When max iterations complete without convergence, present remaining findings with status and let the user decide
