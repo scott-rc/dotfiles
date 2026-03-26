@@ -266,15 +266,15 @@ fn apply_patch_raw(repo: &Path, extra_args: &[&str], patch: &str) -> Result<(), 
     }
 }
 
-pub fn stage_patch(repo: &Path, patch: &str) -> Result<(), String> {
+pub(crate) fn stage_patch(repo: &Path, patch: &str) -> Result<(), String> {
     apply_patch_raw(repo, &["--cached"], patch)
 }
 
-pub fn unstage_patch(repo: &Path, patch: &str) -> Result<(), String> {
+pub(crate) fn unstage_patch(repo: &Path, patch: &str) -> Result<(), String> {
     apply_patch_raw(repo, &["--cached", "--reverse"], patch)
 }
 
-pub fn revert_patch(repo: &Path, patch: &str) -> Result<(), String> {
+pub(crate) fn revert_patch(repo: &Path, patch: &str) -> Result<(), String> {
     apply_patch_raw(repo, &["--reverse"], patch)
 }
 

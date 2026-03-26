@@ -10,13 +10,13 @@ use super::super::navigation::{
     sync_tree_cursor, viewport_bounds,
 };
 use super::super::state::{
-    Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
+    Document, PagerState, ReducerCtx, capture_view_anchor, remap_after_document_swap, visible_range,
 };
 use super::super::tree::TreeEntry;
 use super::super::types::{FileIx, LineIx, TreeEntryIx};
 use super::common::{
     make_keybinding_state, make_line_map, make_line_map_with_headers, make_pager_state_for_range,
-    make_pager_state_from_files, make_two_file_diff, scrollbar_thumb_range,
+    make_pager_state_from_files, make_two_file_diff, scrollbar_thumb_range, test_ctx,
 };
 use crate::git::diff::{FileStatus, LineKind};
 
@@ -559,14 +559,14 @@ fn test_change_group_starts_real_render_single_file() {
     use super::super::navigation::nav_du_down;
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
-    use std::path::Path;
     use tui::pager::Key;
 
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, false);
+    let ctx = ReducerCtx { files: &files, ..test_ctx() };
 
     // Enter single file mode
-    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
+    let result = handle_key(&mut state, Key::Char('s'), &ctx);
 
     // Re-render as the runtime would after ReRender
     if matches!(result, super::super::types::KeyResult::ReRender) {
@@ -591,7 +591,6 @@ fn test_change_group_starts_real_render_single_file() {
 fn test_hunk_nav_single_file_change_at_line_one() {
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
-    use std::path::Path;
     use tui::pager::Key;
 
     // Diff where the first hunk has no leading context (change starts at line 1).
@@ -608,15 +607,16 @@ diff --git a/x.txt b/x.txt
 ";
     let files = crate::git::diff::parse(raw);
     let mut state = make_pager_state_from_files(&files, false);
+    let ctx = ReducerCtx { files: &files, ..test_ctx() };
 
     // Enter single file mode
-    let result = handle_key(&mut state, Key::Char('s'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
+    let result = handle_key(&mut state, Key::Char('s'), &ctx);
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
 
     let before = state.cursor_line;
-    handle_key(&mut state, Key::Char(']'), 40, 40, 120, &files, Path::new("."), &crate::git::DiffSource::WorkingTree);
+    handle_key(&mut state, Key::Char(']'), &ctx);
 
     assert!(
         state.cursor_line > before,
@@ -642,7 +642,6 @@ diff --git a/x.txt b/x.txt
 fn single_file_hunk_nav_multiple_presses() {
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
-    use std::path::Path;
     use tui::pager::Key;
 
     let raw = "\
@@ -674,18 +673,10 @@ diff --git a/b.txt b/b.txt
 ";
     let files = crate::git::diff::parse(raw);
     let mut state = make_pager_state_from_files(&files, false);
+    let ctx = ReducerCtx { files: &files, ..test_ctx() };
 
     // Enter single file mode
-    let result = handle_key(
-        &mut state,
-        Key::Char('s'),
-        40,
-        40,
-        120,
-        &files,
-        Path::new("."),
-        &crate::git::DiffSource::WorkingTree,
-    );
+    let result = handle_key(&mut state, Key::Char('s'), &ctx);
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
@@ -694,16 +685,7 @@ diff --git a/b.txt b/b.txt
     let initial_cursor = state.cursor_line;
 
     // Press ] — should move to next hunk within the same file
-    handle_key(
-        &mut state,
-        Key::Char(']'),
-        40,
-        40,
-        120,
-        &files,
-        Path::new("."),
-        &crate::git::DiffSource::WorkingTree,
-    );
+    handle_key(&mut state, Key::Char(']'), &ctx);
     assert!(
         state.cursor_line > initial_cursor,
         "] should advance cursor from {initial_cursor} to a later position"
@@ -719,7 +701,6 @@ diff --git a/b.txt b/b.txt
 fn single_file_tree_width_change_hunk_nav() {
     use super::super::reducer::handle_key;
     use super::super::runtime::re_render;
-    use std::path::Path;
     use tui::pager::Key;
 
     // Files with directories trigger tree auto-show.
@@ -763,34 +744,17 @@ diff --git a/src/foo.txt b/src/foo.txt
     let mut state = make_pager_state_from_files(&files, false);
     state.tree_visible = false;
     state.tree_user_hidden = false;
+    let ctx = ReducerCtx { files: &files, ..test_ctx() };
 
     // Toggle single file with tree auto-show potential
-    let result = handle_key(
-        &mut state,
-        Key::Char('s'),
-        40,
-        40,
-        120,
-        &files,
-        Path::new("."),
-        &crate::git::DiffSource::WorkingTree,
-    );
+    let result = handle_key(&mut state, Key::Char('s'), &ctx);
     if matches!(result, super::super::types::KeyResult::ReRender) {
         re_render(&mut state, &files, false, 120);
     }
 
     let before = state.cursor_line;
     let before_active = state.active_file();
-    handle_key(
-        &mut state,
-        Key::Char(']'),
-        40,
-        40,
-        120,
-        &files,
-        Path::new("."),
-        &crate::git::DiffSource::WorkingTree,
-    );
+    handle_key(&mut state, Key::Char(']'), &ctx);
 
     assert_eq!(
         state.active_file(),

@@ -9,7 +9,7 @@ use super::diff::{DiffFile, DiffHunk, LineKind};
 /// - Non-selected added lines are dropped entirely
 /// - Selected deleted lines emit as `-`
 /// - Non-selected deleted lines are converted to context (` `)
-pub fn generate_line_patch(file: &DiffFile, hunk: &DiffHunk, selected: &HashSet<usize>) -> String {
+pub(crate) fn generate_line_patch(file: &DiffFile, hunk: &DiffHunk, selected: &HashSet<usize>) -> String {
     let mut body = String::new();
     let mut old_count: u32 = 0;
     let mut new_count: u32 = 0;

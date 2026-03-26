@@ -8,10 +8,23 @@ use crate::render::LineInfo;
 use crate::style;
 
 use super::super::rendering::render_scrollbar_cell;
-use super::super::state::{PagerState, visible_range};
+use super::super::state::{PagerState, ReducerCtx, visible_range};
 use super::super::tree::{TreeEntry, build_tree_entries};
 use super::super::types::ViewScope;
+
 use std::sync::{Mutex, OnceLock};
+
+/// Default `ReducerCtx` for tests: 40 content height, 40 rows, 120 cols, empty files, WorkingTree.
+pub fn test_ctx() -> ReducerCtx<'static> {
+    ReducerCtx {
+        content_height: 40,
+        rows: 40,
+        cols: 120,
+        files: &[],
+        repo: std::path::Path::new("."),
+        source: &crate::git::DiffSource::WorkingTree,
+    }
+}
 
 pub fn gd_debug_env_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -408,10 +421,30 @@ pub fn make_staging_files() -> Vec<DiffFile> {
             old_start: 1,
             new_start: 1,
             lines: vec![
-                DiffLine { kind: LineKind::Context, content: "ctx1".into(), old_lineno: Some(1), new_lineno: Some(1) },
-                DiffLine { kind: LineKind::Deleted, content: "old".into(), old_lineno: Some(2), new_lineno: None },
-                DiffLine { kind: LineKind::Added, content: "new".into(), old_lineno: None, new_lineno: Some(2) },
-                DiffLine { kind: LineKind::Context, content: "ctx2".into(), old_lineno: Some(3), new_lineno: Some(3) },
+                DiffLine {
+                    kind: LineKind::Context,
+                    content: "ctx1".into(),
+                    old_lineno: Some(1),
+                    new_lineno: Some(1),
+                },
+                DiffLine {
+                    kind: LineKind::Deleted,
+                    content: "old".into(),
+                    old_lineno: Some(2),
+                    new_lineno: None,
+                },
+                DiffLine {
+                    kind: LineKind::Added,
+                    content: "new".into(),
+                    old_lineno: None,
+                    new_lineno: Some(2),
+                },
+                DiffLine {
+                    kind: LineKind::Context,
+                    content: "ctx2".into(),
+                    old_lineno: Some(3),
+                    new_lineno: Some(3),
+                },
             ],
         }],
     }]

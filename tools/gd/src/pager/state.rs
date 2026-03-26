@@ -160,10 +160,6 @@ impl PagerState {
         self.doc.file_end(idx)
     }
 
-    pub(crate) fn tree_entry(&self, idx: usize) -> Option<&TreeEntry> {
-        self.tree_entries.get(idx)
-    }
-
     #[allow(dead_code)]
     pub(crate) fn tree_entry_mut(&mut self, idx: usize) -> Option<&mut TreeEntry> {
         self.tree_entries.get_mut(idx)

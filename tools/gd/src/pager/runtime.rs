@@ -12,7 +12,7 @@ use crate::render::RenderOutput;
 
 use super::reducer::handle_key;
 use super::rendering::{content_height, render_screen};
-use super::state::{DiffContext, capture_view_anchor, remap_after_document_swap};
+use super::state::{DiffContext, ReducerCtx, capture_view_anchor, remap_after_document_swap};
 use super::state::{Document, PagerState};
 use super::tree::build_tree_entries;
 use super::types::KeyResult;
@@ -290,7 +290,15 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         };
 
         let ch = content_height(last_size.1, &state);
-        let result = handle_key(&mut state, key, ch, last_size.1, last_size.0, &files, &diff_ctx.repo, &diff_ctx.source);
+        let ctx = ReducerCtx {
+            content_height: ch,
+            rows: last_size.1,
+            cols: last_size.0,
+            files: &files,
+            repo: &diff_ctx.repo,
+            source: &diff_ctx.source,
+        };
+        let result = handle_key(&mut state, key, &ctx);
         match result {
             KeyResult::Quit => break,
             KeyResult::ReRender => {

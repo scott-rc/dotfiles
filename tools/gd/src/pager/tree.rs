@@ -185,7 +185,7 @@ pub fn tree_entry_path(entries: &[TreeEntry], idx: usize) -> String {
 }
 
 /// Re-apply collapse state from `collapsed_paths` to tree entries after a rebuild.
-pub fn apply_collapse_state(entries: &mut [TreeEntry], collapsed_paths: &HashSet<String>) {
+pub(crate) fn apply_collapse_state(entries: &mut [TreeEntry], collapsed_paths: &HashSet<String>) {
     for i in 0..entries.len() {
         if entries[i].file_idx.is_none() {
             entries[i].collapsed = collapsed_paths.contains(&tree_entry_path(entries, i));

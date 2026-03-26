@@ -2,7 +2,6 @@ use tui::pager::{Key, copy_to_clipboard};
 
 use std::collections::HashSet;
 
-use crate::git::diff::DiffFile;
 use crate::git::DiffSource;
 
 use super::content::{is_content_line, next_content_line, prev_content_line};
@@ -459,7 +458,7 @@ fn toggle_collapse_single(state: &mut PagerState) {
         Some(s) => s.get(),
         None => return,
     };
-    if state.tree_entries.get(sel).map_or(true, |e| e.file_idx.is_some()) {
+    if state.tree_entries.get(sel).is_none_or(|e| e.file_idx.is_some()) {
         return;
     }
     let path = tree_entry_path(&state.tree_entries, sel);
@@ -523,9 +522,8 @@ fn dispatch_staging_action(
         return Some(ReducerEffect::Continue);
     }
     let file_idx = info.file_idx;
-    let hunk_idx = match info.hunk_idx {
-        Some(h) => h,
-        None => return Some(ReducerEffect::Continue),
+    let Some(hunk_idx) = info.hunk_idx else {
+        return Some(ReducerEffect::Continue);
     };
 
     // Guard: staging is not supported in commit or range views
@@ -561,13 +559,11 @@ fn dispatch_staging_action(
         _ => unreachable!(),
     };
 
-    let file = match files.get(file_idx) {
-        Some(f) => f,
-        None => return Some(ReducerEffect::Continue),
+    let Some(file) = files.get(file_idx) else {
+        return Some(ReducerEffect::Continue);
     };
-    let hunk = match file.hunks.get(hunk_idx) {
-        Some(h) => h,
-        None => return Some(ReducerEffect::Continue),
+    let Some(hunk) = file.hunks.get(hunk_idx) else {
+        return Some(ReducerEffect::Continue);
     };
 
     let patch = if is_hunk {
@@ -580,14 +576,14 @@ fn dispatch_staging_action(
             let hi = anchor.max(state.cursor_line);
             let mut indices = HashSet::new();
             for doc_line in lo..=hi {
-                if let Some(li) = state.doc.line_map.get(doc_line) {
-                    if li.file_idx == file_idx && li.hunk_idx == Some(hunk_idx) && li.line_kind.is_some() {
-                        // Find the hunk line index by matching lineno
-                        for (i, hl) in hunk.lines.iter().enumerate() {
-                            if hl.old_lineno == li.old_lineno && hl.new_lineno == li.new_lineno {
-                                indices.insert(i);
-                                break;
-                            }
+                if let Some(li) = state.doc.line_map.get(doc_line)
+                    && li.file_idx == file_idx && li.hunk_idx == Some(hunk_idx) && li.line_kind.is_some()
+                {
+                    // Find the hunk line index by matching lineno
+                    for (i, hl) in hunk.lines.iter().enumerate() {
+                        if hl.old_lineno == li.old_lineno && hl.new_lineno == li.new_lineno {
+                            indices.insert(i);
+                            break;
                         }
                     }
                 }
@@ -740,21 +736,8 @@ fn reduce(state: &mut PagerState, event: &ReducerEvent, ctx: &ReducerCtx<'_>) ->
 pub(crate) fn handle_key(
     state: &mut PagerState,
     key: Key,
-    ch: usize,
-    rows: u16,
-    cols: u16,
-    files: &[DiffFile],
-    repo: &std::path::Path,
-    source: &crate::git::DiffSource,
+    ctx: &ReducerCtx<'_>,
 ) -> KeyResult {
     let event = ReducerEvent::Key(key);
-    let ctx = ReducerCtx {
-        content_height: ch,
-        rows,
-        cols,
-        files,
-        repo,
-        source,
-    };
-    KeyResult::from(reduce(state, &event, &ctx))
+    KeyResult::from(reduce(state, &event, ctx))
 }

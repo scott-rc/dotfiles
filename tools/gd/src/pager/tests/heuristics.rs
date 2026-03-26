@@ -1,7 +1,6 @@
 use crate::pager::state::{default_full_context, default_view_scope};
 use crate::pager::reducer::handle_key;
 use crate::pager::types::{FileIx, ViewScope};
-use std::path::Path;
 use tui::pager::Key;
 
 mod full_context {
@@ -125,17 +124,13 @@ mod view_scope {
 
 mod user_override_flags {
     use super::*;
-    use super::super::common::make_keybinding_state;
-
-    fn p() -> &'static Path {
-        Path::new(".")
-    }
+    use super::super::common::{make_keybinding_state, test_ctx};
 
     #[test]
     fn toggle_single_file_sets_user_flag() {
         let mut state = make_keybinding_state();
         assert!(!state.view_scope_user_set);
-        handle_key(&mut state, Key::Char('s'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+        handle_key(&mut state, Key::Char('s'), &test_ctx());
         assert!(state.view_scope_user_set);
     }
 
@@ -143,7 +138,7 @@ mod user_override_flags {
     fn toggle_full_context_sets_user_flag() {
         let mut state = make_keybinding_state();
         assert!(!state.full_context_user_set);
-        handle_key(&mut state, Key::Char('o'), 40, 40, 120, &[], p(), &crate::git::DiffSource::WorkingTree);
+        handle_key(&mut state, Key::Char('o'), &test_ctx());
         assert!(state.full_context_user_set);
     }
 
