@@ -12,4 +12,8 @@ Diff color constants live at the top of `style.rs`. Use `style::` prefix everywh
 
 ---
 
+Fix clippy lints idiomatically -- narrow `pub` to `pub(crate)` for crate-internal items, refactor to reduce argument counts, use `let...else` and `is_none_or`. MUST NOT suppress with `#[allow]` unless the lint is genuinely inapplicable.
+
+---
+
 When optimizing performance, MUST run `cargo bench` before and after changes. Use `cargo bench --bench bench -- --save-baseline before` to save a baseline, then `cargo bench --bench bench -- --baseline before` to compare. Use `samply record` on the release binary for flamegraph profiling.
