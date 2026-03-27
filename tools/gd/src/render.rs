@@ -309,6 +309,12 @@ pub fn tokenize(s: &str) -> Vec<&str> {
     tokens
 }
 
+/// Token product threshold for word-level diffs. Blocks larger than this
+/// skip word-level highlighting (entire lines are highlighted instead).
+/// Patience diff is O(n log n) for matching unique elements but falls back
+/// to Myers O(n*d) for non-unique regions, so very large blocks still cost.
+const WORD_DIFF_TOKEN_LIMIT: usize = 10_000;
+
 /// For a change block, compute per-line word highlight ranges.
 /// Returns (deleted_highlights, added_highlights) — each a Vec<Vec<(start, end)>> per line.
 pub fn word_highlights(
@@ -337,6 +343,15 @@ pub fn word_highlights(
 
     let old_tokens = tokenize(&old_text);
     let new_tokens = tokenize(&new_text);
+
+    // Skip word-level diff for very large blocks — highlight entire lines instead
+    if old_tokens.len() * new_tokens.len() > WORD_DIFF_TOKEN_LIMIT {
+        return (
+            vec![Vec::new(); block.deleted.len()],
+            vec![Vec::new(); block.added.len()],
+        );
+    }
+
     let diff = TextDiff::from_slices(&old_tokens, &new_tokens);
 
     let mut del_highlights: Vec<Vec<(usize, usize)>> = vec![Vec::new(); block.deleted.len()];
