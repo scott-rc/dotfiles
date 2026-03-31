@@ -52,4 +52,7 @@ abbr --add gr~ git reset HEAD~
 # abbr --add gsts git stash save
 abbr --add gs git-spice
 abbr --add gsl git-spice ls
+abbr --add gsrs git-spice repo sync
 abbr --add gss git status --short --branch
+abbr --add gssr git-spice stack restack
+abbr --add gsss git-spice stack submit
