@@ -70,9 +70,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			buffer = args.buf,
 			desc = "Find references",
 		})
-		vim.keymap.set("n", "<C-Space>", vim.lsp.buf.hover, {
+		vim.keymap.set("n", "<C-Space>", function()
+			local diagnostics = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+			if #diagnostics > 0 then
+				vim.diagnostic.open_float({ scope = "cursor", focus = false })
+			end
+			vim.lsp.buf.hover()
+		end, {
 			buffer = args.buf,
-			desc = "Hover documentation",
+			desc = "Hover documentation + diagnostics",
 		})
 		vim.keymap.set({ "n", "v", "i" }, "<D-.>", vim.lsp.buf.code_action, {
 			buffer = args.buf,
