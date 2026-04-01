@@ -174,9 +174,9 @@ return {
 		keys = {
 			-- File / grep
 			{ "<D-f>", function() Snacks.picker.smart() end, mode = { "n", "v", "i" }, desc = "Smart find files" },
-			{ "<D-g>", function() Snacks.picker.grep() end, mode = { "n", "v", "i" }, desc = "Live grep" },
-			{ "<D-k>", function() Snacks.picker.smart() end, mode = { "n", "v", "i" }, desc = "Smart find files" },
-			{ "<D-p>", function() Snacks.picker.commands() end, mode = { "n", "v", "i" }, desc = "Commands" },
+			{ "<D-g>", function() Snacks.picker.resume("grep") end, mode = { "n", "v", "i" }, desc = "Live grep" },
+			{ "<D-k>", function() Snacks.picker.resume("smart") end, mode = { "n", "v", "i" }, desc = "Smart find files" },
+			{ "<D-p>", function() Snacks.picker.resume("commands") end, mode = { "n", "v", "i" }, desc = "Commands" },
 			{ "<leader>b", function() Snacks.picker.buffers() end, desc = "Buffers" },
 			{ "<leader>f", function() Snacks.picker.smart() end, desc = "Smart find files" },
 			{ "<leader>m", function() Snacks.picker.keymaps() end, desc = "Keymaps" },
