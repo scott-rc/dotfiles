@@ -39,7 +39,9 @@ local function apply_theme()
 	vim.api.nvim_set_hl(0, "PmenuSel", { bg = "#1c3d6a" })
 	vim.api.nvim_set_hl(0, "PmenuBorder", { fg = "#565f89", bg = editor_bg })
 
-	-- Statusline mode highlights
+	-- Statusline
+	vim.api.nvim_set_hl(0, "StatusLine", { fg = "#e6edf3", bg = "#161b22" })
+	vim.api.nvim_set_hl(0, "StatusLineNC", { fg = "#6e7681", bg = "#161b22" })
 	require("config.statusline").set_highlights()
 end
 
