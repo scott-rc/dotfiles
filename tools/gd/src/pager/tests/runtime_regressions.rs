@@ -6,7 +6,7 @@ use crate::git::diff::LineKind;
 use crate::render;
 use crate::render::LineInfo;
 
-use super::super::runtime::{git_index_mtime, re_render, resolve_path_for_editor};
+use super::super::runtime::{git_index_mtime, parse_replay_keys, re_render, resolve_path_for_editor};
 use super::super::state::{
     Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
 };
@@ -14,7 +14,7 @@ use super::super::rendering::diff_area_width;
 use super::super::tree::{build_tree_entries, build_tree_lines, MIN_DIFF_WIDTH};
 use super::common::{
     StateSnapshot, assert_state_invariants, make_keybinding_state, make_pager_state_for_range,
-    make_pager_state_from_files, make_two_file_diff, with_gd_debug_env,
+    make_pager_state_from_files, make_test_document, make_two_file_diff, with_gd_debug_env,
 };
 
 #[test]
@@ -55,8 +55,9 @@ fn re_render_includes_headers_when_tree_visible() {
     let stripped: String = state
         .doc
         .lines
+        .iter_rendered()
         .iter()
-        .map(|l| crate::ansi::strip_ansi(l))
+        .map(|s| crate::ansi::strip_ansi(s))
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
@@ -73,8 +74,9 @@ fn re_render_includes_headers_when_tree_hidden() {
     let stripped: String = state
         .doc
         .lines
+        .iter_rendered()
         .iter()
-        .map(|l| crate::ansi::strip_ansi(l))
+        .map(|s| crate::ansi::strip_ansi(s))
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
@@ -91,7 +93,7 @@ fn default_tree_hidden_for_small_flat_file_lists() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -113,7 +115,7 @@ fn default_tree_hidden_for_three_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -136,7 +138,7 @@ fn default_tree_visible_for_four_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -157,7 +159,7 @@ fn default_tree_visible_for_nested_file_lists() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -330,12 +332,12 @@ fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
             hunk_idx: None,
         })
         .collect();
-    let new_doc = Document {
-        lines: vec![String::new(); 20],
+    let new_doc = make_test_document(
+        vec![String::new(); 20],
         line_map,
-        file_starts: vec![0],
-        hunk_starts: vec![],
-    };
+        vec![0],
+        vec![],
+    );
 
     remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
 
@@ -358,9 +360,9 @@ fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
     assert_eq!(a.new_lineno, None, "header line should have no lineno");
     assert_eq!(a.offset_in_file, 5);
 
-    let new_doc = Document {
-        lines: vec![String::new(); 30],
-        line_map: vec![
+    let new_doc = make_test_document(
+        vec![String::new(); 30],
+        vec![
             LineInfo {
                 file_idx: 0,
                 path: Arc::from(""),
@@ -371,9 +373,9 @@ fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
             };
             30
         ],
-        file_starts: vec![0, 10, 20],
-        hunk_starts: vec![],
-    };
+        vec![0, 10, 20],
+        vec![],
+    );
 
     remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
 
@@ -418,7 +420,7 @@ fn re_render_resize_diff_lines_fit_within_new_tree_width() {
     // Start at 100 cols where tree_width is clamped (100 - 80 - 1 = 19)
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -441,7 +443,7 @@ fn re_render_resize_diff_lines_fit_within_new_tree_width() {
         diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
 
     // Every rendered line must fit within the diff area after resize
-    for (i, line) in state.doc.lines.iter().enumerate() {
+    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= expected_diff_width,
@@ -458,9 +460,9 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
     state.cursor_line = 10;
     state.top_line = 5;
 
-    let new_doc = Document {
-        lines: vec![String::new(); 20],
-        line_map: vec![
+    let new_doc = make_test_document(
+        vec![String::new(); 20],
+        vec![
             LineInfo {
                 file_idx: 0,
                 path: Arc::from(""),
@@ -471,9 +473,9 @@ fn test_remap_anchor_none_resets_cursor_and_top() {
             };
             20
         ],
-        file_starts: vec![0, 10],
-        hunk_starts: vec![],
-    };
+        vec![0, 10],
+        vec![],
+    );
 
     remap_after_document_swap(&mut state, None, new_doc, &[], 120);
 
@@ -503,7 +505,7 @@ fn resize_tree_width_changes_but_stays_visible() {
     // Start at 100 cols — tree_width clamped to 100 - 80 - 1 = 19
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -523,7 +525,7 @@ fn resize_tree_width_changes_but_stays_visible() {
         state.tree_width
     );
     let daw = diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
-    for (i, line) in state.doc.lines.iter().enumerate() {
+    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= daw,
@@ -535,7 +537,7 @@ fn resize_tree_width_changes_but_stays_visible() {
     re_render(&mut state, &files, false, 100);
     assert!(state.tree_visible, "tree should still be visible at 100 cols");
     let daw = diff_area_width(100, state.tree_width, state.tree_visible, state.full_context);
-    for (i, line) in state.doc.lines.iter().enumerate() {
+    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= daw,
@@ -556,7 +558,7 @@ fn full_context_with_tree_visible_accounts_for_scrollbar() {
     let tree_entries = build_tree_entries(&files);
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -576,7 +578,7 @@ fn full_context_with_tree_visible_accounts_for_scrollbar() {
         120 - state.tree_width - 2,
         "diff_area_width with tree + scrollbar should be cols - tree_width - 2"
     );
-    for (i, line) in state.doc.lines.iter().enumerate() {
+    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= expected,
@@ -595,7 +597,7 @@ fn default_tree_hidden_at_80_cols_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -617,7 +619,7 @@ fn default_tree_hidden_at_90_cols_nested_files() {
     crate::git::sort_files_for_display(&mut files);
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -640,7 +642,7 @@ fn default_tree_visible_at_100_cols_nested_files() {
     crate::git::sort_files_for_display(&mut files);
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -670,7 +672,7 @@ fn default_tree_visibility_exact_threshold_boundary() {
     // At threshold: tree visible
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines.clone(),
+        output.lines(),
         output.line_map.clone(),
         output.file_starts.clone(),
         output.hunk_starts.clone(),
@@ -681,7 +683,7 @@ fn default_tree_visibility_exact_threshold_boundary() {
 
     // One below threshold: tree hidden
     let state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -713,7 +715,7 @@ fn re_render_auto_shows_tree_when_terminal_widens() {
     let narrow_cols: usize = MIN_DIFF_WIDTH + 5;
     let output = render::render(&files, narrow_cols, false);
     let state = PagerState::new(
-        output.lines.clone(),
+        output.lines(),
         output.line_map.clone(),
         output.file_starts.clone(),
         output.hunk_starts.clone(),
@@ -747,7 +749,7 @@ fn re_render_does_not_auto_show_tree_when_user_hidden() {
     // Start wide — tree visible
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -782,7 +784,7 @@ fn re_render_auto_shows_after_auto_hide_cycle() {
     // Start wide — tree visible
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -811,7 +813,7 @@ fn re_render_does_not_auto_show_for_small_flat_diffs() {
     let tree_entries = build_tree_entries(&files);
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines,
+        output.lines(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -842,4 +844,65 @@ fn git_index_mtime_returns_some_for_real_index() {
 fn git_index_mtime_returns_none_for_missing_path() {
     let dir = std::path::Path::new("/tmp/gd_test_nonexistent_repo_path");
     assert_eq!(git_index_mtime(dir), None);
+}
+
+// --- parse_replay_keys tests ---
+
+use tui::pager::Key;
+
+#[test]
+fn parse_replay_keys_plain_chars() {
+    assert_eq!(
+        parse_replay_keys("]]q"),
+        vec![Key::Char(']'), Key::Char(']'), Key::Char('q')]
+    );
+}
+
+#[test]
+fn parse_replay_keys_named_keys() {
+    assert_eq!(
+        parse_replay_keys("<Enter><Esc>"),
+        vec![Key::Enter, Key::Escape]
+    );
+}
+
+#[test]
+fn parse_replay_keys_mixed() {
+    assert_eq!(
+        parse_replay_keys("j<Enter>k"),
+        vec![Key::Char('j'), Key::Enter, Key::Char('k')]
+    );
+}
+
+#[test]
+fn parse_replay_keys_backslash_escapes() {
+    assert_eq!(parse_replay_keys("\\n"), vec![Key::Enter]);
+    assert_eq!(parse_replay_keys("\\\\"), vec![Key::Char('\\')]);
+    assert_eq!(parse_replay_keys("\\<"), vec![Key::Char('<')]);
+}
+
+#[test]
+fn parse_replay_keys_ctrl_combos() {
+    assert_eq!(
+        parse_replay_keys("<C-c><C-d><C-u>"),
+        vec![Key::CtrlC, Key::CtrlD, Key::CtrlU]
+    );
+}
+
+#[test]
+fn parse_replay_keys_arrow_and_nav() {
+    assert_eq!(
+        parse_replay_keys("<Up><Down><Home><End><PgUp><PgDn>"),
+        vec![Key::Up, Key::Down, Key::Home, Key::End, Key::PageUp, Key::PageDown]
+    );
+}
+
+#[test]
+fn parse_replay_keys_empty() {
+    assert_eq!(parse_replay_keys(""), Vec::<Key>::new());
+}
+
+#[test]
+fn parse_replay_keys_unknown_name() {
+    assert_eq!(parse_replay_keys("<Foo>"), vec![Key::Unknown]);
 }

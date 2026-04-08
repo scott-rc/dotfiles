@@ -1041,7 +1041,8 @@ fn sequence_resize_rerender_in_search() {
     state.search_input = "first".to_string();
     state.search_cursor = 5;
     state.search_query = "first".to_string();
-    state.search_matches = find_matches(&state.doc.lines, "first");
+    let raw_texts = state.doc.lines.raw_texts();
+    state.search_matches = find_matches(&raw_texts, "first");
     state.current_match = find_nearest_match(&state.search_matches, state.top_line);
     state.mode = Mode::Search;
     assert_state_invariants(&state);

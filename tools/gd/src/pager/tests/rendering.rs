@@ -566,6 +566,69 @@ fn render_content_area_visual_highlight() {
     );
 }
 
+#[test]
+fn render_content_area_lazy_renders_only_visible() {
+    let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,10 +1,11 @@
+ line1
+ line2
+ line3
+ line4
+ line5
+ line6
+ line7
+ line8
++added
+ line9
+ line10
+diff --git a/b.rs b/b.rs
+--- a/b.rs
++++ b/b.rs
+@@ -1,5 +1,6 @@
+ b1
+ b2
+ b3
++b_added
+ b4
+ b5
+";
+    let files = crate::git::diff::parse(raw);
+    let output = crate::render::render(&files, 80, false);
+    let doc = super::super::state::Document::from_render_output(output);
+    let tree_entries = super::super::tree::build_tree_entries(&files);
+    let state = super::super::state::PagerState::from_doc(doc, tree_entries, 120);
+
+    // Verify content lines start unrendered
+    assert!(
+        !state.doc.lines.is_rendered(1),
+        "content line 1 should not be rendered before render_content_area"
+    );
+
+    // Render a small viewport (5 rows)
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 5);
+    assert!(!buf.is_empty(), "should produce output");
+
+    // Lines 0-4 should now be rendered (top_line=0, viewport=5)
+    for i in 0..5 {
+        assert!(
+            state.doc.lines.is_rendered(i),
+            "line {i} should be rendered after render_content_area with 5 rows"
+        );
+    }
+
+    // Lines further away (in file b.rs) should NOT be rendered
+    let total = state.doc.lines.len();
+    let last_content = total - 1;
+    assert!(
+        !state.doc.lines.is_rendered(last_content),
+        "last line should not be rendered after viewing only the first 5 lines"
+    );
+}
+
 // -- render_screen --
 
 #[test]
@@ -590,5 +653,64 @@ fn render_screen_with_tooltip() {
     assert!(
         visible.contains("quit"),
         "tooltip render_screen should include key hints: {visible:?}"
+    );
+}
+
+// -- render_content_area single-file mode --
+
+#[test]
+fn render_content_area_single_file_mode_only_renders_active_file() {
+    use super::super::state::Document;
+    use super::super::tree::build_tree_entries;
+    use super::super::types::{FileIx, ViewScope};
+
+    let raw = "\
+diff --git a/a.rs b/a.rs
+--- a/a.rs
++++ b/a.rs
+@@ -1,2 +1,3 @@
+ ctx_a
++added_a
+ more_a
+diff --git a/b.rs b/b.rs
+--- a/b.rs
++++ b/b.rs
+@@ -1,1 +1,2 @@
+ ctx_b
++added_b
+";
+    let files = crate::git::diff::parse(raw);
+    let output = crate::render::render(&files, 80, false);
+    let file_starts = output.file_starts.clone();
+    let doc = Document::from_render_output(output);
+    let tree_entries = build_tree_entries(&files);
+    let mut state = super::super::state::PagerState::from_doc(doc, tree_entries, 120);
+
+    // Switch to single-file view on file 1 (the second file)
+    state.view_scope = ViewScope::SingleFile(FileIx(1));
+    let file1_start = file_starts[1];
+    state.top_line = file1_start;
+    state.cursor_line = file1_start;
+
+    // Render with a small viewport
+    let mut buf = Vec::new();
+    render_content_area(&mut buf, &state, 80, 5);
+    assert!(!buf.is_empty(), "should produce output");
+
+    // File 1 viewport lines should be rendered
+    let file1_end = state.doc.lines.len();
+    for i in file1_start..file1_end.min(file1_start + 5) {
+        assert!(
+            state.doc.lines.is_rendered(i),
+            "file 1 line {i} should be rendered after render_content_area"
+        );
+    }
+
+    // File 0 content lines should NOT be rendered
+    let file0_content_rendered = (file_starts[0] + 1..file1_start)
+        .any(|i| state.doc.lines.is_rendered(i));
+    assert!(
+        !file0_content_rendered,
+        "file 0 content lines should not be rendered when viewing file 1 in single-file mode"
     );
 }

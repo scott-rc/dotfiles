@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use gd::git::diff::{parse, DiffFile};
-use gd::pager::tree::build_tree_entries;
+use gd::pager::{bench_render_frame, tree::build_tree_entries};
 use gd::render::{apply_diff_colors, find_change_blocks, render, word_highlights};
 use gd::style::{BG_ADDED, BG_ADDED_WORD};
 
@@ -81,10 +81,11 @@ fn bench_apply_diff_colors(c: &mut Criterion) {
     let raw = hunk.lines[first_added_idx].content.as_str();
 
     // Pick a syntax-colored line from the rendered output (an added line with BG_ADDED)
-    let syntax_colored = rendered.lines
+    let all_lines = rendered.lines();
+    let syntax_colored = all_lines
         .iter()
-        .find(|l| l.contains(BG_ADDED))
-        .or_else(|| rendered.lines.iter().find(|l| !l.is_empty()))
+        .find(|l: &&String| l.contains(BG_ADDED))
+        .or_else(|| all_lines.iter().find(|l| !l.is_empty()))
         .map_or("", String::as_str);
 
     let mut group = c.benchmark_group("apply_diff_colors");
@@ -150,12 +151,87 @@ fn bench_tree_build(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_lazy_get(c: &mut Criterion) {
+    let files = parse(WORD_HEAVY_DIFF);
+    let output = render(&files, 120, true);
+    // Pick a line deep in the output (75% through)
+    let deep_idx = output.len() * 3 / 4;
+
+    let mut group = c.benchmark_group("lazy_get");
+
+    // Cold: evict cache so get() must replay render_file_up_to from file start
+    group.bench_function("cold", |b| {
+        b.iter_batched(
+            || render(&files, 120, true),
+            |out| {
+                let _ = black_box(out.get(deep_idx));
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // Warm: line already cached, measures clone-from-cache path
+    group.bench_function("warm", |b| {
+        // Pre-warm
+        let _ = output.get(deep_idx);
+        b.iter(|| {
+            let _ = black_box(output.get(deep_idx));
+        });
+    });
+    group.finish();
+}
+
+fn bench_render_content_area(c: &mut Criterion) {
+    let files = parse(WORD_HEAVY_DIFF);
+    let cols: u16 = 120;
+    let rows: u16 = 50;
+
+    let mut group = c.benchmark_group("render_content_area");
+
+    // Cold: fresh RenderOutput each iteration — first frame forces lazy rendering
+    group.bench_function("cold", |b| {
+        b.iter_batched(
+            || render(&files, cols as usize, true),
+            |output| {
+                let mut sink = Vec::with_capacity(16 * 1024);
+                bench_render_frame(output, black_box(&files), &mut sink, cols, rows);
+                black_box(sink);
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // Warm: pre-populate the cache for the first viewport, then bench rendering
+    group.bench_function("warm", |b| {
+        b.iter_batched(
+            || {
+                let output = render(&files, cols as usize, true);
+                // Pre-warm: render all lines in the first viewport
+                let end = (rows as usize).min(output.len());
+                for i in 0..end {
+                    let _ = output.get(i);
+                }
+                output
+            },
+            |output| {
+                let mut sink = Vec::with_capacity(16 * 1024);
+                bench_render_frame(output, black_box(&files), &mut sink, cols, rows);
+                black_box(sink);
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_diff_parse,
     bench_render,
     bench_word_highlights,
     bench_apply_diff_colors,
-    bench_tree_build
+    bench_tree_build,
+    bench_lazy_get,
+    bench_render_content_area
 );
 criterion_main!(benches);

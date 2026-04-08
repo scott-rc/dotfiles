@@ -57,7 +57,7 @@ fn test_format_status_bar_emoji() {
 #[test]
 fn test_format_status_bar_mid_char_no_panic() {
     let state = make_search_state("a\u{1f50d}", 2);
-    let result = std::panic::catch_unwind(|| format_status_bar(&state, 10, 40));
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| format_status_bar(&state, 10, 40)));
     assert!(result.is_ok());
 }
 
@@ -297,6 +297,34 @@ fn test_search_alt_right_word_boundary() {
     let mut state = make_search_state("foo bar", 0);
     handle_search_key(&mut state, Key::AltRight);
     assert_eq!(state.search_cursor, 4);
+}
+
+#[test]
+fn test_search_uses_raw_text_not_ansi() {
+    // Search should find matches using raw diff content, not rendered ANSI strings.
+    // The raw content of the lines in make_keybinding_state is "line" (via PagerState::new
+    // which populates render_data.content from the passed-in lines).
+    let mut state = make_search_state("line", 4);
+    submit_search(&mut state);
+    // "line" appears in every non-header line's raw content
+    assert!(
+        !state.search_matches.is_empty(),
+        "expected matches for 'line' in raw content"
+    );
+    assert!(state.current_match >= 0);
+}
+
+#[test]
+fn test_search_ansi_escape_no_match() {
+    // Searching for an ANSI escape character should return no matches
+    // because search operates on raw text which contains no escapes.
+    let mut state = make_search_state("\x1b", 1);
+    submit_search(&mut state);
+    assert!(
+        state.search_matches.is_empty(),
+        "ANSI escape should not match in raw text"
+    );
+    assert_eq!(state.current_match, -1);
 }
 
 #[test]

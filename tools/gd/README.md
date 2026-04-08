@@ -16,6 +16,8 @@ gd --no-untracked   # hide untracked files
 gd --show-whitespace / -w  # include whitespace-only changes (hidden by default)
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
+gd --replay ']]]]q' # replay keystrokes without a TTY (for benchmarking)
+gd --replay ']]q' --cols 80 --rows 24  # replay with custom terminal size
 ```
 
 The pager auto-reloads after returning from `$EDITOR` and when `.git/index` changes externally (e.g. staging in another terminal). Press `R` to manually reload. No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. Whitespace-only changes are hidden by default (`-w` passed to `git diff`); use `--show-whitespace` to include them. `--base`/`-b` works even if the base branch only exists as a remote tracking ref (falls back to `origin/<branch>`). In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
@@ -95,7 +97,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 ## Architecture
 
-**Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then renders all files as a single ANSI-colored document with dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
+**Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then produces per-line metadata (`LineRenderData`) and structural lines (file headers, hunk separators). ANSI string rendering is lazy -- lines are only rendered when the pager's viewport accesses them via `LazyLines::get()`. The first access to any line in a file renders all preceding lines in that file to maintain correct syntax highlighter state. Word-level highlights are also lazy: computed per-hunk on first access and cached in a `HunkWordCache` keyed by `(file_idx, hunk_idx)`. This means files never scrolled to are never rendered, and hunks never viewed never run the word-diff algorithm, providing significant speedup for large diffs. After each frame, the runtime prefetches the next and previous page of lines for smooth scrolling, then evicts cached ANSI strings and hunk word highlights outside a sliding window of `[top - 2*content_height, top + 3*content_height)`, bounding memory usage proportional to viewport size rather than total diff size. Rendering uses dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, file header separators, and dim dashed-line hunk separators between hunks within a file.
 
@@ -107,7 +109,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `git/mod.rs` -- Synchronous git command runner (`std::process::Command`)
 - `git/diff.rs` -- Unified diff parser with multi-hunk support
 - `git/patch.rs` -- Patch generation for line-level staging (selected lines to unified diff format)
-- `render.rs` -- `DiffFile[]` -> ANSI text with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
+- `render.rs` -- `DiffFile[]` -> `LazyLines` (metadata + lazy ANSI rendering with sliding-window cache eviction) with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
 - `style.rs` -- Diff color palette (GitHub Dark-inspired) and ANSI helpers
 - `pager/mod.rs` -- Pager entrypoint and shared wiring
 - `pager/content.rs` -- Pure line-map helpers (next_content_line, snap_to_content, etc.)
@@ -120,7 +122,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `pager/tree.rs` -- File tree (build_tree_entries, build_tree_lines, TreeEntry)
 - `pager/rendering.rs` -- Rendering (render_screen, tooltip bar, format_status_bar, scrollbar)
 - `pager/reducer.rs` -- Flat reducer (handle_key, dispatch_normal_action)
-- `pager/runtime.rs` -- Run loop (run_pager, re_render, regenerate_files)
+- `pager/runtime.rs` -- Run loop (run_pager, re_render, regenerate_files, prefetch_and_evict)
 - `ansi.rs` -- Re-exports from `tui::ansi`: `visible_width`, `split_ansi`, `wrap_line_for_display` (plus `strip_ansi` for tests)
 
 ## Build
@@ -180,6 +182,16 @@ samply record ./target/release/gd --no-pager HEAD~1
 
 This opens the Firefox Profiler with a call tree and flame chart. Look for hot functions in `render.rs` (`render_diff_files`, `word_highlights`, `tokenize`) and `pager/tree.rs` (`build_tree_entries`).
 
+## Replay mode
+
+`--replay <KEYS>` drives the full pager pipeline (handle_key, render_screen, prefetch) without a TTY. Renders to an in-memory buffer; no terminal setup required. Combined with `GD_DEBUG=1`, emits per-keystroke timing to stderr. Defaults to 120x50; override with `--cols` and `--rows`.
+
+```bash
+GD_DEBUG=1 gd --replay ']]]]q' HEAD~1 2>timing.jsonl
+```
+
+Key format: plain chars map to keys (`]`, `q`, `j`). Special keys use angle brackets: `<Enter>`, `<Esc>`, `<Up>`, `<Down>`, `<C-c>`, `<Home>`, `<End>`, `<PgUp>`, `<PgDn>`, `<Tab>`, `<BS>`. Backslash escapes: `\n` (Enter), `\\` (literal backslash), `\<` (literal `<`).
+
 ## Debug tracing
 
-Set `GD_DEBUG=1` to emit structured debug output to stderr for rerender and regenerate paths (e.g. `GD_DEBUG=1 gd`). Default: no debug I/O. Useful for diagnosing view state after document swaps.
+Set `GD_DEBUG=1` to emit structured debug output to stderr for rerender, regenerate, and per-keystroke timing paths (e.g. `GD_DEBUG=1 gd`). Default: no debug I/O. Useful for diagnosing view state after document swaps and measuring performance with `--replay`.

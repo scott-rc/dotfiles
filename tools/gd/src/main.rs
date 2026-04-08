@@ -46,6 +46,19 @@ struct Cli {
     /// Show whitespace-only changes (hidden by default)
     #[arg(long, short = 'w')]
     show_whitespace: bool,
+
+    /// Replay keystrokes through the pager pipeline without a TTY (for benchmarking).
+    /// Plain chars map to keys; use <Enter>, <Esc>, <C-c>, etc. for special keys.
+    #[arg(long, value_name = "KEYS")]
+    replay: Option<String>,
+
+    /// Terminal columns for --replay mode
+    #[arg(long, default_value = "120", requires = "replay")]
+    cols: u16,
+
+    /// Terminal rows for --replay mode
+    #[arg(long, default_value = "50", requires = "replay")]
+    rows: u16,
 }
 
 fn main() {
@@ -120,6 +133,21 @@ fn main() {
 
     syntax_init.join().unwrap();
 
+    // Replay mode: drive the pager without a TTY
+    if let Some(ref keys) = cli.replay {
+        let color = true; // force color for realistic benchmarking
+        let (cols, rows) = (cli.cols, cli.rows);
+        let output = render::render(&files, cols as usize, color);
+        let diff_ctx = pager::DiffContext {
+            repo: repo.clone(),
+            source: source.clone(),
+            no_untracked: cli.no_untracked,
+            ignore_whitespace: !cli.show_whitespace,
+        };
+        pager::run_pager_replay(output, files, color, &diff_ctx, keys, cols, rows);
+        return;
+    }
+
     let is_tty = io::stdout().is_terminal();
     let color = !cli.no_color && is_tty;
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
@@ -127,7 +155,7 @@ fn main() {
     let output = render::render(&files, cols as usize, color);
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
-    if is_tty && !cli.no_pager && output.lines.len() > rows as usize {
+    if is_tty && !cli.no_pager && output.lazy_lines.len() > rows as usize {
         let diff_ctx = pager::DiffContext {
             repo: repo.clone(),
             source: source.clone(),
@@ -136,8 +164,9 @@ fn main() {
         };
         pager::run_pager(output, files, color, &diff_ctx);
     } else {
+        // No-pager path: render all lines eagerly and print
         let mut stdout = io::BufWriter::new(io::stdout().lock());
-        for line in &output.lines {
+        for line in &output.lines() {
             let _ = writeln!(stdout, "{line}");
         }
     }

@@ -1,6 +1,6 @@
 ---
 source: gd/src/render.rs
-expression: strip(&output.lines)
+expression: strip(&output.lines())
 ---
 ── foo.rs (Modified) ───────────────────────────────────────────────────────────
    1 |   1 | line1

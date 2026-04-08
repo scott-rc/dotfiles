@@ -288,7 +288,7 @@ pub(crate) fn render_content_area(
         move_to(out, row as u16, 0);
         let idx = top + row;
         if idx >= vis_start && idx < vis_end {
-            let mut line = state.doc.lines[idx].clone();
+            let mut line = state.doc.lines.get(idx);
             if !state.search_query.is_empty() {
                 line = highlight_search(&line, &state.search_query);
             }

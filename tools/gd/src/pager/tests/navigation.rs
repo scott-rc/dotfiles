@@ -10,13 +10,14 @@ use super::super::navigation::{
     sync_tree_cursor, viewport_bounds,
 };
 use super::super::state::{
-    Document, PagerState, ReducerCtx, capture_view_anchor, remap_after_document_swap, visible_range,
+    PagerState, ReducerCtx, capture_view_anchor, remap_after_document_swap, visible_range,
 };
 use super::super::tree::TreeEntry;
 use super::super::types::{FileIx, LineIx, TreeEntryIx};
 use super::common::{
     make_keybinding_state, make_line_map, make_line_map_with_headers, make_pager_state_for_range,
-    make_pager_state_from_files, make_two_file_diff, scrollbar_thumb_range, test_ctx,
+    make_pager_state_from_files, make_test_document, make_two_file_diff, scrollbar_thumb_range,
+    test_ctx,
 };
 use crate::git::diff::{FileStatus, LineKind};
 
@@ -166,9 +167,9 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
     let mut state = make_pager_state_for_range(vec![0, 10, 20], 30, Some(2));
     assert_eq!(state.active_file(), Some(2));
     let anchor = capture_view_anchor(&state);
-    let new_doc = Document {
-        lines: vec![String::new(); 20],
-        line_map: vec![
+    let new_doc = make_test_document(
+        vec![String::new(); 20],
+        vec![
             LineInfo {
                 file_idx: 0,
                 path: Arc::from(""),
@@ -179,9 +180,9 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
             };
             20
         ],
-        file_starts: vec![0, 10],
-        hunk_starts: vec![],
-    };
+        vec![0, 10],
+        vec![],
+    );
     remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
     assert_eq!(
         state.active_file(),

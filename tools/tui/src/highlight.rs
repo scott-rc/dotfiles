@@ -6,8 +6,8 @@ use syntect::parsing::SyntaxSet;
 
 // Re-export syntect types so consumers don't need a direct syntect dependency.
 pub use syntect::easy::HighlightLines;
-pub use syntect::highlighting::Theme as SyntectTheme;
-pub use syntect::parsing::{SyntaxReference, SyntaxSet as SyntectSyntaxSet};
+pub use syntect::highlighting::{HighlightState, Theme as SyntectTheme};
+pub use syntect::parsing::{ParseState, SyntaxReference, SyntaxSet as SyntectSyntaxSet};
 
 pub static SYNTAX_SET: LazyLock<SyntaxSet> = LazyLock::new(two_face::syntax::extra_newlines);
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| {
