@@ -45,6 +45,28 @@ vim.o.mouse = "n"
 vim.o.updatetime = 250
 vim.opt.whichwrap:append("<,>,h,l")
 
+-- Statusline
+vim.o.statusline = table.concat({
+	"%{%v:lua.require'config.statusline'.mode()%}",
+	" %<%f %m%r",
+	"%=",
+	"%{v:lua.vim.diagnostic.status()} ",
+	"%{v:lua.vim.lsp.status()} ",
+	"%l:%c ",
+})
+
+-- Native completion (alternative to blink.cmp — uncomment to try)
+-- Disable blink.cmp first, then enable these:
+-- vim.o.autocomplete = true
+-- vim.o.pumborder = "rounded"
+-- vim.o.pummaxwidth = 40
+-- vim.o.completeopt = "menuone,popup,fuzzy,noselect,nearest"
+-- Also flip copilot.lua: suggestion = { enabled = true, auto_trigger = true }
+-- Also change lsp.lua: capabilities = vim.lsp.protocol.make_client_capabilities()
+
+-- Undotree
+vim.cmd.packadd("nvim.undotree")
+
 -- Persistence
 vim.o.undofile = true
 vim.o.writebackup = false

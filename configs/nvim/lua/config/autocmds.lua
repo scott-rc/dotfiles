@@ -57,17 +57,17 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				end)
 			end)
 		end, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Go to definition / references",
 		})
 		vim.keymap.set("n", "gd", function() Snacks.picker.lsp_definitions() end, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Go to definition",
 		})
 		vim.keymap.set("n", "grr", function()
 			Snacks.picker.lsp_references()
 		end, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Find references",
 		})
 		vim.keymap.set("n", "<C-Space>", function()
@@ -77,19 +77,19 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			end
 			vim.lsp.buf.hover()
 		end, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Hover documentation + diagnostics",
 		})
 		vim.keymap.set({ "n", "v", "i" }, "<D-.>", vim.lsp.buf.code_action, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Code actions",
 		})
 		vim.keymap.set({ "n", "v", "i" }, "<M-CR>", vim.lsp.buf.code_action, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Code actions",
 		})
 		vim.keymap.set("n", "<M-r>", vim.lsp.buf.rename, {
-			buffer = args.buf,
+			buf = args.buf,
 			desc = "Rename symbol",
 		})
 	end,
