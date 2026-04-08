@@ -1,4 +1,5 @@
 mod ansi;
+mod debug;
 mod git;
 mod pager;
 mod render;
@@ -62,6 +63,7 @@ struct Cli {
 }
 
 fn main() {
+    let t0 = std::time::Instant::now();
     let cli = Cli::parse();
     let staged = cli.staged || cli.cached;
 
@@ -113,11 +115,14 @@ fn main() {
         diff_args.push("-w".into());
     }
     let str_args: Vec<&str> = diff_args.iter().map(String::as_str).collect();
+    debug::trace("main", "pre-diff", t0);
     let raw = git::run_diff(&repo, &str_args);
+    debug::trace("main", "post-diff", t0);
 
     let mut files = git::diff::parse(&raw);
     git::append_untracked(&repo, &source, cli.no_untracked, &mut files);
     git::sort_files_for_display(&mut files);
+    debug::trace("main", &format!("post-parse ({} files)", files.len()), t0);
 
     if files.is_empty() {
         if !cli.show_whitespace {
@@ -132,18 +137,27 @@ fn main() {
     }
 
     syntax_init.join().unwrap();
+    debug::trace("main", "post-syntax-join", t0);
+
+    let diff_ctx = pager::DiffContext {
+        repo: repo.clone(),
+        source: source.clone(),
+        no_untracked: cli.no_untracked,
+        ignore_whitespace: !cli.show_whitespace,
+    };
+
+    // Decide full-context upfront so pager paths don't re-run git diff.
+    let total_hunks: usize = files.iter().map(|f| f.hunks.len()).sum();
+    let use_full_context = pager::default_full_context(files.len(), total_hunks);
 
     // Replay mode: drive the pager without a TTY
     if let Some(ref keys) = cli.replay {
         let color = true; // force color for realistic benchmarking
         let (cols, rows) = (cli.cols, cli.rows);
-        let diff_ctx = pager::DiffContext {
-            repo: repo.clone(),
-            source: source.clone(),
-            no_untracked: cli.no_untracked,
-            ignore_whitespace: !cli.show_whitespace,
-        };
-        pager::run_pager_replay(files, color, &diff_ctx, keys, cols, rows);
+        let use_pager = true;
+        let files = maybe_regenerate(files, use_pager, use_full_context, &diff_ctx);
+        debug::trace("main", "post-full-context", t0);
+        pager::run_pager_replay(files, color, use_full_context, &diff_ctx, keys, cols, rows);
         return;
     }
 
@@ -160,19 +174,38 @@ fn main() {
     let use_pager = is_tty && !cli.no_pager && estimated_lines > rows as usize;
 
     if use_pager {
-        let diff_ctx = pager::DiffContext {
-            repo: repo.clone(),
-            source: source.clone(),
-            no_untracked: cli.no_untracked,
-            ignore_whitespace: !cli.show_whitespace,
-        };
-        pager::run_pager(files, color, &diff_ctx);
+        let files = maybe_regenerate(files, true, use_full_context, &diff_ctx);
+        debug::trace("main", "post-full-context", t0);
+        pager::run_pager(files, color, use_full_context, &diff_ctx);
     } else {
         // No-pager path: render and print
         let output = render::render(&files, cols as usize, color);
-        let mut stdout = io::BufWriter::new(io::stdout().lock());
+        let mut stdout = io::BufWriter::with_capacity(256 * 1024, io::stdout().lock());
         for line in output.lines() {
             let _ = writeln!(stdout, "{line}");
         }
     }
+}
+
+/// Re-run git diff with full context (`-U999999`) when the pager will use it.
+/// Returns files unchanged if full context isn't needed.
+fn maybe_regenerate(
+    files: Vec<git::diff::DiffFile>,
+    use_pager: bool,
+    use_full_context: bool,
+    diff_ctx: &pager::DiffContext,
+) -> Vec<git::diff::DiffFile> {
+    if !use_pager || !use_full_context {
+        return files;
+    }
+    let mut args = diff_ctx.source.diff_args_full_context();
+    if diff_ctx.ignore_whitespace {
+        args.push("-w".into());
+    }
+    let str_args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let raw = git::run_diff(&diff_ctx.repo, &str_args);
+    let mut files = git::diff::parse(&raw);
+    git::append_untracked(&diff_ctx.repo, &diff_ctx.source, diff_ctx.no_untracked, &mut files);
+    git::sort_files_for_display(&mut files);
+    files
 }

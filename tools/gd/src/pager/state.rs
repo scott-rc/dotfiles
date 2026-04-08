@@ -306,7 +306,7 @@ impl PagerState {
 /// Full context when viewing a single file with few hunks (the entire file
 /// fits comfortably), or when there are enough files to trigger single-file
 /// view (>5) -- viewing one file at a time benefits from full context.
-pub(crate) fn default_full_context(file_count: usize, total_hunks: usize) -> bool {
+pub fn default_full_context(file_count: usize, total_hunks: usize) -> bool {
     (file_count == 1 && total_hunks <= 3) || file_count > 5
 }
 

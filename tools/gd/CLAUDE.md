@@ -17,3 +17,5 @@ Fix clippy lints idiomatically -- narrow `pub` to `pub(crate)` for crate-interna
 ---
 
 When optimizing performance, MUST run `cargo bench` before and after changes. Use `cargo bench --bench bench -- --save-baseline before` to save a baseline, then `cargo bench --bench bench -- --baseline before` to compare. Use `samply record` on the release binary for flamegraph profiling.
+
+For end-to-end startup benchmarking, use `--replay q` (NOT `--no-pager` -- it disables color when piped, hiding the real bottleneck). Use `GD_DEBUG=1` to get phase-level timing: `GD_DEBUG=1 gd --replay q 2>timing.txt`.

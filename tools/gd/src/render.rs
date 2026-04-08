@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use similar::TextDiff;
 use tui::highlight::{HighlightLines, SYNTAX_SET, THEME, highlight_line};
@@ -203,6 +205,11 @@ fn style_file(file_idx: usize, file: &DiffFile, color: bool) -> StyledFile {
 }
 
 /// Phase 1: style all files in parallel.
+///
+/// Uses an atomic work queue so each thread grabs the next unprocessed file,
+/// avoiding load imbalance when file sizes vary widely (e.g. a lock file with
+/// 10k lines next to small config files). Files are processed largest-first
+/// so the biggest job starts immediately while smaller files fill remaining cores.
 pub(crate) fn style_files(files: &[DiffFile], color: bool) -> Vec<StyledFile> {
     let thread_count = std::thread::available_parallelism()
         .map_or(1, std::num::NonZero::get)
@@ -219,29 +226,38 @@ pub(crate) fn style_files(files: &[DiffFile], color: bool) -> Vec<StyledFile> {
             .collect();
     }
 
-    std::thread::scope(|s| {
-        let chunk_size = files.len().div_ceil(thread_count);
-        let handles: Vec<_> = files
-            .chunks(chunk_size)
-            .enumerate()
-            .map(|(chunk_idx, chunk)| {
-                let base = chunk_idx * chunk_size;
-                s.spawn(move || {
-                    chunk
-                        .iter()
-                        .enumerate()
-                        .map(|(i, f)| style_file(base + i, f, color))
-                        .collect::<Vec<_>>()
-                })
-            })
-            .collect();
+    // Sort file indices by line count descending so the largest file starts first.
+    let mut order: Vec<usize> = (0..files.len()).collect();
+    order.sort_unstable_by(|&a, &b| {
+        let lines_a: usize = files[a].hunks.iter().map(|h| h.lines.len()).sum();
+        let lines_b: usize = files[b].hunks.iter().map(|h| h.lines.len()).sum();
+        lines_b.cmp(&lines_a)
+    });
 
-        let mut all = Vec::with_capacity(files.len());
-        for handle in handles {
-            all.extend(handle.join().unwrap());
+    let next = AtomicUsize::new(0);
+    let slots: Vec<Mutex<Option<StyledFile>>> =
+        (0..files.len()).map(|_| Mutex::new(None)).collect();
+
+    std::thread::scope(|s| {
+        for _ in 0..thread_count {
+            s.spawn(|| {
+                loop {
+                    let idx = next.fetch_add(1, Ordering::Relaxed);
+                    if idx >= files.len() {
+                        break;
+                    }
+                    let file_idx = order[idx];
+                    let styled = style_file(file_idx, &files[file_idx], color);
+                    *slots[file_idx].lock().unwrap() = Some(styled);
+                }
+            });
         }
-        all
-    })
+    });
+
+    slots
+        .into_iter()
+        .map(|slot| slot.into_inner().unwrap().unwrap())
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -431,8 +447,11 @@ pub(crate) fn layout(styled_files: &[StyledFile], width: usize, color: bool) -> 
 // ---------------------------------------------------------------------------
 
 pub fn render(files: &[DiffFile], width: usize, color: bool) -> RenderOutput {
+    let t0 = std::time::Instant::now();
     let styled_files = style_files(files, color);
+    crate::debug::trace("render", "style_files done", t0);
     let lo = layout(&styled_files, width, color);
+    crate::debug::trace("render", "layout done", t0);
     RenderOutput {
         styled_files,
         display_lines: lo.display_lines,

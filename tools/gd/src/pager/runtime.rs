@@ -45,6 +45,24 @@ fn debug_trace(location: &str, message: &str, data: &str) {
     let _ = std::io::stderr().write_all(line.as_bytes());
 }
 
+/// Terminal columns adjusted for scrollbar (full_context reserves 1 column).
+fn effective_terminal_cols(cols: usize, full_context: bool) -> usize {
+    if full_context { cols.saturating_sub(1) } else { cols }
+}
+
+/// Compute the diff area width for the initial render, accounting for tree
+/// panel and scrollbar. Avoids a redundant Phase 2 relayout after startup.
+fn initial_render_width(cols: u16, tree_entries: &[super::tree::TreeEntry], file_count: usize, full_context: bool) -> usize {
+    use super::tree::{compute_tree_width, resolve_tree_layout};
+    let effective = effective_terminal_cols(cols as usize, full_context);
+    let content_width = compute_tree_width(tree_entries);
+    let has_dirs = tree_entries.iter().any(|e| e.file_idx.is_none());
+    let tree_layout = resolve_tree_layout(content_width, effective, has_dirs, file_count);
+    let tree_visible = tree_layout.is_some();
+    let tree_width = tree_layout.unwrap_or(0);
+    super::rendering::diff_area_width(cols, tree_width, tree_visible, full_context)
+}
+
 /// Emit a per-keystroke timing trace (only when `GD_DEBUG=1`).
 fn trace_keystroke(
     key: Key,
@@ -299,7 +317,8 @@ pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     keys
 }
 
-pub fn run_pager(files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
+pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff_ctx: &DiffContext) {
+    let t0 = std::time::Instant::now();
     let mut files = files;
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -323,26 +342,17 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
 
     let mut last_size = get_term_size();
 
-    // Startup heuristic: decide full_context from initial diff characteristics
-    let total_hunks: usize = files.iter().map(|f| f.hunks.len()).sum();
-    let use_full_context = super::state::default_full_context(files.len(), total_hunks);
-
-    // If full context is warranted, regenerate files with -U999999
-    if use_full_context {
-        files = regenerate_files(diff_ctx, true);
-        if files.is_empty() {
-            let _ = crossterm::terminal::disable_raw_mode();
-            let _ = write!(stdout, "{CURSOR_SHOW}{ALT_SCREEN_OFF}");
-            let _ = stdout.flush();
-            return;
-        }
-    }
-
+    // Pre-compute tree layout so we render at the final width upfront,
+    // avoiding a redundant Phase 2 relayout.
     let tree_entries = build_tree_entries(&files);
-    let output = crate::render::render(&files, last_size.0 as usize, color);
+    let effective_cols = effective_terminal_cols(last_size.0 as usize, use_full_context);
+    let render_width = initial_render_width(last_size.0, &tree_entries, files.len(), use_full_context);
+
+    let output = crate::render::render(&files, render_width, color);
+    crate::debug::trace("pager", "post-render", t0);
 
     let doc = Document::from_render_output(output);
-    let mut state = PagerState::from_doc(doc, tree_entries, last_size.0 as usize);
+    let mut state = PagerState::from_doc(doc, tree_entries, effective_cols);
     state.full_context = use_full_context;
 
     // Startup heuristic: decide view scope from rendered output size
@@ -353,9 +363,6 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
     );
     state.view_scope = view_scope;
 
-    // Relayout at the correct diff_area_width (may differ from the initial
-    // render width due to tree panel). Phase 1 styled content is preserved.
-    re_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
     debug_trace(
@@ -535,30 +542,27 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
 pub fn run_pager_replay(
     files: Vec<DiffFile>,
     color: bool,
+    use_full_context: bool,
     diff_ctx: &DiffContext,
     keys_str: &str,
     cols: u16,
     rows: u16,
 ) {
+    let t0 = std::time::Instant::now();
     let mut files = files;
     let mut sink = Vec::<u8>::with_capacity(64 * 1024);
 
-    // Startup heuristics (same as run_pager)
-    let total_hunks: usize = files.iter().map(|f| f.hunks.len()).sum();
-    let use_full_context = super::state::default_full_context(files.len(), total_hunks);
-
-    if use_full_context {
-        files = regenerate_files(diff_ctx, true);
-        if files.is_empty() {
-            return;
-        }
-    }
-
+    // Pre-compute tree layout so we render at the final width upfront,
+    // avoiding a redundant Phase 2 relayout.
     let tree_entries = build_tree_entries(&files);
-    let output = crate::render::render(&files, cols as usize, color);
+    let effective_cols = effective_terminal_cols(cols as usize, use_full_context);
+    let render_width = initial_render_width(cols, &tree_entries, files.len(), use_full_context);
+
+    let output = crate::render::render(&files, render_width, color);
+    crate::debug::trace("pager", "post-render", t0);
 
     let doc = Document::from_render_output(output);
-    let mut state = PagerState::from_doc(doc, tree_entries, cols as usize);
+    let mut state = PagerState::from_doc(doc, tree_entries, effective_cols);
     state.full_context = use_full_context;
 
     let view_scope = super::state::default_view_scope(
@@ -568,7 +572,6 @@ pub fn run_pager_replay(
     );
     state.view_scope = view_scope;
 
-    re_render(&mut state, &files, color, cols);
     render_screen(&mut sink, &state, cols, rows);
     sink.clear();
 

@@ -17,6 +17,7 @@ mod tests;
 pub use runtime::run_pager;
 pub use runtime::run_pager_replay;
 pub use state::DiffContext;
+pub use state::default_full_context;
 
 /// Render one frame of the content area into a `Write` sink.
 /// Builds a minimal `PagerState` from the given `RenderOutput`. For benchmarks.
