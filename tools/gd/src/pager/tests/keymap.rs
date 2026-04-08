@@ -3,16 +3,16 @@
 use std::collections::HashSet;
 
 use super::super::keymap::{keymap_help_lines, keymap_lookup, keymap_tooltip_lines};
-use super::super::types::{ActionId, KeyContext};
+use super::super::types::{ActionId, Mode};
 
 #[test]
 fn keymap_center_viewport_is_z() {
     assert_eq!(
-        keymap_lookup(tui::pager::Key::Char('z'), KeyContext::Normal),
+        keymap_lookup(tui::pager::Key::Char('z'), Mode::Normal),
         Some(ActionId::CenterViewport)
     );
     assert_eq!(
-        keymap_lookup(tui::pager::Key::Char(' '), KeyContext::Normal),
+        keymap_lookup(tui::pager::Key::Char(' '), Mode::Normal),
         None
     );
 }
@@ -37,7 +37,7 @@ fn keymap_normal_navigation_keys() {
     ];
     for (key, expected) in cases {
         assert_eq!(
-            keymap_lookup(key, KeyContext::Normal),
+            keymap_lookup(key, Mode::Normal),
             Some(expected),
             "Normal context: {key:?} should map to {expected:?}"
         );
@@ -61,7 +61,7 @@ fn keymap_normal_other_keys() {
     ];
     for (key, expected) in cases {
         assert_eq!(
-            keymap_lookup(key, KeyContext::Normal),
+            keymap_lookup(key, Mode::Normal),
             Some(expected),
             "Normal context: {key:?} should map to {expected:?}"
         );
@@ -78,7 +78,7 @@ fn keymap_search_keys() {
     ];
     for (key, expected) in cases {
         assert_eq!(
-            keymap_lookup(key, KeyContext::Search),
+            keymap_lookup(key, Mode::Search),
             Some(expected),
             "Search context: {key:?} should map to {expected:?}"
         );
@@ -89,12 +89,12 @@ fn keymap_search_keys() {
 fn keymap_normal_keys_not_in_search() {
     use tui::pager::Key;
     assert_eq!(
-        keymap_lookup(Key::Char('j'), KeyContext::Search),
+        keymap_lookup(Key::Char('j'), Mode::Search),
         None,
         "j (ScrollDown) should not fire in Search context"
     );
     assert_eq!(
-        keymap_lookup(Key::Char('n'), KeyContext::Search),
+        keymap_lookup(Key::Char('n'), Mode::Search),
         None,
         "n (NextMatch) should not fire in Search context"
     );
@@ -104,27 +104,27 @@ fn keymap_normal_keys_not_in_search() {
 fn keymap_alternate_keys() {
     use tui::pager::Key;
     assert_eq!(
-        keymap_lookup(Key::Down, KeyContext::Normal),
+        keymap_lookup(Key::Down, Mode::Normal),
         Some(ActionId::ScrollDown)
     );
     assert_eq!(
-        keymap_lookup(Key::Up, KeyContext::Normal),
+        keymap_lookup(Key::Up, Mode::Normal),
         Some(ActionId::ScrollUp)
     );
     assert_eq!(
-        keymap_lookup(Key::Home, KeyContext::Normal),
+        keymap_lookup(Key::Home, Mode::Normal),
         Some(ActionId::Top)
     );
     assert_eq!(
-        keymap_lookup(Key::End, KeyContext::Normal),
+        keymap_lookup(Key::End, Mode::Normal),
         Some(ActionId::Bottom)
     );
     assert_eq!(
-        keymap_lookup(Key::Enter, KeyContext::Normal),
+        keymap_lookup(Key::Enter, Mode::Normal),
         Some(ActionId::ScrollDown)
     );
     assert_eq!(
-        keymap_lookup(Key::CtrlC, KeyContext::Normal),
+        keymap_lookup(Key::CtrlC, Mode::Normal),
         Some(ActionId::Quit)
     );
 }

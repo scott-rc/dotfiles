@@ -13,7 +13,7 @@ use super::super::state::{
     PagerState, ReducerCtx, capture_view_anchor, remap_after_document_swap, visible_range,
 };
 use super::super::tree::TreeEntry;
-use super::super::types::{FileIx, LineIx, TreeEntryIx};
+use super::super::types::{FileIx, TreeEntryIx};
 use super::common::{
     make_keybinding_state, make_line_map, make_line_map_with_headers, make_pager_state_for_range,
     make_pager_state_from_files, make_test_document, make_two_file_diff, scrollbar_thumb_range,
@@ -144,14 +144,6 @@ fn test_file_ix_constructor_boundaries() {
     assert_eq!(FileIx::new(2, 3), Some(FileIx(2)));
     assert_eq!(FileIx::new(3, 3), None);
     assert_eq!(FileIx::new(0, 0), None);
-}
-
-#[test]
-fn test_line_ix_constructor_boundaries() {
-    assert_eq!(LineIx::new(0, 10), Some(LineIx(0)));
-    assert_eq!(LineIx::new(9, 10), Some(LineIx(9)));
-    assert_eq!(LineIx::new(10, 10), None);
-    assert_eq!(LineIx::new(0, 0), None);
 }
 
 #[test]

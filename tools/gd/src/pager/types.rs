@@ -16,26 +16,6 @@ impl FileIx {
     }
 }
 
-/// Valid line index into `lines` / `line_map`. Construct via `LineIx::new(idx, line_count)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
-pub(crate) struct LineIx(pub(crate) usize);
-
-#[allow(dead_code)]
-impl LineIx {
-    /// Returns `Some(LineIx)` if `idx < line_count`, else `None`.
-    pub fn new(idx: usize, line_count: usize) -> Option<Self> {
-        if idx < line_count {
-            Some(LineIx(idx))
-        } else {
-            None
-        }
-    }
-    pub fn get(self) -> usize {
-        self.0
-    }
-}
-
 /// Valid tree entry index into `tree_entries`. Construct via `TreeEntryIx::new(idx, entry_count)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct TreeEntryIx(pub(crate) usize);
@@ -69,7 +49,7 @@ pub(crate) enum ViewScope {
     SingleFile(FileIx),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
     Normal,
     Search,
@@ -83,13 +63,6 @@ pub(crate) enum KeyResult {
     Quit,
     OpenEditor { path: String, lineno: Option<u32> },
     ApplyPatch { patch: String, cached: bool, reverse: bool },
-}
-
-/// Context in which a keybinding applies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum KeyContext {
-    Normal,
-    Search,
 }
 
 /// Action identifiers. Single source of truth for key->action mapping.

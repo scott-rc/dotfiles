@@ -19,11 +19,21 @@ use super::search::{
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
 use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
 use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx, resolve_tree_layout, tree_entry_path, MIN_DIFF_WIDTH};
-use super::types::{ActionId, FocusPane, KeyContext, KeyResult, Mode};
+use super::types::{ActionId, FocusPane, KeyResult, Mode};
 
 #[derive(Debug, Clone)]
 pub(crate) enum ReducerEvent {
     Key(Key),
+}
+
+/// Rebuild tree entries from files and resolve tree width for the given terminal columns.
+fn refresh_tree(state: &mut PagerState, files: &[crate::git::diff::DiffFile], cols: u16) {
+    state.tree_entries = build_tree_entries(files);
+    let content_width = compute_tree_width(&state.tree_entries);
+    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
+    let file_count = state.doc.file_count();
+    state.tree_width = resolve_tree_layout(content_width, cols as usize, has_directories, file_count)
+        .unwrap_or_else(|| (cols as usize).saturating_sub(MIN_DIFF_WIDTH + 1));
 }
 
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
@@ -206,13 +216,7 @@ fn dispatch_normal_action(
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 if state.tree_entries.is_empty() {
-                    state.tree_entries = build_tree_entries(files);
-                    let content_width = compute_tree_width(&state.tree_entries);
-                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
-                    let fc = state.doc.file_count();
-                    let terminal_cols = ctx.cols as usize;
-                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, fc)
-                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                    refresh_tree(state, files, ctx.cols);
                 }
                 set_view_to_file(state, file_idx, ch);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
@@ -285,13 +289,7 @@ fn dispatch_normal_action(
             if state.tree_visible {
                 let anchor = state.cursor_line;
                 let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
-                state.tree_entries = build_tree_entries(files);
-                let content_width = compute_tree_width(&state.tree_entries);
-                let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
-                let file_count = state.doc.file_count();
-                let terminal_cols = ctx.cols as usize;
-                state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
-                    .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                refresh_tree(state, files, ctx.cols);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
@@ -390,13 +388,7 @@ fn dispatch_normal_action(
                 state.tree_visible = true;
                 state.focus = FocusPane::Tree;
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
-                    state.tree_entries = build_tree_entries(files);
-                    let content_width = compute_tree_width(&state.tree_entries);
-                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
-                    let file_count = state.doc.file_count();
-                    let terminal_cols = ctx.cols as usize;
-                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
-                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                    refresh_tree(state, files, ctx.cols);
                 }
                 let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
@@ -418,13 +410,7 @@ fn dispatch_normal_action(
                 state.tree_visible = true;
                 state.focus = FocusPane::Tree;
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
-                    state.tree_entries = build_tree_entries(files);
-                    let content_width = compute_tree_width(&state.tree_entries);
-                    let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
-                    let file_count = state.doc.file_count();
-                    let terminal_cols = ctx.cols as usize;
-                    state.tree_width = resolve_tree_layout(content_width, terminal_cols, has_directories, file_count)
-                        .unwrap_or_else(|| terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+                    refresh_tree(state, files, ctx.cols);
                 }
                 let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
@@ -630,7 +616,7 @@ fn reduce_search(
     ctx: &ReducerCtx<'_>,
 ) -> ReducerEffect {
     let ReducerEvent::Key(key) = event;
-    if let Some(action) = keymap_lookup(*key, KeyContext::Search) {
+    if let Some(action) = keymap_lookup(*key, Mode::Search) {
         return dispatch_search_action(state, action);
     }
     handle_search_key(state, *key);
@@ -712,7 +698,7 @@ fn reduce_normal(
         }
     }
 
-    if let Some(action) = keymap_lookup(*key, KeyContext::Normal)
+    if let Some(action) = keymap_lookup(*key, Mode::Normal)
         && let Some(effect) = dispatch_normal_action(state, action, ctx)
     {
         return effect;

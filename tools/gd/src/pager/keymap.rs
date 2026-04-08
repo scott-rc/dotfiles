@@ -2,11 +2,11 @@
 
 use tui::pager::Key;
 
-use crate::pager::types::{ActionId, HelpGroup, KeyContext};
+use crate::pager::types::{ActionId, HelpGroup, Mode};
 
 struct KeymapEntry {
     action: ActionId,
-    context: KeyContext,
+    context: Mode,
     keys: &'static [Key],
     group: HelpGroup,
     key_display: &'static str,
@@ -15,7 +15,7 @@ struct KeymapEntry {
 
 fn keymap_entries() -> &'static [KeymapEntry] {
     use HelpGroup::{DiffNav, Navigation, Other, Selection, Staging};
-    use KeyContext::Normal;
+    use Mode::Normal;
     static ENTRIES: &[KeymapEntry] = &[
         KeymapEntry {
             action: ActionId::ScrollDown,
@@ -131,7 +131,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
         },
         KeymapEntry {
             action: ActionId::SearchSubmit,
-            context: KeyContext::Search,
+            context: Mode::Search,
             keys: &[Key::Enter],
             group: HelpGroup::Search,
             key_display: "Enter",
@@ -139,7 +139,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
         },
         KeymapEntry {
             action: ActionId::SearchCancel,
-            context: KeyContext::Search,
+            context: Mode::Search,
             keys: &[Key::Escape, Key::CtrlC],
             group: HelpGroup::Search,
             key_display: "Esc",
@@ -293,7 +293,7 @@ fn keymap_entries() -> &'static [KeymapEntry] {
     ENTRIES
 }
 
-pub(crate) fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
+pub(crate) fn keymap_lookup(key: Key, context: Mode) -> Option<ActionId> {
     for e in keymap_entries() {
         if e.context == context && e.keys.contains(&key) {
             return Some(e.action);
@@ -302,7 +302,7 @@ pub(crate) fn keymap_lookup(key: Key, context: KeyContext) -> Option<ActionId> {
     None
 }
 
-fn keymap_entry(action: ActionId, context: KeyContext) -> Option<&'static KeymapEntry> {
+fn keymap_entry(action: ActionId, context: Mode) -> Option<&'static KeymapEntry> {
     keymap_entries()
         .iter()
         .find(|e| e.action == action && e.context == context)
@@ -317,7 +317,7 @@ fn tooltip_pair(
     first: ActionId,
     second: ActionId,
     label: &str,
-    context: KeyContext,
+    context: Mode,
 ) -> Option<String> {
     let a = keymap_entry(first, context)?;
     let b = keymap_entry(second, context)?;
@@ -346,7 +346,7 @@ fn compact_label(label: &str) -> String {
     }
 }
 
-fn tooltip_single(action: ActionId, context: KeyContext) -> Option<String> {
+fn tooltip_single(action: ActionId, context: Mode) -> Option<String> {
     let entry = keymap_entry(action, context)?;
     let label = compact_label(entry.label);
     Some(format!(
@@ -356,7 +356,7 @@ fn tooltip_single(action: ActionId, context: KeyContext) -> Option<String> {
 }
 
 pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
-    let context = KeyContext::Normal;
+    let context = Mode::Normal;
 
     let line1 = [
         tooltip_pair(ActionId::ScrollDown, ActionId::ScrollUp, "scroll", context),
