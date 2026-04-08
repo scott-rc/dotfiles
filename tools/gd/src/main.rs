@@ -137,14 +137,13 @@ fn main() {
     if let Some(ref keys) = cli.replay {
         let color = true; // force color for realistic benchmarking
         let (cols, rows) = (cli.cols, cli.rows);
-        let output = render::render(&files, cols as usize, color);
         let diff_ctx = pager::DiffContext {
             repo: repo.clone(),
             source: source.clone(),
             no_untracked: cli.no_untracked,
             ignore_whitespace: !cli.show_whitespace,
         };
-        pager::run_pager_replay(output, files, color, &diff_ctx, keys, cols, rows);
+        pager::run_pager_replay(files, color, &diff_ctx, keys, cols, rows);
         return;
     }
 
@@ -152,19 +151,25 @@ fn main() {
     let color = !cli.no_color && is_tty;
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
 
-    let output = render::render(&files, cols as usize, color);
+    // Estimate rendered line count cheaply: file headers + hunk separators + diff lines.
+    // Avoids a full render() just to decide whether to use the pager.
+    let estimated_lines: usize = files
+        .iter()
+        .map(|f| 1 + f.hunks.len().saturating_sub(1) + f.hunks.iter().map(|h| h.lines.len()).sum::<usize>())
+        .sum();
+    let use_pager = is_tty && !cli.no_pager && estimated_lines > rows as usize;
 
-    // Use pager if: tty, not --no-pager, content exceeds terminal height
-    if is_tty && !cli.no_pager && output.len() > rows as usize {
+    if use_pager {
         let diff_ctx = pager::DiffContext {
             repo: repo.clone(),
             source: source.clone(),
             no_untracked: cli.no_untracked,
             ignore_whitespace: !cli.show_whitespace,
         };
-        pager::run_pager(output, files, color, &diff_ctx);
+        pager::run_pager(files, color, &diff_ctx);
     } else {
-        // No-pager path: print all lines
+        // No-pager path: render and print
+        let output = render::render(&files, cols as usize, color);
         let mut stdout = io::BufWriter::new(io::stdout().lock());
         for line in output.lines() {
             let _ = writeln!(stdout, "{line}");

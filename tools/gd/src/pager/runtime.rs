@@ -8,7 +8,6 @@ use tui::pager::{
 };
 
 use crate::git::diff::DiffFile;
-use crate::render::RenderOutput;
 
 use super::reducer::handle_key;
 use super::rendering::{content_height, render_screen};
@@ -300,7 +299,7 @@ pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     keys
 }
 
-pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
+pub fn run_pager(files: Vec<DiffFile>, color: bool, diff_ctx: &DiffContext) {
     let mut files = files;
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -340,13 +339,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     }
 
     let tree_entries = build_tree_entries(&files);
-    let output = if use_full_context {
-        // Re-render with full context files
-        let width = last_size.0 as usize;
-        crate::render::render(&files, width, color)
-    } else {
-        output
-    };
+    let output = crate::render::render(&files, last_size.0 as usize, color);
 
     let doc = Document::from_render_output(output);
     let mut state = PagerState::from_doc(doc, tree_entries, last_size.0 as usize);
@@ -360,7 +353,9 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     );
     state.view_scope = view_scope;
 
-    full_render(&mut state, &files, color, last_size.0);
+    // Relayout at the correct diff_area_width (may differ from the initial
+    // render width due to tree panel). Phase 1 styled content is preserved.
+    re_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
 
     debug_trace(
@@ -538,7 +533,6 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
 /// Renders to an in-memory buffer; combined with `GD_DEBUG=1`, emits per-keystroke
 /// timing traces to stderr.
 pub fn run_pager_replay(
-    output: RenderOutput,
     files: Vec<DiffFile>,
     color: bool,
     diff_ctx: &DiffContext,
@@ -561,11 +555,7 @@ pub fn run_pager_replay(
     }
 
     let tree_entries = build_tree_entries(&files);
-    let output = if use_full_context {
-        crate::render::render(&files, cols as usize, color)
-    } else {
-        output
-    };
+    let output = crate::render::render(&files, cols as usize, color);
 
     let doc = Document::from_render_output(output);
     let mut state = PagerState::from_doc(doc, tree_entries, cols as usize);
@@ -578,7 +568,7 @@ pub fn run_pager_replay(
     );
     state.view_scope = view_scope;
 
-    full_render(&mut state, &files, color, cols);
+    re_render(&mut state, &files, color, cols);
     render_screen(&mut sink, &state, cols, rows);
     sink.clear();
 
