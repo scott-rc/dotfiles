@@ -601,32 +601,16 @@ diff --git a/b.rs b/b.rs
     let tree_entries = super::super::tree::build_tree_entries(&files);
     let state = super::super::state::PagerState::from_doc(doc, tree_entries, 120);
 
-    // Verify content lines start unrendered
+    // All lines are pre-rendered eagerly
     assert!(
-        !state.doc.lines.is_rendered(1),
-        "content line 1 should not be rendered before render_content_area"
+        state.doc.line_count() > 5,
+        "should have more than 5 lines across both files"
     );
 
     // Render a small viewport (5 rows)
     let mut buf = Vec::new();
     render_content_area(&mut buf, &state, 80, 5);
     assert!(!buf.is_empty(), "should produce output");
-
-    // Lines 0-4 should now be rendered (top_line=0, viewport=5)
-    for i in 0..5 {
-        assert!(
-            state.doc.lines.is_rendered(i),
-            "line {i} should be rendered after render_content_area with 5 rows"
-        );
-    }
-
-    // Lines further away (in file b.rs) should NOT be rendered
-    let total = state.doc.lines.len();
-    let last_content = total - 1;
-    assert!(
-        !state.doc.lines.is_rendered(last_content),
-        "last line should not be rendered after viewing only the first 5 lines"
-    );
 }
 
 // -- render_screen --
@@ -695,22 +679,5 @@ diff --git a/b.rs b/b.rs
     // Render with a small viewport
     let mut buf = Vec::new();
     render_content_area(&mut buf, &state, 80, 5);
-    assert!(!buf.is_empty(), "should produce output");
-
-    // File 1 viewport lines should be rendered
-    let file1_end = state.doc.lines.len();
-    for i in file1_start..file1_end.min(file1_start + 5) {
-        assert!(
-            state.doc.lines.is_rendered(i),
-            "file 1 line {i} should be rendered after render_content_area"
-        );
-    }
-
-    // File 0 content lines should NOT be rendered
-    let file0_content_rendered = (file_starts[0] + 1..file1_start)
-        .any(|i| state.doc.lines.is_rendered(i));
-    assert!(
-        !file0_content_rendered,
-        "file 0 content lines should not be rendered when viewing file 1 in single-file mode"
-    );
+    assert!(!buf.is_empty(), "should produce output in single-file mode");
 }

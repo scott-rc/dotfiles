@@ -338,14 +338,8 @@ diff --git a/b.txt b/b.txt
 pub fn make_pager_state_from_files(files: &[DiffFile], tree_visible: bool) -> PagerState {
     let output = render::render(files, 80, false);
     let tree_entries = build_tree_entries(files);
-    let mut state = PagerState::new(
-        output.lines(),
-        output.line_map,
-        output.file_starts,
-        output.hunk_starts,
-        tree_entries,
-        120,
-    );
+    let doc = super::super::state::Document::from_render_output(output);
+    let mut state = PagerState::from_doc(doc, tree_entries, 120);
     state.tree_visible = tree_visible;
     state
 }
@@ -457,7 +451,7 @@ pub fn make_staging_state() -> (PagerState, Vec<DiffFile>) {
     let output = render::render(&files, 80, false);
     let tree_entries = build_tree_entries(&files);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -474,22 +468,11 @@ pub fn make_test_document(
     file_starts: Vec<usize>,
     hunk_starts: Vec<usize>,
 ) -> super::super::state::Document {
-    let stub_render_data: Vec<crate::render::LineRenderData> = lines
-        .iter()
-        .map(|line| crate::render::LineRenderData {
-            content: line.clone(),
-            line_kind: LineKind::Context,
-            old_lineno: None,
-            new_lineno: None,
-            is_continuation: false,
-            continuation_index: 0,
-            file_idx: 0,
-            hunk_idx: 0,
-            line_idx_in_hunk: None,
-        })
-        .collect();
+    let raw_texts = lines.clone();
     super::super::state::Document {
-        lines: crate::render::LazyLines::from_rendered(stub_render_data, lines),
+        styled_files: Vec::new(),
+        display_lines: lines,
+        raw_texts,
         line_map,
         file_starts,
         hunk_starts,

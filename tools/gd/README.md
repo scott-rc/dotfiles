@@ -97,7 +97,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 ## Architecture
 
-**Render pipeline**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode, then produces per-line metadata (`LineRenderData`) and structural lines (file headers, hunk separators). ANSI string rendering is lazy -- lines are only rendered when the pager's viewport accesses them via `LazyLines::get()`. The first access to any line in a file renders all preceding lines in that file to maintain correct syntax highlighter state. Word-level highlights are also lazy: computed per-hunk on first access and cached in a `HunkWordCache` keyed by `(file_idx, hunk_idx)`. This means files never scrolled to are never rendered, and hunks never viewed never run the word-diff algorithm, providing significant speedup for large diffs. After each frame, the runtime prefetches the next and previous page of lines for smooth scrolling, then evicts cached ANSI strings and hunk word highlights outside a sliding window of `[top - 2*content_height, top + 3*content_height)`, bounding memory usage proportional to viewport size rather than total diff size. Rendering uses dual line numbers, syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff::from_words()`).
+**Render pipeline**: Two-phase architecture separating expensive styling from cheap layout. **Phase 1 (style)**: Runs `git diff`, parses into typed structs (`DiffFile`/`DiffHunk`/`DiffLine`), appends untracked files as synthetic all-added diffs in working tree mode. Each file is then styled in parallel -- syntax highlighting (syntect, GitHub Dark theme), diff background colors, and word-level highlights (via `similar::TextDiff`) are applied eagerly to produce width-independent `StyledLine` data. **Phase 2 (layout)**: Takes styled content and a target width, then wraps lines, assembles gutters, generates file headers and hunk separators, and builds the display-line array and metadata (`LineInfo`, `file_starts`, `hunk_starts`). On width changes (tree toggle, terminal resize), only Phase 2 re-runs -- Phase 1 output is preserved, making relayout nearly instant. On content changes (staging, reloading), both phases run. Rendering uses dual line numbers, `+`/`-` markers, and word-level highlights within paired add/delete blocks.
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, file header separators, and dim dashed-line hunk separators between hunks within a file.
 
@@ -109,7 +109,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `git/mod.rs` -- Synchronous git command runner (`std::process::Command`)
 - `git/diff.rs` -- Unified diff parser with multi-hunk support
 - `git/patch.rs` -- Patch generation for line-level staging (selected lines to unified diff format)
-- `render.rs` -- `DiffFile[]` -> `LazyLines` (metadata + lazy ANSI rendering with sliding-window cache eviction) with line numbers, syntax highlighting (via `tui::highlight`) + diff colors, word-level highlights
+- `render.rs` -- Two-phase render pipeline: Phase 1 (`style_files`) produces width-independent styled content in parallel; Phase 2 (`layout`) wraps and assembles at target width. Includes word-level diff, syntax highlighting (via `tui::highlight`), diff colors
 - `style.rs` -- Diff color palette (GitHub Dark-inspired) and ANSI helpers
 - `pager/mod.rs` -- Pager entrypoint and shared wiring
 - `pager/content.rs` -- Pure line-map helpers (next_content_line, snap_to_content, etc.)
@@ -122,7 +122,7 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `pager/tree.rs` -- File tree (build_tree_entries, build_tree_lines, TreeEntry)
 - `pager/rendering.rs` -- Rendering (render_screen, tooltip bar, format_status_bar, scrollbar)
 - `pager/reducer.rs` -- Flat reducer (handle_key, dispatch_normal_action)
-- `pager/runtime.rs` -- Run loop (run_pager, re_render, regenerate_files, prefetch_and_evict)
+- `pager/runtime.rs` -- Run loop (run_pager, re_render/full_render, regenerate_files)
 - `ansi.rs` -- Re-exports from `tui::ansi`: `visible_width`, `split_ansi`, `wrap_line_for_display` (plus `strip_ansi` for tests)
 
 ## Build

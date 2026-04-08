@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::git::diff::DiffFile;
-use crate::render::{LazyLines, LineInfo, RenderOutput};
+use crate::render::{LineInfo, RenderOutput, StyledFile};
 
 use super::content::{next_content_line, snap_to_content};
 use super::tree::{
@@ -57,7 +57,12 @@ pub struct DiffContext {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Document {
-    pub(crate) lines: LazyLines,
+    /// Phase 1 output (width-independent, preserved across relayouts).
+    pub(crate) styled_files: Vec<StyledFile>,
+    /// Phase 2: display-ready ANSI strings.
+    pub(crate) display_lines: Vec<String>,
+    /// Phase 2: raw text per display line (for search).
+    pub(crate) raw_texts: Vec<String>,
     pub(crate) line_map: Vec<LineInfo>,
     pub(crate) file_starts: Vec<usize>,
     #[allow(dead_code)]
@@ -67,15 +72,21 @@ pub(crate) struct Document {
 impl Document {
     pub(crate) fn from_render_output(output: RenderOutput) -> Self {
         Document {
-            lines: output.lazy_lines,
+            styled_files: output.styled_files,
+            display_lines: output.display_lines,
+            raw_texts: output.raw_texts,
             line_map: output.line_map,
             file_starts: output.file_starts,
             hunk_starts: output.hunk_starts,
         }
     }
 
+    pub(crate) fn line(&self, idx: usize) -> &str {
+        &self.display_lines[idx]
+    }
+
     pub(crate) fn line_count(&self) -> usize {
-        self.lines.len()
+        self.display_lines.len()
     }
 
     pub(crate) fn file_count(&self) -> usize {
@@ -90,7 +101,7 @@ impl Document {
         self.file_starts
             .get(idx + 1)
             .copied()
-            .unwrap_or(self.lines.len())
+            .unwrap_or(self.display_lines.len())
     }
 
     pub(crate) fn is_empty(&self) -> bool {
@@ -226,26 +237,11 @@ impl PagerState {
         tree_entries: Vec<TreeEntry>,
         terminal_cols: usize,
     ) -> Self {
-        // Build stub LineRenderData for each line (tests and legacy paths
-        // don't carry real render_data, but LazyLines needs a matching Vec).
-        // Populate `content` from the passed-in lines so raw-text search works.
-        let render_data: Vec<crate::render::LineRenderData> = lines
-            .iter()
-            .map(|line| crate::render::LineRenderData {
-                content: line.clone(),
-                line_kind: crate::git::diff::LineKind::Context,
-                old_lineno: None,
-                new_lineno: None,
-                is_continuation: false,
-                continuation_index: 0,
-                file_idx: 0,
-                hunk_idx: 0,
-                line_idx_in_hunk: None,
-            })
-            .collect();
-        let lazy = LazyLines::from_rendered(render_data, lines);
+        let raw_texts = lines.clone();
         let doc = Document {
-            lines: lazy,
+            styled_files: Vec::new(),
+            display_lines: lines,
+            raw_texts,
             line_map,
             file_starts,
             hunk_starts,
@@ -508,8 +504,7 @@ pub(crate) fn remap_after_document_swap(
     }
 
     if !state.search_query.is_empty() {
-        let raw_texts = state.doc.lines.raw_texts();
-        state.search_matches = tui::search::find_matches(&raw_texts, &state.search_query);
+        state.search_matches = tui::search::find_matches(&state.doc.raw_texts, &state.search_query);
         state.current_match =
             tui::search::find_nearest_match(&state.search_matches, state.top_line);
     }

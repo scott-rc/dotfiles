@@ -34,3 +34,22 @@ pub fn bench_render_frame(
     let ch = rendering::content_height(rows, &st);
     rendering::render_content_area(out, &st, cols, ch as u16);
 }
+
+/// Style all files (Phase 1 only). For benchmarks.
+#[allow(dead_code)]
+pub fn bench_style_files(
+    files: &[crate::git::diff::DiffFile],
+    color: bool,
+) -> Vec<crate::render::StyledFile> {
+    crate::render::style_files(files, color)
+}
+
+/// Layout styled files at a specific width (Phase 2 only). For benchmarks.
+#[allow(dead_code)]
+pub fn bench_layout(
+    styled_files: &[crate::render::StyledFile],
+    width: usize,
+    color: bool,
+) -> crate::render::LayoutOutput {
+    crate::render::layout(styled_files, width, color)
+}

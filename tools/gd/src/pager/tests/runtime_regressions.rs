@@ -54,8 +54,7 @@ fn re_render_includes_headers_when_tree_visible() {
     re_render(&mut state, &files, false, 80);
     let stripped: String = state
         .doc
-        .lines
-        .iter_rendered()
+        .display_lines
         .iter()
         .map(|s| crate::ansi::strip_ansi(s))
         .collect::<Vec<_>>()
@@ -73,8 +72,7 @@ fn re_render_includes_headers_when_tree_hidden() {
     re_render(&mut state, &files, false, 80);
     let stripped: String = state
         .doc
-        .lines
-        .iter_rendered()
+        .display_lines
         .iter()
         .map(|s| crate::ansi::strip_ansi(s))
         .collect::<Vec<_>>()
@@ -93,7 +91,7 @@ fn default_tree_hidden_for_small_flat_file_lists() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -115,7 +113,7 @@ fn default_tree_hidden_for_three_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -138,7 +136,7 @@ fn default_tree_visible_for_four_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -159,7 +157,7 @@ fn default_tree_visible_for_nested_file_lists() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -420,7 +418,7 @@ fn re_render_resize_diff_lines_fit_within_new_tree_width() {
     // Start at 100 cols where tree_width is clamped (100 - 80 - 1 = 19)
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -443,7 +441,7 @@ fn re_render_resize_diff_lines_fit_within_new_tree_width() {
         diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
 
     // Every rendered line must fit within the diff area after resize
-    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
+    for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= expected_diff_width,
@@ -505,7 +503,7 @@ fn resize_tree_width_changes_but_stays_visible() {
     // Start at 100 cols — tree_width clamped to 100 - 80 - 1 = 19
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -525,7 +523,7 @@ fn resize_tree_width_changes_but_stays_visible() {
         state.tree_width
     );
     let daw = diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
-    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
+    for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= daw,
@@ -537,7 +535,7 @@ fn resize_tree_width_changes_but_stays_visible() {
     re_render(&mut state, &files, false, 100);
     assert!(state.tree_visible, "tree should still be visible at 100 cols");
     let daw = diff_area_width(100, state.tree_width, state.tree_visible, state.full_context);
-    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
+    for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= daw,
@@ -558,7 +556,7 @@ fn full_context_with_tree_visible_accounts_for_scrollbar() {
     let tree_entries = build_tree_entries(&files);
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -578,7 +576,7 @@ fn full_context_with_tree_visible_accounts_for_scrollbar() {
         120 - state.tree_width - 2,
         "diff_area_width with tree + scrollbar should be cols - tree_width - 2"
     );
-    for (i, line) in state.doc.lines.iter_rendered().iter().enumerate() {
+    for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
             vis_w <= expected,
@@ -597,7 +595,7 @@ fn default_tree_hidden_at_80_cols_flat_files() {
     ];
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -619,7 +617,7 @@ fn default_tree_hidden_at_90_cols_nested_files() {
     crate::git::sort_files_for_display(&mut files);
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -642,7 +640,7 @@ fn default_tree_visible_at_100_cols_nested_files() {
     crate::git::sort_files_for_display(&mut files);
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -672,7 +670,7 @@ fn default_tree_visibility_exact_threshold_boundary() {
     // At threshold: tree visible
     let output = render::render(&files, 80, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map.clone(),
         output.file_starts.clone(),
         output.hunk_starts.clone(),
@@ -683,7 +681,7 @@ fn default_tree_visibility_exact_threshold_boundary() {
 
     // One below threshold: tree hidden
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -715,7 +713,7 @@ fn re_render_auto_shows_tree_when_terminal_widens() {
     let narrow_cols: usize = MIN_DIFF_WIDTH + 5;
     let output = render::render(&files, narrow_cols, false);
     let state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map.clone(),
         output.file_starts.clone(),
         output.hunk_starts.clone(),
@@ -749,7 +747,7 @@ fn re_render_does_not_auto_show_tree_when_user_hidden() {
     // Start wide — tree visible
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -784,7 +782,7 @@ fn re_render_auto_shows_after_auto_hide_cycle() {
     // Start wide — tree visible
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,
@@ -813,7 +811,7 @@ fn re_render_does_not_auto_show_for_small_flat_diffs() {
     let tree_entries = build_tree_entries(&files);
     let output = render::render(&files, 80, false);
     let mut state = PagerState::new(
-        output.lines(),
+        output.lines().to_vec(),
         output.line_map,
         output.file_starts,
         output.hunk_starts,

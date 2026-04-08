@@ -12,8 +12,7 @@ pub(crate) fn submit_search(state: &mut PagerState) {
     state.search_cursor = 0;
     state.mode = Mode::Normal;
 
-    let raw_texts = state.doc.lines.raw_texts();
-    let matches = find_matches(&raw_texts, &query);
+    let matches = find_matches(&state.doc.raw_texts, &query);
     if matches.is_empty() {
         state.status_message = format!("Pattern not found: {query}");
         state.search_query = query;

@@ -155,7 +155,7 @@ fn main() {
     let output = render::render(&files, cols as usize, color);
 
     // Use pager if: tty, not --no-pager, content exceeds terminal height
-    if is_tty && !cli.no_pager && output.lazy_lines.len() > rows as usize {
+    if is_tty && !cli.no_pager && output.len() > rows as usize {
         let diff_ctx = pager::DiffContext {
             repo: repo.clone(),
             source: source.clone(),
@@ -164,9 +164,9 @@ fn main() {
         };
         pager::run_pager(output, files, color, &diff_ctx);
     } else {
-        // No-pager path: render all lines eagerly and print
+        // No-pager path: print all lines
         let mut stdout = io::BufWriter::new(io::stdout().lock());
-        for line in &output.lines() {
+        for line in output.lines() {
             let _ = writeln!(stdout, "{line}");
         }
     }

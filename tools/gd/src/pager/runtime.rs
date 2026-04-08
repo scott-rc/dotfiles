@@ -8,7 +8,7 @@ use tui::pager::{
 };
 
 use crate::git::diff::DiffFile;
-use crate::render::{LazyLines, RenderOutput};
+use crate::render::RenderOutput;
 
 use super::reducer::handle_key;
 use super::rendering::{content_height, render_screen};
@@ -51,31 +51,17 @@ fn trace_keystroke(
     key: Key,
     key_dur: Duration,
     render_dur: Duration,
-    prefetch_dur: Duration,
-    lines: &LazyLines,
 ) {
-    let total = key_dur + render_dur + prefetch_dur;
-    let (hits, misses) = lines.stats();
-    let hl_calls = lines.highlight_calls();
-    let hit_rate = if hits + misses > 0 {
-        (hits as f64 / (hits + misses) as f64) * 100.0
-    } else {
-        100.0
-    };
+    let total = key_dur + render_dur;
     debug_trace(
         "runtime:keystroke",
         "per-keystroke timing",
         &format!(
-            "{{\"key\":\"{:?}\",\"handleKeyMs\":{:.2},\"renderScreenMs\":{:.2},\"prefetchMs\":{:.2},\"totalMs\":{:.2},\"cacheHits\":{},\"cacheMisses\":{},\"hitRate\":{:.1},\"highlightLineCalls\":{}}}",
+            "{{\"key\":\"{:?}\",\"handleKeyMs\":{:.2},\"renderScreenMs\":{:.2},\"totalMs\":{:.2}}}",
             key,
             key_dur.as_secs_f64() * 1000.0,
             render_dur.as_secs_f64() * 1000.0,
-            prefetch_dur.as_secs_f64() * 1000.0,
             total.as_secs_f64() * 1000.0,
-            hits,
-            misses,
-            hit_rate,
-            hl_calls,
         ),
     );
 }
@@ -168,13 +154,63 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
         state.tree_visible,
         state.full_context,
     );
-    let output = crate::render::render(files, width, color);
+    // Relayout: reuse Phase 1 styled content, only redo Phase 2 (wrapping/gutters)
+    let styled_files = std::mem::take(&mut state.doc.styled_files);
+    let output = crate::render::relayout(styled_files, width, color);
     let new_doc = Document::from_render_output(output);
     remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
 
     debug_trace(
         "runtime:re_render",
         "post rerender state",
+        &format_debug_state(state),
+    );
+}
+
+/// Full render: re-style and relayout (for content changes).
+pub(crate) fn full_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
+    let anchor = capture_view_anchor(state);
+
+    // Pre-resolve tree layout so diff_area_width uses the final tree_width.
+    if !files.is_empty() {
+        use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
+        let entries = build_tree_entries(files);
+        let content_width = compute_tree_width(&entries);
+        let has_directories = entries.iter().any(|e| e.file_idx.is_none());
+        let file_count = state.doc.file_count().max(files.len());
+        let effective_cols = if state.full_context {
+            (cols as usize).saturating_sub(1)
+        } else {
+            cols as usize
+        };
+        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
+            if state.tree_visible {
+                state.tree_width = w;
+                state.tree_entries = entries;
+            } else if !state.tree_user_hidden {
+                state.tree_visible = true;
+                state.tree_width = w;
+                state.tree_entries = entries;
+            }
+        } else if state.tree_visible {
+            state.tree_visible = false;
+            state.tree_width = 0;
+        }
+    }
+
+    let width = super::rendering::diff_area_width(
+        cols,
+        state.tree_width,
+        state.tree_visible,
+        state.full_context,
+    );
+    let output = crate::render::render(files, width, color);
+    let new_doc = Document::from_render_output(output);
+    remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
+
+    debug_trace(
+        "runtime:full_render",
+        "post full_render state",
         &format_debug_state(state),
     );
 }
@@ -203,57 +239,6 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
     files
 }
 
-/// Prefetch adjacent pages and evict distant cache entries after rendering.
-///
-/// Order: prefetch next page -> prefetch prev page -> evict outside window.
-/// Prefetch is a no-op for already-cached lines; eviction frees memory for
-/// lines far from the current viewport.
-fn prefetch_and_evict(state: &PagerState, ch: usize) {
-    let top = state.top_line;
-    let total = state.doc.lines.len();
-    if total == 0 || ch == 0 {
-        return;
-    }
-
-    // Clamp prefetch to the current visible range (respects single-file mode)
-    let (vis_start, vis_end) = super::state::visible_range(state);
-
-    // Prefetch next page: [top + ch, top + 2*ch) clamped to visible range
-    let next_start = (top + ch).min(vis_end);
-    let next_end = (top + 2 * ch).min(vis_end);
-    for idx in next_start..next_end {
-        let _ = state.doc.lines.get(idx);
-    }
-
-    // Prefetch prev page: [top - ch, top) clamped to visible range
-    let prev_start = top.saturating_sub(ch).max(vis_start);
-    for idx in prev_start..top {
-        let _ = state.doc.lines.get(idx);
-    }
-
-    // Evict outside window: [top - 2*ch, top + 3*ch)
-    let keep_start = top.saturating_sub(2 * ch);
-    let keep_end = (top + 3 * ch).min(total);
-    state.doc.lines.evict_outside(keep_start, keep_end);
-
-    if gd_debug_enabled() {
-        let prefetched_next = next_end.saturating_sub(next_start);
-        let prefetched_prev = top.saturating_sub(prev_start);
-        debug_trace(
-            "runtime:prefetch_and_evict",
-            "cache maintenance",
-            &format!(
-                "{{\"prefetchedNext\":{},\"prefetchedPrev\":{},\"keepStart\":{},\"keepEnd\":{},\"totalLines\":{},\"renderedCount\":{}}}",
-                prefetched_next,
-                prefetched_prev,
-                keep_start,
-                keep_end,
-                total,
-                state.doc.lines.rendered_count()
-            ),
-        );
-    }
-}
 
 pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     let mut keys = Vec::new();
@@ -375,17 +360,15 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
     );
     state.view_scope = view_scope;
 
-    re_render(&mut state, &files, color, last_size.0);
+    full_render(&mut state, &files, color, last_size.0);
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
-    prefetch_and_evict(&state, content_height(last_size.1, &state));
 
     debug_trace(
         "runtime:render_screen",
         "post initial render",
         &format!(
-            "{{\"renderedLines\":{},\"totalLines\":{}}}",
-            state.doc.lines.rendered_count(),
-            state.doc.lines.len()
+            "{{\"totalLines\":{}}}",
+            state.doc.line_count()
         ),
     );
 
@@ -415,13 +398,12 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         if files.is_empty() {
                             break;
                         }
-                        re_render(&mut state, &files, color, last_size.0);
+                        full_render(&mut state, &files, color, last_size.0);
                         needs_render = true;
                     }
                 }
                 if needs_render {
                     render_screen(&mut stdout, &state, last_size.0, last_size.1);
-                    prefetch_and_evict(&state, content_height(last_size.1, &state));
                 }
                 continue;
             }
@@ -433,7 +415,6 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 last_size = get_term_size();
                 re_render(&mut state, &files, color, last_size.0);
                 render_screen(&mut stdout, &state, last_size.0, last_size.1);
-                prefetch_and_evict(&state, content_height(last_size.1, &state));
                 continue;
             }
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
@@ -452,9 +433,6 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
             source: &diff_ctx.source,
         };
         let debug = gd_debug_enabled();
-        if debug {
-            state.doc.lines.reset_stats();
-        }
         let t_key_start = Instant::now();
         let result = handle_key(&mut state, key, &ctx);
         let key_dur = t_key_start.elapsed();
@@ -478,7 +456,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 if files.is_empty() {
                     break;
                 }
-                re_render(&mut state, &files, color, last_size.0);
+                full_render(&mut state, &files, color, last_size.0);
                 last_index_mtime = git_index_mtime(&diff_ctx.repo);
                 let base = format_debug_state(&state);
                 debug_trace(
@@ -508,7 +486,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                 if files.is_empty() {
                     break;
                 }
-                re_render(&mut state, &files, color, last_size.0);
+                full_render(&mut state, &files, color, last_size.0);
                 last_index_mtime = git_index_mtime(&diff_ctx.repo);
             }
             KeyResult::ApplyPatch { patch, cached, reverse } => {
@@ -525,7 +503,7 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
                         if files.is_empty() {
                             break;
                         }
-                        re_render(&mut state, &files, color, last_size.0);
+                        full_render(&mut state, &files, color, last_size.0);
                         last_index_mtime = git_index_mtime(&diff_ctx.repo);
                     }
                     Err(e) => {
@@ -541,12 +519,9 @@ pub fn run_pager(output: RenderOutput, files: Vec<DiffFile>, color: bool, diff_c
         let t_render_start = Instant::now();
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
         let render_dur = t_render_start.elapsed();
-        let t_prefetch_start = Instant::now();
-        prefetch_and_evict(&state, ch);
-        let prefetch_dur = t_prefetch_start.elapsed();
 
         if debug {
-            trace_keystroke(key, key_dur, render_dur, prefetch_dur, &state.doc.lines);
+            trace_keystroke(key, key_dur, render_dur);
         }
     }
 
@@ -603,18 +578,16 @@ pub fn run_pager_replay(
     );
     state.view_scope = view_scope;
 
-    re_render(&mut state, &files, color, cols);
+    full_render(&mut state, &files, color, cols);
     render_screen(&mut sink, &state, cols, rows);
-    prefetch_and_evict(&state, content_height(rows, &state));
     sink.clear();
 
     debug_trace(
         "runtime:replay:init",
         "replay initialized",
         &format!(
-            "{{\"renderedLines\":{},\"totalLines\":{},\"cols\":{},\"rows\":{}}}",
-            state.doc.lines.rendered_count(),
-            state.doc.lines.len(),
+            "{{\"totalLines\":{},\"cols\":{},\"rows\":{}}}",
+            state.doc.line_count(),
             cols,
             rows
         ),
@@ -633,9 +606,6 @@ pub fn run_pager_replay(
             source: &diff_ctx.source,
         };
         let debug = gd_debug_enabled();
-        if debug {
-            state.doc.lines.reset_stats();
-        }
         let t_key_start = Instant::now();
         let result = handle_key(&mut state, key, &ctx);
         let key_dur = t_key_start.elapsed();
@@ -650,7 +620,7 @@ pub fn run_pager_replay(
                 if files.is_empty() {
                     break;
                 }
-                re_render(&mut state, &files, color, cols);
+                full_render(&mut state, &files, color, cols);
             }
             KeyResult::OpenEditor { .. } => {
                 debug_trace("runtime:replay", "skipping OpenEditor in replay mode", "{}");
@@ -667,12 +637,9 @@ pub fn run_pager_replay(
         let t_render_start = Instant::now();
         render_screen(&mut sink, &state, cols, rows);
         let render_dur = t_render_start.elapsed();
-        let t_prefetch_start = Instant::now();
-        prefetch_and_evict(&state, ch);
-        let prefetch_dur = t_prefetch_start.elapsed();
 
         if debug {
-            trace_keystroke(key, key_dur, render_dur, prefetch_dur, &state.doc.lines);
+            trace_keystroke(key, key_dur, render_dur);
         }
     }
 
