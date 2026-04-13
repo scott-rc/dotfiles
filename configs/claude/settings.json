@@ -69,6 +69,7 @@
       "~/go/pkg/mod"
     ]
   },
+  "model": "claude-opus-4-5-20251101",
   "hooks": {
     "PreToolUse": [
       {
@@ -93,8 +94,8 @@
   },
   "spinnerTipsEnabled": false,
   "effortLevel": "high",
-  "autoMemoryEnabled": false,
   "showClearContextOnPlanAccept": true,
+  "autoMemoryEnabled": false,
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
     "/Users/scott/Code/personal"
