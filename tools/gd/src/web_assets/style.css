@@ -54,13 +54,14 @@ html, body {
   width: 260px;
   min-width: 180px;
   max-width: 400px;
-  border-right: 1px solid var(--fg-sep);
+  border-left: 1px solid var(--fg-sep);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px 0;
   flex-shrink: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
+  order: 1;
 }
 
 #tree.hidden { display: none; }
@@ -94,6 +95,7 @@ html, body {
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
+  order: 0;
 }
 
 /* File header */

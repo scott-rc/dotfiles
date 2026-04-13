@@ -1,0 +1,15 @@
+{
+  "name": "gd-e2e",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "setup": "./fixtures/setup.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^6.0.2"
+  }
+}

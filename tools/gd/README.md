@@ -24,7 +24,7 @@ gd --replay ']]q' --cols 80 --rows 24  # replay with custom terminal size
 
 The pager auto-reloads after returning from `$EDITOR` and when `.git/index` changes externally (e.g. staging in another terminal). Press `R` to manually reload. No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. Whitespace-only changes are hidden by default (`-w` passed to `git diff`); use `--show-whitespace` to include them. `--base`/`-b` works even if the base branch only exists as a remote tracking ref (falls back to `origin/<branch>`). In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
 
-`--web` starts a local HTTP server and opens an interactive diff viewer in the browser. The same diff parsing, syntax highlighting, and word-level highlight logic is reused — HTML spans replace ANSI codes, and browser CSS/JS replaces terminal Phase 2 layout. The browser view supports keyboard navigation (same keys as the terminal pager), a file tree sidebar, search, single-file/all-files view, and auto-reloads when `.git/index` changes. Requires `--features web` at build time; without the feature the flag prints an error and exits. The server binds to `127.0.0.1:3845` (incrementing on conflict) and data flows over a WebSocket.
+`--web` starts a local HTTP server and opens an interactive diff viewer in the browser. The same diff parsing, syntax highlighting, and word-level highlight logic is reused — HTML spans replace ANSI codes, and browser CSS/JS replaces terminal Phase 2 layout. The browser view supports keyboard navigation (same keys as the terminal pager), a file tree sidebar (on the right), search, single-file/all-files view, and auto-reloads when `.git/index` changes. Requires `--features web` at build time; without the feature the flag prints an error and exits. The server binds to `127.0.0.1:3845` (incrementing on conflict) and data flows over a WebSocket. The server exits automatically 2 seconds after the last browser tab closes (handles page refresh without immediate exit).
 
 ## Keybindings
 
@@ -144,6 +144,21 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 cargo build --release                # from tools/gd/ — default (terminal only)
 cargo build --release --features web # from tools/gd/ — includes --web browser viewer
 ```
+
+## E2E Tests
+
+Browser-based Playwright tests for `--web` mode live in `e2e/`. Requires the web feature and a test git repo fixture.
+
+```bash
+cd e2e
+npm install                    # install Playwright
+npx playwright install chromium # install browser
+./fixtures/setup.sh            # create test repo with known diff state
+npm test                       # run all tests
+npm run test:headed            # run with visible browser
+```
+
+Tests cover navigation (j/k/g/G/d/u), file tree (toggle, focus, click), search (open/close, n/N), and keybindings (help overlay, view toggles). The server's quit-on-close behavior ensures clean test teardown.
 
 ## Coverage
 
