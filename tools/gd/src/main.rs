@@ -70,6 +70,10 @@ struct Cli {
     /// Terminal rows for --replay mode
     #[arg(long, default_value = "50", requires = "replay")]
     rows: u16,
+
+    /// Shutdown grace period in milliseconds after last browser tab closes
+    #[arg(long, default_value = "2000", requires = "web")]
+    shutdown_grace_ms: u64,
 }
 
 fn main() {
@@ -160,7 +164,7 @@ fn main() {
                 no_untracked: !cli.untracked,
                 ignore_whitespace: !cli.show_whitespace,
             };
-            web::run_web_server(files, &diff_ctx, cli.open);
+            web::run_web_server(files, &diff_ctx, cli.open, cli.shutdown_grace_ms);
             return;
         }
         #[cfg(not(feature = "web"))]

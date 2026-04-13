@@ -44,8 +44,12 @@ fn render_file(file: &DiffFile) -> WebDiffFile {
                     let word_ranges = word_ranges_map.get(&i).map_or(&[][..], Vec::as_slice);
                     let syntax_html =
                         highlight_line_html(&diff_line.content, &mut hl_state, &SYNTAX_SET);
-                    let content_html =
-                        apply_word_highlights_html(&syntax_html, &diff_line.content, word_ranges, diff_line.kind);
+                    let content_html = apply_word_highlights_html(
+                        &syntax_html,
+                        &diff_line.content,
+                        word_ranges,
+                        diff_line.kind,
+                    );
 
                     WebDiffLine {
                         kind: WebLineKind::from(diff_line.kind),
@@ -140,8 +144,7 @@ fn apply_word_highlights_html(
             let (html_text, html_advance) = decode_html_char(syntax_html, i);
             let raw_advance = html_text.len_utf8();
 
-            let should_highlight =
-                raw_byte_idx < raw_len && highlighted[raw_byte_idx];
+            let should_highlight = raw_byte_idx < raw_len && highlighted[raw_byte_idx];
 
             if should_highlight && !in_mark {
                 result.push_str(&format!("<mark class=\"{mark_class}\">"));
