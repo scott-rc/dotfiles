@@ -24,7 +24,7 @@ abbr --add pb pnpm run build
 abbr --add pcl pnpm run clean
 abbr --add pd pnpm run dev
 abbr --add pf pnpm run fmt
-abbr --add pi pnpm install
+# abbr --add pi pnpm install
 abbr --add pid pnpm install -D
 abbr --add pl pnpm run lint
 abbr --add pr pnpm run
