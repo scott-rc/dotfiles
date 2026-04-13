@@ -3,8 +3,8 @@ use std::fmt::{self, Write};
 use std::time::Duration;
 
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{ApiResource, DynamicObject, ListParams, LogParams};
 use kube::Api;
+use kube::api::{ApiResource, DynamicObject, ListParams, LogParams};
 
 use crate::manifest::ResourceDescriptor;
 
@@ -116,9 +116,11 @@ fn check_pod(resource: &serde_json::Value) -> ResourceState {
             .and_then(|c| c.as_array())
             .is_some_and(|statuses| {
                 !statuses.is_empty()
-                    && statuses
-                        .iter()
-                        .all(|cs| cs.get("ready").and_then(serde_json::Value::as_bool).unwrap_or(false))
+                    && statuses.iter().all(|cs| {
+                        cs.get("ready")
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false)
+                    })
             });
         if all_ready {
             return ResourceState::Ready;
@@ -144,10 +146,7 @@ fn check_job(resource: &serde_json::Value) -> ResourceState {
     }
 }
 
-async fn check_resource(
-    client: &kube::Client,
-    resource: &ResourceDescriptor,
-) -> ResourceState {
+async fn check_resource(client: &kube::Client, resource: &ResourceDescriptor) -> ResourceState {
     let ns = resource.namespace.as_deref().unwrap_or("default");
     let (group, version) = crate::deploy::parse_api_version(&resource.api_version);
 
@@ -219,17 +218,19 @@ pub async fn watch_resources(
     }
 }
 
-pub async fn collect_diagnostics(
-    client: &kube::Client,
-    resource: &ResourceDescriptor,
-) -> String {
+pub async fn collect_diagnostics(client: &kube::Client, resource: &ResourceDescriptor) -> String {
     let ns = resource.namespace.as_deref().unwrap_or("default");
 
     if resource.kind == "Pod" {
         let api: Api<Pod> = Api::namespaced(client.clone(), ns);
         match api.logs(&resource.name, &LogParams::default()).await {
             Ok(logs) => return format!("--- Logs for Pod/{} ---\n{logs}", resource.name),
-            Err(e) => return format!("--- Failed to fetch logs for Pod/{}: {e} ---", resource.name),
+            Err(e) => {
+                return format!(
+                    "--- Failed to fetch logs for Pod/{}: {e} ---",
+                    resource.name
+                );
+            }
         }
     }
 

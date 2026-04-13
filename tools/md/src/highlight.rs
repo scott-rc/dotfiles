@@ -1,4 +1,4 @@
-use tui::highlight::{highlight_line, SYNTAX_SET, THEME};
+use tui::highlight::{SYNTAX_SET, THEME, highlight_line};
 
 pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
     if !color {
@@ -17,7 +17,12 @@ pub fn highlight_code(code: &str, lang: Option<&str>, color: bool) -> String {
     let mut result = String::new();
 
     for line in syntect::util::LinesWithEndings::from(code) {
-        result.push_str(&highlight_line(line, &mut highlighter, &SYNTAX_SET, "\x1b[0m"));
+        result.push_str(&highlight_line(
+            line,
+            &mut highlighter,
+            &SYNTAX_SET,
+            "\x1b[0m",
+        ));
         if line.ends_with('\n') {
             result.push('\n');
         }

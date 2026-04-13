@@ -1,7 +1,7 @@
 use std::time::Instant;
 
-use kube::api::{ApiResource, DynamicObject, Patch, PatchParams};
 use kube::Api;
+use kube::api::{ApiResource, DynamicObject, Patch, PatchParams};
 use tokio::task::JoinSet;
 
 use crate::manifest::{self, ResourceDescriptor};
@@ -140,14 +140,12 @@ async fn apply_resource(
         plural: pluralize(kind),
     };
 
-    let api: Api<DynamicObject> = if kind == "Namespace"
-        || kind == "CustomResourceDefinition"
-        || kind == "StorageClass"
-    {
-        Api::all_with(client.clone(), &ar)
-    } else {
-        Api::namespaced_with(client.clone(), namespace, &ar)
-    };
+    let api: Api<DynamicObject> =
+        if kind == "Namespace" || kind == "CustomResourceDefinition" || kind == "StorageClass" {
+            Api::all_with(client.clone(), &ar)
+        } else {
+            Api::namespaced_with(client.clone(), namespace, &ar)
+        };
 
     let json_value =
         serde_json::to_value(raw).map_err(|e| format!("failed to convert to JSON: {e}"))?;

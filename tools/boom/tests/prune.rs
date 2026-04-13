@@ -1,4 +1,4 @@
-use boom::prune::{identify_stale, ResourceDescriptor};
+use boom::prune::{ResourceDescriptor, identify_stale};
 
 fn descriptor(name: &str, kind: &str, namespace: &str) -> ResourceDescriptor {
     ResourceDescriptor {
@@ -21,7 +21,12 @@ fn stale_resources_identified() {
     ];
 
     let stale = identify_stale(&deployed, &existing);
-    assert_eq!(stale.len(), 1, "expected 1 stale resource, got {}", stale.len());
+    assert_eq!(
+        stale.len(),
+        1,
+        "expected 1 stale resource, got {}",
+        stale.len()
+    );
     assert_eq!(stale[0].name, "c");
 }
 
@@ -37,7 +42,11 @@ fn no_stale_resources() {
     ];
 
     let stale = identify_stale(&deployed, &existing);
-    assert!(stale.is_empty(), "expected no stale resources, got {}", stale.len());
+    assert!(
+        stale.is_empty(),
+        "expected no stale resources, got {}",
+        stale.len()
+    );
 }
 
 #[test]
@@ -49,5 +58,10 @@ fn all_cluster_resources_stale() {
     ];
 
     let stale = identify_stale(&deployed, &existing);
-    assert_eq!(stale.len(), 2, "expected 2 stale resources, got {}", stale.len());
+    assert_eq!(
+        stale.len(),
+        2,
+        "expected 2 stale resources, got {}",
+        stale.len()
+    );
 }

@@ -617,8 +617,7 @@ pub fn run_pager(
             Key::Tab => {
                 // Cycle to next link
                 if !state.links.is_empty() {
-                    state.focused_link =
-                        (state.focused_link + 1) % state.links.len() as isize;
+                    state.focused_link = (state.focused_link + 1) % state.links.len() as isize;
                     let link_line = state.links[state.focused_link as usize].line;
                     // Scroll to show the link, centered in viewport
                     let target = link_line.saturating_sub(ch / 3);
@@ -774,11 +773,7 @@ pub fn run_pager(
                     let _ = stdout.flush();
 
                     let line = state.raw_content.as_ref().map(|raw| {
-                        map_to_source_line(
-                            state.top_line,
-                            state.lines.len(),
-                            raw.lines().count(),
-                        )
+                        map_to_source_line(state.top_line, state.lines.len(), raw.lines().count())
                     });
                     open_in_editor(&edit_path, line, read_only);
 
@@ -838,13 +833,12 @@ fn render_screen(out: &mut impl Write, state: &PagerState, cols: u16, rows: u16)
         let mut visual_row: usize = 0;
         let mut logical_idx = top;
 
-        let focused_line = if state.focused_link >= 0
-            && (state.focused_link as usize) < state.links.len()
-        {
-            Some(state.links[state.focused_link as usize].line)
-        } else {
-            None
-        };
+        let focused_line =
+            if state.focused_link >= 0 && (state.focused_link as usize) < state.links.len() {
+                Some(state.links[state.focused_link as usize].line)
+            } else {
+                None
+            };
 
         while visual_row < ch && logical_idx < state.lines.len() {
             let mut line = state.lines[logical_idx].clone();
@@ -1159,15 +1153,17 @@ mod tests {
                             .iter()
                             .find(|l| l.contains(needle.as_str()))
                             .unwrap_or_else(|| {
-                                panic!("same_leading_spaces needle '{}' not found: {}", needle, case.name)
+                                panic!(
+                                    "same_leading_spaces needle '{}' not found: {}",
+                                    needle, case.name
+                                )
                             });
                         line.chars().take_while(|c| *c == ' ').count()
                     })
                     .collect();
                 for pad in &pads[1..] {
                     assert_eq!(
-                        *pad,
-                        pads[0],
+                        *pad, pads[0],
                         "format_help_lines leading spaces differ: {}",
                         case.name
                     );
@@ -1530,7 +1526,12 @@ mod tests {
     #[test]
     fn test_refresh_content_updates_content_and_scroll() {
         let mut state = PagerState {
-            lines: vec!["line1".into(), "line2".into(), "line3".into(), "line4".into()],
+            lines: vec![
+                "line1".into(),
+                "line2".into(),
+                "line3".into(),
+                "line4".into(),
+            ],
             top_line: 2,
             is_plain: false,
             search_query: String::new(),
@@ -1622,8 +1623,20 @@ mod tests {
         ];
         let links = extract_links(&lines);
         assert_eq!(links.len(), 2);
-        assert_eq!(links[0], LinkInfo { line: 1, url: "https://example.com".to_string() });
-        assert_eq!(links[1], LinkInfo { line: 3, url: "./other.md".to_string() });
+        assert_eq!(
+            links[0],
+            LinkInfo {
+                line: 1,
+                url: "https://example.com".to_string()
+            }
+        );
+        assert_eq!(
+            links[1],
+            LinkInfo {
+                line: 3,
+                url: "./other.md".to_string()
+            }
+        );
     }
 
     #[test]
@@ -1635,7 +1648,8 @@ mod tests {
     #[test]
     fn test_extract_links_dedupes_same_url_on_line() {
         let lines = vec![
-            "\x1b]8;;https://x.com\x07a\x1b]8;;\x07 \x1b]8;;https://x.com\x07b\x1b]8;;\x07".to_string(),
+            "\x1b]8;;https://x.com\x07a\x1b]8;;\x07 \x1b]8;;https://x.com\x07b\x1b]8;;\x07"
+                .to_string(),
         ];
         let links = extract_links(&lines);
         assert_eq!(links.len(), 1, "same URL on same line should dedup");
@@ -1644,7 +1658,8 @@ mod tests {
     #[test]
     fn test_extract_links_multiple_urls_on_line() {
         let lines = vec![
-            "\x1b]8;;https://a.com\x07a\x1b]8;;\x07 \x1b]8;;https://b.com\x07b\x1b]8;;\x07".to_string(),
+            "\x1b]8;;https://a.com\x07a\x1b]8;;\x07 \x1b]8;;https://b.com\x07b\x1b]8;;\x07"
+                .to_string(),
         ];
         let links = extract_links(&lines);
         assert_eq!(links.len(), 2);
@@ -1732,38 +1747,21 @@ mod tests {
 
     #[test]
     fn test_link_url_at_col_two_links() {
-        let line = "\x1b]8;;https://a.com\x07aa\x1b]8;;\x07 \x1b]8;;https://b.com\x07bb\x1b]8;;\x07";
-        assert_eq!(
-            link_url_at_col(line, 0),
-            Some("https://a.com".to_string())
-        );
-        assert_eq!(
-            link_url_at_col(line, 1),
-            Some("https://a.com".to_string())
-        );
+        let line =
+            "\x1b]8;;https://a.com\x07aa\x1b]8;;\x07 \x1b]8;;https://b.com\x07bb\x1b]8;;\x07";
+        assert_eq!(link_url_at_col(line, 0), Some("https://a.com".to_string()));
+        assert_eq!(link_url_at_col(line, 1), Some("https://a.com".to_string()));
         assert_eq!(link_url_at_col(line, 2), None); // space between
-        assert_eq!(
-            link_url_at_col(line, 3),
-            Some("https://b.com".to_string())
-        );
-        assert_eq!(
-            link_url_at_col(line, 4),
-            Some("https://b.com".to_string())
-        );
+        assert_eq!(link_url_at_col(line, 3), Some("https://b.com".to_string()));
+        assert_eq!(link_url_at_col(line, 4), Some("https://b.com".to_string()));
     }
 
     #[test]
     fn test_link_url_at_col_with_sgr_inside() {
         // SGR bold inside the OSC 8 region
         let line = "\x1b]8;;https://x.com\x07\x1b[1mlink\x1b[22m\x1b]8;;\x07";
-        assert_eq!(
-            link_url_at_col(line, 0),
-            Some("https://x.com".to_string())
-        );
-        assert_eq!(
-            link_url_at_col(line, 3),
-            Some("https://x.com".to_string())
-        );
+        assert_eq!(link_url_at_col(line, 0), Some("https://x.com".to_string()));
+        assert_eq!(link_url_at_col(line, 3), Some("https://x.com".to_string()));
     }
 
     // ---- screen_row_to_logical ----

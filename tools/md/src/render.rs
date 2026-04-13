@@ -226,11 +226,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         let prefix = style.marker(&"#".repeat(level_num));
                         format!("{prefix} {styled_text}")
                     };
-                let block = if style.pretty
-                    && matches!(level, HeadingLevel::H1 | HeadingLevel::H2)
+                let block = if style.pretty && matches!(level, HeadingLevel::H1 | HeadingLevel::H2)
                 {
                     let vis_len = visible_length(&heading_line);
-                    let ch = if matches!(level, HeadingLevel::H1) { "═" } else { "─" };
+                    let ch = if matches!(level, HeadingLevel::H1) {
+                        "═"
+                    } else {
+                        "─"
+                    };
                     let underline = style.marker(&ch.repeat(vis_len));
                     format!("{heading_line}\n{underline}")
                 } else {
@@ -262,18 +265,14 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                         if ctx.items.len() == ctx.item_start_count {
                             // First paragraph of item: add marker
                             let marker = make_list_marker(ctx, style);
-                            ctx.items.push(format_list_item(
-                                &text, &marker, ctx.depth, width,
-                            ));
+                            ctx.items
+                                .push(format_list_item(&text, &marker, ctx.depth, width));
                         } else {
                             // Subsequent paragraph: continuation indent
                             let indent = "    ".repeat(ctx.depth);
-                            let marker_width =
-                                if ctx.ordered { 3 } else { 2 }; // "- " or "1. "
-                            let content_indent =
-                                format!("{indent}{}", " ".repeat(marker_width));
-                            let content_width =
-                                width.saturating_sub(indent.len() + marker_width);
+                            let marker_width = if ctx.ordered { 3 } else { 2 }; // "- " or "1. "
+                            let content_indent = format!("{indent}{}", " ".repeat(marker_width));
+                            let content_width = width.saturating_sub(indent.len() + marker_width);
                             let wrapped = word_wrap(&text, content_width, "");
                             let indented: String = wrapped
                                 .lines()
@@ -443,7 +442,11 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                     let prefixed: String = inner
                         .lines()
                         .map(|line| {
-                            format!("{} {}", style.marker(bq_marker), style.blockquote_text(line))
+                            format!(
+                                "{} {}",
+                                style.marker(bq_marker),
+                                style.blockquote_text(line)
+                            )
                         })
                         .collect::<Vec<_>>()
                         .join("\n");
@@ -562,7 +565,11 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::TaskListMarker(checked) => {
                 let marker = if style.pretty {
-                    if checked { style.task_marker("☑") } else { style.task_marker("☐") }
+                    if checked {
+                        style.task_marker("☑")
+                    } else {
+                        style.task_marker("☐")
+                    }
                 } else if checked {
                     style.task_marker("[x]")
                 } else {
@@ -572,16 +579,13 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
             }
             Event::FootnoteReference(label) => {
                 let label_str = label.to_string();
-                let num = if let Some(pos) =
-                    footnote_labels.iter().position(|l| l == &label_str)
-                {
+                let num = if let Some(pos) = footnote_labels.iter().position(|l| l == &label_str) {
                     pos + 1
                 } else {
                     footnote_labels.push(label_str);
                     footnote_labels.len()
                 };
-                inline_buffer
-                    .push_str(&style.footnote_ref(&format!("[{num}]")));
+                inline_buffer.push_str(&style.footnote_ref(&format!("[{num}]")));
             }
             Event::Start(Tag::FootnoteDefinition(label)) => {
                 current_footnote = Some((label.to_string(), Vec::new()));
@@ -610,11 +614,7 @@ pub fn render_tokens(markdown_body: &str, width: usize, style: &Style) -> String
                 .map_or(0, |i| i + 1);
             let prefix = style.footnote_ref(&format!("[{num}]"));
             let body = body_parts.join(" ");
-            let wrapped = word_wrap(
-                &format!("{prefix} {body}"),
-                width,
-                "",
-            );
+            let wrapped = word_wrap(&format!("{prefix} {body}"), width, "");
             output_parts.push(wrapped);
         }
     }
@@ -736,10 +736,7 @@ fn render_table(table: &TableCtx, width: usize, style: &Style) -> String {
 
     // Build a horizontal border line: left + segments + right
     let border_line = |left: &str, mid: &str, right: &str| -> String {
-        let segments: Vec<String> = col_widths
-            .iter()
-            .map(|&w| dash.repeat(w + 2))
-            .collect();
+        let segments: Vec<String> = col_widths.iter().map(|&w| dash.repeat(w + 2)).collect();
         style.table_border(&format!("{}{}{}", left, segments.join(mid), right))
     };
 
@@ -1087,8 +1084,7 @@ mod tests {
             #[test]
             fn $name() {
                 let input = include_str!(concat!("../fixtures/pretty/", $file, ".md"));
-                let expected =
-                    include_str!(concat!("../fixtures/pretty/", $file, ".expected.txt"));
+                let expected = include_str!(concat!("../fixtures/pretty/", $file, ".expected.txt"));
                 let result = render_pretty(input);
                 assert_eq!(result, expected, "pretty fixture: {}", $file);
             }
@@ -1106,7 +1102,10 @@ mod tests {
     pretty_fixture!(test_pretty_task_list, "task-list");
     pretty_fixture!(test_pretty_table, "table");
     pretty_fixture!(test_pretty_code_block_long_line, "code-block-long-line");
-    pretty_fixture!(test_pretty_code_block_lang_long_line, "code-block-lang-long-line");
+    pretty_fixture!(
+        test_pretty_code_block_lang_long_line,
+        "code-block-lang-long-line"
+    );
 
     // Group 2: frontmatter fixtures (use render_markdown)
     macro_rules! frontmatter_fixture {
@@ -1340,7 +1339,12 @@ mod tests {
                         assert!(
                             !is_only_brackets(&vis),
                             "md={md:?}\nwidth={w} color={color} line {i} has dangling bracket: {vis:?}\nFull (stripped):\n{}",
-                            result.lines().enumerate().map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l))).collect::<Vec<_>>().join("\n"),
+                            result
+                                .lines()
+                                .enumerate()
+                                .map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l)))
+                                .collect::<Vec<_>>()
+                                .join("\n"),
                         );
                     }
                 }
@@ -1349,7 +1353,9 @@ mod tests {
     }
 
     fn is_only_brackets(s: &str) -> bool {
-        !s.is_empty() && s.chars().all(|c| matches!(c, ')' | ']' | '.' | ',' | ';' | ':'))
+        !s.is_empty()
+            && s.chars()
+                .all(|c| matches!(c, ')' | ']' | '.' | ',' | ';' | ':'))
     }
 
     // ── OSC 8 hyperlink tests ──────────────────────────────
@@ -1417,7 +1423,9 @@ mod tests {
         let osc_close = "\x1b]8;;\x07";
         let start = result.find(osc_open).expect("should have OSC 8 open");
         let after_open = start + osc_open.len();
-        let end = result[after_open..].find(osc_close).expect("should have OSC 8 close");
+        let end = result[after_open..]
+            .find(osc_close)
+            .expect("should have OSC 8 close");
         let wrapped = &result[after_open..after_open + end];
         let stripped = crate::wrap::strip_ansi(wrapped);
         assert_eq!(
@@ -1455,8 +1463,14 @@ mod tests {
     fn test_loose_list_has_markers() {
         let md = "- First item\n\n- Second item\n";
         let result = render_plain(md);
-        assert!(result.contains("- First item"), "should have marker: {result:?}");
-        assert!(result.contains("- Second item"), "should have marker: {result:?}");
+        assert!(
+            result.contains("- First item"),
+            "should have marker: {result:?}"
+        );
+        assert!(
+            result.contains("- Second item"),
+            "should have marker: {result:?}"
+        );
     }
 
     #[test]
@@ -1465,7 +1479,10 @@ mod tests {
         let style = Style::new(false, false);
         let result = render_tokens(md, 50, &style);
         // Should have list marker
-        assert!(result.starts_with("- "), "should start with list marker: {result:?}");
+        assert!(
+            result.starts_with("- "),
+            "should start with list marker: {result:?}"
+        );
         // Should be wrapped (multiple lines for first item)
         let lines: Vec<&str> = result.lines().collect();
         assert!(lines.len() > 2, "should wrap to multiple lines: {result:?}");
@@ -1485,7 +1502,12 @@ mod tests {
                     assert!(
                         !is_only_brackets(&vis),
                         "width={w} color={color} line {i} has dangling bracket: {vis:?}\nFull:\n{}",
-                        result.lines().enumerate().map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l))).collect::<Vec<_>>().join("\n"),
+                        result
+                            .lines()
+                            .enumerate()
+                            .map(|(j, l)| format!("  [{j}] {:?}", strip_ansi(l)))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
                     );
                 }
             }

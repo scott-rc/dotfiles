@@ -1,7 +1,7 @@
 use std::process;
 
-use kube::api::{ApiResource, DynamicObject, Patch, PatchParams};
 use kube::Api;
+use kube::api::{ApiResource, DynamicObject, Patch, PatchParams};
 use serde_json::json;
 
 use crate::manifest::ResourceDescriptor;
@@ -55,8 +55,7 @@ pub async fn run(
     }
 
     if verify_result && !patched_resources.is_empty() {
-        let state =
-            monitor::watch_resources(&client, &patched_resources, global_timeout).await;
+        let state = monitor::watch_resources(&client, &patched_resources, global_timeout).await;
         match state {
             monitor::ResourceState::Ready => {
                 eprintln!("[boom] all restarts complete");
@@ -103,10 +102,7 @@ async fn patch_resource(
 
     let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace, &ar);
     let params = PatchParams::apply("boom");
-    match api
-        .patch(name, &params, &Patch::Merge(patch.clone()))
-        .await
-    {
+    match api.patch(name, &params, &Patch::Merge(patch.clone())).await {
         Ok(_) => eprintln!("[boom] patched {kind}/{name}"),
         Err(e) => {
             eprintln!("boom: failed to patch {kind}/{name}: {e}");

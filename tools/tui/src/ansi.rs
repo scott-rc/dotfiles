@@ -463,12 +463,21 @@ mod tests {
         // Set underline
         state.update("\x1b[4m");
         assert!(state.is_underline(), "underline should be set after code 4");
-        assert!(state.to_codes().contains("\x1b[4m"), "to_codes should include underline");
+        assert!(
+            state.to_codes().contains("\x1b[4m"),
+            "to_codes should include underline"
+        );
 
         // Reset underline
         state.update("\x1b[24m");
-        assert!(!state.is_underline(), "underline should be cleared after code 24");
-        assert!(!state.to_codes().contains("\x1b[4m"), "to_codes should not include underline after reset");
+        assert!(
+            !state.is_underline(),
+            "underline should be cleared after code 24"
+        );
+        assert!(
+            !state.to_codes().contains("\x1b[4m"),
+            "to_codes should not include underline after reset"
+        );
     }
 
     // ── from_line tests ──────────────────────────────────

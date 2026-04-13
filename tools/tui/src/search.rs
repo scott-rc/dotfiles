@@ -1,4 +1,4 @@
-use crate::ansi::{split_ansi, strip_ansi, NO_REVERSE, REVERSE};
+use crate::ansi::{NO_REVERSE, REVERSE, split_ansi, strip_ansi};
 
 /// Highlight all occurrences of `query` in `line` with reverse video,
 /// preserving existing ANSI codes. Case-insensitive matching.

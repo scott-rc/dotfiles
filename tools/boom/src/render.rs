@@ -54,11 +54,7 @@ pub fn render_templates(
 
     for tmpl in templates {
         if tmpl.is_template {
-            let name = tmpl
-                .path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy();
+            let name = tmpl.path.file_name().unwrap_or_default().to_string_lossy();
             let rendered = env
                 .render_str(&tmpl.content, &ctx)
                 .map_err(|e| format!("boom: render error in {name}: {e}"))?;

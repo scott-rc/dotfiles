@@ -59,10 +59,7 @@ fn missing_variable_is_error() {
 
 #[test]
 fn multiple_files_all_rendered() {
-    let dir = make_dir_with_files(&[
-        ("a.yml", "kind: A\n"),
-        ("b.yml.j2", "kind: {{ bkind }}\n"),
-    ]);
+    let dir = make_dir_with_files(&[("a.yml", "kind: A\n"), ("b.yml.j2", "kind: {{ bkind }}\n")]);
     let mut bindings = HashMap::new();
     bindings.insert("bkind".to_string(), "B".to_string());
     let templates = boom::render::load_templates(dir.path());

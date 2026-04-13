@@ -419,7 +419,10 @@ mod tests {
             result.contains(&rgb24_sequence(blue)),
             "pretty link text should use LINK_BLUE"
         );
-        assert!(result.contains("\x1b[4m"), "pretty link text should be underlined");
+        assert!(
+            result.contains("\x1b[4m"),
+            "pretty link text should be underlined"
+        );
         assert_eq!(strip_ansi(&result), "example");
     }
 

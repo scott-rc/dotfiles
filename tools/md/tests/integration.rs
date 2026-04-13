@@ -129,18 +129,21 @@ fn test_rendering_fixtures() {
 #[test]
 fn test_pretty_produces_unicode() {
     let input = "# Heading\n\n- item\n\n> quote\n\n---\n\n- [x] done\n";
-    let (stdout, _, code) = run_md(
-        &["--no-color", "--no-pager", "-"],
-        Some(input),
-    );
+    let (stdout, _, code) = run_md(&["--no-color", "--no-pager", "-"], Some(input));
     assert_eq!(code, 0);
     assert!(stdout.contains('═'), "h1 should have ═ underline: {stdout}");
     assert!(stdout.contains('•'), "bullet should be •: {stdout}");
     assert!(stdout.contains('│'), "blockquote should use │: {stdout}");
     assert!(stdout.contains('─'), "hr should use ─: {stdout}");
     assert!(stdout.contains('☑'), "checked task should use ☑: {stdout}");
-    assert!(!stdout.contains("**"), "pretty should not have ** delimiters: {stdout}");
-    assert!(!stdout.contains("~~"), "pretty should not have ~~ delimiters: {stdout}");
+    assert!(
+        !stdout.contains("**"),
+        "pretty should not have ** delimiters: {stdout}"
+    );
+    assert!(
+        !stdout.contains("~~"),
+        "pretty should not have ~~ delimiters: {stdout}"
+    );
 }
 
 #[test]
@@ -169,7 +172,10 @@ fn test_pretty_fixtures() {
             Some(&input),
         );
 
-        assert_eq!(code, 0, "pretty fixture {stem} exited with {code}: {stderr}");
+        assert_eq!(
+            code, 0,
+            "pretty fixture {stem} exited with {code}: {stderr}"
+        );
         assert_eq!(
             stdout.trim_end(),
             expected,

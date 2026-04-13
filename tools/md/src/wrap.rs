@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use tui::ansi::AnsiState;
 use unicode_width::UnicodeWidthChar;
 
-pub use tui::ansi::{split_ansi, strip_ansi, wrap_line_for_display, ANSI_RE};
 pub use tui::ansi::visible_width as visible_length;
+pub use tui::ansi::{ANSI_RE, split_ansi, strip_ansi, wrap_line_for_display};
 
 static BACKTICK_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"((?:\x1b\[[0-9;]*m)*`(?:\x1b\[[0-9;]*m)*)$").unwrap());
@@ -191,8 +191,7 @@ pub fn wrap_line_greedy(line: &str, width: usize) -> Vec<String> {
                             results.push(line_to_save);
                         }
                         let pulled_trimmed = pulled.trim_start();
-                        current_line =
-                            format!("{}{pulled_trimmed}{word}", state.to_codes());
+                        current_line = format!("{}{pulled_trimmed}{word}", state.to_codes());
                         current_width = visible_length(pulled_trimmed) + word_vis;
                         continue;
                     }
@@ -413,7 +412,12 @@ mod tests {
             assert!(
                 visible != ")" && visible != ")," && visible != "]",
                 "Short text, Line {i} has only a closing bracket: {visible:?}\nFull output:\n{}",
-                lines.iter().enumerate().map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l))).collect::<Vec<_>>().join("\n")
+                lines
+                    .iter()
+                    .enumerate()
+                    .map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l)))
+                    .collect::<Vec<_>>()
+                    .join("\n")
             );
         }
 
@@ -429,7 +433,12 @@ mod tests {
                 assert!(
                     visible != ")" && visible != ")," && visible != "]",
                     "Width {w}, Line {i} has only a closing bracket: {visible:?}\nFull output:\n{}",
-                    lines.iter().enumerate().map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l))).collect::<Vec<_>>().join("\n")
+                    lines
+                        .iter()
+                        .enumerate()
+                        .map(|(j, l)| format!("  [{j}] {:?} (vis: {:?})", l, strip_ansi(l)))
+                        .collect::<Vec<_>>()
+                        .join("\n")
                 );
             }
         }
@@ -458,7 +467,8 @@ mod tests {
     fn test_force_break_multibyte_chars() {
         // Box-drawing characters are 3 bytes each but 1 visible width.
         // Force-breaking must respect char boundaries.
-        let line = "┌─────────┬───────────────────────────────────────────────┬─────────┬────────────────";
+        let line =
+            "┌─────────┬───────────────────────────────────────────────┬─────────┬────────────────";
         let result = wrap_line_greedy(line, 40);
         for (i, chunk) in result.iter().enumerate() {
             assert!(

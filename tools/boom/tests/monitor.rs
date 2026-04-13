@@ -1,4 +1,4 @@
-use boom::monitor::{is_ready, ResourceState};
+use boom::monitor::{ResourceState, is_ready};
 use serde_json::json;
 
 #[test]

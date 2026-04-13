@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 
 use md::highlight::highlight_code;
 use md::pager::find_matches;
@@ -238,9 +238,7 @@ fn bench_find_matches(c: &mut Criterion) {
             if i % 50 == 0 {
                 format!("## Section {}", i / 50)
             } else if i % 10 == 0 {
-                format!(
-                    "The quick brown fox jumps over the lazy dog. Line {i}."
-                )
+                format!("The quick brown fox jumps over the lazy dog. Line {i}.")
             } else {
                 format!(
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \

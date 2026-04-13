@@ -1,4 +1,4 @@
-use boom::manifest::{parse_manifests, priority_tier, sort_by_priority, ResourceDescriptor};
+use boom::manifest::{ResourceDescriptor, parse_manifests, priority_tier, sort_by_priority};
 
 #[test]
 fn parse_single_doc() {
@@ -37,7 +37,11 @@ metadata:
   name: creds
 "#;
     let resources = parse_manifests(yaml);
-    assert_eq!(resources.len(), 3, "blank section between separators should be skipped");
+    assert_eq!(
+        resources.len(),
+        3,
+        "blank section between separators should be skipped"
+    );
 }
 
 #[test]
@@ -87,6 +91,12 @@ fn sort_priority() {
     assert_eq!(resources[0].kind, "Namespace", "tier 0 should come first");
     assert_eq!(resources[1].kind, "ConfigMap", "tier 1 should come second");
     assert_eq!(resources[2].kind, "Deployment", "tier 2 should come last");
-    assert_eq!(resources[2].name, "web", "stable sort preserves relative order of Deployments");
-    assert_eq!(resources[3].name, "api", "second Deployment keeps its position");
+    assert_eq!(
+        resources[2].name, "web",
+        "stable sort preserves relative order of Deployments"
+    );
+    assert_eq!(
+        resources[3].name, "api",
+        "second Deployment keeps its position"
+    );
 }
