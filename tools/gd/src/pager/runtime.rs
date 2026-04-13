@@ -1,7 +1,10 @@
 use std::io::{self, Write};
 use std::time::{Duration, Instant, SystemTime};
 
-use crossterm::event::{self, Event, KeyEventKind, KeyboardEnhancementFlags, PushKeyboardEnhancementFlags, PopKeyboardEnhancementFlags};
+use crossterm::event::{
+    self, Event, KeyEventKind, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
+    PushKeyboardEnhancementFlags,
+};
 
 use tui::pager::{
     ALT_SCREEN_OFF, ALT_SCREEN_ON, CURSOR_HIDE, CURSOR_SHOW, Key, crossterm_to_key, get_term_size,
@@ -11,9 +14,9 @@ use crate::git::diff::DiffFile;
 
 use super::reducer::handle_key;
 use super::rendering::{content_height, render_screen};
-use super::state::{DiffContext, ReducerCtx, capture_view_anchor, remap_after_document_swap};
-use super::state::{Document, PagerState};
-use super::tree::build_tree_entries;
+use super::state::{DiffContext, ReducerCtx};
+use super::state::{Document, PagerState, capture_view_anchor, remap_after_document_swap};
+use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
 use super::types::KeyResult;
 
 fn gd_debug_enabled() -> bool {
@@ -47,13 +50,23 @@ fn debug_trace(location: &str, message: &str, data: &str) {
 
 /// Terminal columns adjusted for scrollbar (full_context reserves 1 column).
 fn effective_terminal_cols(cols: usize, full_context: bool) -> usize {
-    if full_context { cols.saturating_sub(1) } else { cols }
+    if full_context {
+        cols.saturating_sub(1)
+    } else {
+        cols
+    }
 }
 
 /// Compute the diff area width for the initial render, accounting for tree
 /// panel and scrollbar. Avoids a redundant Phase 2 relayout after startup.
-fn initial_render_width(cols: u16, tree_entries: &[super::tree::TreeEntry], file_count: usize, full_context: bool) -> usize {
+fn initial_render_width(
+    cols: u16,
+    tree_entries: &[super::tree::TreeEntry],
+    file_count: usize,
+    full_context: bool,
+) -> usize {
     use super::tree::{compute_tree_width, resolve_tree_layout};
+
     let effective = effective_terminal_cols(cols as usize, full_context);
     let content_width = compute_tree_width(tree_entries);
     let has_dirs = tree_entries.iter().any(|e| e.file_idx.is_none());
@@ -64,11 +77,7 @@ fn initial_render_width(cols: u16, tree_entries: &[super::tree::TreeEntry], file
 }
 
 /// Emit a per-keystroke timing trace (only when `GD_DEBUG=1`).
-fn trace_keystroke(
-    key: Key,
-    key_dur: Duration,
-    render_dur: Duration,
-) {
+fn trace_keystroke(key: Key, key_dur: Duration, render_dur: Duration) {
     let total = key_dur + render_dur;
     debug_trace(
         "runtime:keystroke",
@@ -131,39 +140,50 @@ pub(crate) fn resolve_path_for_editor(path: &str, repo: &std::path::Path) -> std
     }
 }
 
-pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
-    let anchor = capture_view_anchor(state);
+#[derive(Clone, Copy)]
+enum RenderMode {
+    Relayout,
+    Full,
+}
 
-    // Pre-resolve tree layout so diff_area_width uses the final tree_width.
-    // Without this, the diff would be rendered at the old tree_width and then
-    // remap_after_document_swap would recalculate tree_width, causing overflow.
-    if !files.is_empty() {
-        use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
-        let entries = build_tree_entries(files);
-        let content_width = compute_tree_width(&entries);
-        let has_directories = entries.iter().any(|e| e.file_idx.is_none());
-        let file_count = state.doc.file_count().max(files.len());
-        // Account for scrollbar column when full_context is active
-        let effective_cols = if state.full_context {
-            (cols as usize).saturating_sub(1)
-        } else {
-            cols as usize
-        };
-        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
-            if state.tree_visible {
-                state.tree_width = w;
-                state.tree_entries = entries;
-            } else if !state.tree_user_hidden {
-                // Auto-show: terminal widened enough for the tree
-                state.tree_visible = true;
-                state.tree_width = w;
-                state.tree_entries = entries;
-            }
-        } else if state.tree_visible {
-            state.tree_visible = false;
-            state.tree_width = 0;
-        }
+fn sync_tree_layout(state: &mut PagerState, files: &[DiffFile], cols: u16) {
+    if files.is_empty() {
+        return;
     }
+
+    let entries = build_tree_entries(files);
+    let content_width = compute_tree_width(&entries);
+    let has_directories = entries.iter().any(|e| e.file_idx.is_none());
+    let file_count = state.doc.file_count().max(files.len());
+    let effective_cols = effective_terminal_cols(cols as usize, state.full_context);
+
+    if let Some(width) =
+        resolve_tree_layout(content_width, effective_cols, has_directories, file_count)
+    {
+        if state.tree_visible {
+            state.tree_width = width;
+            state.tree_entries = entries;
+        } else if !state.tree_user_hidden {
+            state.tree_visible = true;
+            state.tree_width = width;
+            state.tree_entries = entries;
+        }
+    } else if state.tree_visible {
+        state.tree_visible = false;
+        state.tree_width = 0;
+    }
+}
+
+fn rerender_document(
+    state: &mut PagerState,
+    files: &[DiffFile],
+    color: bool,
+    cols: u16,
+    mode: RenderMode,
+    trace_location: &str,
+) {
+    let anchor = capture_view_anchor(state);
+    sync_tree_layout(state, files, cols);
 
     let width = super::rendering::diff_area_width(
         cols,
@@ -171,64 +191,43 @@ pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool,
         state.tree_visible,
         state.full_context,
     );
-    // Relayout: reuse Phase 1 styled content, only redo Phase 2 (wrapping/gutters)
-    let styled_files = std::mem::take(&mut state.doc.styled_files);
-    let output = crate::render::relayout(styled_files, width, color);
+    let output = match mode {
+        RenderMode::Relayout => {
+            let styled_files = std::mem::take(&mut state.doc.styled_files);
+            crate::render::relayout(styled_files, width, color)
+        }
+        RenderMode::Full => crate::render::render(files, width, color),
+    };
     let new_doc = Document::from_render_output(output);
     remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
 
     debug_trace(
-        "runtime:re_render",
-        "post rerender state",
+        trace_location,
+        "post render state",
         &format_debug_state(state),
+    );
+}
+
+pub(crate) fn re_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
+    rerender_document(
+        state,
+        files,
+        color,
+        cols,
+        RenderMode::Relayout,
+        "runtime:re_render",
     );
 }
 
 /// Full render: re-style and relayout (for content changes).
 pub(crate) fn full_render(state: &mut PagerState, files: &[DiffFile], color: bool, cols: u16) {
-    let anchor = capture_view_anchor(state);
-
-    // Pre-resolve tree layout so diff_area_width uses the final tree_width.
-    if !files.is_empty() {
-        use super::tree::{build_tree_entries, compute_tree_width, resolve_tree_layout};
-        let entries = build_tree_entries(files);
-        let content_width = compute_tree_width(&entries);
-        let has_directories = entries.iter().any(|e| e.file_idx.is_none());
-        let file_count = state.doc.file_count().max(files.len());
-        let effective_cols = if state.full_context {
-            (cols as usize).saturating_sub(1)
-        } else {
-            cols as usize
-        };
-        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
-            if state.tree_visible {
-                state.tree_width = w;
-                state.tree_entries = entries;
-            } else if !state.tree_user_hidden {
-                state.tree_visible = true;
-                state.tree_width = w;
-                state.tree_entries = entries;
-            }
-        } else if state.tree_visible {
-            state.tree_visible = false;
-            state.tree_width = 0;
-        }
-    }
-
-    let width = super::rendering::diff_area_width(
+    rerender_document(
+        state,
+        files,
+        color,
         cols,
-        state.tree_width,
-        state.tree_visible,
-        state.full_context,
-    );
-    let output = crate::render::render(files, width, color);
-    let new_doc = Document::from_render_output(output);
-    remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
-
-    debug_trace(
+        RenderMode::Full,
         "runtime:full_render",
-        "post full_render state",
-        &format_debug_state(state),
     );
 }
 
@@ -256,6 +255,57 @@ fn regenerate_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile>
     files
 }
 
+fn initialize_pager_state(
+    files: &[DiffFile],
+    color: bool,
+    use_full_context: bool,
+    cols: u16,
+    rows: u16,
+) -> PagerState {
+    let tree_entries = build_tree_entries(files);
+    let effective_cols = effective_terminal_cols(cols as usize, use_full_context);
+    let render_width = initial_render_width(cols, &tree_entries, files.len(), use_full_context);
+
+    let output = crate::render::render(files, render_width, color);
+    let doc = Document::from_render_output(output);
+    let mut state = PagerState::from_doc(doc, tree_entries, effective_cols);
+    state.full_context = use_full_context;
+    state.view_scope =
+        super::state::default_view_scope(files.len(), state.doc.line_count(), rows as usize);
+    state
+}
+
+fn reducer_ctx<'a>(
+    state: &PagerState,
+    files: &'a [DiffFile],
+    diff_ctx: &'a DiffContext,
+    cols: u16,
+    rows: u16,
+) -> ReducerCtx<'a> {
+    ReducerCtx {
+        content_height: content_height(rows, state),
+        rows,
+        cols,
+        files,
+        repo: &diff_ctx.repo,
+        source: &diff_ctx.source,
+    }
+}
+
+fn refresh_files_and_render(
+    files: &mut Vec<DiffFile>,
+    state: &mut PagerState,
+    diff_ctx: &DiffContext,
+    color: bool,
+    cols: u16,
+) -> bool {
+    *files = regenerate_files(diff_ctx, state.full_context);
+    if files.is_empty() {
+        return false;
+    }
+    full_render(state, files, color, cols);
+    true
+}
 
 pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     let mut keys = Vec::new();
@@ -317,7 +367,12 @@ pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     keys
 }
 
-pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff_ctx: &DiffContext) {
+pub fn run_pager(
+    files: Vec<DiffFile>,
+    color: bool,
+    use_full_context: bool,
+    diff_ctx: &DiffContext,
+) {
     let t0 = std::time::Instant::now();
     let mut files = files;
     let mut stdout = io::BufWriter::new(io::stdout());
@@ -341,37 +396,15 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
     }));
 
     let mut last_size = get_term_size();
-
-    // Pre-compute tree layout so we render at the final width upfront,
-    // avoiding a redundant Phase 2 relayout.
-    let tree_entries = build_tree_entries(&files);
-    let effective_cols = effective_terminal_cols(last_size.0 as usize, use_full_context);
-    let render_width = initial_render_width(last_size.0, &tree_entries, files.len(), use_full_context);
-
-    let output = crate::render::render(&files, render_width, color);
+    let mut state =
+        initialize_pager_state(&files, color, use_full_context, last_size.0, last_size.1);
     crate::debug::trace("pager", "post-render", t0);
 
-    let doc = Document::from_render_output(output);
-    let mut state = PagerState::from_doc(doc, tree_entries, effective_cols);
-    state.full_context = use_full_context;
-
-    // Startup heuristic: decide view scope from rendered output size
-    let view_scope = super::state::default_view_scope(
-        files.len(),
-        state.doc.line_count(),
-        last_size.1 as usize,
-    );
-    state.view_scope = view_scope;
-
     render_screen(&mut stdout, &state, last_size.0, last_size.1);
-
     debug_trace(
         "runtime:render_screen",
         "post initial render",
-        &format!(
-            "{{\"totalLines\":{}}}",
-            state.doc.line_count()
-        ),
+        &format!("{{\"totalLines\":{}}}", state.doc.line_count()),
     );
 
     let mut last_index_mtime = git_index_mtime(&diff_ctx.repo);
@@ -396,11 +429,15 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
                     let current_mtime = git_index_mtime(&diff_ctx.repo);
                     if current_mtime != last_index_mtime {
                         last_index_mtime = current_mtime;
-                        files = regenerate_files(diff_ctx, state.full_context);
-                        if files.is_empty() {
+                        if !refresh_files_and_render(
+                            &mut files,
+                            &mut state,
+                            diff_ctx,
+                            color,
+                            last_size.0,
+                        ) {
                             break;
                         }
-                        full_render(&mut state, &files, color, last_size.0);
                         needs_render = true;
                     }
                 }
@@ -425,19 +462,12 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
             _ => continue,
         };
 
-        let ch = content_height(last_size.1, &state);
-        let ctx = ReducerCtx {
-            content_height: ch,
-            rows: last_size.1,
-            cols: last_size.0,
-            files: &files,
-            repo: &diff_ctx.repo,
-            source: &diff_ctx.source,
-        };
+        let ctx = reducer_ctx(&state, &files, diff_ctx, last_size.0, last_size.1);
         let debug = gd_debug_enabled();
         let t_key_start = Instant::now();
         let result = handle_key(&mut state, key, &ctx);
         let key_dur = t_key_start.elapsed();
+
         match result {
             KeyResult::Quit => break,
             KeyResult::ReRender => {
@@ -454,11 +484,9 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
                         files.len()
                     ),
                 );
-                files = regenerate_files(diff_ctx, state.full_context);
-                if files.is_empty() {
+                if !refresh_files_and_render(&mut files, &mut state, diff_ctx, color, last_size.0) {
                     break;
                 }
-                full_render(&mut state, &files, color, last_size.0);
                 last_index_mtime = git_index_mtime(&diff_ctx.repo);
                 let base = format_debug_state(&state);
                 debug_trace(
@@ -484,14 +512,16 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
                 let _ = crossterm::terminal::enable_raw_mode();
                 last_size = get_term_size();
 
-                files = regenerate_files(diff_ctx, state.full_context);
-                if files.is_empty() {
+                if !refresh_files_and_render(&mut files, &mut state, diff_ctx, color, last_size.0) {
                     break;
                 }
-                full_render(&mut state, &files, color, last_size.0);
                 last_index_mtime = git_index_mtime(&diff_ctx.repo);
             }
-            KeyResult::ApplyPatch { patch, cached, reverse } => {
+            KeyResult::ApplyPatch {
+                patch,
+                cached,
+                reverse,
+            } => {
                 let apply_result = if cached && !reverse {
                     crate::git::stage_patch(&diff_ctx.repo, &patch)
                 } else if cached && reverse {
@@ -501,23 +531,26 @@ pub fn run_pager(files: Vec<DiffFile>, color: bool, use_full_context: bool, diff
                 };
                 match apply_result {
                     Ok(()) => {
-                        files = regenerate_files(diff_ctx, state.full_context);
-                        if files.is_empty() {
+                        if !refresh_files_and_render(
+                            &mut files,
+                            &mut state,
+                            diff_ctx,
+                            color,
+                            last_size.0,
+                        ) {
                             break;
                         }
-                        full_render(&mut state, &files, color, last_size.0);
                         last_index_mtime = git_index_mtime(&diff_ctx.repo);
                     }
                     Err(e) => {
-                        state.status_message = format!(
-                            "Apply failed: {}",
-                            e.lines().next().unwrap_or(&e)
-                        );
+                        state.status_message =
+                            format!("Apply failed: {}", e.lines().next().unwrap_or(&e));
                     }
                 }
             }
             KeyResult::Continue => {}
         }
+
         let t_render_start = Instant::now();
         render_screen(&mut stdout, &state, last_size.0, last_size.1);
         let render_dur = t_render_start.elapsed();
@@ -551,26 +584,8 @@ pub fn run_pager_replay(
     let t0 = std::time::Instant::now();
     let mut files = files;
     let mut sink = Vec::<u8>::with_capacity(64 * 1024);
-
-    // Pre-compute tree layout so we render at the final width upfront,
-    // avoiding a redundant Phase 2 relayout.
-    let tree_entries = build_tree_entries(&files);
-    let effective_cols = effective_terminal_cols(cols as usize, use_full_context);
-    let render_width = initial_render_width(cols, &tree_entries, files.len(), use_full_context);
-
-    let output = crate::render::render(&files, render_width, color);
+    let mut state = initialize_pager_state(&files, color, use_full_context, cols, rows);
     crate::debug::trace("pager", "post-render", t0);
-
-    let doc = Document::from_render_output(output);
-    let mut state = PagerState::from_doc(doc, tree_entries, effective_cols);
-    state.full_context = use_full_context;
-
-    let view_scope = super::state::default_view_scope(
-        files.len(),
-        state.doc.line_count(),
-        rows as usize,
-    );
-    state.view_scope = view_scope;
 
     render_screen(&mut sink, &state, cols, rows);
     sink.clear();
@@ -589,15 +604,7 @@ pub fn run_pager_replay(
     let parsed_keys = parse_replay_keys(keys_str);
 
     for key in parsed_keys {
-        let ch = content_height(rows, &state);
-        let ctx = ReducerCtx {
-            content_height: ch,
-            rows,
-            cols,
-            files: &files,
-            repo: &diff_ctx.repo,
-            source: &diff_ctx.source,
-        };
+        let ctx = reducer_ctx(&state, &files, diff_ctx, cols, rows);
         let debug = gd_debug_enabled();
         let t_key_start = Instant::now();
         let result = handle_key(&mut state, key, &ctx);
@@ -609,11 +616,9 @@ pub fn run_pager_replay(
                 re_render(&mut state, &files, color, cols);
             }
             KeyResult::ReGenerate => {
-                files = regenerate_files(diff_ctx, state.full_context);
-                if files.is_empty() {
+                if !refresh_files_and_render(&mut files, &mut state, diff_ctx, color, cols) {
                     break;
                 }
-                full_render(&mut state, &files, color, cols);
             }
             KeyResult::OpenEditor { .. } => {
                 debug_trace("runtime:replay", "skipping OpenEditor in replay mode", "{}");

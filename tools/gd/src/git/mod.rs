@@ -255,7 +255,9 @@ fn apply_patch_raw(repo: &Path, extra_args: &[&str], patch: &str) -> Result<(), 
         .map_err(|e| e.to_string())?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(patch.as_bytes()).map_err(|e| e.to_string())?;
+        stdin
+            .write_all(patch.as_bytes())
+            .map_err(|e| e.to_string())?;
     }
 
     let out = child.wait_with_output().map_err(|e| e.to_string())?;
@@ -279,6 +281,11 @@ pub(crate) fn revert_patch(repo: &Path, patch: &str) -> Result<(), String> {
 }
 
 #[cfg(test)]
+/// Stages an untracked path in the test repository.
+///
+/// # Errors
+///
+/// Returns the underlying `git add` stderr when staging fails.
 pub fn stage_untracked(repo: &Path, path: &str) -> Result<(), String> {
     let out = Command::new("git")
         .args(["add", path])
@@ -635,7 +642,10 @@ mod tests {
 
         // Verify nothing is staged
         let staged = run_diff(&repo, &["diff", "--cached"]);
-        assert!(staged.is_empty(), "staged diff should be empty after unstage");
+        assert!(
+            staged.is_empty(),
+            "staged diff should be empty after unstage"
+        );
 
         std::fs::remove_dir_all(&repo).expect("cleanup");
     }

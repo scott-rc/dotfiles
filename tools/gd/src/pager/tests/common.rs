@@ -79,7 +79,7 @@ impl From<&PagerState> for StateSnapshot {
             tree_visible: s.tree_visible,
             visual_anchor: s.visual_anchor,
             tooltip_visible: s.tooltip_visible,
-            mode: s.mode.clone(),
+            mode: s.mode,
             status_message: s.status_message.clone(),
             full_context: s.full_context,
         }

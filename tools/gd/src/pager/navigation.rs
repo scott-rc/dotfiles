@@ -99,7 +99,9 @@ pub(crate) fn viewport_bounds(
     let (range_start, range_end) = visible_range(state);
     let max_line = range_end.saturating_sub(1);
     let pad = bottom_padding(state, content_height);
-    let max_top = (range_end + pad).saturating_sub(content_height).max(range_start);
+    let max_top = (range_end + pad)
+        .saturating_sub(content_height)
+        .max(range_start);
     (range_start, range_end, max_line, max_top)
 }
 
@@ -269,8 +271,7 @@ pub(crate) fn tree_next_file(state: &PagerState) -> Option<usize> {
     let pos = tree_cursor_visible_pos(state)?;
     state.tree_visible_to_entry[pos + 1..]
         .iter()
-        .filter_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
-        .next()
+        .find_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
 }
 
 #[cfg(test)]
@@ -279,8 +280,7 @@ pub(crate) fn tree_prev_file(state: &PagerState) -> Option<usize> {
     state.tree_visible_to_entry[..pos]
         .iter()
         .rev()
-        .filter_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
-        .next()
+        .find_map(|&entry_idx| state.tree_entries.get(entry_idx)?.file_idx)
 }
 
 fn move_tree_cursor(state: &mut PagerState, delta: isize, content_height: usize) {

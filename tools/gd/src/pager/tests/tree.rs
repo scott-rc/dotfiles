@@ -12,6 +12,17 @@ use super::super::tree::{
 use super::common::{entry, entry_with_status, make_diff_file, strip};
 use crate::git::diff::DiffFile;
 
+fn assert_precomputed_connectors_match(refs: &[&TreeEntry], start_depth: usize, message: &str) {
+    let precomputed = precompute_connectors(refs, start_depth);
+    for (i, connector) in precomputed.iter().enumerate() {
+        assert_eq!(
+            connector,
+            &compute_connector_prefix(refs, i, start_depth),
+            "{message} at index {i}"
+        );
+    }
+}
+
 #[test]
 fn test_compute_connector_prefix_flat() {
     let entries = [
@@ -55,7 +66,11 @@ fn test_tree_cursor_line_continuous_background() {
     let width = compute_tree_width(&entries);
     let (lines, _) = build_tree_lines(&entries, 0, width, false);
     let cursor_line = &lines[0];
-    let forbidden = format!("{} {}", crate::style::RESET, crate::style::BG_TREE_CURSOR_UNFOCUSED);
+    let forbidden = format!(
+        "{} {}",
+        crate::style::RESET,
+        crate::style::BG_TREE_CURSOR_UNFOCUSED
+    );
     assert!(
         !cursor_line.contains(&forbidden),
         "cursor line has a background gap between icon and label:\n{cursor_line}"
@@ -115,7 +130,10 @@ fn test_compute_tree_width_returns_raw_content_width() {
     // raw formula: (depth + 1) * 4 + 2 + status_extra + label.len() + 2
     // = (0 + 1) * 4 + 2 + 2 + 60 + 2 = 70
     let expected = 4 + 2 + 2 + long_label.len() + 2;
-    assert_eq!(width, expected, "tree width should equal raw content width without capping");
+    assert_eq!(
+        width, expected,
+        "tree width should equal raw content width without capping"
+    );
 }
 
 #[test]
@@ -127,13 +145,21 @@ fn test_resolve_tree_layout_hides_when_no_dirs_and_few_files() {
 #[test]
 fn test_resolve_tree_layout_shows_when_has_directories() {
     let result = resolve_tree_layout(30, 120, true, 2);
-    assert_eq!(result, Some(30), "should show tree at content width when has directories");
+    assert_eq!(
+        result,
+        Some(30),
+        "should show tree at content width when has directories"
+    );
 }
 
 #[test]
 fn test_resolve_tree_layout_shows_when_many_files() {
     let result = resolve_tree_layout(30, 120, false, 4);
-    assert_eq!(result, Some(30), "should show tree at content width when >=4 files");
+    assert_eq!(
+        result,
+        Some(30),
+        "should show tree at content width when >=4 files"
+    );
 }
 
 #[test]
@@ -172,7 +198,10 @@ fn test_resolve_tree_layout_exact_min_tree_width_boundary() {
 fn test_resolve_tree_layout_hides_when_terminal_too_narrow() {
     // terminal_cols=90, allocated = 90 - 80 - 1 = 9, which is < MIN_TREE_WIDTH (15)
     let result = resolve_tree_layout(30, 90, true, 5);
-    assert_eq!(result, None, "should hide when allocated width < MIN_TREE_WIDTH");
+    assert_eq!(
+        result, None,
+        "should hide when allocated width < MIN_TREE_WIDTH"
+    );
 }
 
 #[test]
@@ -713,14 +742,7 @@ fn test_precompute_connectors_matches_flat() {
         entry("c.rs", 0, Some(2)),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    let precomputed = precompute_connectors(&refs, 0);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 0),
-            "mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 0, "mismatch");
 }
 
 #[test]
@@ -732,14 +754,7 @@ fn test_precompute_connectors_matches_nested() {
         entry("README.md", 0, Some(2)),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    let precomputed = precompute_connectors(&refs, 0);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 0),
-            "mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 0, "mismatch");
 }
 
 #[test]
@@ -754,14 +769,7 @@ fn test_precompute_connectors_matches_deeply_nested() {
         entry("README.md", 0, Some(3)),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    let precomputed = precompute_connectors(&refs, 0);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 0),
-            "mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 0, "mismatch");
 }
 
 #[test]
@@ -777,14 +785,7 @@ fn test_precompute_connectors_with_start_depth() {
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
     // start_depth=2 simulates indent scrolling
-    let precomputed = precompute_connectors(&refs, 2);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 2),
-            "mismatch at index {i} with start_depth=2"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 2, "mismatch");
 }
 
 #[test]
@@ -831,14 +832,7 @@ fn test_precompute_connectors_all_directories() {
         entry("tests", 0, None),
     ];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    let precomputed = precompute_connectors(&refs, 0);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 0),
-            "all-directories mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 0, "all-directories mismatch");
 }
 
 #[test]
@@ -855,30 +849,13 @@ fn test_precompute_connectors_mixed_collapsed_expanded() {
     // Collapsed state doesn't affect connector computation (it's about
     // visible entries passed in, not the collapsed field)
     let refs: Vec<&TreeEntry> = entries.iter().collect();
-    let precomputed = precompute_connectors(&refs, 0);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 0),
-            "mixed collapsed/expanded mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 0, "mixed collapsed/expanded mismatch");
 }
 
 #[test]
 fn test_precompute_connectors_start_depth_beyond_all_entries() {
-    let entries = [
-        entry("a.rs", 0, Some(0)),
-        entry("b.rs", 0, Some(1)),
-    ];
+    let entries = [entry("a.rs", 0, Some(0)), entry("b.rs", 0, Some(1))];
     let refs: Vec<&TreeEntry> = entries.iter().collect();
     // start_depth=5, all entries at depth 0 → connector loop is empty
-    let precomputed = precompute_connectors(&refs, 5);
-    for i in 0..refs.len() {
-        assert_eq!(
-            precomputed[i],
-            compute_connector_prefix(&refs, i, 5),
-            "start_depth beyond entries mismatch at index {i}"
-        );
-    }
+    assert_precomputed_connectors_match(&refs, 5, "start_depth beyond entries mismatch");
 }
