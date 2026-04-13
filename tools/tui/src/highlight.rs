@@ -50,6 +50,67 @@ pub fn highlight_line(
     out
 }
 
+/// Syntax-highlight a single line using syntect, returning HTML with inline styles.
+///
+/// Each token becomes `<span style="color:rgb(R,G,B);font-weight:bold">text</span>`.
+/// Text content is HTML-escaped (`<`, `>`, `&`, `"`).
+pub fn highlight_line_html(
+    line: &str,
+    hl: &mut syntect::easy::HighlightLines,
+    ss: &SyntaxSet,
+) -> String {
+    let mut input = String::with_capacity(line.len() + 1);
+    input.push_str(line);
+    input.push('\n');
+    let regions = hl.highlight_line(&input, ss).unwrap_or_default();
+    let mut out = String::new();
+
+    for (style, text) in &regions {
+        let text = text.trim_end_matches('\n');
+        if text.is_empty() {
+            continue;
+        }
+
+        let fg = style.foreground;
+        let bold = style.font_style.contains(FontStyle::BOLD);
+        let italic = style.font_style.contains(FontStyle::ITALIC);
+
+        let mut css = format!("color:rgb({},{},{})", fg.r, fg.g, fg.b);
+        if bold {
+            css.push_str(";font-weight:bold");
+        }
+        if italic {
+            css.push_str(";font-style:italic");
+        }
+
+        let _ = write!(out, "<span style=\"{css}\">");
+        html_escape_into(&mut out, text);
+        out.push_str("</span>");
+    }
+
+    out
+}
+
+/// HTML-escape text into an existing buffer.
+fn html_escape_into(buf: &mut String, s: &str) {
+    for ch in s.chars() {
+        match ch {
+            '&' => buf.push_str("&amp;"),
+            '<' => buf.push_str("&lt;"),
+            '>' => buf.push_str("&gt;"),
+            '"' => buf.push_str("&quot;"),
+            _ => buf.push(ch),
+        }
+    }
+}
+
+/// HTML-escape a string, returning a new `String`.
+pub fn html_escape(s: &str) -> String {
+    let mut buf = String::with_capacity(s.len());
+    html_escape_into(&mut buf, s);
+    buf
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

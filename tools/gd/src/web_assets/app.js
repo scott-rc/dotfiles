@@ -1,0 +1,639 @@
+// gd web — client state machine & rendering
+"use strict";
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const state = {
+  files: [],
+  tree: [],
+  // Flattened line list for the diff pane
+  flatLines: [],    // { type: 'file-header'|'hunk-sep'|'line', fileIdx, hunkIdx, lineIdx, data }
+  fileStarts: [],   // flatLines index where each file begins
+  hunkStarts: [],   // flatLines index where each hunk begins
+  cursorLine: 0,
+  viewScope: 'all', // 'all' | 'single'
+  singleFileIdx: 0,
+  treeFocused: false,
+  treeVisible: true,
+  treeCursor: 0,
+  searchQuery: '',
+  searchMatches: [],
+  searchCurrentIdx: -1,
+  searchActive: false,
+  helpVisible: false,
+  collapsedDirs: new Set(),
+};
+
+// DOM refs
+const treeEl = document.getElementById('tree');
+const diffPane = document.getElementById('diff-pane');
+const statusLeft = document.getElementById('status-left');
+const statusRight = document.getElementById('status-right');
+const searchBar = document.getElementById('search-bar');
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+const helpOverlay = document.getElementById('help-overlay');
+
+// ---------------------------------------------------------------------------
+// WebSocket
+// ---------------------------------------------------------------------------
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === 'DiffData') {
+      state.files = msg.files;
+      state.tree = msg.tree;
+      flattenLines();
+      renderAll();
+    }
+  };
+
+  ws.onclose = () => {
+    setTimeout(connect, 2000);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Flatten diff data into a linear list
+// ---------------------------------------------------------------------------
+function flattenLines() {
+  const flat = [];
+  const fileStarts = [];
+  const hunkStarts = [];
+
+  const files = state.viewScope === 'single'
+    ? [state.files[state.singleFileIdx]].filter(Boolean)
+    : state.files;
+  const fileIndices = state.viewScope === 'single'
+    ? [state.singleFileIdx]
+    : state.files.map((_, i) => i);
+
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    const realIdx = fileIndices[fi];
+    fileStarts.push(flat.length);
+
+    flat.push({
+      type: 'file-header',
+      fileIdx: realIdx,
+      data: file,
+    });
+
+    for (let hi = 0; hi < file.hunks.length; hi++) {
+      const hunk = file.hunks[hi];
+      if (hi > 0) {
+        flat.push({ type: 'hunk-sep', fileIdx: realIdx, hunkIdx: hi });
+      }
+      hunkStarts.push(flat.length);
+
+      for (let li = 0; li < hunk.lines.length; li++) {
+        flat.push({
+          type: 'line',
+          fileIdx: realIdx,
+          hunkIdx: hi,
+          lineIdx: li,
+          data: hunk.lines[li],
+        });
+      }
+    }
+  }
+
+  state.flatLines = flat;
+  state.fileStarts = fileStarts;
+  state.hunkStarts = hunkStarts;
+
+  // Clamp cursor
+  if (state.cursorLine >= flat.length) {
+    state.cursorLine = Math.max(0, flat.length - 1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+const STATUS_LABELS = {
+  modified: 'Modified', added: 'Added', deleted: 'Deleted',
+  renamed: 'Renamed', untracked: 'Untracked',
+};
+const STATUS_ABBREV = {
+  modified: 'M', added: 'A', deleted: 'D',
+  renamed: 'R', untracked: '?',
+};
+
+function renderAll() {
+  renderTree();
+  renderDiff();
+  renderStatus();
+}
+
+// ---------- Tree ----------
+function renderTree() {
+  if (!state.treeVisible) {
+    treeEl.classList.add('hidden');
+    return;
+  }
+  treeEl.classList.remove('hidden');
+
+  const visible = getVisibleTree();
+  let html = '';
+  for (let i = 0; i < visible.length; i++) {
+    const entry = visible[i];
+    const isActive = i === state.treeCursor;
+    const isFocused = state.treeFocused;
+    const indent = '&nbsp;'.repeat(entry.depth * 3);
+    const cls = [
+      'tree-entry',
+      entry.is_dir ? 'dir' : '',
+      isActive ? (isFocused ? 'active' : 'active unfocused') : '',
+    ].filter(Boolean).join(' ');
+
+    let statusHtml = '';
+    if (entry.status && !entry.is_dir) {
+      const abbr = STATUS_ABBREV[entry.status] || '';
+      statusHtml = `<span class="tree-status status-${entry.status}">${abbr}</span>`;
+    }
+
+    const icon = entry.is_dir
+      ? (entry.collapsed ? '&#xf4d8;' : '&#xf413;')
+      : '&#xf15b;';
+
+    html += `<div class="${cls}" data-tree-idx="${i}">`;
+    html += `<span class="tree-guide">${indent}</span>`;
+    html += `<span class="tree-icon">${icon}</span>`;
+    html += statusHtml;
+    html += `<span class="tree-label">${escapeHtml(entry.label)}</span>`;
+    html += `</div>`;
+  }
+  treeEl.innerHTML = html;
+
+  // Scroll active into view
+  const activeEl = treeEl.querySelector('.tree-entry.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+}
+
+function getVisibleTree() {
+  const result = [];
+  let skipDepth = null;
+  for (const entry of state.tree) {
+    if (skipDepth !== null && entry.depth > skipDepth) continue;
+    skipDepth = null;
+
+    const dirKey = treeDirKey(entry);
+    const isCollapsed = entry.is_dir && (state.collapsedDirs.has(dirKey) || entry.collapsed);
+    result.push({ ...entry, collapsed: isCollapsed });
+    if (isCollapsed) {
+      skipDepth = entry.depth;
+    }
+  }
+  return result;
+}
+
+function treeDirKey(entry) {
+  return `${entry.depth}:${entry.label}`;
+}
+
+// ---------- Diff ----------
+function renderDiff() {
+  const flat = state.flatLines;
+  // For performance we render into a document fragment
+  const frag = document.createDocumentFragment();
+
+  for (let i = 0; i < flat.length; i++) {
+    const item = flat[i];
+
+    if (item.type === 'file-header') {
+      const div = document.createElement('div');
+      div.className = 'file-header';
+      div.dataset.flatIdx = i;
+      const file = item.data;
+      const label = STATUS_LABELS[file.status] || file.status;
+      div.innerHTML = `${escapeHtml(file.path)}<span class="file-status">(${label})</span>`;
+      div.addEventListener('click', () => {
+        state.singleFileIdx = item.fileIdx;
+        state.viewScope = 'single';
+        state.cursorLine = 0;
+        flattenLines();
+        renderAll();
+      });
+      frag.appendChild(div);
+    } else if (item.type === 'hunk-sep') {
+      const div = document.createElement('div');
+      div.className = 'hunk-sep';
+      frag.appendChild(div);
+    } else {
+      const line = item.data;
+      const div = document.createElement('div');
+      const kindCls = line.kind === 'added' ? 'line-added'
+        : line.kind === 'deleted' ? 'line-deleted' : '';
+      div.className = `diff-line ${kindCls}`;
+      if (i === state.cursorLine) div.classList.add('cursor-line');
+      div.dataset.flatIdx = i;
+
+      const marker = line.kind === 'added' ? '+' : line.kind === 'deleted' ? '-' : ' ';
+      const oldNo = line.old_lineno != null ? line.old_lineno : '';
+      const newNo = line.new_lineno != null ? line.new_lineno : '';
+
+      div.innerHTML =
+        `<div class="gutter">` +
+          `<span class="gutter-old">${oldNo}</span>` +
+          `<span class="gutter-sep">│</span>` +
+          `<span class="gutter-new">${newNo}</span>` +
+          `<span class="gutter-sep">│</span>` +
+        `</div>` +
+        `<div class="marker">${marker}</div>` +
+        `<div class="line-content">${line.content_html || escapeHtml(line.raw_content)}</div>`;
+
+      frag.appendChild(div);
+    }
+  }
+
+  diffPane.innerHTML = '';
+  diffPane.appendChild(frag);
+
+  scrollCursorIntoView();
+}
+
+function scrollCursorIntoView() {
+  const el = diffPane.querySelector('.cursor-line');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+// ---------- Status bar ----------
+function renderStatus() {
+  let left = '';
+  if (state.viewScope === 'single') {
+    const file = state.files[state.singleFileIdx];
+    if (file) {
+      const total = state.files.length;
+      const idx = state.singleFileIdx + 1;
+      left = `<span style="opacity:0.5">${escapeHtml(file.path)}</span> <span>‹ ${idx}/${total} ›</span>`;
+    }
+  } else {
+    left = `${state.files.length} file${state.files.length !== 1 ? 's' : ''}`;
+  }
+  statusLeft.innerHTML = left;
+
+  const total = state.flatLines.length;
+  const pos = total === 0 ? '' :
+    state.cursorLine === 0 ? 'TOP' :
+    state.cursorLine >= total - 1 ? 'END' :
+    Math.round((state.cursorLine / (total - 1)) * 100) + '%';
+  statusRight.textContent = pos;
+}
+
+// ---------------------------------------------------------------------------
+// Keyboard navigation
+// ---------------------------------------------------------------------------
+function moveCursor(delta) {
+  const newPos = Math.max(0, Math.min(state.flatLines.length - 1, state.cursorLine + delta));
+  setCursor(newPos);
+}
+
+function setCursor(pos) {
+  const old = diffPane.querySelector('.cursor-line');
+  if (old) old.classList.remove('cursor-line');
+
+  state.cursorLine = Math.max(0, Math.min(state.flatLines.length - 1, pos));
+
+  // Skip headers/separators
+  const item = state.flatLines[state.cursorLine];
+  if (item && item.type !== 'line') {
+    // Try to find the next content line
+    for (let i = state.cursorLine + 1; i < state.flatLines.length; i++) {
+      if (state.flatLines[i].type === 'line') {
+        state.cursorLine = i;
+        break;
+      }
+    }
+  }
+
+  const el = diffPane.querySelector(`[data-flat-idx="${state.cursorLine}"]`);
+  if (el) {
+    el.classList.add('cursor-line');
+    el.scrollIntoView({ block: 'nearest' });
+  }
+  renderStatus();
+}
+
+function pageHeight() {
+  return Math.floor(diffPane.clientHeight / 20); // 20px line height
+}
+
+function jumpNextHunk() {
+  for (const hs of state.hunkStarts) {
+    if (hs > state.cursorLine) {
+      setCursor(hs);
+      return;
+    }
+  }
+}
+
+function jumpPrevHunk() {
+  for (let i = state.hunkStarts.length - 1; i >= 0; i--) {
+    if (state.hunkStarts[i] < state.cursorLine) {
+      setCursor(state.hunkStarts[i]);
+      return;
+    }
+  }
+}
+
+function jumpNextFile() {
+  if (state.viewScope === 'single') {
+    if (state.singleFileIdx < state.files.length - 1) {
+      state.singleFileIdx++;
+      state.cursorLine = 0;
+      flattenLines();
+      renderAll();
+    }
+    return;
+  }
+  for (const fs of state.fileStarts) {
+    if (fs > state.cursorLine) {
+      setCursor(fs);
+      return;
+    }
+  }
+}
+
+function jumpPrevFile() {
+  if (state.viewScope === 'single') {
+    if (state.singleFileIdx > 0) {
+      state.singleFileIdx--;
+      state.cursorLine = 0;
+      flattenLines();
+      renderAll();
+    }
+    return;
+  }
+  for (let i = state.fileStarts.length - 1; i >= 0; i--) {
+    if (state.fileStarts[i] < state.cursorLine) {
+      setCursor(state.fileStarts[i]);
+      return;
+    }
+  }
+}
+
+function toggleSingleFile() {
+  if (state.viewScope === 'single') {
+    state.viewScope = 'all';
+  } else {
+    // Find which file the cursor is in
+    const item = state.flatLines[state.cursorLine];
+    if (item) state.singleFileIdx = item.fileIdx;
+    state.viewScope = 'single';
+  }
+  state.cursorLine = 0;
+  flattenLines();
+  renderAll();
+}
+
+function toggleTree() {
+  state.treeVisible = !state.treeVisible;
+  renderTree();
+}
+
+function toggleTreeFocus() {
+  if (!state.treeVisible) {
+    state.treeVisible = true;
+  }
+  state.treeFocused = !state.treeFocused;
+  renderTree();
+}
+
+function centerCursor() {
+  const el = diffPane.querySelector('.cursor-line');
+  if (el) el.scrollIntoView({ block: 'center' });
+}
+
+// ---------- Tree navigation ----------
+function treeMoveCursor(delta) {
+  const visible = getVisibleTree();
+  state.treeCursor = Math.max(0, Math.min(visible.length - 1, state.treeCursor + delta));
+  renderTree();
+}
+
+function treeSelect() {
+  const visible = getVisibleTree();
+  const entry = visible[state.treeCursor];
+  if (!entry) return;
+
+  if (entry.is_dir) {
+    treeToggleCollapse();
+  } else if (entry.file_idx != null) {
+    state.singleFileIdx = entry.file_idx;
+    state.viewScope = 'single';
+    state.cursorLine = 0;
+    flattenLines();
+    renderAll();
+  }
+}
+
+function treeToggleCollapse() {
+  const visible = getVisibleTree();
+  const entry = visible[state.treeCursor];
+  if (!entry || !entry.is_dir) return;
+
+  const key = treeDirKey(entry);
+  if (state.collapsedDirs.has(key)) {
+    state.collapsedDirs.delete(key);
+  } else {
+    state.collapsedDirs.add(key);
+  }
+  renderTree();
+}
+
+// ---------- Search ----------
+function openSearch() {
+  state.searchActive = true;
+  searchBar.classList.add('visible');
+  searchInput.value = state.searchQuery;
+  searchInput.focus();
+  searchInput.select();
+}
+
+function closeSearch() {
+  state.searchActive = false;
+  searchBar.classList.remove('visible');
+  searchInput.blur();
+  state.searchMatches = [];
+  state.searchCurrentIdx = -1;
+  searchCount.textContent = '';
+  // Remove search highlighting
+  diffPane.querySelectorAll('.search-match').forEach(el => {
+    el.outerHTML = el.innerHTML;
+  });
+}
+
+function submitSearch() {
+  const query = searchInput.value.trim();
+  if (!query) {
+    closeSearch();
+    return;
+  }
+  state.searchQuery = query;
+  performSearch();
+  if (state.searchMatches.length > 0) {
+    state.searchCurrentIdx = 0;
+    scrollToMatch(0);
+  }
+  updateSearchCount();
+  searchInput.blur();
+}
+
+function performSearch() {
+  state.searchMatches = [];
+  const query = state.searchQuery.toLowerCase();
+
+  for (let i = 0; i < state.flatLines.length; i++) {
+    const item = state.flatLines[i];
+    if (item.type === 'line' && item.data.raw_content.toLowerCase().includes(query)) {
+      state.searchMatches.push(i);
+    }
+  }
+}
+
+function scrollToMatch(matchIdx) {
+  if (matchIdx < 0 || matchIdx >= state.searchMatches.length) return;
+  state.searchCurrentIdx = matchIdx;
+  const flatIdx = state.searchMatches[matchIdx];
+  setCursor(flatIdx);
+  updateSearchCount();
+}
+
+function nextMatch() {
+  if (state.searchMatches.length === 0) return;
+  const next = (state.searchCurrentIdx + 1) % state.searchMatches.length;
+  scrollToMatch(next);
+}
+
+function prevMatch() {
+  if (state.searchMatches.length === 0) return;
+  const prev = (state.searchCurrentIdx - 1 + state.searchMatches.length) % state.searchMatches.length;
+  scrollToMatch(prev);
+}
+
+function updateSearchCount() {
+  if (state.searchMatches.length === 0) {
+    searchCount.textContent = 'No matches';
+  } else {
+    searchCount.textContent = `${state.searchCurrentIdx + 1} / ${state.searchMatches.length}`;
+  }
+}
+
+// ---------- Help ----------
+function toggleHelp() {
+  state.helpVisible = !state.helpVisible;
+  helpOverlay.classList.toggle('visible', state.helpVisible);
+}
+
+// ---------------------------------------------------------------------------
+// Event handlers
+// ---------------------------------------------------------------------------
+document.addEventListener('keydown', (e) => {
+  // Search input mode
+  if (state.searchActive && document.activeElement === searchInput) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitSearch();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSearch();
+    }
+    return;
+  }
+
+  // Help overlay
+  if (state.helpVisible) {
+    if (e.key === '?' || e.key === 'Escape' || e.key === 'q') {
+      e.preventDefault();
+      toggleHelp();
+    }
+    return;
+  }
+
+  // Tree-focused keys
+  if (state.treeFocused) {
+    switch (e.key) {
+      case 'j': case 'ArrowDown': e.preventDefault(); treeMoveCursor(1); return;
+      case 'k': case 'ArrowUp': e.preventDefault(); treeMoveCursor(-1); return;
+      case 'Enter': case ' ': e.preventDefault(); treeSelect(); return;
+      case 't': e.preventDefault(); toggleTreeFocus(); return;
+      case 'l': e.preventDefault(); toggleTree(); return;
+      case '?': e.preventDefault(); toggleHelp(); return;
+    }
+    // Fall through for other keys
+  }
+
+  switch (e.key) {
+    // Navigation
+    case 'j': case 'ArrowDown': e.preventDefault(); moveCursor(1); break;
+    case 'k': case 'ArrowUp': e.preventDefault(); moveCursor(-1); break;
+    case 'd': e.preventDefault(); moveCursor(Math.floor(pageHeight() / 2)); break;
+    case 'u': e.preventDefault(); moveCursor(-Math.floor(pageHeight() / 2)); break;
+    case 'g': if (!e.ctrlKey) { e.preventDefault(); setCursor(0); } break;
+    case 'G': e.preventDefault(); setCursor(state.flatLines.length - 1); break;
+    case 'Home': e.preventDefault(); setCursor(0); break;
+    case 'End': e.preventDefault(); setCursor(state.flatLines.length - 1); break;
+    case 'z': e.preventDefault(); centerCursor(); break;
+
+    // Diff navigation
+    case ']': e.preventDefault(); jumpNextHunk(); break;
+    case '[': e.preventDefault(); jumpPrevHunk(); break;
+    case '}': e.preventDefault(); jumpNextFile(); break;
+    case '{': e.preventDefault(); jumpPrevFile(); break;
+    case 's': e.preventDefault(); toggleSingleFile(); break;
+
+    // Tree
+    case 'l': e.preventDefault(); toggleTree(); break;
+    case 't': e.preventDefault(); toggleTreeFocus(); break;
+
+    // Search
+    case '/': e.preventDefault(); openSearch(); break;
+    case 'n': e.preventDefault(); nextMatch(); break;
+    case 'N': e.preventDefault(); prevMatch(); break;
+    case 'Escape':
+      if (state.searchActive) closeSearch();
+      break;
+
+    // Help
+    case '?': e.preventDefault(); toggleHelp(); break;
+  }
+});
+
+// Tree click handler
+treeEl.addEventListener('click', (e) => {
+  const entry = e.target.closest('.tree-entry');
+  if (!entry) return;
+  const idx = parseInt(entry.dataset.treeIdx, 10);
+  state.treeCursor = idx;
+
+  const visible = getVisibleTree();
+  const item = visible[idx];
+  if (!item) return;
+
+  if (item.is_dir) {
+    treeToggleCollapse();
+  } else if (item.file_idx != null) {
+    state.singleFileIdx = item.file_idx;
+    state.viewScope = 'single';
+    state.cursorLine = 0;
+    flattenLines();
+    renderAll();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+connect();

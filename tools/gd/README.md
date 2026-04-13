@@ -1,6 +1,6 @@
 # gd
 
-Terminal git diff viewer with syntax highlighting, word-level diff highlights, file type icons, and a built-in pager.
+Terminal git diff viewer with syntax highlighting, word-level diff highlights, file type icons, and a built-in pager. Optional browser-based viewer via `--web`.
 
 Built by the parent `apply.sh` and symlinked to `~/.cargo/bin/gd`.
 
@@ -16,11 +16,15 @@ gd --no-untracked   # hide untracked files
 gd --show-whitespace / -w  # include whitespace-only changes (hidden by default)
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
+gd --web             # open interactive diff viewer in browser (requires --features web)
+gd --web -b          # browser viewer for base branch diff
 gd --replay ']]]]q' # replay keystrokes without a TTY (for benchmarking)
 gd --replay ']]q' --cols 80 --rows 24  # replay with custom terminal size
 ```
 
 The pager auto-reloads after returning from `$EDITOR` and when `.git/index` changes externally (e.g. staging in another terminal). Press `R` to manually reload. No changes exits cleanly (like `git diff`). Invalid refs/ranges now exit with status 1 and print the underlying `git diff` error to stderr. Pager auto-activates when output exceeds terminal height. Whitespace-only changes are hidden by default (`-w` passed to `git diff`); use `--show-whitespace` to include them. `--base`/`-b` works even if the base branch only exists as a remote tracking ref (falls back to `origin/<branch>`). In working tree mode (bare `gd`), untracked files are shown as all-added diffs with `?` icon and `(Untracked)` header. Binary files (containing null bytes) and large files (>256KB) are skipped. Use `--no-untracked` to hide them. Files are sorted by path so all-files view and tree order always match.
+
+`--web` starts a local HTTP server and opens an interactive diff viewer in the browser. The same diff parsing, syntax highlighting, and word-level highlight logic is reused — HTML spans replace ANSI codes, and browser CSS/JS replaces terminal Phase 2 layout. The browser view supports keyboard navigation (same keys as the terminal pager), a file tree sidebar, search, single-file/all-files view, and auto-reloads when `.git/index` changes. Requires `--features web` at build time; without the feature the flag prints an error and exits. The server binds to `127.0.0.1:3845` (incrementing on conflict) and data flows over a WebSocket.
 
 ## Keybindings
 
@@ -101,6 +105,8 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 
 **Display format**: Dual line-number gutter (`old | new |`), `+`/`-` markers with colored backgrounds (green for added, red for deleted), brighter backgrounds on changed words within paired add/delete blocks, continuation markers on wrapped lines, file header separators, and dim dashed-line hunk separators between hunks within a file.
 
+**Web mode** (`--web`, behind `features = ["web"]`): An alternative rendering path that reuses the same git diff parsing and word-level highlight logic but outputs HTML instead of ANSI. `highlight_line_html()` in `tui::highlight` produces `<span style="...">` tokens; `html_render.rs` applies word-level `<mark>` tags at the correct byte positions. Data is serialized as JSON and pushed to the browser over a WebSocket. The frontend (`web_assets/`) renders the diff with CSS grid layout, virtual DOM construction, and the same keyboard navigation as the terminal pager. A tokio task polls `.git/index` mtime every 2 seconds and broadcasts updates to all connected clients.
+
 **Pager**: Alternate screen, raw mode, crossterm event loop. Lives under `src/pager/` with focused submodules. Supports interactive staging, unstaging, and reverting of individual diff lines and entire hunks. Startup heuristics pick sensible defaults: single-file diffs with 3 or fewer hunks open in full-context mode (showing the entire file); diffs with more than 5 files, or multi-file diffs whose rendered output exceeds 3x the terminal height, open in single-file view with full context enabled (viewing one file at a time benefits from seeing the full file). Manual toggles (`s` for view scope, `o` for full context) override the heuristics permanently for the session. Uses a flat keymap with no context-dependent keys -- every key always does the same thing. The tree panel supports two focus states (`t` toggles): when focused, the tree cursor is bold/highlighted and the diff pane dims; when unfocused, the tree cursor shows a subtle background. `Enter`/`Space` in tree focus shows a file or toggles a directory (keeping tree focused), `za`/`zA` collapse single or recursive, and `}`/`{` jump to the next/prev visible file in the tree. The tree defaults visible for nested or larger diffs (requires 96+ terminal columns), and defaults hidden for small flat diffs or narrow terminals. Tree width adapts dynamically to content and terminal size, auto-hiding when the terminal is too narrow to fit both an 80-column diff area and a 15-column tree panel, and auto-showing when the terminal is resized wide enough. Explicit user toggles (`l`) are respected — if the user hides the tree, it stays hidden regardless of terminal width. The user can still manually toggle the tree with `l` on narrower terminals. Long file paths are truncated with a `..` indicator. Paths that fit within the panel are never truncated. When the cursor is on a deeply nested file whose label overflows, the tree shifts its indent origin rightward to show the full label, displaying a `..` indicator on shallower entries whose connectors are scrolled off. File headers remain visible even when the tree is open. Selection uses visual select (`v` to anchor, `y` to yank). A toggleable tooltip bar (`?`) shows available keybindings at the bottom of the screen. The status bar shows a position indicator (TOP / END / %) on the right. In single-file mode it also shows a file-type icon, the dimmed file path, and a `< N/total >` chevron counter on the left. In single-file mode, the pager remembers the cursor and scroll position for each file, restoring them when switching back. Positions are cleared when the document is regenerated (e.g. after staging or reloading).
 
 ## Modules
@@ -126,11 +132,17 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `pager/reducer.rs` -- Flat reducer (handle_key, dispatch_normal_action)
 - `pager/runtime.rs` -- Run loop (run_pager, re_render/full_render, regenerate_files)
 - `ansi.rs` -- Re-exports from `tui::ansi`: `visible_width`, `split_ansi`, `wrap_line_for_display` (plus `strip_ansi` for tests)
+- `web/mod.rs` -- Web mode entrypoint (`run_web_server`), gated behind `features = ["web"]`
+- `web/server.rs` -- axum HTTP + WebSocket server, `.git/index` file watcher, auto-reload broadcast
+- `web/html_render.rs` -- DiffFile → WebDiffFile HTML rendering (syntax highlighting + word-level highlights as HTML spans)
+- `web/protocol.rs` -- Serializable WebSocket message types (`ServerMessage`, `WebDiffFile`, etc.)
+- `web_assets/` -- Embedded frontend (index.html, style.css, app.js) served via `include_str!`
 
 ## Build
 
 ```bash
-cargo build --release   # from tools/gd/
+cargo build --release                # from tools/gd/ — default (terminal only)
+cargo build --release --features web # from tools/gd/ — includes --web browser viewer
 ```
 
 ## Coverage

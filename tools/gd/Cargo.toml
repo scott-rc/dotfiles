@@ -3,11 +3,22 @@ name = "gd"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+web = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:serde", "dep:serde_json"]
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
 similar = "2"
 tui = { path = "../tui" }
+
+# Web feature deps (optional)
+axum = { version = "0.8", features = ["ws"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros"], optional = true }
+tower-http = { version = "0.6", features = ["cors"], optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 insta = "1"
@@ -30,7 +41,7 @@ type_complexity = "allow"
 
 [lints.rust]
 unsafe_code = "deny"
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)', 'cfg(feature, values("web"))'] }
 
 [[bench]]
 name = "bench"

@@ -4,6 +4,8 @@ mod git;
 mod pager;
 mod render;
 mod style;
+#[cfg(feature = "web")]
+mod web;
 
 use std::io::{self, IsTerminal, Write};
 
@@ -47,6 +49,10 @@ struct Cli {
     /// Show whitespace-only changes (hidden by default)
     #[arg(long, short = 'w')]
     show_whitespace: bool,
+
+    /// Start a local web server with an interactive browser-based diff viewer
+    #[arg(long)]
+    web: bool,
 
     /// Replay keystrokes through the pager pipeline without a TTY (for benchmarking).
     /// Plain chars map to keys; use <Enter>, <Esc>, <C-c>, etc. for special keys.
@@ -137,6 +143,27 @@ fn main() {
             }
         }
         return;
+    }
+
+    // Web mode: serve diff in a browser
+    if cli.web {
+        #[cfg(feature = "web")]
+        {
+            syntax_init.join().unwrap();
+            let diff_ctx = pager::DiffContext {
+                repo: repo.clone(),
+                source: source.clone(),
+                no_untracked: cli.no_untracked,
+                ignore_whitespace: !cli.show_whitespace,
+            };
+            web::run_web_server(files, &diff_ctx);
+            return;
+        }
+        #[cfg(not(feature = "web"))]
+        {
+            eprintln!("gd: --web requires the 'web' feature (cargo build --features web)");
+            std::process::exit(1);
+        }
     }
 
     syntax_init.join().unwrap();

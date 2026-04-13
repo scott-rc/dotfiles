@@ -61,6 +61,7 @@ impl From<ReducerEffect> for KeyResult {
     }
 }
 
+#[derive(Clone)]
 pub struct DiffContext {
     pub repo: std::path::PathBuf,
     pub source: crate::git::DiffSource,

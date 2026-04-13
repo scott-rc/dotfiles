@@ -145,7 +145,7 @@ fn style_line_content(
 
 /// Compute word-highlight byte ranges for every line in a hunk.
 /// Returns a map from hunk-internal line index to highlight ranges.
-fn compute_hunk_word_ranges(hunk: &DiffHunk) -> HashMap<usize, Vec<(usize, usize)>> {
+pub(crate) fn compute_hunk_word_ranges(hunk: &DiffHunk) -> HashMap<usize, Vec<(usize, usize)>> {
     let blocks = find_change_blocks(hunk);
     let mut line_ranges = HashMap::new();
     for block in &blocks {
