@@ -9,8 +9,8 @@ const gdBinary = join(__dirname, "..", "..", "..", "target", "release", "gd");
 
 export const test = base.extend<{ serverUrl: string }>({
   serverUrl: async ({}, use) => {
-    // Start gd --web and capture the URL from stderr
-    const proc = spawn(gdBinary, ["--web"], {
+    // Start gd --web --no-open and capture the URL from stderr
+    const proc = spawn(gdBinary, ["--web", "--no-open"], {
       cwd: fixtureRepo,
       stdio: ["ignore", "ignore", "pipe"],
     });

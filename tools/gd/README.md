@@ -17,6 +17,7 @@ gd --show-whitespace / -w  # include whitespace-only changes (hidden by default)
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
 gd --web             # open interactive diff viewer in browser (requires --features web)
+gd --web --no-open   # start server without opening browser (prints URL to stderr)
 gd --web -b          # browser viewer for base branch diff
 gd --replay ']]]]q' # replay keystrokes without a TTY (for benchmarking)
 gd --replay ']]q' --cols 80 --rows 24  # replay with custom terminal size

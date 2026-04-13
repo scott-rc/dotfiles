@@ -9,7 +9,7 @@ mod web;
 
 use std::io::{self, IsTerminal, Write};
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 
 use tui::highlight::{SYNTAX_SET, THEME};
 
@@ -31,16 +31,20 @@ struct Cli {
     cached: bool,
 
     /// Print to stdout without pager
-    #[arg(long)]
-    no_pager: bool,
+    #[arg(long = "no-pager", action = ArgAction::SetFalse)]
+    pager: bool,
 
     /// Disable ANSI colors
-    #[arg(long)]
-    no_color: bool,
+    #[arg(long = "no-color", action = ArgAction::SetFalse)]
+    color: bool,
 
     /// Hide untracked files (only applies to working tree mode)
-    #[arg(long)]
-    no_untracked: bool,
+    #[arg(long = "no-untracked", action = ArgAction::SetFalse)]
+    untracked: bool,
+
+    /// Skip opening browser automatically (just print URL)
+    #[arg(long = "no-open", action = ArgAction::SetFalse)]
+    open: bool,
 
     /// Diff against auto-detected base branch
     #[arg(long, short = 'b')]
@@ -129,7 +133,7 @@ fn main() {
     debug::trace("main", "post-diff", t0);
 
     let mut files = git::diff::parse(&raw);
-    git::append_untracked(&repo, &source, cli.no_untracked, &mut files);
+    git::append_untracked(&repo, &source, !cli.untracked, &mut files);
     git::sort_files_for_display(&mut files);
     debug::trace("main", &format!("post-parse ({} files)", files.len()), t0);
 
@@ -153,10 +157,10 @@ fn main() {
             let diff_ctx = pager::DiffContext {
                 repo: repo.clone(),
                 source: source.clone(),
-                no_untracked: cli.no_untracked,
+                no_untracked: !cli.untracked,
                 ignore_whitespace: !cli.show_whitespace,
             };
-            web::run_web_server(files, &diff_ctx);
+            web::run_web_server(files, &diff_ctx, cli.open);
             return;
         }
         #[cfg(not(feature = "web"))]
@@ -172,7 +176,7 @@ fn main() {
     let diff_ctx = pager::DiffContext {
         repo: repo.clone(),
         source: source.clone(),
-        no_untracked: cli.no_untracked,
+        no_untracked: !cli.untracked,
         ignore_whitespace: !cli.show_whitespace,
     };
 
@@ -192,7 +196,7 @@ fn main() {
     }
 
     let is_tty = io::stdout().is_terminal();
-    let color = !cli.no_color && is_tty;
+    let color = cli.color && is_tty;
     let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
 
     // Estimate rendered line count cheaply: file headers + hunk separators + diff lines.
@@ -204,7 +208,7 @@ fn main() {
                 + f.hunks.iter().map(|h| h.lines.len()).sum::<usize>()
         })
         .sum();
-    let use_pager = is_tty && !cli.no_pager && estimated_lines > rows as usize;
+    let use_pager = is_tty && cli.pager && estimated_lines > rows as usize;
 
     if use_pager {
         let files = maybe_regenerate(files, true, use_full_context, &diff_ctx);

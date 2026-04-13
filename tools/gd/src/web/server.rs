@@ -157,7 +157,7 @@ async fn watch_git_index(
     }
 }
 
-pub(crate) fn start_server(_files: Vec<DiffFile>, diff_ctx: &DiffContext) {
+pub(crate) fn start_server(_files: Vec<DiffFile>, diff_ctx: &DiffContext, open: bool) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let (tx, _rx) = broadcast::channel::<Arc<String>>(16);
@@ -194,8 +194,10 @@ pub(crate) fn start_server(_files: Vec<DiffFile>, diff_ctx: &DiffContext) {
         let url = format!("http://{addr}");
         eprintln!("gd: serving at {url}");
 
-        // Open browser
-        let _ = std::process::Command::new("open").arg(&url).spawn();
+        // Open browser (unless --no-open)
+        if open {
+            let _ = std::process::Command::new("open").arg(&url).spawn();
+        }
 
         // Start file watcher
         tokio::spawn(watch_git_index(diff_ctx.clone(), tx, shutdown_tx.subscribe()));
