@@ -2,7 +2,7 @@ use tui::pager::{Key, copy_to_clipboard};
 
 use std::collections::HashSet;
 
-use crate::git::DiffSource;
+use crate::git::{DiffSource, diff::DiffFile};
 
 use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
@@ -69,6 +69,97 @@ fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
     }
 }
 
+fn cursor_file_idx(state: &PagerState) -> usize {
+    state
+        .doc
+        .line_map
+        .get(state.cursor_line)
+        .map_or(0, |li| li.file_idx)
+}
+
+fn ensure_tree_points_at_cursor(state: &mut PagerState, files: &[DiffFile], cols: u16) {
+    if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
+        refresh_tree(state, files, cols);
+    }
+    if state.tree_entries.is_empty() {
+        return;
+    }
+
+    state.set_tree_cursor(file_idx_to_entry_idx(
+        &state.tree_entries,
+        cursor_file_idx(state),
+    ));
+    state.rebuild_tree_lines();
+}
+
+fn open_tree_at_cursor(state: &mut PagerState, files: &[DiffFile], cols: u16) {
+    state.tree_visible = true;
+    ensure_tree_points_at_cursor(state, files, cols);
+}
+
+fn copy_cursor_text(state: &mut PagerState, text: &str) {
+    let ok = copy_to_clipboard(text);
+    state.status_message = if ok {
+        format!("Copied: {text}")
+    } else {
+        "Copy failed (pbcopy not available)".to_string()
+    };
+}
+
+fn center_cursor_in_view(state: &mut PagerState, ch: usize) {
+    let (range_start, _, _, max_top) = viewport_bounds(state, ch);
+    state.top_line = recenter_top_line(state.cursor_line, ch, range_start, max_top);
+}
+
+fn handle_tree_focus_key(
+    state: &mut PagerState,
+    key: Key,
+    ctx: &ReducerCtx<'_>,
+) -> Option<ReducerEffect> {
+    let ch = ctx.content_height;
+
+    if let Some('z') = state.pending_tree_key {
+        state.pending_tree_key = None;
+        return match key {
+            Key::Char('a') => {
+                toggle_collapse_single(state);
+                Some(ReducerEffect::Continue)
+            }
+            Key::Char('A') => {
+                toggle_collapse_recursive(state);
+                Some(ReducerEffect::Continue)
+            }
+            _ => Some(ReducerEffect::Continue),
+        };
+    }
+
+    match key {
+        Key::Char('z') => {
+            state.pending_tree_key = Some('z');
+            Some(ReducerEffect::Continue)
+        }
+        Key::Char('j') => {
+            tree_cursor_down(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        Key::Char('k') => {
+            tree_cursor_up(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        Key::Char('g') | Key::Home => {
+            tree_cursor_top(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        Key::Char('G') | Key::End => {
+            tree_cursor_bottom(state, ch);
+            Some(ReducerEffect::Continue)
+        }
+        Key::Enter | Key::Char(' ') => dispatch_normal_action(state, ActionId::TreeEnter, ctx)
+            .or(Some(ReducerEffect::Continue)),
+        _ => None,
+    }
+}
+
 fn dispatch_normal_action(
     state: &mut PagerState,
     action: ActionId,
@@ -117,8 +208,7 @@ fn dispatch_normal_action(
             None
         }
         ActionId::CenterViewport => {
-            let (rs, _, _, max_top) = viewport_bounds(state, ch);
-            state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+            center_cursor_in_view(state, ch);
             None
         }
         ActionId::NextHunk => {
@@ -138,8 +228,7 @@ fn dispatch_normal_action(
                     if fwd.moved {
                         state.cursor_line = fwd.cursor_line;
                         state.status_message.clone_from(&fwd.status_message);
-                        let (rs, _, _, max_top) = viewport_bounds(state, ch);
-                        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+                        center_cursor_in_view(state, ch);
                     } else {
                         state.status_message = "Next file".into();
                     }
@@ -154,8 +243,7 @@ fn dispatch_normal_action(
             state.status_message.clone_from(&res.status_message);
             sync_active_file_to_cursor(state);
             if res.moved {
-                let (rs, _, _, max_top) = viewport_bounds(state, ch);
-                state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+                center_cursor_in_view(state, ch);
             } else if let Some(active) = state.active_file() {
                 // At first hunk of current file -- retreat to previous file
                 if active > 0 {
@@ -175,8 +263,7 @@ fn dispatch_normal_action(
                             &targets,
                             &state.doc.line_map,
                         );
-                        let (rs, _, _, max_top) = viewport_bounds(state, ch);
-                        state.top_line = recenter_top_line(state.cursor_line, ch, rs, max_top);
+                        center_cursor_in_view(state, ch);
                     } else {
                         state.status_message = "Previous file".into();
                     }
@@ -221,14 +308,12 @@ fn dispatch_normal_action(
                 state.set_active_file(None);
                 state.status_message = "All files".into();
             } else {
-                let anchor = state.cursor_line;
-                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
+                let file_idx = cursor_file_idx(state);
                 if state.tree_entries.is_empty() {
                     refresh_tree(state, files, ctx.cols);
                 }
                 set_view_to_file(state, file_idx, ch);
-                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                state.rebuild_tree_lines();
+                ensure_tree_points_at_cursor(state, files, ctx.cols);
                 state.status_message = "Single file".into();
             }
             Some(ReducerEffect::ReRender)
@@ -295,11 +380,8 @@ fn dispatch_normal_action(
             state.tree_visible = !state.tree_visible;
             state.tree_user_hidden = !state.tree_visible;
             if state.tree_visible {
-                let anchor = state.cursor_line;
-                let file_idx = state.doc.line_map.get(anchor).map_or(0, |li| li.file_idx);
                 refresh_tree(state, files, ctx.cols);
-                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                state.rebuild_tree_lines();
+                ensure_tree_points_at_cursor(state, files, ctx.cols);
             }
             Some(ReducerEffect::ReRender)
         }
@@ -337,13 +419,8 @@ fn dispatch_normal_action(
                 .cursor_line
                 .min(state.doc.line_map.len().saturating_sub(1));
             if !state.doc.line_map.is_empty() {
-                let path = state.doc.line_map[pos].path.clone();
-                let ok = copy_to_clipboard(&path);
-                state.status_message = if ok {
-                    format!("Copied: {path}")
-                } else {
-                    "Copy failed (pbcopy not available)".to_string()
-                };
+                let path = state.doc.line_map[pos].path.clone().to_string();
+                copy_cursor_text(state, &path);
             }
             Some(ReducerEffect::Continue)
         }
@@ -355,12 +432,7 @@ fn dispatch_normal_action(
                 let rel = &*state.doc.line_map[pos].path;
                 let abs = ctx.repo.join(rel);
                 let text = abs.to_string_lossy().to_string();
-                let ok = copy_to_clipboard(&text);
-                state.status_message = if ok {
-                    format!("Copied: {text}")
-                } else {
-                    "Copy failed (pbcopy not available)".to_string()
-                };
+                copy_cursor_text(state, &text);
             }
             Some(ReducerEffect::Continue)
         }
@@ -394,18 +466,8 @@ fn dispatch_normal_action(
             if state.focus == FocusPane::Tree {
                 state.focus = FocusPane::Diff;
             } else {
-                state.tree_visible = true;
                 state.focus = FocusPane::Tree;
-                if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
-                    refresh_tree(state, files, ctx.cols);
-                }
-                let file_idx = state
-                    .doc
-                    .line_map
-                    .get(state.cursor_line)
-                    .map_or(0, |li| li.file_idx);
-                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                state.rebuild_tree_lines();
+                open_tree_at_cursor(state, files, ctx.cols);
             }
             Some(ReducerEffect::ReRender)
         }
@@ -420,18 +482,8 @@ fn dispatch_normal_action(
                 state.focus = FocusPane::Diff;
             } else {
                 // Open and focus tree
-                state.tree_visible = true;
                 state.focus = FocusPane::Tree;
-                if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
-                    refresh_tree(state, files, ctx.cols);
-                }
-                let file_idx = state
-                    .doc
-                    .line_map
-                    .get(state.cursor_line)
-                    .map_or(0, |li| li.file_idx);
-                state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
-                state.rebuild_tree_lines();
+                open_tree_at_cursor(state, files, ctx.cols);
             }
             Some(ReducerEffect::ReRender)
         }
@@ -674,55 +726,10 @@ fn reduce_normal(
         return ReducerEffect::Continue;
     }
 
-    if state.focus == FocusPane::Tree {
-        // Two-key sequence: z + a/A for collapse control
-        if let Some('z') = state.pending_tree_key {
-            state.pending_tree_key = None;
-            match key {
-                Key::Char('a') => {
-                    toggle_collapse_single(state);
-                    return ReducerEffect::Continue;
-                }
-                Key::Char('A') => {
-                    toggle_collapse_recursive(state);
-                    return ReducerEffect::Continue;
-                }
-                _ => {
-                    // Cancel pending sequence
-                    return ReducerEffect::Continue;
-                }
-            }
-        }
-
-        match key {
-            Key::Char('z') => {
-                state.pending_tree_key = Some('z');
-                return ReducerEffect::Continue;
-            }
-            Key::Char('j') => {
-                tree_cursor_down(state, ch);
-                return ReducerEffect::Continue;
-            }
-            Key::Char('k') => {
-                tree_cursor_up(state, ch);
-                return ReducerEffect::Continue;
-            }
-            Key::Char('g') | Key::Home => {
-                tree_cursor_top(state, ch);
-                return ReducerEffect::Continue;
-            }
-            Key::Char('G') | Key::End => {
-                tree_cursor_bottom(state, ch);
-                return ReducerEffect::Continue;
-            }
-            Key::Enter | Key::Char(' ') => {
-                if let Some(effect) = dispatch_normal_action(state, ActionId::TreeEnter, ctx) {
-                    return effect;
-                }
-                return ReducerEffect::Continue;
-            }
-            _ => {}
-        }
+    if state.focus == FocusPane::Tree
+        && let Some(effect) = handle_tree_focus_key(state, *key, ctx)
+    {
+        return effect;
     }
 
     if let Some(action) = keymap_lookup(*key, Mode::Normal)

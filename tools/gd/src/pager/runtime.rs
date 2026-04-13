@@ -307,6 +307,49 @@ fn refresh_files_and_render(
     true
 }
 
+fn refresh_files_render_and_index(
+    files: &mut Vec<DiffFile>,
+    state: &mut PagerState,
+    diff_ctx: &DiffContext,
+    color: bool,
+    cols: u16,
+    last_index_mtime: &mut Option<SystemTime>,
+) -> bool {
+    if !refresh_files_and_render(files, state, diff_ctx, color, cols) {
+        return false;
+    }
+    *last_index_mtime = git_index_mtime(&diff_ctx.repo);
+    true
+}
+
+fn trace_regenerate_state(location: &str, message: &str, state: &PagerState, files: &[DiffFile]) {
+    let base = format_debug_state(state);
+    debug_trace(
+        location,
+        message,
+        &format!(
+            "{},\"filesLen\":{}}}",
+            base.trim_end_matches('}'),
+            files.len()
+        ),
+    );
+}
+
+fn apply_patch_result(
+    repo: &std::path::Path,
+    patch: &str,
+    cached: bool,
+    reverse: bool,
+) -> Result<(), String> {
+    if cached && !reverse {
+        crate::git::stage_patch(repo, patch)
+    } else if cached && reverse {
+        crate::git::unstage_patch(repo, patch)
+    } else {
+        crate::git::revert_patch(repo, patch)
+    }
+}
+
 pub(crate) fn parse_replay_keys(input: &str) -> Vec<Key> {
     let mut keys = Vec::new();
     let mut chars = input.chars().peekable();
@@ -474,29 +517,27 @@ pub fn run_pager(
                 re_render(&mut state, &files, color, last_size.0);
             }
             KeyResult::ReGenerate => {
-                let base = format_debug_state(&state);
-                debug_trace(
+                trace_regenerate_state(
                     "runtime:run_pager:regenerate:before",
                     "regenerate start",
-                    &format!(
-                        "{},\"filesLen\":{}}}",
-                        base.trim_end_matches('}'),
-                        files.len()
-                    ),
+                    &state,
+                    &files,
                 );
-                if !refresh_files_and_render(&mut files, &mut state, diff_ctx, color, last_size.0) {
+                if !refresh_files_render_and_index(
+                    &mut files,
+                    &mut state,
+                    diff_ctx,
+                    color,
+                    last_size.0,
+                    &mut last_index_mtime,
+                ) {
                     break;
                 }
-                last_index_mtime = git_index_mtime(&diff_ctx.repo);
-                let base = format_debug_state(&state);
-                debug_trace(
+                trace_regenerate_state(
                     "runtime:run_pager:regenerate:after",
                     "regenerate complete",
-                    &format!(
-                        "{},\"filesLen\":{}}}",
-                        base.trim_end_matches('}'),
-                        files.len()
-                    ),
+                    &state,
+                    &files,
                 );
             }
             KeyResult::OpenEditor { path, lineno } => {
@@ -512,42 +553,39 @@ pub fn run_pager(
                 let _ = crossterm::terminal::enable_raw_mode();
                 last_size = get_term_size();
 
-                if !refresh_files_and_render(&mut files, &mut state, diff_ctx, color, last_size.0) {
+                if !refresh_files_render_and_index(
+                    &mut files,
+                    &mut state,
+                    diff_ctx,
+                    color,
+                    last_size.0,
+                    &mut last_index_mtime,
+                ) {
                     break;
                 }
-                last_index_mtime = git_index_mtime(&diff_ctx.repo);
             }
             KeyResult::ApplyPatch {
                 patch,
                 cached,
                 reverse,
-            } => {
-                let apply_result = if cached && !reverse {
-                    crate::git::stage_patch(&diff_ctx.repo, &patch)
-                } else if cached && reverse {
-                    crate::git::unstage_patch(&diff_ctx.repo, &patch)
-                } else {
-                    crate::git::revert_patch(&diff_ctx.repo, &patch)
-                };
-                match apply_result {
-                    Ok(()) => {
-                        if !refresh_files_and_render(
-                            &mut files,
-                            &mut state,
-                            diff_ctx,
-                            color,
-                            last_size.0,
-                        ) {
-                            break;
-                        }
-                        last_index_mtime = git_index_mtime(&diff_ctx.repo);
-                    }
-                    Err(e) => {
-                        state.status_message =
-                            format!("Apply failed: {}", e.lines().next().unwrap_or(&e));
+            } => match apply_patch_result(&diff_ctx.repo, &patch, cached, reverse) {
+                Ok(()) => {
+                    if !refresh_files_render_and_index(
+                        &mut files,
+                        &mut state,
+                        diff_ctx,
+                        color,
+                        last_size.0,
+                        &mut last_index_mtime,
+                    ) {
+                        break;
                     }
                 }
-            }
+                Err(e) => {
+                    state.status_message =
+                        format!("Apply failed: {}", e.lines().next().unwrap_or(&e));
+                }
+            },
             KeyResult::Continue => {}
         }
 
