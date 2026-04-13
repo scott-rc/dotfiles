@@ -41,7 +41,7 @@ Users often request multiple operations together. Handle these as follows:
 - **implement / full cycle / build and verify** → Write (Feature or Fix mode), then Review (loop mode) on all changed files
 - **implement with mutation testing / harden** → Write (Feature or Fix mode), then Test (Mutate mode), then Review (loop mode) on all changed files
 - **fix bug / debug** → Write (Fix mode)
-- **refactor / clean up / rename / restructure** → Write (Apply mode)
+- **refactor / clean up / rename / restructure / make easier to maintain** → Write (Apply mode)
 - **ensure / make X do Y / add support for / sync / integrate** → Write (Feature mode) — these add behavior even when they modify existing files
 - **write code** (ambiguous) → Write (Feature mode) if it changes runtime behavior; Write (Apply mode) if config/glue/scripting
 - **review / code review / check for issues** → Review
@@ -64,6 +64,8 @@ Users often request multiple operations together. Handle these as follows:
 Global delegation rules apply. Code-skill-specific additions:
 
 - **Mode selection stays inline** — the orchestrator chooses Apply/Feature/Fix before delegating. Reading file lists and checking test infrastructure to inform that choice is fine.
+- **Broad refactors get a scope first** — for vague maintainability requests, identify the primary seam, expected touched files, and done condition before editing or delegating.
+- **Call out repo state early** — if unrelated files are already modified, say so and limit edits to the intended scope.
 - **Simple changes stay inline** — single-file edits, config changes, and small fixes don't need a subagent. Delegate when the task spans multiple files or benefits from TDD scaffolding.
 - **Describe behavior, not code changes** — when delegating, tell the subagent what to add/fix/test and where the code lives. Do NOT prescribe struct fields, function signatures, or file-by-file edit lists.
 - **Validate subagent results** — if the result summary is empty or the subagent ran under 30 seconds on a non-trivial task, investigate before reporting success.

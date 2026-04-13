@@ -29,13 +29,13 @@ Load coding guidelines, write code, and verify it — supports three modes: Appl
 
 Write code without TDD — for refactoring, config, glue, scripting, or when the user explicitly opts out of tests.
 
-3. **Write the code**: Apply the loaded preferences. When they conflict with existing project conventions (linter config, formatter, existing patterns), SHOULD follow project conventions.
+3. **Scope and write the code**: For broad maintainability or refactor requests, MUST identify the primary seam first, state the expected touched files, and call out unrelated working-tree changes before editing. Prefer the smallest clear edit sequence over whole-file rewrites; rewrite an entire file only when the structural simplification clearly outweighs diff churn. Apply the loaded preferences. When they conflict with existing project conventions (linter config, formatter, existing patterns), SHOULD follow project conventions.
 
-4. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Iterate up to 3 times. If violations persist after 3 iterations, report remaining issues to the user.
+4. **Self-check**: MUST verify code follows the loaded guidelines, paying special attention to naming, comments, nesting, error handling, and abstractions. SHOULD run the relevant formatter, linter, or static analysis used by the project when the change touches code those tools govern, even for refactors. For shell scripts, MUST run `shellcheck` and fix all warnings. If any violation is found, fix it and re-check. Iterate up to 3 times. If violations persist after 3 iterations, report remaining issues to the user.
 
 5. **Run existing tests**: If the project has a test suite, run it (or the relevant subset) to confirm no regressions.
 
-6. **Report results**: Present the code to the user with a summary of which preferences were applied, any conflicts resolved, and test suite status (pass/fail, number of tests run).
+6. **Report results**: Present the code to the user with a summary of which preferences were applied, any conflicts resolved, touched files, and test suite status (pass/fail, number of tests run).
 
 ---
 
