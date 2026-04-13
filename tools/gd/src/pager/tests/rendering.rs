@@ -436,7 +436,10 @@ fn format_status_bar_right_side_is_position_only() {
     // The right-side portion should NOT contain a dash (the range separator in "1-20/90").
     // Split on whitespace and check the rightmost token.
     let right_token = visible.split_whitespace().last().unwrap_or("");
-    assert_eq!(right_token, "TOP", "right side should be position only: {visible:?}");
+    assert_eq!(
+        right_token, "TOP",
+        "right side should be position only: {visible:?}"
+    );
     assert!(
         !visible.contains('-'),
         "right side should not contain a range separator '-': {visible:?}"
@@ -475,12 +478,10 @@ fn format_status_bar_right_side_percentage_no_range() {
         "mid-scroll should show percentage: {visible:?}"
     );
     // Must NOT contain the range pattern like "11-30/90".
-    let has_range = visible
-        .split_whitespace()
-        .any(|tok| {
-            let parts: Vec<&str> = tok.split('/').collect();
-            parts.len() == 2 && parts[0].contains('-') && parts[1].chars().all(|c| c.is_ascii_digit())
-        });
+    let has_range = visible.split_whitespace().any(|tok| {
+        let parts: Vec<&str> = tok.split('/').collect();
+        parts.len() == 2 && parts[0].contains('-') && parts[1].chars().all(|c| c.is_ascii_digit())
+    });
     assert!(
         !has_range,
         "should not contain a range pattern like N-N/N: {visible:?}"

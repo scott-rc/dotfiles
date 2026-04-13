@@ -29,8 +29,15 @@ pub(crate) enum ReducerEffect {
     ReRender,
     ReGenerate,
     Quit,
-    OpenEditor { path: String, lineno: Option<u32> },
-    ApplyPatch { patch: String, cached: bool, reverse: bool },
+    OpenEditor {
+        path: String,
+        lineno: Option<u32>,
+    },
+    ApplyPatch {
+        patch: String,
+        cached: bool,
+        reverse: bool,
+    },
 }
 
 impl From<ReducerEffect> for KeyResult {
@@ -41,9 +48,15 @@ impl From<ReducerEffect> for KeyResult {
             ReducerEffect::ReGenerate => KeyResult::ReGenerate,
             ReducerEffect::Quit => KeyResult::Quit,
             ReducerEffect::OpenEditor { path, lineno } => KeyResult::OpenEditor { path, lineno },
-            ReducerEffect::ApplyPatch { patch, cached, reverse } => {
-                KeyResult::ApplyPatch { patch, cached, reverse }
-            }
+            ReducerEffect::ApplyPatch {
+                patch,
+                cached,
+                reverse,
+            } => KeyResult::ApplyPatch {
+                patch,
+                cached,
+                reverse,
+            },
         }
     }
 }
@@ -223,7 +236,12 @@ impl PagerState {
 
     pub(crate) fn rebuild_tree_lines(&mut self) {
         let focused = self.focus == FocusPane::Tree;
-        let (tl, tv) = build_tree_lines(&self.tree_entries, self.tree_cursor(), self.tree_width, focused);
+        let (tl, tv) = build_tree_lines(
+            &self.tree_entries,
+            self.tree_cursor(),
+            self.tree_width,
+            focused,
+        );
         self.tree_lines = tl;
         self.tree_visible_to_entry = tv;
     }
@@ -340,8 +358,7 @@ pub(crate) fn debug_assert_valid_state(state: &PagerState) {
         max_cursor
     );
     assert!(
-        state.top_line >= rs
-            && state.top_line <= re.saturating_sub(1),
+        state.top_line >= rs && state.top_line <= re.saturating_sub(1),
         "top_line {} out of range",
         state.top_line
     );
@@ -483,7 +500,9 @@ pub(crate) fn remap_after_document_swap(
         } else {
             terminal_cols
         };
-        if let Some(w) = resolve_tree_layout(content_width, effective_cols, has_directories, file_count) {
+        if let Some(w) =
+            resolve_tree_layout(content_width, effective_cols, has_directories, file_count)
+        {
             state.tree_width = w;
             let cursor_file_idx = state
                 .doc
@@ -493,7 +512,12 @@ pub(crate) fn remap_after_document_swap(
             let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
             state.set_tree_cursor(cursor_entry_idx);
             let focused = state.focus == FocusPane::Tree;
-            let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width, focused);
+            let (tl, tv) = build_tree_lines(
+                &state.tree_entries,
+                state.tree_cursor(),
+                state.tree_width,
+                focused,
+            );
             state.tree_lines = tl;
             state.tree_visible_to_entry = tv;
         } else {

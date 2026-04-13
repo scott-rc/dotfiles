@@ -1,6 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
-use gd::git::diff::{parse, DiffFile};
+use gd::git::diff::{DiffFile, parse};
 use gd::pager::{bench_layout, bench_render_frame, bench_style_files, tree::build_tree_entries};
 use gd::render::{apply_diff_colors, find_change_blocks, render, word_highlights};
 use gd::style::{BG_ADDED, BG_ADDED_WORD};

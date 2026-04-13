@@ -94,7 +94,10 @@ fn main() {
         let (current, default) = init;
         let base = git::base_branch_finish(&repo, &current, &default);
         // Use triple-dot merge-base syntax to avoid a separate `git merge-base` call
-        (repo, DiffSource::Range(format!("{base}...HEAD"), String::new()))
+        (
+            repo,
+            DiffSource::Range(format!("{base}...HEAD"), String::new()),
+        )
     } else {
         let repo = git::repo_root(&cwd).unwrap_or_else(|| {
             eprintln!("gd: not a git repository");
@@ -169,7 +172,10 @@ fn main() {
     // Avoids a full render() just to decide whether to use the pager.
     let estimated_lines: usize = files
         .iter()
-        .map(|f| 1 + f.hunks.len().saturating_sub(1) + f.hunks.iter().map(|h| h.lines.len()).sum::<usize>())
+        .map(|f| {
+            1 + f.hunks.len().saturating_sub(1)
+                + f.hunks.iter().map(|h| h.lines.len()).sum::<usize>()
+        })
         .sum();
     let use_pager = is_tty && !cli.no_pager && estimated_lines > rows as usize;
 
@@ -205,7 +211,12 @@ fn maybe_regenerate(
     let str_args: Vec<&str> = args.iter().map(String::as_str).collect();
     let raw = git::run_diff(&diff_ctx.repo, &str_args);
     let mut files = git::diff::parse(&raw);
-    git::append_untracked(&diff_ctx.repo, &diff_ctx.source, diff_ctx.no_untracked, &mut files);
+    git::append_untracked(
+        &diff_ctx.repo,
+        &diff_ctx.source,
+        diff_ctx.no_untracked,
+        &mut files,
+    );
     git::sort_files_for_display(&mut files);
     files
 }

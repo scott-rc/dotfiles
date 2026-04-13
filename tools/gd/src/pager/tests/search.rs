@@ -57,7 +57,9 @@ fn test_format_status_bar_emoji() {
 #[test]
 fn test_format_status_bar_mid_char_no_panic() {
     let state = make_search_state("a\u{1f50d}", 2);
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| format_status_bar(&state, 10, 40)));
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        format_status_bar(&state, 10, 40)
+    }));
     assert!(result.is_ok());
 }
 

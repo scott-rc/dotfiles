@@ -130,7 +130,9 @@ pub(crate) fn resolve_tree_layout(
     if !has_directories && file_count < 4 {
         return None;
     }
-    let allocated = content_width.min(MAX_TREE_WIDTH).min(terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
+    let allocated = content_width
+        .min(MAX_TREE_WIDTH)
+        .min(terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1));
     if allocated < MIN_TREE_WIDTH {
         return None;
     }
@@ -233,10 +235,7 @@ pub(crate) fn compute_connector_prefix(
 /// We do a backward pass to build `next_at_depth[d]` = index of the next entry
 /// at depth <= d, looking forward from each position. Then connector strings
 /// are assembled in a forward pass using these precomputed lookups.
-pub(crate) fn precompute_connectors(
-    visible: &[&TreeEntry],
-    start_depth: usize,
-) -> Vec<String> {
+pub(crate) fn precompute_connectors(visible: &[&TreeEntry], start_depth: usize) -> Vec<String> {
     let n = visible.len();
     if n == 0 {
         return Vec::new();

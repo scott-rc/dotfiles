@@ -313,12 +313,7 @@ fn first_key_from_display(display: &str) -> &str {
     display.split('/').next().unwrap_or(display)
 }
 
-fn tooltip_pair(
-    first: ActionId,
-    second: ActionId,
-    label: &str,
-    context: Mode,
-) -> Option<String> {
+fn tooltip_pair(first: ActionId, second: ActionId, label: &str, context: Mode) -> Option<String> {
     let a = keymap_entry(first, context)?;
     let b = keymap_entry(second, context)?;
     debug_assert_eq!(a.group, b.group);
@@ -385,7 +380,12 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
         tooltip_pair(ActionId::NextMatch, ActionId::PrevMatch, "match", context),
         tooltip_single(ActionId::VisualSelect, context),
         tooltip_single(ActionId::YankSelection, context),
-        tooltip_pair(ActionId::CopyRelPath, ActionId::CopyAbsPath, "path", context),
+        tooltip_pair(
+            ActionId::CopyRelPath,
+            ActionId::CopyAbsPath,
+            "path",
+            context,
+        ),
         tooltip_single(ActionId::OpenEditor, context),
         tooltip_single(ActionId::Reload, context),
         tooltip_single(ActionId::Quit, context),
@@ -397,7 +397,12 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
 
     let line3 = [
         tooltip_pair(ActionId::StageLine, ActionId::StageHunk, "stage", context),
-        tooltip_pair(ActionId::DiscardLine, ActionId::DiscardHunk, "discard", context),
+        tooltip_pair(
+            ActionId::DiscardLine,
+            ActionId::DiscardHunk,
+            "discard",
+            context,
+        ),
     ]
     .into_iter()
     .flatten()
@@ -411,7 +416,15 @@ pub(crate) fn keymap_tooltip_lines() -> [String; 3] {
 pub(crate) fn keymap_help_lines() -> Vec<String> {
     use HelpGroup::{DiffNav, Navigation, Other, Search, Selection};
     use std::collections::HashSet;
-    let order = [Navigation, DiffNav, Search, Selection, HelpGroup::Staging, HelpGroup::Tree, Other];
+    let order = [
+        Navigation,
+        DiffNav,
+        Search,
+        Selection,
+        HelpGroup::Staging,
+        HelpGroup::Tree,
+        Other,
+    ];
     let mut lines: Vec<String> = Vec::new();
     for group in order {
         let mut seen: HashSet<(&'static str, &'static str)> = HashSet::new();

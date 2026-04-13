@@ -61,8 +61,15 @@ pub(crate) enum KeyResult {
     ReRender,
     ReGenerate,
     Quit,
-    OpenEditor { path: String, lineno: Option<u32> },
-    ApplyPatch { patch: String, cached: bool, reverse: bool },
+    OpenEditor {
+        path: String,
+        lineno: Option<u32>,
+    },
+    ApplyPatch {
+        patch: String,
+        cached: bool,
+        reverse: bool,
+    },
 }
 
 /// Action identifiers. Single source of truth for key->action mapping.

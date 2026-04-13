@@ -1,5 +1,5 @@
-use crate::pager::state::{default_full_context, default_view_scope};
 use crate::pager::reducer::handle_key;
+use crate::pager::state::{default_full_context, default_view_scope};
 use crate::pager::types::{FileIx, ViewScope};
 use tui::pager::Key;
 
@@ -123,8 +123,8 @@ mod view_scope {
 }
 
 mod user_override_flags {
-    use super::*;
     use super::super::common::{make_keybinding_state, test_ctx};
+    use super::*;
 
     #[test]
     fn toggle_single_file_sets_user_flag() {

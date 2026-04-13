@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use similar::TextDiff;
@@ -130,7 +130,14 @@ fn style_line_content(
     };
 
     let is_changed = line_kind != LineKind::Context;
-    apply_diff_colors(&syntax_colored, content, line_bg, word_bg, word_ranges, is_changed)
+    apply_diff_colors(
+        &syntax_colored,
+        content,
+        line_bg,
+        word_bg,
+        word_ranges,
+        is_changed,
+    )
 }
 
 /// Compute word-highlight byte ranges for every line in a hunk.
@@ -174,9 +181,7 @@ fn style_file(file_idx: usize, file: &DiffFile, color: bool) -> StyledFile {
         let word_ranges_map = compute_hunk_word_ranges(hunk);
 
         for (i, diff_line) in hunk.lines.iter().enumerate() {
-            let word_ranges = word_ranges_map
-                .get(&i)
-                .map_or(&[][..], Vec::as_slice);
+            let word_ranges = word_ranges_map.get(&i).map_or(&[][..], Vec::as_slice);
             let styled_content = style_line_content(
                 &diff_line.content,
                 diff_line.kind,
@@ -758,11 +763,19 @@ pub fn apply_diff_colors(
         // Map raw byte offsets to visible char indices via binary search
         let vis_start = {
             let idx = raw_chars.partition_point(|&b| b < start);
-            if idx < raw_chars.len() { idx } else { vis_to_byte.len().saturating_sub(1) }
+            if idx < raw_chars.len() {
+                idx
+            } else {
+                vis_to_byte.len().saturating_sub(1)
+            }
         };
         let vis_end = {
             let idx = raw_chars.partition_point(|&b| b < end);
-            if idx < raw_chars.len() { idx } else { vis_to_byte.len().saturating_sub(1) }
+            if idx < raw_chars.len() {
+                idx
+            } else {
+                vis_to_byte.len().saturating_sub(1)
+            }
         };
 
         if vis_start < vis_to_byte.len() && vis_end <= vis_to_byte.len() {
@@ -1701,7 +1714,11 @@ rename to new.txt
 ";
         let files = diff::parse(raw);
         let output = render(&files, 80, false);
-        assert_eq!(output.lines().len(), 1, "header-only file should produce 1 line");
+        assert_eq!(
+            output.lines().len(),
+            1,
+            "header-only file should produce 1 line"
+        );
     }
 
     #[test]
@@ -1758,8 +1775,14 @@ diff --git a/foo.rs b/foo.rs
         assert_eq!(blocks.len(), 1, "should have exactly one change block");
         let (del_hl, add_hl) = word_highlights(hunk, &blocks[0]);
 
-        assert!(!del_hl[0].is_empty(), "deleted line should have word highlights");
-        assert!(!add_hl[0].is_empty(), "added line should have word highlights");
+        assert!(
+            !del_hl[0].is_empty(),
+            "deleted line should have word highlights"
+        );
+        assert!(
+            !add_hl[0].is_empty(),
+            "added line should have word highlights"
+        );
 
         let lines = output.lines();
         let deleted_line = lines

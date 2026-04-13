@@ -111,10 +111,7 @@ fn keymap_alternate_keys() {
         keymap_lookup(Key::Up, Mode::Normal),
         Some(ActionId::ScrollUp)
     );
-    assert_eq!(
-        keymap_lookup(Key::Home, Mode::Normal),
-        Some(ActionId::Top)
-    );
+    assert_eq!(keymap_lookup(Key::Home, Mode::Normal), Some(ActionId::Top));
     assert_eq!(
         keymap_lookup(Key::End, Mode::Normal),
         Some(ActionId::Bottom)
@@ -208,7 +205,13 @@ fn keymap_tooltip_lines_has_expected_shape() {
 #[test]
 fn keymap_tooltip_lines_uses_primary_keys() {
     let joined = keymap_tooltip_lines().join(" ");
-    for token in ["j/k scroll", "]/[ hunk", "}/{ file", "n/N match", "R reload"] {
+    for token in [
+        "j/k scroll",
+        "]/[ hunk",
+        "}/{ file",
+        "n/N match",
+        "R reload",
+    ] {
         assert!(
             joined.contains(token),
             "tooltip should use primary key token: {token:?}"

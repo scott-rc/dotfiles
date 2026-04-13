@@ -6,12 +6,14 @@ use crate::git::diff::LineKind;
 use crate::render;
 use crate::render::LineInfo;
 
-use super::super::runtime::{git_index_mtime, parse_replay_keys, re_render, resolve_path_for_editor};
+use super::super::rendering::diff_area_width;
+use super::super::runtime::{
+    git_index_mtime, parse_replay_keys, re_render, resolve_path_for_editor,
+};
 use super::super::state::{
     Document, PagerState, capture_view_anchor, remap_after_document_swap, visible_range,
 };
-use super::super::rendering::diff_area_width;
-use super::super::tree::{build_tree_entries, build_tree_lines, MIN_DIFF_WIDTH};
+use super::super::tree::{MIN_DIFF_WIDTH, build_tree_entries, build_tree_lines};
 use super::common::{
     StateSnapshot, assert_state_invariants, make_keybinding_state, make_pager_state_for_range,
     make_pager_state_from_files, make_test_document, make_two_file_diff, with_gd_debug_env,
@@ -294,7 +296,12 @@ fn resize_with_tree_visible_keeps_valid_selection_and_cursor() {
     state.set_tree_cursor(1);
     state.set_active_file(Some(1));
     state.cursor_line = 4;
-    let (tl, tv) = build_tree_lines(&state.tree_entries, state.tree_cursor(), state.tree_width, false);
+    let (tl, tv) = build_tree_lines(
+        &state.tree_entries,
+        state.tree_cursor(),
+        state.tree_width,
+        false,
+    );
     state.tree_lines = tl;
     state.tree_visible_to_entry = tv;
     re_render(&mut state, &files, false, 40);
@@ -330,12 +337,7 @@ fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
             hunk_idx: None,
         })
         .collect();
-    let new_doc = make_test_document(
-        vec![String::new(); 20],
-        line_map,
-        vec![0],
-        vec![],
-    );
+    let new_doc = make_test_document(vec![String::new(); 20], line_map, vec![0], vec![]);
 
     remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
 
@@ -430,15 +432,22 @@ fn re_render_resize_diff_lines_fit_within_new_tree_width() {
 
     // Re-render at 140 cols — tree_width should increase
     re_render(&mut state, &files, false, 140);
-    assert!(state.tree_visible, "tree should still be visible at 140 cols");
+    assert!(
+        state.tree_visible,
+        "tree should still be visible at 140 cols"
+    );
     assert!(
         state.tree_width > narrow_tree_width,
         "tree_width should increase from {narrow_tree_width} at wider terminal, got {}",
         state.tree_width
     );
 
-    let expected_diff_width =
-        diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
+    let expected_diff_width = diff_area_width(
+        140,
+        state.tree_width,
+        state.tree_visible,
+        state.full_context,
+    );
 
     // Every rendered line must fit within the diff area after resize
     for (i, line) in state.doc.display_lines.iter().enumerate() {
@@ -512,17 +521,28 @@ fn resize_tree_width_changes_but_stays_visible() {
     );
     assert!(state.tree_visible, "tree should be visible at 100 cols");
     let width_at_100 = state.tree_width;
-    assert!(width_at_100 < content_width, "tree_width should be clamped at 100 cols");
+    assert!(
+        width_at_100 < content_width,
+        "tree_width should be clamped at 100 cols"
+    );
 
     // Resize to 140 — tree still visible, width should increase
     re_render(&mut state, &files, false, 140);
-    assert!(state.tree_visible, "tree should still be visible at 140 cols");
+    assert!(
+        state.tree_visible,
+        "tree should still be visible at 140 cols"
+    );
     assert!(
         state.tree_width > width_at_100,
         "tree_width should increase from {width_at_100} to {}, content_width={content_width}",
         state.tree_width
     );
-    let daw = diff_area_width(140, state.tree_width, state.tree_visible, state.full_context);
+    let daw = diff_area_width(
+        140,
+        state.tree_width,
+        state.tree_visible,
+        state.full_context,
+    );
     for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
@@ -533,8 +553,16 @@ fn resize_tree_width_changes_but_stays_visible() {
 
     // Resize back to 100 — no overflow
     re_render(&mut state, &files, false, 100);
-    assert!(state.tree_visible, "tree should still be visible at 100 cols");
-    let daw = diff_area_width(100, state.tree_width, state.tree_visible, state.full_context);
+    assert!(
+        state.tree_visible,
+        "tree should still be visible at 100 cols"
+    );
+    let daw = diff_area_width(
+        100,
+        state.tree_width,
+        state.tree_visible,
+        state.full_context,
+    );
     for (i, line) in state.doc.display_lines.iter().enumerate() {
         let vis_w = crate::ansi::visible_width(line);
         assert!(
@@ -659,7 +687,10 @@ fn default_tree_visibility_exact_threshold_boundary() {
     use super::super::tree::{MIN_DIFF_WIDTH, MIN_TREE_WIDTH};
     // Exact threshold: MIN_DIFF_WIDTH + MIN_TREE_WIDTH + 1 = 80 + 15 + 1 = 96
     let threshold = MIN_DIFF_WIDTH + MIN_TREE_WIDTH + 1;
-    assert_eq!(threshold, 96, "threshold should be 96 with current constants");
+    assert_eq!(
+        threshold, 96,
+        "threshold should be 96 with current constants"
+    );
 
     let mut files = vec![
         crate::git::diff::DiffFile::from_content("src/a.txt", "a"),
@@ -677,7 +708,10 @@ fn default_tree_visibility_exact_threshold_boundary() {
         build_tree_entries(&files),
         threshold,
     );
-    assert!(state.tree_visible, "tree should be visible at exact threshold ({threshold})");
+    assert!(
+        state.tree_visible,
+        "tree should be visible at exact threshold ({threshold})"
+    );
 
     // One below threshold: tree hidden
     let state = PagerState::new(
@@ -720,8 +754,14 @@ fn re_render_auto_shows_tree_when_terminal_widens() {
         tree_entries,
         narrow_cols,
     );
-    assert!(!state.tree_visible, "tree should start hidden at {narrow_cols} cols");
-    assert!(!state.tree_user_hidden, "tree_user_hidden should be false (auto-hidden)");
+    assert!(
+        !state.tree_visible,
+        "tree should start hidden at {narrow_cols} cols"
+    );
+    assert!(
+        !state.tree_user_hidden,
+        "tree_user_hidden should be false (auto-hidden)"
+    );
 
     // Re-render at wide terminal — tree should auto-show
     let mut state = state;
@@ -794,7 +834,10 @@ fn re_render_auto_shows_after_auto_hide_cycle() {
     // Narrow → tree auto-hides
     re_render(&mut state, &files, false, (MIN_DIFF_WIDTH + 5) as u16);
     assert!(!state.tree_visible, "tree should auto-hide when narrowed");
-    assert!(!state.tree_user_hidden, "auto-hide should not set user_hidden");
+    assert!(
+        !state.tree_user_hidden,
+        "auto-hide should not set user_hidden"
+    );
 
     // Widen → tree auto-shows
     re_render(&mut state, &files, false, 120);
@@ -818,7 +861,10 @@ fn re_render_does_not_auto_show_for_small_flat_diffs() {
         tree_entries,
         60,
     );
-    assert!(!state.tree_visible, "tree should be hidden for 2 flat files");
+    assert!(
+        !state.tree_visible,
+        "tree should be hidden for 2 flat files"
+    );
 
     // Widen — should still not show (content doesn't qualify)
     re_render(&mut state, &files, false, 200);
@@ -834,7 +880,10 @@ fn git_index_mtime_returns_some_for_real_index() {
     std::fs::create_dir_all(dir.join(".git")).unwrap();
     std::fs::write(dir.join(".git/index"), b"fake index").unwrap();
     let result = git_index_mtime(&dir);
-    assert!(result.is_some(), "should return Some for an existing .git/index");
+    assert!(
+        result.is_some(),
+        "should return Some for an existing .git/index"
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -891,7 +940,14 @@ fn parse_replay_keys_ctrl_combos() {
 fn parse_replay_keys_arrow_and_nav() {
     assert_eq!(
         parse_replay_keys("<Up><Down><Home><End><PgUp><PgDn>"),
-        vec![Key::Up, Key::Down, Key::Home, Key::End, Key::PageUp, Key::PageDown]
+        vec![
+            Key::Up,
+            Key::Down,
+            Key::Home,
+            Key::End,
+            Key::PageUp,
+            Key::PageDown
+        ]
     );
 }
 

@@ -7,9 +7,9 @@ use crate::git::DiffSource;
 use super::content::{is_content_line, next_content_line, prev_content_line};
 use super::keymap::keymap_lookup;
 use super::navigation::{
-    nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line, sync_active_file_to_cursor,
-    jump_to_tree_file, sync_tree_cursor, tree_cursor_bottom, tree_cursor_down, tree_cursor_top,
-    tree_cursor_up, viewport_bounds,
+    jump_to_tree_file, nav_D_down, nav_U_up, nav_du_down, nav_du_up, recenter_top_line,
+    sync_active_file_to_cursor, sync_tree_cursor, tree_cursor_bottom, tree_cursor_down,
+    tree_cursor_top, tree_cursor_up, viewport_bounds,
 };
 use super::rendering::{enforce_scrolloff, format_copy_ref, resolve_lineno};
 use super::search::{
@@ -18,7 +18,10 @@ use super::search::{
 };
 use super::state::{PagerState, ReducerCtx, ReducerEffect};
 use super::state::{clamp_cursor_and_top, debug_assert_valid_state, visible_range};
-use super::tree::{build_tree_entries, compute_tree_width, file_idx_to_entry_idx, resolve_tree_layout, tree_entry_path, MIN_DIFF_WIDTH};
+use super::tree::{
+    MIN_DIFF_WIDTH, build_tree_entries, compute_tree_width, file_idx_to_entry_idx,
+    resolve_tree_layout, tree_entry_path,
+};
 use super::types::{ActionId, FocusPane, KeyResult, Mode};
 
 #[derive(Debug, Clone)]
@@ -32,14 +35,17 @@ fn refresh_tree(state: &mut PagerState, files: &[crate::git::diff::DiffFile], co
     let content_width = compute_tree_width(&state.tree_entries);
     let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
     let file_count = state.doc.file_count();
-    state.tree_width = resolve_tree_layout(content_width, cols as usize, has_directories, file_count)
-        .unwrap_or_else(|| (cols as usize).saturating_sub(MIN_DIFF_WIDTH + 1));
+    state.tree_width =
+        resolve_tree_layout(content_width, cols as usize, has_directories, file_count)
+            .unwrap_or_else(|| (cols as usize).saturating_sub(MIN_DIFF_WIDTH + 1));
 }
 
 fn set_view_to_file(state: &mut PagerState, file_idx: usize, ch: usize) {
     // Save current position before switching away
     if let Some(current_idx) = state.active_file() {
-        state.file_positions.insert(current_idx, (state.top_line, state.cursor_line));
+        state
+            .file_positions
+            .insert(current_idx, (state.top_line, state.cursor_line));
     }
 
     state.set_active_file(Some(file_idx));
@@ -159,7 +165,9 @@ fn dispatch_normal_action(
                     if let Some(&last_target) = targets.last() {
                         let max_line = state.doc.line_map.len().saturating_sub(1);
                         state.cursor_line = super::content::next_content_line(
-                            &state.doc.line_map, last_target, max_line,
+                            &state.doc.line_map,
+                            last_target,
+                            max_line,
                         );
                         state.status_message = super::navigation::nav_status_message(
                             if state.full_context { "Change" } else { "Hunk" },
@@ -376,9 +384,10 @@ fn dispatch_normal_action(
             state.tooltip_visible = !state.tooltip_visible;
             Some(ReducerEffect::ReRender)
         }
-        ActionId::StageLine | ActionId::StageHunk | ActionId::DiscardLine | ActionId::DiscardHunk => {
-            dispatch_staging_action(state, action, ctx)
-        }
+        ActionId::StageLine
+        | ActionId::StageHunk
+        | ActionId::DiscardLine
+        | ActionId::DiscardHunk => dispatch_staging_action(state, action, ctx),
         // Handled by dispatch_search_action in Search mode
         ActionId::SearchSubmit | ActionId::SearchCancel => None,
         ActionId::ToggleFocus => {
@@ -390,7 +399,11 @@ fn dispatch_normal_action(
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
                     refresh_tree(state, files, ctx.cols);
                 }
-                let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                let file_idx = state
+                    .doc
+                    .line_map
+                    .get(state.cursor_line)
+                    .map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
@@ -412,7 +425,11 @@ fn dispatch_normal_action(
                 if state.tree_entries.is_empty() || state.tree_lines.is_empty() {
                     refresh_tree(state, files, ctx.cols);
                 }
-                let file_idx = state.doc.line_map.get(state.cursor_line).map_or(0, |li| li.file_idx);
+                let file_idx = state
+                    .doc
+                    .line_map
+                    .get(state.cursor_line)
+                    .map_or(0, |li| li.file_idx);
                 state.set_tree_cursor(file_idx_to_entry_idx(&state.tree_entries, file_idx));
                 state.rebuild_tree_lines();
             }
@@ -444,7 +461,11 @@ fn toggle_collapse_single(state: &mut PagerState) {
         Some(s) => s.get(),
         None => return,
     };
-    if state.tree_entries.get(sel).is_none_or(|e| e.file_idx.is_some()) {
+    if state
+        .tree_entries
+        .get(sel)
+        .is_none_or(|e| e.file_idx.is_some())
+    {
         return;
     }
     let path = tree_entry_path(&state.tree_entries, sel);
@@ -563,7 +584,9 @@ fn dispatch_staging_action(
             let mut indices = HashSet::new();
             for doc_line in lo..=hi {
                 if let Some(li) = state.doc.line_map.get(doc_line)
-                    && li.file_idx == file_idx && li.hunk_idx == Some(hunk_idx) && li.line_kind.is_some()
+                    && li.file_idx == file_idx
+                    && li.hunk_idx == Some(hunk_idx)
+                    && li.line_kind.is_some()
                 {
                     // Find the hunk line index by matching lineno
                     for (i, hl) in hunk.lines.iter().enumerate() {
@@ -593,7 +616,11 @@ fn dispatch_staging_action(
         crate::git::patch::generate_line_patch(file, hunk, &selected)
     };
 
-    Some(ReducerEffect::ApplyPatch { patch, cached, reverse })
+    Some(ReducerEffect::ApplyPatch {
+        patch,
+        cached,
+        reverse,
+    })
 }
 
 fn dispatch_search_action(state: &mut PagerState, action: ActionId) -> ReducerEffect {
@@ -719,11 +746,7 @@ fn reduce(state: &mut PagerState, event: &ReducerEvent, ctx: &ReducerCtx<'_>) ->
     effect
 }
 
-pub(crate) fn handle_key(
-    state: &mut PagerState,
-    key: Key,
-    ctx: &ReducerCtx<'_>,
-) -> KeyResult {
+pub(crate) fn handle_key(state: &mut PagerState, key: Key, ctx: &ReducerCtx<'_>) -> KeyResult {
     let event = ReducerEvent::Key(key);
     KeyResult::from(reduce(state, &event, ctx))
 }

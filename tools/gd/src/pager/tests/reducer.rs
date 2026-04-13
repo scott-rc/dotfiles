@@ -84,7 +84,14 @@ fn key_z_centers_viewport() {
     let mut state = make_keybinding_state();
     state.cursor_line = 40;
     state.top_line = 0;
-    handle_key(&mut state, Key::Char('z'), &ReducerCtx { content_height: 20, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('z'),
+        &ReducerCtx {
+            content_height: 20,
+            ..test_ctx()
+        },
+    );
     assert!(
         state.top_line > 0,
         "z should center viewport around cursor, moving top_line from 0"
@@ -150,7 +157,14 @@ fn key_bracket_next_hunk_cross_file_boundary() {
 fn key_bracket_next_hunk_scrolloff_binding() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 6;
-    handle_key(&mut state, Key::Char(']'), &ReducerCtx { content_height: 15, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char(']'),
+        &ReducerCtx {
+            content_height: 15,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -205,7 +219,14 @@ fn key_brace_prev_file_no_active_stuck_cursor() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), &ReducerCtx { content_height: 50, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('{'),
+        &ReducerCtx {
+            content_height: 50,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -232,7 +253,14 @@ fn key_brace_prev_file_at_first_is_noop() {
     let mut state = make_keybinding_state();
     state.set_active_file(None);
     state.cursor_line = 1;
-    handle_key(&mut state, Key::Char('{'), &ReducerCtx { content_height: 50, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('{'),
+        &ReducerCtx {
+            content_height: 50,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -294,7 +322,14 @@ fn key_brace_shows_file_status_message() {
 fn key_brace_prev_shows_file_status_message() {
     let mut state = make_mixed_content_state();
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), &ReducerCtx { content_height: 50, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('{'),
+        &ReducerCtx {
+            content_height: 50,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -744,7 +779,10 @@ fn key_l_toggles_tree_on() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
     handle_key(&mut state, Key::Char('l'), &ctx);
     assert!(state.tree_visible, "l should show tree");
     assert_debug_snapshot!(StateSnapshot::from(&state));
@@ -774,9 +812,16 @@ fn key_l_toggle_tree_clamps_width_on_narrow_terminal() {
     ];
     crate::git::sort_files_for_display(&mut files);
     let cols: u16 = 100;
-    let ctx = ReducerCtx { cols, files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        cols,
+        files: &files,
+        ..test_ctx()
+    };
     handle_key(&mut state, Key::Char('l'), &ctx);
-    assert!(state.tree_visible, "tree should be visible even on narrow terminal");
+    assert!(
+        state.tree_visible,
+        "tree should be visible even on narrow terminal"
+    );
     let max_tree = cols as usize - MIN_DIFF_WIDTH - 1;
     assert!(
         state.tree_width <= max_tree,
@@ -798,7 +843,11 @@ fn key_s_toggle_single_file_clamps_tree_width_on_narrow_terminal() {
     ];
     crate::git::sort_files_for_display(&mut files);
     let cols: u16 = 100;
-    let ctx = ReducerCtx { cols, files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        cols,
+        files: &files,
+        ..test_ctx()
+    };
     handle_key(&mut state, Key::Char('s'), &ctx);
     let max_tree = cols as usize - MIN_DIFF_WIDTH - 1;
     assert!(
@@ -815,14 +864,15 @@ fn key_l_toggle_tree_fallback_on_very_narrow_terminal() {
     use super::super::tree::MIN_DIFF_WIDTH;
     let mut state = make_keybinding_state();
     state.tree_visible = false;
-    let files = vec![
-        make_diff_file("src/a.rs"),
-        make_diff_file("src/b.rs"),
-    ];
+    let files = vec![make_diff_file("src/a.rs"), make_diff_file("src/b.rs")];
     // Very narrow terminal where resolve_tree_layout returns None,
     // triggering the fallback: terminal_cols.saturating_sub(MIN_DIFF_WIDTH + 1)
     let cols: u16 = 85;
-    let ctx = ReducerCtx { cols, files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        cols,
+        files: &files,
+        ..test_ctx()
+    };
     handle_key(&mut state, Key::Char('l'), &ctx);
     assert!(state.tree_visible, "l should still toggle tree on");
     // Fallback tree_width must not make the diff unusable
@@ -945,7 +995,14 @@ fn key_d_single_file_clamps_to_file_end() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(0));
     state.cursor_line = 25;
-    handle_key(&mut state, Key::Char('d'), &ReducerCtx { content_height: 20, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('d'),
+        &ReducerCtx {
+            content_height: 20,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -954,7 +1011,14 @@ fn key_u_single_file_clamps_to_file_start() {
     let mut state = make_mixed_content_state();
     state.set_active_file(Some(1));
     state.cursor_line = 32;
-    handle_key(&mut state, Key::Char('u'), &ReducerCtx { content_height: 20, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('u'),
+        &ReducerCtx {
+            content_height: 20,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -972,7 +1036,14 @@ fn key_brace_prev_no_active_file_at_file_boundary() {
     let mut state = make_mixed_content_state();
     state.set_active_file(None);
     state.cursor_line = 31;
-    handle_key(&mut state, Key::Char('{'), &ReducerCtx { content_height: 50, ..test_ctx() });
+    handle_key(
+        &mut state,
+        Key::Char('{'),
+        &ReducerCtx {
+            content_height: 50,
+            ..test_ctx()
+        },
+    );
     assert_debug_snapshot!(StateSnapshot::from(&state));
 }
 
@@ -994,7 +1065,10 @@ fn sequence_toggle_single_file_context_regenerate() {
         make_diff_file("c.rs"),
     ];
     let mut state = make_keybinding_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     handle_key(&mut state, Key::Char('s'), &ctx);
     assert_state_invariants(&state);
@@ -1011,7 +1085,10 @@ fn sequence_toggle_single_file_context_regenerate() {
 fn sequence_hunk_nav_in_both_context_modes() {
     let mut state = make_mixed_content_state();
     let files: Vec<DiffFile> = vec![];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     state.full_context = false;
     handle_key(&mut state, Key::Char(']'), &ctx);
@@ -1035,7 +1112,10 @@ fn sequence_hunk_nav_in_both_context_modes() {
 fn sequence_resize_rerender_in_search() {
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, true);
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     handle_key(&mut state, Key::Char('/'), &ctx);
     state.search_input = "first".to_string();
@@ -1088,7 +1168,12 @@ fn property_bounded_random_transitions() {
 
         let ch = 24 + ((rng >> 16) as usize % 20);
         let rows = 40;
-        let ctx = ReducerCtx { content_height: ch, rows, files: &files, ..test_ctx() };
+        let ctx = ReducerCtx {
+            content_height: ch,
+            rows,
+            files: &files,
+            ..test_ctx()
+        };
         let _ = handle_key(&mut state, key, &ctx);
         assert_state_invariants(&state);
 
@@ -1108,13 +1193,28 @@ fn property_bounded_random_transitions() {
 #[test]
 fn stage_line_working_tree_returns_apply_patch() {
     let (mut state, files) = make_staging_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
     // Position cursor on a changed line (find an Added line)
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let result = handle_key(&mut state, Key::Char('a'), &ctx);
     assert!(
-        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        matches!(
+            result,
+            KeyResult::ApplyPatch {
+                cached: true,
+                reverse: false,
+                ..
+            }
+        ),
         "stage line on WorkingTree should return ApplyPatch(cached=true, reverse=false), got {result:?}"
     );
 }
@@ -1122,12 +1222,27 @@ fn stage_line_working_tree_returns_apply_patch() {
 #[test]
 fn stage_hunk_working_tree_returns_apply_patch() {
     let (mut state, files) = make_staging_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let result = handle_key(&mut state, Key::Char('A'), &ctx);
     assert!(
-        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        matches!(
+            result,
+            KeyResult::ApplyPatch {
+                cached: true,
+                reverse: false,
+                ..
+            }
+        ),
         "stage hunk on WorkingTree should return ApplyPatch(cached=true, reverse=false), got {result:?}"
     );
 }
@@ -1135,12 +1250,27 @@ fn stage_hunk_working_tree_returns_apply_patch() {
 #[test]
 fn discard_line_working_tree_returns_apply_patch() {
     let (mut state, files) = make_staging_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let result = handle_key(&mut state, Key::Char('x'), &ctx);
     assert!(
-        matches!(result, KeyResult::ApplyPatch { cached: false, reverse: true, .. }),
+        matches!(
+            result,
+            KeyResult::ApplyPatch {
+                cached: false,
+                reverse: true,
+                ..
+            }
+        ),
         "discard line on WorkingTree should return ApplyPatch(cached=false, reverse=true), got {result:?}"
     );
 }
@@ -1148,12 +1278,27 @@ fn discard_line_working_tree_returns_apply_patch() {
 #[test]
 fn discard_hunk_working_tree_returns_apply_patch() {
     let (mut state, files) = make_staging_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let result = handle_key(&mut state, Key::Char('X'), &ctx);
     assert!(
-        matches!(result, KeyResult::ApplyPatch { cached: false, reverse: true, .. }),
+        matches!(
+            result,
+            KeyResult::ApplyPatch {
+                cached: false,
+                reverse: true,
+                ..
+            }
+        ),
         "discard hunk on WorkingTree should return ApplyPatch(cached=false, reverse=true), got {result:?}"
     );
 }
@@ -1161,48 +1306,97 @@ fn discard_hunk_working_tree_returns_apply_patch() {
 #[test]
 fn stage_line_commit_view_is_disabled() {
     let (mut state, files) = make_staging_state();
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let source = crate::git::DiffSource::Commit("abc".into());
-    let ctx = ReducerCtx { files: &files, source: &source, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        source: &source,
+        ..test_ctx()
+    };
     let result = handle_key(&mut state, Key::Char('a'), &ctx);
     assert!(
         matches!(result, KeyResult::Continue),
         "stage in commit view should return Continue, got {result:?}"
     );
-    assert!(state.status_message.contains("Cannot"), "should show Cannot message, got: {}", state.status_message);
+    assert!(
+        state.status_message.contains("Cannot"),
+        "should show Cannot message, got: {}",
+        state.status_message
+    );
 }
 
 #[test]
 fn stage_line_range_view_is_disabled() {
     let (mut state, files) = make_staging_state();
-    let added_line = state.doc.line_map.iter().position(|li| li.line_kind == Some(LineKind::Added)).unwrap();
+    let added_line = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind == Some(LineKind::Added))
+        .unwrap();
     state.cursor_line = added_line;
     let source = crate::git::DiffSource::Range("a".into(), "b".into());
-    let ctx = ReducerCtx { files: &files, source: &source, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        source: &source,
+        ..test_ctx()
+    };
     let result = handle_key(&mut state, Key::Char('a'), &ctx);
     assert!(
         matches!(result, KeyResult::Continue),
         "stage in range view should return Continue, got {result:?}"
     );
-    assert!(state.status_message.contains("Cannot"), "should show Cannot message, got: {}", state.status_message);
+    assert!(
+        state.status_message.contains("Cannot"),
+        "should show Cannot message, got: {}",
+        state.status_message
+    );
 }
 
 #[test]
 fn stage_line_with_visual_selection_stages_range() {
     let (mut state, files) = make_staging_state();
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
     // Find first and last content lines
-    let first_content = state.doc.line_map.iter().position(|li| li.line_kind.is_some()).unwrap();
-    let last_content = state.doc.line_map.iter().rposition(|li| li.line_kind.is_some()).unwrap();
+    let first_content = state
+        .doc
+        .line_map
+        .iter()
+        .position(|li| li.line_kind.is_some())
+        .unwrap();
+    let last_content = state
+        .doc
+        .line_map
+        .iter()
+        .rposition(|li| li.line_kind.is_some())
+        .unwrap();
     state.visual_anchor = Some(first_content);
     state.cursor_line = last_content;
     let result = handle_key(&mut state, Key::Char('a'), &ctx);
     assert!(
-        matches!(result, KeyResult::ApplyPatch { cached: true, reverse: false, .. }),
+        matches!(
+            result,
+            KeyResult::ApplyPatch {
+                cached: true,
+                reverse: false,
+                ..
+            }
+        ),
         "stage line with visual selection should return ApplyPatch, got {result:?}"
     );
-    assert_eq!(state.visual_anchor, None, "visual anchor should be cleared after staging");
+    assert_eq!(
+        state.visual_anchor, None,
+        "visual anchor should be cleared after staging"
+    );
 }
 
 // ---- Focus mode (t) ----
@@ -1217,7 +1411,10 @@ fn focus_toggle_shows_tree_and_focuses_it() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
     handle_key(&mut state, Key::Char('t'), &ctx);
     assert!(state.tree_visible, "t should show tree when hidden");
     assert_eq!(state.focus, FocusPane::Tree, "t should focus tree");
@@ -1233,13 +1430,20 @@ fn focus_toggle_switches_between_panes() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
     // First t: focus tree
     handle_key(&mut state, Key::Char('t'), &ctx);
     assert_eq!(state.focus, FocusPane::Tree);
     // Second t: back to diff
     handle_key(&mut state, Key::Char('t'), &ctx);
-    assert_eq!(state.focus, FocusPane::Diff, "second t should return focus to diff");
+    assert_eq!(
+        state.focus,
+        FocusPane::Diff,
+        "second t should return focus to diff"
+    );
 }
 
 #[test]
@@ -1248,7 +1452,11 @@ fn escape_in_tree_focus_returns_to_diff() {
     state.tree_visible = true;
     state.focus = FocusPane::Tree;
     handle_key(&mut state, Key::Escape, &test_ctx());
-    assert_eq!(state.focus, FocusPane::Diff, "Escape should return focus to diff");
+    assert_eq!(
+        state.focus,
+        FocusPane::Diff,
+        "Escape should return focus to diff"
+    );
 }
 
 #[test]
@@ -1259,7 +1467,11 @@ fn j_in_tree_focus_moves_tree_cursor() {
     state.set_tree_cursor(0);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char('j'), &test_ctx());
-    assert_eq!(state.tree_cursor(), 1, "j in tree focus should advance tree cursor");
+    assert_eq!(
+        state.tree_cursor(),
+        1,
+        "j in tree focus should advance tree cursor"
+    );
 }
 
 #[test]
@@ -1270,7 +1482,11 @@ fn k_in_tree_focus_moves_cursor_up() {
     state.set_tree_cursor(1);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char('k'), &test_ctx());
-    assert_eq!(state.tree_cursor(), 0, "k in tree focus should move tree cursor up");
+    assert_eq!(
+        state.tree_cursor(),
+        0,
+        "k in tree focus should move tree cursor up"
+    );
 }
 
 #[test]
@@ -1292,7 +1508,10 @@ fn j_in_diff_focus_scrolls_diff() {
     state.cursor_line = 1;
     let cursor_before = state.cursor_line;
     handle_key(&mut state, Key::Char('j'), &test_ctx());
-    assert!(state.cursor_line > cursor_before, "j in diff focus should scroll diff");
+    assert!(
+        state.cursor_line > cursor_before,
+        "j in diff focus should scroll diff"
+    );
 }
 
 // ---- TreeEnter (context-sensitive Enter in tree) ----
@@ -1302,10 +1521,10 @@ fn tree_enter_on_collapsed_directory_expands_it() {
     let mut state = make_keybinding_state();
     // Replace tree_entries with a directory + files structure
     state.tree_entries = vec![
-        entry("src", 0, None),      // 0: directory
-        entry("a.rs", 1, Some(0)),  // 1: file
-        entry("b.rs", 1, Some(1)),  // 2: file
-        entry("c.rs", 0, Some(2)),  // 3: file
+        entry("src", 0, None),     // 0: directory
+        entry("a.rs", 1, Some(0)), // 1: file
+        entry("b.rs", 1, Some(1)), // 2: file
+        entry("c.rs", 0, Some(2)), // 3: file
     ];
     state.tree_entries[0].collapsed = true;
     state.tree_visible = true;
@@ -1313,17 +1532,20 @@ fn tree_enter_on_collapsed_directory_expands_it() {
     state.set_tree_cursor(0);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Enter, &test_ctx());
-    assert!(!state.tree_entries[0].collapsed, "Enter on collapsed directory should expand it");
+    assert!(
+        !state.tree_entries[0].collapsed,
+        "Enter on collapsed directory should expand it"
+    );
 }
 
 #[test]
 fn tree_enter_on_expanded_directory_collapses_it() {
     let mut state = make_keybinding_state();
     state.tree_entries = vec![
-        entry("src", 0, None),      // 0: directory
-        entry("a.rs", 1, Some(0)),  // 1: file
-        entry("b.rs", 1, Some(1)),  // 2: file
-        entry("c.rs", 0, Some(2)),  // 3: file
+        entry("src", 0, None),     // 0: directory
+        entry("a.rs", 1, Some(0)), // 1: file
+        entry("b.rs", 1, Some(1)), // 2: file
+        entry("c.rs", 0, Some(2)), // 3: file
     ];
     state.tree_entries[0].collapsed = false;
     state.tree_visible = true;
@@ -1331,7 +1553,10 @@ fn tree_enter_on_expanded_directory_collapses_it() {
     state.set_tree_cursor(0);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Enter, &test_ctx());
-    assert!(state.tree_entries[0].collapsed, "Enter on expanded directory should collapse it");
+    assert!(
+        state.tree_entries[0].collapsed,
+        "Enter on expanded directory should collapse it"
+    );
 }
 
 #[test]
@@ -1345,7 +1570,11 @@ fn tree_enter_on_file_jumps_cursor_and_keeps_tree_focus() {
     state.set_tree_cursor(1);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Enter, &test_ctx());
-    assert_eq!(state.focus, FocusPane::Tree, "Enter on file should keep focus on tree");
+    assert_eq!(
+        state.focus,
+        FocusPane::Tree,
+        "Enter on file should keep focus on tree"
+    );
     // cursor_line should be at or near file_starts[1] = 30
     assert!(
         state.cursor_line >= 30 && state.cursor_line <= 31,
@@ -1362,7 +1591,11 @@ fn tree_space_on_file_jumps_cursor_and_keeps_tree_focus() {
     state.set_tree_cursor(1);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char(' '), &test_ctx());
-    assert_eq!(state.focus, FocusPane::Tree, "Space on file should keep focus on tree");
+    assert_eq!(
+        state.focus,
+        FocusPane::Tree,
+        "Space on file should keep focus on tree"
+    );
     assert!(
         state.cursor_line >= 30 && state.cursor_line <= 31,
         "cursor should jump to file start (30), got {}",
@@ -1381,8 +1614,16 @@ fn tree_enter_on_file_in_single_file_mode_switches_active_file() {
     state.set_tree_cursor(1);
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Enter, &test_ctx());
-    assert_eq!(state.focus, FocusPane::Tree, "Enter should keep focus on tree");
-    assert_eq!(state.active_file(), Some(1), "active file should switch to file 1");
+    assert_eq!(
+        state.focus,
+        FocusPane::Tree,
+        "Enter should keep focus on tree"
+    );
+    assert_eq!(
+        state.active_file(),
+        Some(1),
+        "active file should switch to file 1"
+    );
     assert!(
         state.cursor_line >= 30 && state.cursor_line <= 31,
         "cursor should be at file 1 start (30), got {}",
@@ -1397,7 +1638,10 @@ fn enter_when_diff_focused_scrolls_down() {
     state.cursor_line = 1;
     let cursor_before = state.cursor_line;
     handle_key(&mut state, Key::Enter, &test_ctx());
-    assert!(state.cursor_line > cursor_before, "Enter in diff focus should scroll down");
+    assert!(
+        state.cursor_line > cursor_before,
+        "Enter in diff focus should scroll down"
+    );
 }
 
 // ---- za / zA collapse control ----
@@ -1419,8 +1663,14 @@ fn za_on_expanded_directory_collapses_it() {
     // Press z then a
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('a'), &test_ctx());
-    assert!(state.tree_entries[0].collapsed, "za on expanded directory should collapse it");
-    assert!(state.collapsed_paths.contains("src"), "collapsed_paths should track 'src'");
+    assert!(
+        state.tree_entries[0].collapsed,
+        "za on expanded directory should collapse it"
+    );
+    assert!(
+        state.collapsed_paths.contains("src"),
+        "collapsed_paths should track 'src'"
+    );
 }
 
 #[test]
@@ -1440,20 +1690,26 @@ fn za_on_collapsed_directory_expands_it() {
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('a'), &test_ctx());
-    assert!(!state.tree_entries[0].collapsed, "za on collapsed directory should expand it");
-    assert!(!state.collapsed_paths.contains("src"), "collapsed_paths should remove 'src'");
+    assert!(
+        !state.tree_entries[0].collapsed,
+        "za on collapsed directory should expand it"
+    );
+    assert!(
+        !state.collapsed_paths.contains("src"),
+        "collapsed_paths should remove 'src'"
+    );
 }
 
 #[test]
 fn za_collapses_directory_and_all_descendants() {
     let mut state = make_keybinding_state();
     state.tree_entries = vec![
-        entry("src", 0, None),       // 0
-        entry("lib", 1, None),       // 1
-        entry("a.rs", 2, Some(0)),   // 2
-        entry("bin", 1, None),       // 3
-        entry("b.rs", 2, Some(1)),   // 4
-        entry("c.rs", 0, Some(2)),   // 5
+        entry("src", 0, None),     // 0
+        entry("lib", 1, None),     // 1
+        entry("a.rs", 2, Some(0)), // 2
+        entry("bin", 1, None),     // 3
+        entry("b.rs", 2, Some(1)), // 4
+        entry("c.rs", 0, Some(2)), // 5
     ];
     state.tree_visible = true;
     state.focus = FocusPane::Tree;
@@ -1462,9 +1718,18 @@ fn za_collapses_directory_and_all_descendants() {
     // Press z then A (recursive)
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('A'), &test_ctx());
-    assert!(state.tree_entries[0].collapsed, "zA should collapse cursor dir");
-    assert!(state.tree_entries[1].collapsed, "zA should collapse descendant dir 'lib'");
-    assert!(state.tree_entries[3].collapsed, "zA should collapse descendant dir 'bin'");
+    assert!(
+        state.tree_entries[0].collapsed,
+        "zA should collapse cursor dir"
+    );
+    assert!(
+        state.tree_entries[1].collapsed,
+        "zA should collapse descendant dir 'lib'"
+    );
+    assert!(
+        state.tree_entries[3].collapsed,
+        "zA should collapse descendant dir 'bin'"
+    );
 }
 
 #[test]
@@ -1492,9 +1757,18 @@ fn za_on_collapsed_expands_all_descendants() {
     // Press z then A (recursive expand)
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('A'), &test_ctx());
-    assert!(!state.tree_entries[0].collapsed, "zA should expand cursor dir");
-    assert!(!state.tree_entries[1].collapsed, "zA should expand descendant 'lib'");
-    assert!(!state.tree_entries[3].collapsed, "zA should expand descendant 'bin'");
+    assert!(
+        !state.tree_entries[0].collapsed,
+        "zA should expand cursor dir"
+    );
+    assert!(
+        !state.tree_entries[1].collapsed,
+        "zA should expand descendant 'lib'"
+    );
+    assert!(
+        !state.tree_entries[3].collapsed,
+        "zA should expand descendant 'bin'"
+    );
 }
 
 #[test]
@@ -1513,7 +1787,11 @@ fn za_on_file_entry_is_noop() {
     let lines_before = state.tree_lines.len();
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('a'), &test_ctx());
-    assert_eq!(state.tree_lines.len(), lines_before, "za on file entry should be a noop");
+    assert_eq!(
+        state.tree_lines.len(),
+        lines_before,
+        "za on file entry should be a noop"
+    );
 }
 
 #[test]
@@ -1532,19 +1810,22 @@ fn z_followed_by_non_a_cancels_pending() {
     state.rebuild_tree_lines();
     handle_key(&mut state, Key::Char('z'), &test_ctx());
     handle_key(&mut state, Key::Char('x'), &test_ctx());
-    assert!(!state.tree_entries[0].collapsed, "zx should not toggle collapse");
-    assert!(state.pending_tree_key.is_none(), "pending should be cleared after non-a key");
+    assert!(
+        !state.tree_entries[0].collapsed,
+        "zx should not toggle collapse"
+    );
+    assert!(
+        state.pending_tree_key.is_none(),
+        "pending should be cleared after non-a key"
+    );
 }
 
 #[test]
 fn collapsed_paths_survives_remap_after_document_swap() {
-    use crate::pager::state::{capture_view_anchor, remap_after_document_swap, Document};
+    use crate::pager::state::{Document, capture_view_anchor, remap_after_document_swap};
     use crate::render;
 
-    let files = vec![
-        make_diff_file("src/a.rs"),
-        make_diff_file("src/b.rs"),
-    ];
+    let files = vec![make_diff_file("src/a.rs"), make_diff_file("src/b.rs")];
     let mut state = make_pager_state_from_files(&files, true);
     // Collapse the "src" directory and track it
     if let Some(dir_idx) = state.tree_entries.iter().position(|e| e.file_idx.is_none()) {
@@ -1581,24 +1862,61 @@ fn single_child_chain_defaults_to_collapsed() {
 
 // ---- Tree-driven file jumping via NextFile/PrevFile ----
 
+use super::super::state::PagerState;
 use super::super::tree::TreeEntry;
 use crate::git::diff::FileStatus;
 use crate::render::LineInfo;
-use super::super::state::PagerState;
 
 /// Build a state with a collapsed directory hiding its children from tree_visible_to_entry.
 fn make_tree_file_jump_state() -> PagerState {
     let tree_entries = vec![
-        TreeEntry { label: "src".into(), depth: 0, file_idx: None, status: None, collapsed: true },
-        TreeEntry { label: "a.rs".into(), depth: 1, file_idx: Some(0), status: Some(FileStatus::Modified), collapsed: false },
-        TreeEntry { label: "b.rs".into(), depth: 1, file_idx: Some(1), status: Some(FileStatus::Modified), collapsed: false },
-        TreeEntry { label: "README.md".into(), depth: 0, file_idx: Some(2), status: Some(FileStatus::Modified), collapsed: false },
+        TreeEntry {
+            label: "src".into(),
+            depth: 0,
+            file_idx: None,
+            status: None,
+            collapsed: true,
+        },
+        TreeEntry {
+            label: "a.rs".into(),
+            depth: 1,
+            file_idx: Some(0),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "b.rs".into(),
+            depth: 1,
+            file_idx: Some(1),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
+        TreeEntry {
+            label: "README.md".into(),
+            depth: 0,
+            file_idx: Some(2),
+            status: Some(FileStatus::Modified),
+            collapsed: false,
+        },
     ];
 
     let line_map: Vec<LineInfo> = (0..30)
         .map(|i| LineInfo {
-            file_idx: if i < 10 { 0 } else if i < 20 { 1 } else { 2 },
-            path: if i < 10 { "src/a.rs" } else if i < 20 { "src/b.rs" } else { "README.md" }.into(),
+            file_idx: if i < 10 {
+                0
+            } else if i < 20 {
+                1
+            } else {
+                2
+            },
+            path: if i < 10 {
+                "src/a.rs"
+            } else if i < 20 {
+                "src/b.rs"
+            } else {
+                "README.md"
+            }
+            .into(),
             new_lineno: Some(i as u32 + 1),
             old_lineno: None,
             line_kind: Some(LineKind::Context),
@@ -1629,7 +1947,10 @@ fn next_file_tree_visible_uses_nav_d_down() {
     handle_key(&mut state, Key::Char('}'), &test_ctx());
 
     // Uses nav_D_down, jumps to next file header (file_starts[1]=10)
-    assert_eq!(state.cursor_line, 10, "cursor should jump to next file via nav_D_down");
+    assert_eq!(
+        state.cursor_line, 10,
+        "cursor should jump to next file via nav_D_down"
+    );
 }
 
 #[test]
@@ -1642,7 +1963,10 @@ fn prev_file_tree_visible_uses_nav_u_up() {
     handle_key(&mut state, Key::Char('{'), &test_ctx());
 
     // Uses nav_U_up, jumps to previous file header (file_starts[1]=10)
-    assert_eq!(state.cursor_line, 10, "cursor should jump to prev file via nav_U_up");
+    assert_eq!(
+        state.cursor_line, 10,
+        "cursor should jump to prev file via nav_U_up"
+    );
 }
 
 #[test]
@@ -1654,7 +1978,10 @@ fn next_file_tree_hidden_uses_nav_d_down() {
     handle_key(&mut state, Key::Char('}'), &test_ctx());
 
     // Should use nav_D_down behavior, jumping to file_starts[1]=30
-    assert!(state.cursor_line >= 30, "cursor should jump to second file area via nav_D_down");
+    assert!(
+        state.cursor_line >= 30,
+        "cursor should jump to second file area via nav_D_down"
+    );
 }
 
 #[test]
@@ -1668,7 +1995,10 @@ fn next_file_tree_visible_any_focus() {
     handle_key(&mut state, Key::Char('}'), &test_ctx());
 
     // Uses nav_D_down regardless of tree visibility or focus
-    assert_eq!(state.cursor_line, 10, "cursor should jump to next file via nav_D_down");
+    assert_eq!(
+        state.cursor_line, 10,
+        "cursor should jump to next file via nav_D_down"
+    );
 }
 
 // ---- File position memory (cursor position per file) ----
@@ -1793,7 +2123,10 @@ fn focus_tree_syncs_cursor_to_current_file() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Open tree, then go back to diff
     handle_key(&mut state, Key::Super('e'), &ctx);
@@ -1807,7 +2140,11 @@ fn focus_tree_syncs_cursor_to_current_file() {
     // Re-focus tree — cursor should sync to file 1's tree entry (index 1)
     handle_key(&mut state, Key::Super('e'), &ctx);
     assert_eq!(state.focus, FocusPane::Tree);
-    assert_eq!(state.tree_cursor(), 1, "tree cursor should sync to file 1 when re-focusing");
+    assert_eq!(
+        state.tree_cursor(),
+        1,
+        "tree cursor should sync to file 1 when re-focusing"
+    );
 }
 
 #[test]
@@ -1818,7 +2155,10 @@ fn toggle_focus_syncs_cursor_to_current_file() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Open and focus tree with t
     handle_key(&mut state, Key::Char('t'), &ctx);
@@ -1834,7 +2174,11 @@ fn toggle_focus_syncs_cursor_to_current_file() {
 
     // Re-focus tree — cursor should sync to file 2's tree entry (index 2)
     handle_key(&mut state, Key::Char('t'), &ctx);
-    assert_eq!(state.tree_cursor(), 2, "tree cursor should sync to file 2 when re-focusing via t");
+    assert_eq!(
+        state.tree_cursor(),
+        2,
+        "tree cursor should sync to file 2 when re-focusing via t"
+    );
 }
 
 #[test]
@@ -1881,7 +2225,10 @@ fn tree_enter_on_directory_in_single_file_mode_toggles_collapse() {
         make_diff_file("b.rs"),
         make_diff_file("c.rs"),
     ];
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Enter single file mode
     state.set_active_file(Some(0));
@@ -1926,7 +2273,11 @@ fn next_file_at_last_single_file_is_noop() {
     let before_active = state.active_file();
     handle_key(&mut state, Key::Char('}'), &test_ctx());
 
-    assert_eq!(state.active_file(), before_active, "should stay on last file");
+    assert_eq!(
+        state.active_file(),
+        before_active,
+        "should stay on last file"
+    );
     assert_eq!(state.cursor_line, before_cursor, "cursor should not move");
 }
 

@@ -6,7 +6,7 @@ use crate::render::LineInfo;
 
 use super::super::content::{is_content_line, next_content_line, prev_content_line};
 use super::super::navigation::{
-    change_group_starts, jump_next, jump_prev, nav_du_up, nav_U_up, nav_status_message,
+    change_group_starts, jump_next, jump_prev, nav_U_up, nav_du_up, nav_status_message,
     sync_tree_cursor, viewport_bounds,
 };
 use super::super::state::{
@@ -525,8 +525,7 @@ fn test_scrollbar_no_panic_on_vis_end_less_than_vis_start() {
         })
         .collect();
     // vis_start=10 > vis_end=5 should not panic on subtraction underflow.
-    let cell =
-        super::super::rendering::render_scrollbar_cell(0, 20, 10, 5, 0, &line_map);
+    let cell = super::super::rendering::render_scrollbar_cell(0, 20, 10, 5, 0, &line_map);
     assert!(
         cell.contains(crate::style::BG_SCROLLBAR_TRACK),
         "inverted range should return a track cell without panicking"
@@ -556,7 +555,10 @@ fn test_change_group_starts_real_render_single_file() {
 
     let files = make_two_file_diff();
     let mut state = make_pager_state_from_files(&files, false);
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Enter single file mode
     let result = handle_key(&mut state, Key::Char('s'), &ctx);
@@ -600,7 +602,10 @@ diff --git a/x.txt b/x.txt
 ";
     let files = crate::git::diff::parse(raw);
     let mut state = make_pager_state_from_files(&files, false);
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Enter single file mode
     let result = handle_key(&mut state, Key::Char('s'), &ctx);
@@ -621,10 +626,7 @@ diff --git a/x.txt b/x.txt
     // Cursor should be on an Added or Deleted line (the change group)
     let kind = state.doc.line_map[state.cursor_line].line_kind;
     assert!(
-        matches!(
-            kind,
-            Some(LineKind::Added | LineKind::Deleted)
-        ),
+        matches!(kind, Some(LineKind::Added | LineKind::Deleted)),
         "cursor should land on a change line, got {:?} at line {}",
         kind,
         state.cursor_line,
@@ -666,7 +668,10 @@ diff --git a/b.txt b/b.txt
 ";
     let files = crate::git::diff::parse(raw);
     let mut state = make_pager_state_from_files(&files, false);
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Enter single file mode
     let result = handle_key(&mut state, Key::Char('s'), &ctx);
@@ -737,7 +742,10 @@ diff --git a/src/foo.txt b/src/foo.txt
     let mut state = make_pager_state_from_files(&files, false);
     state.tree_visible = false;
     state.tree_user_hidden = false;
-    let ctx = ReducerCtx { files: &files, ..test_ctx() };
+    let ctx = ReducerCtx {
+        files: &files,
+        ..test_ctx()
+    };
 
     // Toggle single file with tree auto-show potential
     let result = handle_key(&mut state, Key::Char('s'), &ctx);
@@ -808,7 +816,13 @@ fn make_tree_jump_state() -> PagerState {
 
     let line_map: Vec<LineInfo> = (0..30)
         .map(|i| LineInfo {
-            file_idx: if i < 10 { 0 } else if i < 20 { 1 } else { 2 },
+            file_idx: if i < 10 {
+                0
+            } else if i < 20 {
+                1
+            } else {
+                2
+            },
             path: if i < 10 {
                 "src/a.rs"
             } else if i < 20 {
@@ -847,7 +861,11 @@ fn tree_next_file_skips_collapsed_dir() {
     // Cursor is on entry 0 (collapsed dir). Next visible file should be entry 3 (README.md, file_idx=2).
     assert_eq!(state.tree_visible_to_entry, vec![0, 3]);
     let result = tree_next_file(&state);
-    assert_eq!(result, Some(2), "should jump to file_idx 2 (README.md), skipping collapsed children");
+    assert_eq!(
+        result,
+        Some(2),
+        "should jump to file_idx 2 (README.md), skipping collapsed children"
+    );
 }
 
 #[test]
@@ -859,7 +877,10 @@ fn tree_prev_file_skips_collapsed_dir() {
     let result = tree_prev_file(&state);
     // No visible file before README.md (entry 0 is a directory), so None
     // Actually, the collapsed dir has no file_idx, so prev should return None
-    assert_eq!(result, None, "no visible file before README.md when src/ is collapsed");
+    assert_eq!(
+        result, None,
+        "no visible file before README.md when src/ is collapsed"
+    );
 }
 
 #[test]
@@ -877,7 +898,10 @@ fn tree_prev_file_at_first_returns_none() {
     let state = make_tree_jump_state();
     // Cursor is on entry 0 (collapsed dir, not a file). No file before it.
     let result = tree_prev_file(&state);
-    assert_eq!(result, None, "should return None when at first entry (a dir)");
+    assert_eq!(
+        result, None,
+        "should return None when at first entry (a dir)"
+    );
 }
 
 #[test]

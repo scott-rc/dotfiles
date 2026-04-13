@@ -172,7 +172,9 @@ fn parse_file(chunk: &str) -> Option<DiffFile> {
         && let Some(header) = lines.first().and_then(|l| l.strip_prefix("diff --git "))
         && let Some(b_pos) = header.rfind(" b/")
     {
-        let a_part = header[..b_pos].strip_prefix("a/").unwrap_or(&header[..b_pos]);
+        let a_part = header[..b_pos]
+            .strip_prefix("a/")
+            .unwrap_or(&header[..b_pos]);
         let b_part = &header[b_pos + 3..];
         old_path = Some(a_part.to_string());
         new_path = Some(b_part.to_string());
@@ -667,7 +669,8 @@ diff --git a/f.rs b/f.rs
     #[test]
     fn parse_diff_no_trailing_newline() {
         // Last line has no trailing newline — exercises the final-byte (sep_len=0) path.
-        let diff = "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,1 +1,2 @@\n ctx\n+added";
+        let diff =
+            "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,1 +1,2 @@\n ctx\n+added";
         let files = parse(diff);
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].hunks[0].lines.len(), 2);
