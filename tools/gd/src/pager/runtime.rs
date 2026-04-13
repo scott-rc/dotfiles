@@ -199,7 +199,7 @@ fn rerender_document(
         RenderMode::Full => crate::render::render(files, width, color),
     };
     let new_doc = Document::from_render_output(output);
-    remap_after_document_swap(state, anchor, new_doc, files, cols as usize);
+    remap_after_document_swap(state, anchor.as_ref(), new_doc, files, cols as usize);
 
     debug_trace(
         trace_location,

@@ -1836,7 +1836,7 @@ fn collapsed_paths_survives_remap_after_document_swap() {
     let anchor = capture_view_anchor(&state);
     let output = render::render(&files, 80, false);
     let new_doc = Document::from_render_output(output);
-    remap_after_document_swap(&mut state, anchor, new_doc, &files, 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &files, 120);
     // The "src" directory should still be collapsed after remap
     if let Some(dir_idx) = state.tree_entries.iter().position(|e| e.file_idx.is_none()) {
         assert!(
@@ -1849,14 +1849,32 @@ fn collapsed_paths_survives_remap_after_document_swap() {
 }
 
 #[test]
-fn single_child_chain_defaults_to_collapsed() {
+fn single_child_chain_sole_root_stays_expanded() {
     let files = vec![make_diff_file("src/lib/foo.rs")];
     let entries = super::super::tree::build_tree_entries(&files);
     let chain_dir = entries.iter().find(|e| e.file_idx.is_none());
     assert!(chain_dir.is_some(), "should have a dir entry");
     assert!(
-        chain_dir.unwrap().collapsed,
-        "single-child chain directory should default to collapsed"
+        !chain_dir.unwrap().collapsed,
+        "sole root single-child chain should stay expanded"
+    );
+}
+
+#[test]
+fn single_child_chain_collapses_when_not_sole_root() {
+    let mut files = vec![
+        make_diff_file("pkg/deep/nested/foo.rs"),
+        make_diff_file("src/bar.rs"),
+    ];
+    files.sort_by(|a, b| a.path().cmp(b.path()));
+    let entries = super::super::tree::build_tree_entries(&files);
+    let chain = entries
+        .iter()
+        .find(|e| e.file_idx.is_none() && e.label.contains('/'));
+    assert!(chain.is_some(), "should have a chain dir entry");
+    assert!(
+        chain.unwrap().collapsed,
+        "non-sole-root single-child chain should default to collapsed"
     );
 }
 
@@ -2104,7 +2122,7 @@ fn file_positions_cleared_on_document_swap() {
     // Simulate document swap (regenerate)
     let anchor = capture_view_anchor(&state);
     let new_doc = state.doc.clone();
-    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &[], 120);
 
     // Switch back to file 0 — position should NOT be restored (cache cleared)
     handle_key(&mut state, Key::Char('{'), &test_ctx());

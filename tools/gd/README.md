@@ -110,7 +110,8 @@ All keys work the same regardless of what's visible. No modes, no context-depend
 - `git/mod.rs` -- Synchronous git command runner (`std::process::Command`)
 - `git/diff.rs` -- Unified diff parser with multi-hunk support
 - `git/patch.rs` -- Patch generation for line-level staging (selected lines to unified diff format)
-- `render.rs` -- Two-phase render pipeline: Phase 1 (`style_files`) produces width-independent styled content in parallel; Phase 2 (`layout`) wraps and assembles at target width. Includes word-level diff, syntax highlighting (via `tui::highlight`), diff colors
+- `render/mod.rs` -- Two-phase render pipeline: Phase 1 (`style_files`) produces width-independent styled content in parallel; Phase 2 (`layout`) wraps and assembles at target width. Syntax highlighting (via `tui::highlight`), diff colors
+- `render/word_diff.rs` -- Word-level diff utilities: tokenization, change block detection, per-line highlight ranges, ANSI color application
 - `style.rs` -- Diff color palette (GitHub Dark-inspired) and ANSI helpers
 - `pager/mod.rs` -- Pager entrypoint and shared wiring
 - `pager/content.rs` -- Pure line-map helpers (next_content_line, snap_to_content, etc.)
@@ -204,7 +205,7 @@ cargo build --release
 samply record ./target/release/gd --replay ']]]]q' HEAD~1
 ```
 
-This opens the Firefox Profiler with a call tree and flame chart. Look for hot functions in `render.rs` (`style_files`, `word_highlights`, `tokenize`) and `pager/tree.rs` (`build_tree_entries`).
+This opens the Firefox Profiler with a call tree and flame chart. Look for hot functions in `render/mod.rs` (`style_files`), `render/word_diff.rs` (`word_highlights`, `tokenize`), and `pager/tree.rs` (`build_tree_entries`).
 
 ## Replay mode
 

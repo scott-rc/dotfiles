@@ -284,7 +284,7 @@ fn document_swap_to_empty_exits_cleanly() {
     state.top_line = 3;
     let anchor = capture_view_anchor(&state);
     let empty_doc = Document::from_render_output(render::render(&[], 80, false));
-    remap_after_document_swap(&mut state, anchor, empty_doc, &[], 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), empty_doc, &[], 120);
     assert_eq!(state.cursor_line, 0);
     assert_eq!(state.top_line, 0);
 }
@@ -339,7 +339,7 @@ fn test_remap_anchor_file_idx_beyond_new_doc_lands_on_first_content() {
         .collect();
     let new_doc = make_test_document(vec![String::new(); 20], line_map, vec![0], vec![]);
 
-    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &[], 120);
 
     assert!(
         state.cursor_line > 0,
@@ -377,7 +377,7 @@ fn test_remap_anchor_new_lineno_none_uses_offset_in_file() {
         vec![],
     );
 
-    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &[], 120);
 
     assert_eq!(
         state.cursor_line, 5,
@@ -396,7 +396,7 @@ fn remap_after_document_swap_hides_tree_when_terminal_narrows() {
     let new_doc = Document::from_render_output(render::render(&files, 80, false));
     // Use a very narrow terminal where resolve_tree_layout returns None
     let narrow_cols = MIN_DIFF_WIDTH + 5; // too narrow for MIN_TREE_WIDTH
-    remap_after_document_swap(&mut state, anchor, new_doc, &files, narrow_cols);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &files, narrow_cols);
     assert!(
         !state.tree_visible,
         "tree should auto-hide when terminal is too narrow (cols={narrow_cols})"

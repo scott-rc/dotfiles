@@ -246,6 +246,90 @@ impl PagerState {
         self.tree_visible_to_entry = tv;
     }
 
+    /// Resolve cursor and top_line from a saved anchor after a document swap.
+    pub(crate) fn restore_cursor_from_anchor(&mut self, anchor: Option<&ViewAnchor>) {
+        let file_count = self.doc.file_count();
+        let line_count = self.doc.line_count();
+        let (rs, re) = visible_range(self);
+        let range_max = re.saturating_sub(1);
+
+        if self.doc.is_empty() {
+            self.top_line = 0;
+            self.cursor_line = 0;
+        } else if let Some(a) = anchor {
+            let target_line = if a.file_idx >= file_count {
+                next_content_line(&self.doc.line_map, 0, line_count.saturating_sub(1))
+            } else if let Some(lineno) = a.new_lineno {
+                self.doc
+                    .line_map
+                    .iter()
+                    .position(|li| li.file_idx == a.file_idx && li.new_lineno == Some(lineno))
+                    .unwrap_or_else(|| {
+                        let file_start = self.doc.file_start(a.file_idx).unwrap_or(0);
+                        let file_end = self.doc.file_end(a.file_idx).saturating_sub(1);
+                        (file_start + a.offset_in_file)
+                            .min(file_end)
+                            .min(line_count.saturating_sub(1))
+                    })
+            } else {
+                let file_start = self.doc.file_start(a.file_idx).unwrap_or(0);
+                let file_end = self.doc.file_end(a.file_idx).saturating_sub(1);
+                (file_start + a.offset_in_file)
+                    .min(file_end)
+                    .min(line_count.saturating_sub(1))
+            };
+            self.top_line = target_line.min(range_max);
+            self.cursor_line = self.top_line.min(range_max);
+            self.top_line = self.top_line.clamp(rs, range_max);
+            self.cursor_line = self.cursor_line.clamp(rs, range_max);
+            // In single file mode, keep cursor at the file header (range start)
+            // so ] can find the first change group via jump_next (strictly >).
+            // In all-files mode, snap to the nearest content line as usual.
+            if self.cursor_line != rs || self.active_file().is_none() {
+                self.cursor_line =
+                    snap_to_content(&self.doc.line_map, self.cursor_line, rs, range_max);
+            }
+        } else {
+            self.top_line = 0;
+            self.cursor_line = 0;
+        }
+    }
+
+    /// Reconstruct tree entries and layout after a document swap.
+    pub(crate) fn rebuild_tree_layout(&mut self, files: &[DiffFile], terminal_cols: usize) {
+        if !self.tree_visible || files.is_empty() {
+            return;
+        }
+        self.tree_entries = build_tree_entries(files);
+        apply_collapse_state(&mut self.tree_entries, &self.collapsed_paths);
+        let content_width = compute_tree_width(&self.tree_entries);
+        let has_directories = self.tree_entries.iter().any(|e| e.file_idx.is_none());
+        let file_count = self.doc.file_count();
+        // Account for scrollbar column when full_context is active
+        let effective_cols = if self.full_context {
+            terminal_cols.saturating_sub(1)
+        } else {
+            terminal_cols
+        };
+        if let Some(w) =
+            resolve_tree_layout(content_width, effective_cols, has_directories, file_count)
+        {
+            self.tree_width = w;
+            let cursor_file_idx = self
+                .doc
+                .line_map
+                .get(self.cursor_line)
+                .map_or(0, |li| li.file_idx);
+            let cursor_entry_idx = file_idx_to_entry_idx(&self.tree_entries, cursor_file_idx);
+            self.set_tree_cursor(cursor_entry_idx);
+            self.rebuild_tree_lines();
+        } else {
+            self.tree_visible = false;
+            self.tree_lines.clear();
+            self.tree_visible_to_entry.clear();
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn new(
         lines: Vec<String>,
@@ -411,7 +495,7 @@ pub(crate) fn capture_view_anchor(state: &PagerState) -> Option<ViewAnchor> {
 
 pub(crate) fn remap_after_document_swap(
     state: &mut PagerState,
-    anchor: Option<ViewAnchor>,
+    anchor: Option<&ViewAnchor>,
     new_doc: Document,
     files: &[DiffFile],
     terminal_cols: usize,
@@ -442,90 +526,8 @@ pub(crate) fn remap_after_document_swap(
         state.tree_lines.clear();
     }
 
-    let line_count = state.doc.line_count();
-    let (rs, re) = visible_range(state);
-    let range_max = re.saturating_sub(1);
-
-    if state.doc.is_empty() {
-        state.top_line = 0;
-        state.cursor_line = 0;
-    } else if let Some(a) = anchor {
-        let target_line = if a.file_idx >= file_count {
-            next_content_line(&state.doc.line_map, 0, line_count.saturating_sub(1))
-        } else if let Some(lineno) = a.new_lineno {
-            state
-                .doc
-                .line_map
-                .iter()
-                .position(|li| li.file_idx == a.file_idx && li.new_lineno == Some(lineno))
-                .unwrap_or_else(|| {
-                    let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
-                    let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
-                    (file_start + a.offset_in_file)
-                        .min(file_end)
-                        .min(line_count.saturating_sub(1))
-                })
-        } else {
-            let file_start = state.doc.file_start(a.file_idx).unwrap_or(0);
-            let file_end = state.doc.file_end(a.file_idx).saturating_sub(1);
-            (file_start + a.offset_in_file)
-                .min(file_end)
-                .min(line_count.saturating_sub(1))
-        };
-        state.top_line = target_line.min(range_max);
-        state.cursor_line = state.top_line.min(range_max);
-        state.top_line = state.top_line.clamp(rs, range_max);
-        state.cursor_line = state.cursor_line.clamp(rs, range_max);
-        // In single file mode, keep cursor at the file header (range start)
-        // so ] can find the first change group via jump_next (strictly >).
-        // In all-files mode, snap to the nearest content line as usual.
-        if state.cursor_line != rs || state.active_file().is_none() {
-            state.cursor_line =
-                snap_to_content(&state.doc.line_map, state.cursor_line, rs, range_max);
-        }
-    } else {
-        state.top_line = 0;
-        state.cursor_line = 0;
-    }
-
-    if state.tree_visible && !files.is_empty() {
-        state.tree_entries = build_tree_entries(files);
-        apply_collapse_state(&mut state.tree_entries, &state.collapsed_paths);
-        let content_width = compute_tree_width(&state.tree_entries);
-        let has_directories = state.tree_entries.iter().any(|e| e.file_idx.is_none());
-        let file_count = state.doc.file_count();
-        // Account for scrollbar column when full_context is active
-        let effective_cols = if state.full_context {
-            terminal_cols.saturating_sub(1)
-        } else {
-            terminal_cols
-        };
-        if let Some(w) =
-            resolve_tree_layout(content_width, effective_cols, has_directories, file_count)
-        {
-            state.tree_width = w;
-            let cursor_file_idx = state
-                .doc
-                .line_map
-                .get(state.cursor_line)
-                .map_or(0, |li| li.file_idx);
-            let cursor_entry_idx = file_idx_to_entry_idx(&state.tree_entries, cursor_file_idx);
-            state.set_tree_cursor(cursor_entry_idx);
-            let focused = state.focus == FocusPane::Tree;
-            let (tl, tv) = build_tree_lines(
-                &state.tree_entries,
-                state.tree_cursor(),
-                state.tree_width,
-                focused,
-            );
-            state.tree_lines = tl;
-            state.tree_visible_to_entry = tv;
-        } else {
-            state.tree_visible = false;
-            state.tree_lines.clear();
-            state.tree_visible_to_entry.clear();
-        }
-    }
+    state.restore_cursor_from_anchor(anchor);
+    state.rebuild_tree_layout(files, terminal_cols);
 
     if !state.search_query.is_empty() {
         state.search_matches = tui::search::find_matches(&state.doc.raw_texts, &state.search_query);

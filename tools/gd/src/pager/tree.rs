@@ -92,9 +92,11 @@ pub fn build_tree_entries(files: &[DiffFile]) -> Vec<TreeEntry> {
         i += 1;
     }
 
-    // Default single-child chains (label contains `/`) to collapsed.
+    // Default single-child chains (label contains `/`) to collapsed,
+    // unless the chain is the sole root entry (collapsing it hides everything).
+    let sole_root = entries.iter().filter(|e| e.depth == 0).count() == 1;
     for e in &mut entries {
-        if e.file_idx.is_none() && e.label.contains('/') {
+        if e.file_idx.is_none() && e.label.contains('/') && !(e.depth == 0 && sole_root) {
             e.collapsed = true;
         }
     }

@@ -175,7 +175,7 @@ fn test_normalize_after_document_swap_clamps_view_scope_when_file_count_shrinks(
         vec![0, 10],
         vec![],
     );
-    remap_after_document_swap(&mut state, anchor, new_doc, &[], 120);
+    remap_after_document_swap(&mut state, anchor.as_ref(), new_doc, &[], 120);
     assert_eq!(
         state.active_file(),
         None,

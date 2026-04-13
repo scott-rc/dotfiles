@@ -2,7 +2,8 @@ use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 use gd::git::diff::{DiffFile, parse};
 use gd::pager::{bench_layout, bench_render_frame, bench_style_files, tree::build_tree_entries};
-use gd::render::{apply_diff_colors, find_change_blocks, render, word_highlights};
+use gd::render::render;
+use gd::render::word_diff::{apply_diff_colors, find_change_blocks, word_highlights};
 use gd::style::{BG_ADDED, BG_ADDED_WORD};
 
 static SMALL_DIFF: &str = include_str!("fixtures/small-diff.patch");
