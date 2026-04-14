@@ -3,4 +3,8 @@ vim.lsp.config("*", {
 	codelens = { enabled = true },
 })
 
+vim.diagnostic.config({
+	virtual_lines = { severity = vim.diagnostic.severity.ERROR },
+})
+
 vim.lsp.enable({ "ts_ls", "gopls", "jsonls", "cue", "jinja_lsp" })
