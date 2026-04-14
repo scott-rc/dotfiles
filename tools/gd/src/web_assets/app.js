@@ -11,6 +11,7 @@ const state = {
   flatLines: [],    // { type: 'file-header'|'hunk-sep'|'line', fileIdx, hunkIdx, lineIdx, data }
   fileStarts: [],   // flatLines index where each file begins
   hunkStarts: [],   // flatLines index where each hunk begins
+  changeGroupStarts: [], // flatLines index where each change group begins (like TUI)
   cursorLine: 0,
   viewScope: 'all', // 'all' | 'single'
   singleFileIdx: 0,
@@ -52,6 +53,8 @@ function connect() {
       state.files = msg.files;
       state.tree = msg.tree;
       flattenLines();
+      // Focus first change group on initial load (like TUI)
+      focusFirstChangeGroup();
       renderAll();
     }
   };
@@ -121,10 +124,52 @@ function flattenLines() {
   state.flatLines = flat;
   state.fileStarts = fileStarts;
   state.hunkStarts = hunkStarts;
+  state.changeGroupStarts = computeChangeGroupStarts(flat);
 
   // Clamp cursor
   if (state.cursorLine >= flat.length) {
     state.cursorLine = Math.max(0, flat.length - 1);
+  }
+}
+
+// Compute change group starts (like TUI's change_group_starts).
+// A change group starts when a line is added/deleted and the previous line is NOT.
+function computeChangeGroupStarts(flat) {
+  const starts = [];
+  for (let i = 0; i < flat.length; i++) {
+    const item = flat[i];
+    if (item.type !== 'line') continue;
+    const isChange = item.data.kind === 'added' || item.data.kind === 'deleted';
+    if (!isChange) continue;
+
+    // Check if previous line was a change
+    let prevIsChange = false;
+    if (i > 0) {
+      const prev = flat[i - 1];
+      if (prev.type === 'line') {
+        prevIsChange = prev.data.kind === 'added' || prev.data.kind === 'deleted';
+      }
+    }
+
+    if (!prevIsChange) {
+      starts.push(i);
+    }
+  }
+  return starts;
+}
+
+// Focus the first change group (like TUI does on startup)
+function focusFirstChangeGroup() {
+  if (state.changeGroupStarts.length > 0) {
+    state.cursorLine = state.changeGroupStarts[0];
+  } else if (state.flatLines.length > 0) {
+    // Fallback: find first content line
+    for (let i = 0; i < state.flatLines.length; i++) {
+      if (state.flatLines[i].type === 'line') {
+        state.cursorLine = i;
+        break;
+      }
+    }
   }
 }
 
@@ -345,20 +390,22 @@ function pageHeight() {
 }
 
 function jumpNextHunk() {
-  for (const hs of state.hunkStarts) {
-    if (hs > state.cursorLine) {
-      setCursor(hs);
+  // Use change groups (like TUI's nav_du_down) for accurate navigation
+  const targets = state.changeGroupStarts;
+  for (const t of targets) {
+    if (t > state.cursorLine) {
+      setCursor(t);
       return;
     }
   }
-  // No more hunks found - advance to next file's first hunk
+  // No more change groups found - advance to next file
   if (state.viewScope === 'single') {
     if (state.singleFileIdx < state.files.length - 1) {
       state.singleFileIdx++;
       flattenLines();
-      // Jump to first hunk of new file
-      if (state.hunkStarts.length > 0) {
-        state.cursorLine = state.hunkStarts[0];
+      // Jump to first change group of new file
+      if (state.changeGroupStarts.length > 0) {
+        state.cursorLine = state.changeGroupStarts[0];
       } else {
         state.cursorLine = 0;
       }
@@ -366,18 +413,17 @@ function jumpNextHunk() {
       syncTreeCursor();
     }
   } else {
-    // Find next file's first hunk
+    // Find next file's first change group
     for (const fs of state.fileStarts) {
       if (fs > state.cursorLine) {
-        // Found next file - now find its first hunk
         const nextFileIdx = state.flatLines[fs]?.fileIdx;
-        for (const hs of state.hunkStarts) {
-          if (hs >= fs && state.flatLines[hs]?.fileIdx === nextFileIdx) {
-            setCursor(hs);
+        for (const cg of state.changeGroupStarts) {
+          if (cg >= fs && state.flatLines[cg]?.fileIdx === nextFileIdx) {
+            setCursor(cg);
             return;
           }
         }
-        // No hunk found, just go to file start
+        // No change group found, just go to file start
         setCursor(fs);
         return;
       }
@@ -386,20 +432,22 @@ function jumpNextHunk() {
 }
 
 function jumpPrevHunk() {
-  for (let i = state.hunkStarts.length - 1; i >= 0; i--) {
-    if (state.hunkStarts[i] < state.cursorLine) {
-      setCursor(state.hunkStarts[i]);
+  // Use change groups (like TUI's nav_du_up) for accurate navigation
+  const targets = state.changeGroupStarts;
+  for (let i = targets.length - 1; i >= 0; i--) {
+    if (targets[i] < state.cursorLine) {
+      setCursor(targets[i]);
       return;
     }
   }
-  // No previous hunk found - go to previous file's last hunk
+  // No previous change group found - go to previous file's last change group
   if (state.viewScope === 'single') {
     if (state.singleFileIdx > 0) {
       state.singleFileIdx--;
       flattenLines();
-      // Jump to last hunk of new file
-      if (state.hunkStarts.length > 0) {
-        state.cursorLine = state.hunkStarts[state.hunkStarts.length - 1];
+      // Jump to last change group of new file
+      if (state.changeGroupStarts.length > 0) {
+        state.cursorLine = state.changeGroupStarts[state.changeGroupStarts.length - 1];
       } else {
         state.cursorLine = Math.max(0, state.flatLines.length - 1);
       }
@@ -407,7 +455,6 @@ function jumpPrevHunk() {
       syncTreeCursor();
     }
   } else {
-    // Find previous file's last hunk
     // Find the start of current file
     let currentFileStart = 0;
     for (let i = state.fileStarts.length - 1; i >= 0; i--) {
@@ -416,14 +463,13 @@ function jumpPrevHunk() {
         break;
       }
     }
-    // Find previous file's last hunk
+    // Find previous file's last change group
     if (currentFileStart > 0) {
       const prevFileIdx = state.flatLines[currentFileStart - 1]?.fileIdx;
-      // Find the last hunk of the previous file
-      for (let i = state.hunkStarts.length - 1; i >= 0; i--) {
-        const hs = state.hunkStarts[i];
-        if (hs < currentFileStart && state.flatLines[hs]?.fileIdx === prevFileIdx) {
-          setCursor(hs);
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const cg = targets[i];
+        if (cg < currentFileStart && state.flatLines[cg]?.fileIdx === prevFileIdx) {
+          setCursor(cg);
           return;
         }
       }
@@ -478,8 +524,8 @@ function toggleSingleFile() {
     if (item) state.singleFileIdx = item.fileIdx;
     state.viewScope = 'single';
   }
-  state.cursorLine = 0;
   flattenLines();
+  focusFirstChangeGroup();
   renderAll();
 }
 
@@ -518,8 +564,8 @@ function treeSelect() {
   } else if (entry.file_idx != null) {
     state.singleFileIdx = entry.file_idx;
     state.viewScope = 'single';
-    state.cursorLine = 0;
     flattenLines();
+    focusFirstChangeGroup();
     renderAll();
   }
 }
@@ -827,8 +873,8 @@ treeEl.addEventListener('click', (e) => {
   } else if (item.file_idx != null) {
     state.singleFileIdx = item.file_idx;
     state.viewScope = 'single';
-    state.cursorLine = 0;
     flattenLines();
+    focusFirstChangeGroup();
     renderAll();
   }
 });
