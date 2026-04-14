@@ -43,6 +43,8 @@ pub(crate) struct WebTreeEntry {
     pub status: Option<WebFileStatus>,
     pub is_dir: bool,
     pub collapsed: bool,
+    pub icon: String,
+    pub icon_color: String,
 }
 
 #[derive(Serialize, Clone, Copy)]

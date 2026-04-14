@@ -3,6 +3,7 @@ use tui::highlight::{HighlightLines, SYNTAX_SET, THEME, highlight_line_html};
 use crate::git::diff::{DiffFile, LineKind};
 use crate::pager::tree::{TreeEntry, build_tree_entries};
 use crate::render::compute_hunk_word_ranges;
+use crate::style::{dir_icon, file_icon};
 
 use super::protocol::{
     ServerMessage, WebDiffFile, WebDiffHunk, WebDiffLine, WebLineKind, WebTreeEntry,
@@ -187,12 +188,36 @@ fn decode_html_char(html: &str, pos: usize) -> (char, usize) {
 }
 
 fn render_tree_entry(entry: &TreeEntry) -> WebTreeEntry {
+    let is_dir = entry.file_idx.is_none();
+    let (icon, ansi_color) = if is_dir {
+        dir_icon(entry.collapsed)
+    } else {
+        file_icon(&entry.label)
+    };
+    let icon_color = ansi_to_css_color(ansi_color);
+
     WebTreeEntry {
         label: entry.label.clone(),
         depth: entry.depth,
         file_idx: entry.file_idx,
         status: entry.status.map(Into::into),
-        is_dir: entry.file_idx.is_none(),
+        is_dir,
         collapsed: entry.collapsed,
+        icon: icon.to_string(),
+        icon_color,
     }
+}
+
+/// Convert an ANSI 24-bit color code to CSS rgb() format.
+/// Input format: `\x1b[38;2;R;G;Bm`
+fn ansi_to_css_color(ansi: &str) -> String {
+    // Skip "\x1b[38;2;" prefix (7 chars) and trailing "m" (1 char)
+    if ansi.len() > 8 && ansi.starts_with("\x1b[38;2;") && ansi.ends_with('m') {
+        let rgb_part = &ansi[7..ansi.len() - 1];
+        let parts: Vec<&str> = rgb_part.split(';').collect();
+        if parts.len() == 3 {
+            return format!("rgb({},{},{})", parts[0], parts[1], parts[2]);
+        }
+    }
+    String::new()
 }

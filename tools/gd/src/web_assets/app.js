@@ -17,6 +17,7 @@ const state = {
   treeFocused: false,
   treeVisible: true,
   treeCursor: 0,
+  pendingTreeKey: null,
   searchQuery: '',
   searchMatches: [],
   searchCurrentIdx: -1,
@@ -157,13 +158,14 @@ function renderTree() {
       statusHtml = `<span class="tree-status status-${entry.status}">${abbr}</span>`;
     }
 
-    const icon = entry.is_dir
+    const icon = entry.icon || (entry.is_dir
       ? (entry.collapsed ? '&#xf4d8;' : '&#xf413;')
-      : '&#xf15b;';
+      : '&#xf15b;');
+    const iconStyle = entry.icon_color ? `style="color: ${entry.icon_color}"` : '';
 
     html += `<div class="${cls}" data-tree-idx="${i}">`;
     html += `<span class="tree-guide">${indent}</span>`;
-    html += `<span class="tree-icon">${icon}</span>`;
+    html += `<span class="tree-icon" ${iconStyle}>${icon}</span>`;
     html += statusHtml;
     html += `<span class="tree-label">${escapeHtml(entry.label)}</span>`;
     html += `</div>`;
@@ -183,7 +185,9 @@ function getVisibleTree() {
     skipDepth = null;
 
     const dirKey = treeDirKey(entry);
-    const isCollapsed = entry.is_dir && (state.collapsedDirs.has(dirKey) || entry.collapsed);
+    // Collapsed if: explicitly in collapsedDirs, or server-collapsed and not explicitly expanded
+    const isExplicitlyExpanded = state.expandedDirs && state.expandedDirs.has(dirKey);
+    const isCollapsed = entry.is_dir && (state.collapsedDirs.has(dirKey) || (entry.collapsed && !isExplicitlyExpanded));
     result.push({ ...entry, collapsed: isCollapsed });
     if (isCollapsed) {
       skipDepth = entry.depth;
@@ -330,6 +334,37 @@ function jumpNextHunk() {
       return;
     }
   }
+  // No more hunks found - advance to next file's first hunk
+  if (state.viewScope === 'single') {
+    if (state.singleFileIdx < state.files.length - 1) {
+      state.singleFileIdx++;
+      flattenLines();
+      // Jump to first hunk of new file
+      if (state.hunkStarts.length > 0) {
+        state.cursorLine = state.hunkStarts[0];
+      } else {
+        state.cursorLine = 0;
+      }
+      renderAll();
+    }
+  } else {
+    // Find next file's first hunk
+    for (const fs of state.fileStarts) {
+      if (fs > state.cursorLine) {
+        // Found next file - now find its first hunk
+        const nextFileIdx = state.flatLines[fs]?.fileIdx;
+        for (const hs of state.hunkStarts) {
+          if (hs >= fs && state.flatLines[hs]?.fileIdx === nextFileIdx) {
+            setCursor(hs);
+            return;
+          }
+        }
+        // No hunk found, just go to file start
+        setCursor(fs);
+        return;
+      }
+    }
+  }
 }
 
 function jumpPrevHunk() {
@@ -337,6 +372,42 @@ function jumpPrevHunk() {
     if (state.hunkStarts[i] < state.cursorLine) {
       setCursor(state.hunkStarts[i]);
       return;
+    }
+  }
+  // No previous hunk found - go to previous file's last hunk
+  if (state.viewScope === 'single') {
+    if (state.singleFileIdx > 0) {
+      state.singleFileIdx--;
+      flattenLines();
+      // Jump to last hunk of new file
+      if (state.hunkStarts.length > 0) {
+        state.cursorLine = state.hunkStarts[state.hunkStarts.length - 1];
+      } else {
+        state.cursorLine = Math.max(0, state.flatLines.length - 1);
+      }
+      renderAll();
+    }
+  } else {
+    // Find previous file's last hunk
+    // Find the start of current file
+    let currentFileStart = 0;
+    for (let i = state.fileStarts.length - 1; i >= 0; i--) {
+      if (state.fileStarts[i] <= state.cursorLine) {
+        currentFileStart = state.fileStarts[i];
+        break;
+      }
+    }
+    // Find previous file's last hunk
+    if (currentFileStart > 0) {
+      const prevFileIdx = state.flatLines[currentFileStart - 1]?.fileIdx;
+      // Find the last hunk of the previous file
+      for (let i = state.hunkStarts.length - 1; i >= 0; i--) {
+        const hs = state.hunkStarts[i];
+        if (hs < currentFileStart && state.flatLines[hs]?.fileIdx === prevFileIdx) {
+          setCursor(hs);
+          return;
+        }
+      }
     }
   }
 }
@@ -438,11 +509,91 @@ function treeToggleCollapse() {
   if (!entry || !entry.is_dir) return;
 
   const key = treeDirKey(entry);
-  if (state.collapsedDirs.has(key)) {
+  // Check if currently collapsed (either via state or server default)
+  const isCollapsed = state.collapsedDirs.has(key) || entry.collapsed;
+  if (isCollapsed) {
+    // Expand: remove from collapsedDirs (this overrides server collapsed)
     state.collapsedDirs.delete(key);
+    // If it was collapsed from server, we need to mark it explicitly expanded
+    // by NOT having it in collapsedDirs. But we also need to track expansions.
+    if (!state.expandedDirs) state.expandedDirs = new Set();
+    state.expandedDirs.add(key);
   } else {
+    // Collapse: add to collapsedDirs
     state.collapsedDirs.add(key);
+    if (state.expandedDirs) state.expandedDirs.delete(key);
   }
+  renderTree();
+}
+
+function treeJumpTop() {
+  state.treeCursor = 0;
+  renderTree();
+}
+
+function treeJumpBottom() {
+  const visible = getVisibleTree();
+  state.treeCursor = Math.max(0, visible.length - 1);
+  renderTree();
+}
+
+function treeToggleCollapseRecursive() {
+  const visible = getVisibleTree();
+  const entry = visible[state.treeCursor];
+  if (!entry || !entry.is_dir) return;
+
+  if (!state.expandedDirs) state.expandedDirs = new Set();
+
+  const currentKey = treeDirKey(entry);
+  const currentDepth = entry.depth;
+  // Check if currently collapsed (either via state or server default)
+  const isCurrentlyCollapsed = state.collapsedDirs.has(currentKey) ||
+    (entry.collapsed && !state.expandedDirs.has(currentKey));
+  const shouldExpand = isCurrentlyCollapsed;
+
+  // Find all nested directories (including current)
+  // Walk through visible tree from current position
+  const visibleIdx = state.treeCursor;
+  for (let i = visibleIdx; i < visible.length; i++) {
+    const e = visible[i];
+    // Stop when we reach an entry at same or shallower depth (except first iteration)
+    if (i > visibleIdx && e.depth <= currentDepth) break;
+
+    if (e.is_dir) {
+      const key = treeDirKey(e);
+      if (shouldExpand) {
+        state.collapsedDirs.delete(key);
+        state.expandedDirs.add(key);
+      } else {
+        state.collapsedDirs.add(key);
+        state.expandedDirs.delete(key);
+      }
+    }
+  }
+
+  // Also need to handle dirs in the original tree that may be hidden
+  // by collapse. Walk the full tree to find nested dirs.
+  const baseDepth = entry.depth;
+  let inSubtree = false;
+  for (const e of state.tree) {
+    if (e.depth === baseDepth && e.label === entry.label) {
+      inSubtree = true;
+    } else if (inSubtree && e.depth <= baseDepth) {
+      inSubtree = false;
+    }
+
+    if (inSubtree && e.is_dir) {
+      const key = treeDirKey(e);
+      if (shouldExpand) {
+        state.collapsedDirs.delete(key);
+        state.expandedDirs.add(key);
+      } else {
+        state.collapsedDirs.add(key);
+        state.expandedDirs.delete(key);
+      }
+    }
+  }
+
   renderTree();
 }
 
@@ -557,12 +708,30 @@ document.addEventListener('keydown', (e) => {
 
   // Tree-focused keys
   if (state.treeFocused) {
+    // Handle pending z key for za/zA collapse
+    if (state.pendingTreeKey === 'z') {
+      state.pendingTreeKey = null;
+      if (e.key === 'a') {
+        e.preventDefault();
+        treeToggleCollapse();
+        return;
+      } else if (e.key === 'A') {
+        e.preventDefault();
+        treeToggleCollapseRecursive();
+        return;
+      }
+      // Fall through to normal handling for other keys
+    }
+
     switch (e.key) {
       case 'j': case 'ArrowDown': e.preventDefault(); treeMoveCursor(1); return;
       case 'k': case 'ArrowUp': e.preventDefault(); treeMoveCursor(-1); return;
+      case 'g': case 'Home': e.preventDefault(); treeJumpTop(); return;
+      case 'G': case 'End': e.preventDefault(); treeJumpBottom(); return;
       case 'Enter': case ' ': e.preventDefault(); treeSelect(); return;
       case 't': e.preventDefault(); toggleTreeFocus(); return;
       case 'l': e.preventDefault(); toggleTree(); return;
+      case 'z': e.preventDefault(); state.pendingTreeKey = 'z'; return;
       case '?': e.preventDefault(); toggleHelp(); return;
     }
     // Fall through for other keys

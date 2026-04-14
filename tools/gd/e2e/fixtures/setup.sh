@@ -80,5 +80,36 @@ pub fn new_function() {
 }
 EOF
 
+# Add files with different extensions for icon testing
+cat > script.js << 'EOF'
+// JavaScript file for testing
+function hello() {
+    console.log("Hello from JS");
+}
+EOF
+
+cat > README.md << 'EOF'
+# Test README
+
+This is a markdown file for testing.
+EOF
+
+# Add nested directory structure for collapse testing
+mkdir -p src/components/ui
+cat > src/components/button.rs << 'EOF'
+// Button component
+pub struct Button {}
+EOF
+
+cat > src/components/ui/modal.rs << 'EOF'
+// Modal component
+pub struct Modal {}
+EOF
+
+cat > src/components/ui/tooltip.rs << 'EOF'
+// Tooltip component
+pub struct Tooltip {}
+EOF
+
 echo "Test repo created at $REPO_DIR"
 git status
