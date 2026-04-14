@@ -96,6 +96,7 @@ html, body {
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
   order: 0;
+  padding-bottom: 24px; /* Account for fixed status bar */
 }
 
 /* File header */
@@ -131,6 +132,8 @@ html, body {
   display: flex;
   min-height: 20px;
   line-height: 20px;
+  scroll-margin-top: 40px; /* 2 lines padding for sticky file header */
+  scroll-margin-bottom: 24px; /* 1 line padding for fixed status bar */
 }
 .diff-line:hover { background: var(--bg-cursor); }
 .diff-line.line-added { background: var(--bg-added); }

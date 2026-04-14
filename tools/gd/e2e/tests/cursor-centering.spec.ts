@@ -28,10 +28,9 @@ test.describe("Cursor Centering", () => {
   test("] navigation keeps cursor visible and centered", async ({ page }) => {
     // Enable full context for more content
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Navigate forward multiple times
     for (let i = 0; i < 5; i++) {
@@ -54,10 +53,9 @@ test.describe("Cursor Centering", () => {
   test("[ navigation keeps cursor visible and centered", async ({ page }) => {
     // Enable full context
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Navigate forward first
     for (let i = 0; i < 5; i++) {
@@ -77,10 +75,9 @@ test.describe("Cursor Centering", () => {
   test("j/k navigation uses nearest scroll, not center", async ({ page }) => {
     // Enable full context
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Go to top
     await page.keyboard.press("g");
@@ -171,10 +168,9 @@ test.describe("Cursor Centering", () => {
   test("g key scrolls fully to top", async ({ page }) => {
     // Enable full context for more content
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Navigate down first
     await page.keyboard.press("]");
@@ -199,10 +195,9 @@ test.describe("Cursor Centering", () => {
   test("G key scrolls fully to bottom", async ({ page }) => {
     // Enable full context for more content
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Press G to go to bottom
     await page.keyboard.press("G");
@@ -228,10 +223,9 @@ test.describe("Cursor Centering", () => {
   test("z key centers cursor in viewport", async ({ page }) => {
     // Enable full context
     await page.keyboard.press("o");
-    await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
-      { timeout: 5000 }
-    );
+    await page.waitForFunction(() => document.querySelectorAll(".diff-line").length > 10, {
+      timeout: 5000,
+    });
 
     // Move to middle of content
     await page.keyboard.press("]");
