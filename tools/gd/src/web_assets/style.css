@@ -38,6 +38,7 @@
   --bg-scrollbar-thumb: rgb(55, 60, 68);
   --bg-tree-cursor-focused: rgb(4, 57, 94);
   --bg-tree-cursor-unfocused: rgb(42, 53, 69);
+  --fg-tree-active: rgb(255, 255, 255);
   --fg-search-match: rgb(255, 213, 79);
   --bg-search-match: rgba(255, 213, 79, 0.15);
   --bg-search-current: rgba(255, 213, 79, 0.35);
@@ -77,6 +78,7 @@
   --bg-scrollbar-thumb: rgb(175, 184, 193);
   --bg-tree-cursor-focused: rgb(218, 235, 255);
   --bg-tree-cursor-unfocused: rgb(234, 238, 242);
+  --fg-tree-active: rgb(31, 35, 40);
   --fg-search-match: rgb(130, 80, 0);
   --bg-search-match: rgba(255, 213, 79, 0.3);
   --bg-search-current: rgba(255, 213, 79, 0.6);
@@ -117,6 +119,7 @@
     --bg-scrollbar-thumb: rgb(175, 184, 193);
     --bg-tree-cursor-focused: rgb(218, 235, 255);
     --bg-tree-cursor-unfocused: rgb(234, 238, 242);
+    --fg-tree-active: rgb(31, 35, 40);
     --fg-search-match: rgb(130, 80, 0);
     --bg-search-match: rgba(255, 213, 79, 0.3);
     --bg-search-current: rgba(255, 213, 79, 0.6);
@@ -171,7 +174,7 @@ html, body {
   user-select: none;
 }
 .tree-entry:hover { background: var(--bg-tree-cursor-unfocused); }
-.tree-entry.active { background: var(--bg-tree-cursor-focused); color: #fff; }
+.tree-entry.active { background: var(--bg-tree-cursor-focused); color: var(--fg-tree-active); }
 .tree-entry.active.unfocused { background: var(--bg-tree-cursor-unfocused); }
 .tree-entry .tree-icon { display: inline-block; width: 20px; text-align: center; font-family: var(--font-icons); }
 .tree-entry .tree-status { display: inline-block; width: 16px; text-align: center; font-weight: bold; }
