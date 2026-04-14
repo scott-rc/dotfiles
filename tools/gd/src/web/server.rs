@@ -267,6 +267,7 @@ pub(crate) fn start_server(
     diff_ctx: &DiffContext,
     open: bool,
     shutdown_grace_ms: u64,
+    port: u16,
 ) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
@@ -297,16 +298,12 @@ pub(crate) fn start_server(
             .route("/ws", get(ws_handler))
             .with_state(state);
 
-        // Try ports starting at 3845
-        let mut port = 3845u16;
-        let listener = loop {
-            match tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port))).await {
-                Ok(l) => break l,
-                Err(_) if port < 3855 => port += 1,
-                Err(e) => {
-                    eprintln!("gd: failed to bind: {e}");
-                    std::process::exit(1);
-                }
+        // Bind to requested port (0 = OS picks random available port)
+        let listener = match tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port))).await {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("gd: failed to bind to port {port}: {e}");
+                std::process::exit(1);
             }
         };
 

@@ -10,6 +10,7 @@ pub fn run_web_server(
     diff_ctx: &DiffContext,
     open: bool,
     shutdown_grace_ms: u64,
+    port: u16,
 ) {
-    server::start_server(files, diff_ctx, open, shutdown_grace_ms);
+    server::start_server(files, diff_ctx, open, shutdown_grace_ms, port);
 }

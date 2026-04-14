@@ -99,6 +99,10 @@ struct Cli {
     #[arg(long, default_value = "1000", requires = "web")]
     shutdown_grace_ms: u64,
 
+    /// Port for web server (0 = random, prevents stale tabs from reconnecting)
+    #[arg(long, default_value = "0", requires = "web")]
+    port: u16,
+
     /// Color theme for syntax highlighting (TUI mode only; web mode uses CSS)
     #[arg(long, value_enum, default_value_t = ThemeArg::System)]
     theme: ThemeArg,
@@ -197,7 +201,7 @@ fn main() {
                 no_untracked: !cli.untracked,
                 ignore_whitespace: !cli.show_whitespace,
             };
-            web::run_web_server(files, &diff_ctx, cli.open, cli.shutdown_grace_ms);
+            web::run_web_server(files, &diff_ctx, cli.open, cli.shutdown_grace_ms, cli.port);
             return;
         }
         #[cfg(not(feature = "web"))]
