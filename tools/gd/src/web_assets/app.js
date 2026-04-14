@@ -44,6 +44,60 @@ if (typeof window !== 'undefined') {
 }
 
 // ---------------------------------------------------------------------------
+// Render scheduler - batches multiple render requests into one frame
+// ---------------------------------------------------------------------------
+const renderScheduler = {
+  pending: { tree: false, diff: false, status: false },
+  scheduled: false,
+
+  scheduleTree() {
+    this.pending.tree = true;
+    this._schedule();
+  },
+
+  scheduleDiff() {
+    this.pending.diff = true;
+    this._schedule();
+  },
+
+  scheduleStatus() {
+    this.pending.status = true;
+    this._schedule();
+  },
+
+  scheduleAll() {
+    this.pending.tree = true;
+    this.pending.diff = true;
+    this.pending.status = true;
+    this._schedule();
+  },
+
+  _schedule() {
+    if (this.scheduled) return;
+    this.scheduled = true;
+    requestAnimationFrame(() => {
+      this.scheduled = false;
+      const p = this.pending;
+      this.pending = { tree: false, diff: false, status: false };
+      if (p.tree) renderTree();
+      if (p.diff) renderDiff();
+      if (p.status) renderStatus();
+    });
+  },
+
+  // Force immediate render (for cases that need synchronous update)
+  flush() {
+    if (!this.scheduled) return;
+    this.scheduled = false;
+    const p = this.pending;
+    this.pending = { tree: false, diff: false, status: false };
+    if (p.tree) renderTree();
+    if (p.diff) renderDiff();
+    if (p.status) renderStatus();
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Performance instrumentation for agent profiling
 // ---------------------------------------------------------------------------
 const __gdPerf = {
@@ -377,9 +431,11 @@ function renderTree() {
   }
   treeEl.innerHTML = html;
 
-  // Scroll active into view
-  const activeEl = treeEl.querySelector('.tree-entry.active');
-  if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  // Scroll active into view - deferred to avoid forced reflow
+  requestAnimationFrame(() => {
+    const activeEl = treeEl.querySelector('.tree-entry.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  });
 }
 
 function getVisibleTree() {
@@ -685,7 +741,6 @@ function moveCursor(delta) {
 }
 
 function setCursor(pos, direction = 'forward', center = false) {
-  const oldCursor = state.cursorLine;
   const requestedPos = pos; // Remember original request for top/bottom detection
   state.cursorLine = Math.max(0, Math.min(state.flatLines.length - 1, pos));
 
@@ -762,16 +817,10 @@ function setCursor(pos, direction = 'forward', center = false) {
     }
   }
 
-  // Re-render to show updated cursor position
-  // Visual selection requires full update to set classes correctly
-  if (state.visualAnchor !== null && state.cursorLine !== oldCursor) {
-    renderDiff();
-  } else {
-    renderDiff();
-  }
-
+  // Re-render diff and status synchronously (critical path for user interactions)
+  renderDiff();
   renderStatus();
-  syncTreeCursor();
+  syncTreeCursor(); // Tree render is batched via scheduler
 }
 
 function pageHeight() {
@@ -812,8 +861,8 @@ function jumpNextHunk() {
       } else {
         state.cursorLine = 0;
       }
+      syncTreeCursorImmediate();
       renderAll();
-      syncTreeCursor();
       centerCursor(); // center after file transition
     }
     // else: last file, stay put (do nothing)
@@ -849,8 +898,8 @@ function jumpPrevHunk() {
       } else {
         state.cursorLine = Math.max(0, state.flatLines.length - 1);
       }
+      syncTreeCursorImmediate();
       renderAll();
-      syncTreeCursor();
       centerCursor(); // center after file transition
     }
     // else: first file, stay put (do nothing)
@@ -864,8 +913,8 @@ function jumpNextFile() {
       state.singleFileIdx++;
       state.cursorLine = 0;
       flattenLines();
+      syncTreeCursorImmediate(); // Sync before render to avoid double-render
       renderAll();
-      syncTreeCursor();
     }
     return;
   }
@@ -883,8 +932,8 @@ function jumpPrevFile() {
       state.singleFileIdx--;
       state.cursorLine = 0;
       flattenLines();
+      syncTreeCursorImmediate(); // Sync before render to avoid double-render
       renderAll();
-      syncTreeCursor();
     }
     return;
   }
@@ -1059,8 +1108,22 @@ function syncTreeCursor() {
     if (!visible[i].is_dir && visible[i].file_idx === item.fileIdx) {
       if (state.treeCursor !== i) {
         state.treeCursor = i;
-        renderTree();
+        renderScheduler.scheduleTree();
       }
+      return;
+    }
+  }
+}
+
+// Sync tree cursor without scheduling render (for use before renderAll)
+function syncTreeCursorImmediate() {
+  if (!state.treeVisible) return;
+  const item = state.flatLines[state.cursorLine];
+  if (!item || item.fileIdx == null) return;
+  const visible = getVisibleTree();
+  for (let i = 0; i < visible.length; i++) {
+    if (!visible[i].is_dir && visible[i].file_idx === item.fileIdx) {
+      state.treeCursor = i;
       return;
     }
   }
