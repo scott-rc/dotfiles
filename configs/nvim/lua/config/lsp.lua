@@ -7,4 +7,4 @@ vim.diagnostic.config({
 	virtual_lines = { severity = vim.diagnostic.severity.ERROR },
 })
 
-vim.lsp.enable({ "ts_ls", "gopls", "jsonls", "cue", "jinja_lsp" })
+vim.lsp.enable({ "ts_ls", "gopls", "jsonls", "cue", "jinja_lsp", "rust_analyzer" })

@@ -31,6 +31,7 @@ brew "lazygit"
 # Languages & runtimes
 brew "deno"
 brew "rustup"
+brew "rust-analyzer"
 brew "go"
 brew "node"
 brew "pnpm"
