@@ -16,6 +16,8 @@ gd --no-untracked   # hide untracked files
 gd --show-whitespace / -w  # include whitespace-only changes (hidden by default)
 gd --no-pager       # print to stdout
 gd --no-color       # disable ANSI colors
+gd --theme light    # light theme for syntax highlighting (TUI mode)
+gd --theme dark     # dark theme for syntax highlighting (TUI mode)
 gd --web             # open interactive diff viewer in browser (requires --features web)
 gd --web --no-open   # start server without opening browser (prints URL to stderr)
 gd --web -b          # browser viewer for base branch diff

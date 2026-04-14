@@ -1,4 +1,6 @@
-use tui::highlight::{HighlightLines, SYNTAX_SET, THEME, highlight_line_html};
+use std::fmt::Write;
+
+use tui::highlight::{ParseState, SYNTAX_SET, highlight_line_html_classes};
 
 use crate::git::diff::{DiffFile, LineKind};
 use crate::pager::tree::{TreeEntry, build_tree_entries};
@@ -29,7 +31,7 @@ fn render_file(file: &DiffFile) -> WebDiffFile {
     let syntax = SYNTAX_SET
         .find_syntax_by_extension(ext)
         .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
-    let mut hl_state = HighlightLines::new(syntax, &THEME);
+    let mut parse_state = ParseState::new(syntax);
 
     let hunks: Vec<WebDiffHunk> = file
         .hunks
@@ -44,7 +46,7 @@ fn render_file(file: &DiffFile) -> WebDiffFile {
                 .map(|(i, diff_line)| {
                     let word_ranges = word_ranges_map.get(&i).map_or(&[][..], Vec::as_slice);
                     let syntax_html =
-                        highlight_line_html(&diff_line.content, &mut hl_state, &SYNTAX_SET);
+                        highlight_line_html_classes(&diff_line.content, &mut parse_state, &SYNTAX_SET);
                     let content_html = apply_word_highlights_html(
                         &syntax_html,
                         &diff_line.content,
@@ -105,8 +107,9 @@ fn apply_word_highlights_html(
     let raw_len = raw.len();
     let mut highlighted = vec![false; raw_len];
     for &(start, end) in word_ranges {
-        for i in start..end.min(raw_len) {
-            highlighted[i] = true;
+        let end = end.min(raw_len);
+        if start < end {
+            highlighted[start..end].fill(true);
         }
     }
 
@@ -137,7 +140,7 @@ fn apply_word_highlights_html(
 
             // Re-enter mark if we're still in a highlighted region
             if raw_byte_idx < raw_len && highlighted[raw_byte_idx] {
-                result.push_str(&format!("<mark class=\"{mark_class}\">"));
+                let _ = write!(result, "<mark class=\"{mark_class}\">");
                 in_mark = true;
             }
         } else {
@@ -149,7 +152,7 @@ fn apply_word_highlights_html(
             let should_highlight = raw_byte_idx < raw_len && highlighted[raw_byte_idx];
 
             if should_highlight && !in_mark {
-                result.push_str(&format!("<mark class=\"{mark_class}\">"));
+                let _ = write!(result, "<mark class=\"{mark_class}\">");
                 in_mark = true;
             } else if !should_highlight && in_mark {
                 result.push_str("</mark>");
@@ -159,7 +162,6 @@ fn apply_word_highlights_html(
             result.push_str(&syntax_html[i..i + html_advance]);
             raw_byte_idx += raw_advance;
             i += html_advance;
-            continue;
         }
     }
 

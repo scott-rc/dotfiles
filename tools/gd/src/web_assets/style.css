@@ -48,7 +48,20 @@
   --bg-help-content: rgb(22, 27, 34);
   --bg-added-hover: rgb(26, 46, 32);
   --bg-deleted-hover: rgb(58, 28, 28);
-  --syntax-filter: none;
+  /* Syntax highlighting colors (GitHub Dark) */
+  --syn-comment: #8b949e;
+  --syn-string: #a5d6ff;
+  --syn-keyword: #ff7b72;
+  --syn-number: #79c0ff;
+  --syn-function: #d2a8ff;
+  --syn-type: #79c0ff;
+  --syn-variable: #e6edf3;
+  --syn-operator: #ff7b72;
+  --syn-punctuation: #c9d1d9;
+  --syn-constant: #79c0ff;
+  --syn-attribute: #79c0ff;
+  --syn-tag: #7ee787;
+  --syn-default: #c9d1d9;
 }
 
 /* Light theme */
@@ -89,7 +102,20 @@
   --bg-help-content: rgb(255, 255, 255);
   --bg-added-hover: rgb(200, 245, 210);
   --bg-deleted-hover: rgb(255, 220, 215);
-  --syntax-filter: invert(0.88) hue-rotate(180deg) saturate(2.5);
+  /* Syntax highlighting colors (GitHub Light) */
+  --syn-comment: #6e7781;
+  --syn-string: #0a3069;
+  --syn-keyword: #cf222e;
+  --syn-number: #0550ae;
+  --syn-function: #8250df;
+  --syn-type: #953800;
+  --syn-variable: #24292f;
+  --syn-operator: #cf222e;
+  --syn-punctuation: #24292f;
+  --syn-constant: #0550ae;
+  --syn-attribute: #0550ae;
+  --syn-tag: #116329;
+  --syn-default: #24292f;
 }
 
 /* System preference (auto) */
@@ -131,7 +157,20 @@
     --bg-help-content: rgb(255, 255, 255);
     --bg-added-hover: rgb(200, 245, 210);
     --bg-deleted-hover: rgb(255, 220, 215);
-    --syntax-filter: invert(0.88) hue-rotate(180deg) saturate(2.5);
+    /* Syntax highlighting colors (GitHub Light) */
+    --syn-comment: #6e7781;
+    --syn-string: #0a3069;
+    --syn-keyword: #cf222e;
+    --syn-number: #0550ae;
+    --syn-function: #8250df;
+    --syn-type: #953800;
+    --syn-variable: #24292f;
+    --syn-operator: #cf222e;
+    --syn-punctuation: #24292f;
+    --syn-constant: #0550ae;
+    --syn-attribute: #0550ae;
+    --syn-tag: #116329;
+    --syn-default: #24292f;
   }
 }
 
@@ -434,8 +473,17 @@ mark.wd-del {
   color: var(--fg);
 }
 
-/* ---------- Syntax highlighting filter for light mode ---------- */
-/* Dark theme syntax colors are inverted/rotated for light backgrounds */
-.line-content span[style*="color"] {
-  filter: var(--syntax-filter);
-}
+/* ---------- Syntax highlighting ---------- */
+.syn-comment { color: var(--syn-comment); font-style: italic; }
+.syn-string { color: var(--syn-string); }
+.syn-keyword { color: var(--syn-keyword); }
+.syn-number { color: var(--syn-number); }
+.syn-function { color: var(--syn-function); }
+.syn-type { color: var(--syn-type); }
+.syn-variable { color: var(--syn-variable); }
+.syn-operator { color: var(--syn-operator); }
+.syn-punctuation { color: var(--syn-punctuation); }
+.syn-constant { color: var(--syn-constant); }
+.syn-attribute { color: var(--syn-attribute); }
+.syn-tag { color: var(--syn-tag); }
+.syn-default { color: var(--syn-default); }

@@ -102,15 +102,14 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                             break;
                         }
                     }
-                    Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(broadcast::error::RecvError::Lagged(_)) => {}
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
             // Detect when browser closes the WebSocket or sends client messages
             msg = socket.recv() => {
                 match msg {
-                    Some(Ok(Message::Close(_))) | None => break,
-                    Some(Err(_)) => break,
+                    Some(Ok(Message::Close(_)) | Err(_)) | None => break,
                     Some(Ok(Message::Text(text))) => {
                         if let Ok(client_msg) = serde_json::from_str::<super::protocol::ClientMessage>(&text) {
                             match client_msg {
@@ -234,7 +233,7 @@ async fn watch_git_index(
 
     loop {
         tokio::select! {
-            _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {
+            () = tokio::time::sleep(std::time::Duration::from_secs(2)) => {
                 let current_mtime = git_index_mtime(&diff_ctx.repo);
                 if current_mtime != last_mtime {
                     last_mtime = current_mtime;

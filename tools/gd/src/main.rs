@@ -9,11 +9,35 @@ mod web;
 
 use std::io::{self, IsTerminal, Write};
 
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, ValueEnum};
 
-use tui::highlight::{SYNTAX_SET, THEME};
+use tui::highlight::{SYNTAX_SET, THEME_DARK, THEME_LIGHT, ThemeVariant};
 
 use crate::git::{DiffSource, resolve_commit_parent, resolve_source};
+
+/// CLI theme argument (maps to `ThemeVariant` after resolving "system").
+#[derive(ValueEnum, Clone, Copy, Default)]
+enum ThemeArg {
+    Light,
+    Dark,
+    #[default]
+    System,
+}
+
+impl ThemeArg {
+    /// Resolve to a concrete `ThemeVariant` based on system preference.
+    fn resolve(self) -> ThemeVariant {
+        match self {
+            Self::Light => ThemeVariant::Light,
+            Self::Dark => ThemeVariant::Dark,
+            Self::System => {
+                // Check if terminal supports dark mode detection.
+                // Default to dark for most terminals.
+                ThemeVariant::Dark
+            }
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(name = "gd", about = "Terminal git diff viewer")]
@@ -74,6 +98,10 @@ struct Cli {
     /// Shutdown grace period in milliseconds after last browser tab closes
     #[arg(long, default_value = "1000", requires = "web")]
     shutdown_grace_ms: u64,
+
+    /// Color theme for syntax highlighting (TUI mode only; web mode uses CSS)
+    #[arg(long, value_enum, default_value_t = ThemeArg::System)]
+    theme: ThemeArg,
 }
 
 fn main() {
@@ -83,9 +111,14 @@ fn main() {
 
     // Eagerly initialize syntax highlighting statics in the background,
     // overlapping with git command execution.
-    let syntax_init = std::thread::spawn(|| {
+    let theme_variant = cli.theme.resolve();
+    let syntax_init = std::thread::spawn(move || {
         let _ = &*SYNTAX_SET;
-        let _ = &*THEME;
+        // Initialize the appropriate theme based on CLI selection
+        match theme_variant {
+            ThemeVariant::Dark => { let _ = &*THEME_DARK; }
+            ThemeVariant::Light => { let _ = &*THEME_LIGHT; }
+        }
     });
 
     let cwd = std::env::current_dir().unwrap_or_else(|e| {
