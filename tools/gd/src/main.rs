@@ -72,7 +72,7 @@ struct Cli {
     rows: u16,
 
     /// Shutdown grace period in milliseconds after last browser tab closes
-    #[arg(long, default_value = "2000", requires = "web")]
+    #[arg(long, default_value = "1000", requires = "web")]
     shutdown_grace_ms: u64,
 }
 
