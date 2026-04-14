@@ -57,17 +57,13 @@ fn main() {
 EOF
 git add main.rs
 
-# Unstaged change: modify lib.rs
+# Unstaged change: modify lib.rs (includes deletion and addition)
 cat > lib.rs << 'EOF'
 pub fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 
-pub fn sub(a: i32, b: i32) -> i32 {
-    a - b
-}
-
-pub fn mul(a: i32, b: i32) -> i32 {
+pub fn multiply(a: i32, b: i32) -> i32 {
     a * b
 }
 EOF

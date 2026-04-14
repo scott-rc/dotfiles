@@ -30,6 +30,11 @@ const state = {
   visualAnchor: null, // null or line index for visual selection
 };
 
+// Expose state for e2e tests (access via window.__gdState in Playwright)
+if (typeof window !== 'undefined') {
+  window.__gdState = state;
+}
+
 // DOM refs
 const treeEl = document.getElementById('tree');
 const diffPane = document.getElementById('diff-pane');
@@ -377,22 +382,53 @@ function renderStatus() {
 // ---------------------------------------------------------------------------
 function moveCursor(delta) {
   const newPos = Math.max(0, Math.min(state.flatLines.length - 1, state.cursorLine + delta));
-  setCursor(newPos);
+  setCursor(newPos, delta < 0 ? 'backward' : 'forward');
   syncTreeCursor();
 }
 
-function setCursor(pos) {
+function setCursor(pos, direction = 'forward') {
   const oldCursor = state.cursorLine;
   state.cursorLine = Math.max(0, Math.min(state.flatLines.length - 1, pos));
 
-  // Skip headers/separators
+  // Skip headers/separators in the direction of movement
   const item = state.flatLines[state.cursorLine];
   if (item && item.type !== 'line') {
-    // Try to find the next content line
-    for (let i = state.cursorLine + 1; i < state.flatLines.length; i++) {
-      if (state.flatLines[i].type === 'line') {
-        state.cursorLine = i;
-        break;
+    let found = false;
+    if (direction === 'backward') {
+      // Moving up: search backward for content line
+      for (let i = state.cursorLine - 1; i >= 0; i--) {
+        if (state.flatLines[i].type === 'line') {
+          state.cursorLine = i;
+          found = true;
+          break;
+        }
+      }
+    } else {
+      // Moving down or jumping: search forward for content line
+      for (let i = state.cursorLine + 1; i < state.flatLines.length; i++) {
+        if (state.flatLines[i].type === 'line') {
+          state.cursorLine = i;
+          found = true;
+          break;
+        }
+      }
+    }
+    // Fallback: search opposite direction if nothing found in primary direction
+    if (!found) {
+      if (direction === 'backward') {
+        for (let i = state.cursorLine + 1; i < state.flatLines.length; i++) {
+          if (state.flatLines[i].type === 'line') {
+            state.cursorLine = i;
+            break;
+          }
+        }
+      } else {
+        for (let i = state.cursorLine - 1; i >= 0; i--) {
+          if (state.flatLines[i].type === 'line') {
+            state.cursorLine = i;
+            break;
+          }
+        }
       }
     }
   }
@@ -441,7 +477,7 @@ function jumpNextHunk() {
   const targets = state.changeGroupStarts;
   for (const t of targets) {
     if (t > state.cursorLine) {
-      setCursor(t);
+      setCursor(t, 'forward');
       return;
     }
   }
@@ -471,15 +507,12 @@ function jumpPrevHunk() {
   // 2. If none found AND in single mode, retreat to previous file's last change group
   // 3. If none found AND in all mode, stay put
 
-  // Early return if already at first change group (guard from chunk spec)
   const targets = state.changeGroupStarts;
-  if (targets.length > 0 && state.cursorLine <= targets[0]) {
-    return; // Already at or before first change group, stay put
-  }
 
+  // Try to find a previous change group in current view
   for (let i = targets.length - 1; i >= 0; i--) {
     if (targets[i] < state.cursorLine) {
-      setCursor(targets[i]);
+      setCursor(targets[i], 'backward');
       return;
     }
   }

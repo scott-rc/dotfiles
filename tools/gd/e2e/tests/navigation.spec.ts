@@ -30,13 +30,21 @@ test.describe("Navigation", () => {
     await page.keyboard.press("G");
     const bottomScroll = await diffPane.evaluate((el) => el.scrollTop);
 
-    // Go to top
+    // Go to top - cursor lands on first content line (may have small offset for headers)
     await page.keyboard.press("g");
     const topScroll = await diffPane.evaluate((el) => el.scrollTop);
-    expect(topScroll).toBe(0);
+    // Allow small offset for file header visibility when cursor is on first content line
+    expect(topScroll).toBeLessThanOrEqual(50);
 
     // Verify we were actually scrolled somewhere
     expect(bottomScroll).toBeGreaterThanOrEqual(topScroll);
+
+    // Verify cursor is on first content line
+    const cursorPos = await page.evaluate(() => {
+      const cursor = document.querySelector(".cursor-line");
+      return cursor ? parseInt(cursor.getAttribute("data-flat-idx") || "-1") : -1;
+    });
+    expect(cursorPos).toBeGreaterThanOrEqual(0);
   });
 
   test("d/u for half-page scroll", async ({ page }) => {
