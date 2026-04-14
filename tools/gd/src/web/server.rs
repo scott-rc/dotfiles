@@ -28,6 +28,8 @@ struct AppState {
     tx: broadcast::Sender<Arc<String>>,
     connection_count: AtomicUsize,
     shutdown_tx: broadcast::Sender<()>,
+    /// Channel to signal when a connection closes (for shutdown scheduling)
+    disconnect_tx: tokio::sync::mpsc::UnboundedSender<()>,
     /// Grace period before shutdown after last connection closes (milliseconds).
     shutdown_grace_ms: u64,
     /// Whether to show full file context (-U999999).
@@ -62,16 +64,8 @@ impl Drop for ConnectionGuard {
     fn drop(&mut self) {
         let prev = self.state.connection_count.fetch_sub(1, Ordering::SeqCst);
         if prev == 1 {
-            // Last connection closed — schedule shutdown after grace period
-            let state = self.state.clone();
-            let grace_ms = state.shutdown_grace_ms;
-            tokio::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(grace_ms)).await;
-                // Check if still zero (no new connections during grace period)
-                if state.connection_count.load(Ordering::SeqCst) == 0 {
-                    let _ = state.shutdown_tx.send(());
-                }
-            });
+            // Last connection closed — signal the shutdown scheduler
+            let _ = self.state.disconnect_tx.send(());
         }
     }
 }
@@ -250,6 +244,24 @@ async fn watch_git_index(
     }
 }
 
+/// Task that handles shutdown scheduling when connections close.
+/// Receives signals when the last connection closes, waits for the grace period,
+/// then triggers shutdown if no new connections arrived.
+async fn shutdown_scheduler(
+    state: Arc<AppState>,
+    mut disconnect_rx: tokio::sync::mpsc::UnboundedReceiver<()>,
+) {
+    while disconnect_rx.recv().await.is_some() {
+        // Last connection closed — wait for grace period
+        tokio::time::sleep(std::time::Duration::from_millis(state.shutdown_grace_ms)).await;
+        // Check if still zero (no new connections during grace period)
+        if state.connection_count.load(Ordering::SeqCst) == 0 {
+            let _ = state.shutdown_tx.send(());
+            break;
+        }
+    }
+}
+
 pub(crate) fn start_server(
     _files: Vec<DiffFile>,
     diff_ctx: &DiffContext,
@@ -260,15 +272,23 @@ pub(crate) fn start_server(
     rt.block_on(async {
         let (tx, _rx) = broadcast::channel::<Arc<String>>(16);
         let (shutdown_tx, _) = broadcast::channel::<()>(1);
+        let (disconnect_tx, disconnect_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
 
         let state = Arc::new(AppState {
             diff_ctx: diff_ctx.clone(),
             tx: tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: shutdown_tx.clone(),
+            disconnect_tx,
             shutdown_grace_ms,
             full_context: AtomicBool::new(false),
         });
+
+        // Spawn shutdown scheduler - listens for disconnect signals and schedules shutdown
+        tokio::spawn(shutdown_scheduler(
+            state.clone(),
+            disconnect_rx,
+        ));
 
         let app = Router::new()
             .route("/", get(index_handler))
@@ -325,14 +345,15 @@ mod tests {
 
     const TEST_GRACE_MS: u64 = 100; // Shorter grace period for faster tests
 
-    fn make_test_state() -> Arc<AppState> {
+    fn make_test_state() -> (Arc<AppState>, tokio::sync::mpsc::UnboundedReceiver<()>) {
         make_test_state_with_grace(TEST_GRACE_MS)
     }
 
-    fn make_test_state_with_grace(shutdown_grace_ms: u64) -> Arc<AppState> {
+    fn make_test_state_with_grace(shutdown_grace_ms: u64) -> (Arc<AppState>, tokio::sync::mpsc::UnboundedReceiver<()>) {
         let (tx, _) = broadcast::channel::<Arc<String>>(1);
         let (shutdown_tx, _) = broadcast::channel::<()>(1);
-        Arc::new(AppState {
+        let (disconnect_tx, disconnect_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
+        let state = Arc::new(AppState {
             diff_ctx: DiffContext {
                 repo: PathBuf::from("/tmp"),
                 source: crate::git::DiffSource::WorkingTree,
@@ -342,15 +363,20 @@ mod tests {
             tx,
             connection_count: AtomicUsize::new(0),
             shutdown_tx,
+            disconnect_tx,
             shutdown_grace_ms,
             full_context: AtomicBool::new(false),
-        })
+        });
+        (state, disconnect_rx)
     }
 
     #[tokio::test(start_paused = true)]
     async fn connection_guard_schedules_shutdown_on_last_close() {
-        let state = make_test_state();
+        let (state, disconnect_rx) = make_test_state();
         let mut shutdown_rx = state.shutdown_tx.subscribe();
+
+        // Start the shutdown scheduler
+        tokio::spawn(shutdown_scheduler(state.clone(), disconnect_rx));
 
         // Simulate connection: increment count then create guard
         state.connection_count.fetch_add(1, Ordering::SeqCst);
@@ -364,13 +390,13 @@ mod tests {
         // Count should be 0 now
         assert_eq!(state.connection_count.load(Ordering::SeqCst), 0);
 
-        // Yield to let the spawned task start
+        // Yield to let the shutdown scheduler receive the signal
         tokio::task::yield_now().await;
 
         // Advance time past the grace period
         time::advance(Duration::from_millis(TEST_GRACE_MS + 50)).await;
 
-        // Yield again to let the spawned task complete after sleep
+        // Yield again to let the scheduler complete after sleep
         tokio::task::yield_now().await;
 
         // Shutdown signal should be sent
@@ -383,8 +409,11 @@ mod tests {
 
     #[tokio::test(start_paused = true)]
     async fn connection_guard_cancels_shutdown_if_new_connection_arrives() {
-        let state = make_test_state();
+        let (state, disconnect_rx) = make_test_state();
         let mut shutdown_rx = state.shutdown_tx.subscribe();
+
+        // Start the shutdown scheduler
+        tokio::spawn(shutdown_scheduler(state.clone(), disconnect_rx));
 
         // First connection
         state.connection_count.fetch_add(1, Ordering::SeqCst);
@@ -396,7 +425,7 @@ mod tests {
         drop(guard1);
         assert_eq!(state.connection_count.load(Ordering::SeqCst), 0);
 
-        // Yield to let spawned task start
+        // Yield to let scheduler receive the signal
         tokio::task::yield_now().await;
 
         // Advance partway through grace period
@@ -425,8 +454,11 @@ mod tests {
 
     #[tokio::test(start_paused = true)]
     async fn connection_guard_only_last_connection_schedules_shutdown() {
-        let state = make_test_state();
+        let (state, disconnect_rx) = make_test_state();
         let mut shutdown_rx = state.shutdown_tx.subscribe();
+
+        // Start the shutdown scheduler
+        tokio::spawn(shutdown_scheduler(state.clone(), disconnect_rx));
 
         // Two connections
         state.connection_count.fetch_add(1, Ordering::SeqCst);
@@ -481,8 +513,9 @@ mod tests {
     #[test]
     fn test_apply_staging_skips_commit_source() {
         // apply_staging should return early for Commit diff source (can't stage)
-        let state = make_test_state();
+        let (state, _disconnect_rx) = make_test_state();
         // Override diff_ctx to use Commit source
+        let (disconnect_tx, _) = tokio::sync::mpsc::unbounded_channel::<()>();
         let state_commit = Arc::new(AppState {
             diff_ctx: DiffContext {
                 repo: PathBuf::from("/tmp"),
@@ -493,6 +526,7 @@ mod tests {
             tx: state.tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: state.shutdown_tx.clone(),
+            disconnect_tx,
             shutdown_grace_ms: TEST_GRACE_MS,
             full_context: AtomicBool::new(false),
         });
@@ -504,7 +538,8 @@ mod tests {
     #[test]
     fn test_apply_staging_skips_range_source() {
         // apply_staging should return early for Range diff source (can't stage)
-        let state = make_test_state();
+        let (state, _disconnect_rx) = make_test_state();
+        let (disconnect_tx, _) = tokio::sync::mpsc::unbounded_channel::<()>();
         let state_range = Arc::new(AppState {
             diff_ctx: DiffContext {
                 repo: PathBuf::from("/tmp"),
@@ -515,6 +550,7 @@ mod tests {
             tx: state.tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: state.shutdown_tx.clone(),
+            disconnect_tx,
             shutdown_grace_ms: TEST_GRACE_MS,
             full_context: AtomicBool::new(false),
         });
@@ -534,8 +570,11 @@ mod tests {
     async fn handle_socket_detects_websocket_close() {
         use tokio::sync::mpsc;
 
-        let state = make_test_state();
+        let (state, disconnect_rx) = make_test_state();
         let mut shutdown_rx = state.shutdown_tx.subscribe();
+
+        // Start the shutdown scheduler
+        tokio::spawn(shutdown_scheduler(state.clone(), disconnect_rx));
 
         // Create a channel pair to simulate WebSocket messages
         let (ws_tx, mut ws_rx) = mpsc::channel::<Message>(1);

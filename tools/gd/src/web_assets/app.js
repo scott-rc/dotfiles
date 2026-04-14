@@ -1108,7 +1108,7 @@ function syncTreeCursor() {
     if (!visible[i].is_dir && visible[i].file_idx === item.fileIdx) {
       if (state.treeCursor !== i) {
         state.treeCursor = i;
-        renderScheduler.scheduleTree();
+        renderTree(); // Render immediately for navigation responsiveness
       }
       return;
     }
