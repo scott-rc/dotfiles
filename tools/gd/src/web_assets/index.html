@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="system">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,13 +8,16 @@
 </head>
 <body>
   <div id="app">
-    <div id="tree"></div>
     <div id="diff-pane"></div>
+    <div id="resize-handle"></div>
+    <div id="tree"></div>
   </div>
 
   <div id="status-bar">
     <div id="status-left"></div>
-    <div id="status-right"></div>
+    <div id="status-right">
+      <button id="theme-toggle" title="Toggle theme (T)">&#xf0238;</button>
+    </div>
   </div>
 
   <div id="search-bar">

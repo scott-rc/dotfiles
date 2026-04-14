@@ -6,5 +6,6 @@ export default defineConfig({
   reporter: "html",
   use: {
     trace: "on-first-retry",
+    colorScheme: "dark",
   },
 });

@@ -18,6 +18,8 @@ const state = {
   treeFocused: false,
   treeVisible: true,
   treeCursor: 0,
+  treeWidth: 260,   // Tree panel width in pixels
+  resizing: false,  // Tree resize drag state
   pendingTreeKey: null,
   searchQuery: '',
   searchMatches: [],
@@ -28,6 +30,7 @@ const state = {
   expandedDirs: new Set(),
   fullContext: false,
   visualAnchor: null, // null or line index for visual selection
+  theme: 'system',  // 'light' | 'dark' | 'system'
 };
 
 // Expose state for e2e tests (access via window.__gdState in Playwright)
@@ -44,6 +47,8 @@ const searchBar = document.getElementById('search-bar');
 const searchInput = document.getElementById('search-input');
 const searchCount = document.getElementById('search-count');
 const helpOverlay = document.getElementById('help-overlay');
+const resizeHandle = document.getElementById('resize-handle');
+const themeToggle = document.getElementById('theme-toggle');
 
 // ---------------------------------------------------------------------------
 // WebSocket
@@ -369,12 +374,21 @@ function renderStatus() {
   }
   statusLeft.innerHTML = left;
 
+  // Position indicator (theme toggle is static in HTML)
   const total = state.flatLines.length;
   const pos = total === 0 ? '' :
     state.cursorLine === 0 ? 'TOP' :
     state.cursorLine >= total - 1 ? 'END' :
     Math.round((state.cursorLine / (total - 1)) * 100) + '%';
-  statusRight.textContent = pos;
+
+  // Update position span, preserve theme toggle button
+  const posSpan = statusRight.querySelector('#status-position') || (() => {
+    const span = document.createElement('span');
+    span.id = 'status-position';
+    statusRight.insertBefore(span, themeToggle);
+    return span;
+  })();
+  posSpan.textContent = pos;
 }
 
 // ---------------------------------------------------------------------------
@@ -1036,6 +1050,9 @@ document.addEventListener('keydown', (e) => {
 
     // Help
     case '?': e.preventDefault(); toggleHelp(); break;
+
+    // Theme toggle
+    case 'T': e.preventDefault(); cycleTheme(); break;
   }
 });
 
@@ -1062,6 +1079,102 @@ treeEl.addEventListener('click', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Theme toggle
+// ---------------------------------------------------------------------------
+const THEME_ICONS = {
+  light: '\uf0235',   // sun
+  dark: '\uf0238',    // moon
+  system: '\uf0544',  // laptop
+};
+
+function initTheme() {
+  const saved = localStorage.getItem('gd-theme');
+  if (saved && ['light', 'dark', 'system'].includes(saved)) {
+    state.theme = saved;
+  }
+  applyTheme();
+
+  // Listen for system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (state.theme === 'system') {
+      // Theme will be re-applied via CSS media query
+    }
+  });
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  if (themeToggle) {
+    themeToggle.innerHTML = THEME_ICONS[state.theme];
+    const labels = { light: 'Light', dark: 'Dark', system: 'System' };
+    themeToggle.title = `Theme: ${labels[state.theme]} (T)`;
+  }
+}
+
+function cycleTheme() {
+  const order = ['system', 'light', 'dark'];
+  const idx = order.indexOf(state.theme);
+  state.theme = order[(idx + 1) % order.length];
+  localStorage.setItem('gd-theme', state.theme);
+  applyTheme();
+}
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', cycleTheme);
+}
+
+// ---------------------------------------------------------------------------
+// Tree resizing
+// ---------------------------------------------------------------------------
+function initTreeResize() {
+  const saved = localStorage.getItem('gd-tree-width');
+  if (saved) {
+    const width = parseInt(saved, 10);
+    if (!isNaN(width) && width >= 150 && width <= 500) {
+      state.treeWidth = width;
+    }
+  }
+  applyTreeWidth();
+}
+
+function applyTreeWidth() {
+  if (treeEl) {
+    treeEl.style.width = state.treeWidth + 'px';
+  }
+}
+
+function onResizeStart(e) {
+  e.preventDefault();
+  state.resizing = true;
+  resizeHandle.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+}
+
+function onResizeMove(e) {
+  if (!state.resizing) return;
+  // Tree is on the right, so width = window.innerWidth - e.clientX - resize handle width
+  const newWidth = Math.max(150, Math.min(500, window.innerWidth - e.clientX - 4));
+  state.treeWidth = newWidth;
+  applyTreeWidth();
+}
+
+function onResizeEnd() {
+  if (!state.resizing) return;
+  state.resizing = false;
+  resizeHandle.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  localStorage.setItem('gd-tree-width', state.treeWidth.toString());
+}
+
+if (resizeHandle) {
+  resizeHandle.addEventListener('mousedown', onResizeStart);
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+}
+
+// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
 function escapeHtml(str) {
@@ -1071,4 +1184,6 @@ function escapeHtml(str) {
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
+initTheme();
+initTreeResize();
 connect();

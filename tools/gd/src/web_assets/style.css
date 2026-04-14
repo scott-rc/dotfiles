@@ -1,6 +1,19 @@
-/* gd web — GitHub Dark-inspired color palette (from style.rs) */
+/* gd web — GitHub-inspired color palette (from style.rs) */
 :root {
+  /* Font stacks */
+  --font-mono: ui-monospace, 'MonaspiceAr Nerd Font Mono', 'JetBrainsMono Nerd Font',
+               'FiraCode Nerd Font', 'Hack Nerd Font', 'SF Mono', 'Fira Code',
+               Menlo, Monaco, Consolas, monospace;
+  --font-icons: 'Symbols Nerd Font', 'Symbols Nerd Font Mono',
+                'MonaspiceAr Nerd Font Mono', 'MonaspiceAr Nerd Font',
+                'JetBrainsMono Nerd Font', 'FiraCode Nerd Font',
+                'Hack Nerd Font', var(--font-mono);
+}
+
+/* Dark theme (default) */
+:root, [data-theme="dark"] {
   --bg: rgb(13, 17, 23);
+  --bg-secondary: rgb(22, 27, 34);
   --fg: rgb(201, 209, 217);
   --bg-added: rgb(22, 39, 27);
   --bg-deleted: rgb(50, 24, 24);
@@ -28,7 +41,92 @@
   --fg-search-match: rgb(255, 213, 79);
   --bg-search-match: rgba(255, 213, 79, 0.15);
   --bg-search-current: rgba(255, 213, 79, 0.35);
-  --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --bg-status-bar: rgb(36, 41, 47);
+  --bg-search-bar: rgb(30, 33, 38);
+  --bg-help-overlay: rgba(0, 0, 0, 0.7);
+  --bg-help-content: rgb(22, 27, 34);
+  --bg-added-hover: rgb(26, 46, 32);
+  --bg-deleted-hover: rgb(58, 28, 28);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: rgb(255, 255, 255);
+  --bg-secondary: rgb(246, 248, 250);
+  --fg: rgb(31, 35, 40);
+  --bg-added: rgb(218, 251, 225);
+  --bg-deleted: rgb(255, 235, 233);
+  --bg-added-word: rgb(172, 238, 187);
+  --bg-deleted-word: rgb(255, 200, 195);
+  --bg-cursor: rgb(243, 244, 246);
+  --bg-visual: rgb(180, 215, 255);
+  --fg-file-header: rgb(9, 105, 218);
+  --fg-gutter: rgb(110, 119, 129);
+  --fg-sep: rgb(209, 217, 224);
+  --fg-tree: rgb(31, 35, 40);
+  --fg-tree-dir: rgb(159, 106, 15);
+  --fg-tree-guide: rgb(175, 184, 193);
+  --fg-added-marker: rgb(26, 127, 55);
+  --fg-deleted-marker: rgb(207, 34, 46);
+  --fg-status-modified: rgb(159, 106, 15);
+  --fg-status-added: rgb(26, 127, 55);
+  --fg-status-deleted: rgb(207, 34, 46);
+  --fg-status-renamed: rgb(9, 105, 218);
+  --fg-status-untracked: rgb(110, 119, 129);
+  --bg-scrollbar-track: rgb(234, 238, 242);
+  --bg-scrollbar-thumb: rgb(175, 184, 193);
+  --bg-tree-cursor-focused: rgb(218, 235, 255);
+  --bg-tree-cursor-unfocused: rgb(234, 238, 242);
+  --fg-search-match: rgb(130, 80, 0);
+  --bg-search-match: rgba(255, 213, 79, 0.3);
+  --bg-search-current: rgba(255, 213, 79, 0.6);
+  --bg-status-bar: rgb(246, 248, 250);
+  --bg-search-bar: rgb(246, 248, 250);
+  --bg-help-overlay: rgba(0, 0, 0, 0.4);
+  --bg-help-content: rgb(255, 255, 255);
+  --bg-added-hover: rgb(200, 245, 210);
+  --bg-deleted-hover: rgb(255, 220, 215);
+}
+
+/* System preference (auto) */
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    --bg: rgb(255, 255, 255);
+    --bg-secondary: rgb(246, 248, 250);
+    --fg: rgb(31, 35, 40);
+    --bg-added: rgb(218, 251, 225);
+    --bg-deleted: rgb(255, 235, 233);
+    --bg-added-word: rgb(172, 238, 187);
+    --bg-deleted-word: rgb(255, 200, 195);
+    --bg-cursor: rgb(243, 244, 246);
+    --bg-visual: rgb(180, 215, 255);
+    --fg-file-header: rgb(9, 105, 218);
+    --fg-gutter: rgb(110, 119, 129);
+    --fg-sep: rgb(209, 217, 224);
+    --fg-tree: rgb(31, 35, 40);
+    --fg-tree-dir: rgb(159, 106, 15);
+    --fg-tree-guide: rgb(175, 184, 193);
+    --fg-added-marker: rgb(26, 127, 55);
+    --fg-deleted-marker: rgb(207, 34, 46);
+    --fg-status-modified: rgb(159, 106, 15);
+    --fg-status-added: rgb(26, 127, 55);
+    --fg-status-deleted: rgb(207, 34, 46);
+    --fg-status-renamed: rgb(9, 105, 218);
+    --fg-status-untracked: rgb(110, 119, 129);
+    --bg-scrollbar-track: rgb(234, 238, 242);
+    --bg-scrollbar-thumb: rgb(175, 184, 193);
+    --bg-tree-cursor-focused: rgb(218, 235, 255);
+    --bg-tree-cursor-unfocused: rgb(234, 238, 242);
+    --fg-search-match: rgb(130, 80, 0);
+    --bg-search-match: rgba(255, 213, 79, 0.3);
+    --bg-search-current: rgba(255, 213, 79, 0.6);
+    --bg-status-bar: rgb(246, 248, 250);
+    --bg-search-bar: rgb(246, 248, 250);
+    --bg-help-overlay: rgba(0, 0, 0, 0.4);
+    --bg-help-content: rgb(255, 255, 255);
+    --bg-added-hover: rgb(200, 245, 210);
+    --bg-deleted-hover: rgb(255, 220, 215);
+  }
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,8 +136,8 @@ html, body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 1.5;
   overflow: hidden;
 }
 
@@ -52,8 +150,8 @@ html, body {
 /* ---------- Tree sidebar ---------- */
 #tree {
   width: 260px;
-  min-width: 180px;
-  max-width: 400px;
+  min-width: 150px;
+  max-width: 500px;
   border-left: 1px solid var(--fg-sep);
   overflow-y: auto;
   overflow-x: hidden;
@@ -61,7 +159,6 @@ html, body {
   flex-shrink: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
-  order: 1;
 }
 
 #tree.hidden { display: none; }
@@ -76,7 +173,7 @@ html, body {
 .tree-entry:hover { background: var(--bg-tree-cursor-unfocused); }
 .tree-entry.active { background: var(--bg-tree-cursor-focused); color: #fff; }
 .tree-entry.active.unfocused { background: var(--bg-tree-cursor-unfocused); }
-.tree-entry .tree-icon { display: inline-block; width: 20px; text-align: center; }
+.tree-entry .tree-icon { display: inline-block; width: 20px; text-align: center; font-family: var(--font-icons); }
 .tree-entry .tree-status { display: inline-block; width: 16px; text-align: center; font-weight: bold; }
 .tree-entry .tree-label { }
 .tree-entry.dir .tree-label { color: var(--fg-tree-dir); }
@@ -95,7 +192,6 @@ html, body {
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
-  order: 0;
   padding-bottom: 24px; /* Account for fixed status bar */
 }
 
@@ -138,8 +234,8 @@ html, body {
 .diff-line:hover { background: var(--bg-cursor); }
 .diff-line.line-added { background: var(--bg-added); }
 .diff-line.line-deleted { background: var(--bg-deleted); }
-.diff-line.line-added:hover { background: rgb(26, 46, 32); }
-.diff-line.line-deleted:hover { background: rgb(58, 28, 28); }
+.diff-line.line-added:hover { background: var(--bg-added-hover); }
+.diff-line.line-deleted:hover { background: var(--bg-deleted-hover); }
 /* Cursor line must come after line-added/deleted to override them */
 .diff-line.cursor-line,
 .diff-line.cursor-line.line-added,
@@ -221,7 +317,7 @@ mark.wd-del {
   right: 0;
   height: 24px;
   line-height: 24px;
-  background: rgb(36, 41, 47);
+  background: var(--bg-status-bar);
   color: var(--fg-gutter);
   padding: 0 12px;
   display: flex;
@@ -230,8 +326,8 @@ mark.wd-del {
   z-index: 100;
   border-top: 1px solid var(--fg-sep);
 }
-#status-left { display: flex; gap: 12px; }
-#status-right { display: flex; gap: 12px; }
+#status-left { display: flex; gap: 12px; align-items: center; }
+#status-right { display: flex; gap: 12px; align-items: center; }
 
 /* ---------- Search bar ---------- */
 #search-bar {
@@ -240,7 +336,7 @@ mark.wd-del {
   left: 0;
   right: 0;
   height: 28px;
-  background: rgb(30, 33, 38);
+  background: var(--bg-search-bar);
   border-top: 1px solid var(--fg-sep);
   display: none;
   align-items: center;
@@ -267,7 +363,7 @@ mark.wd-del {
 #help-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.7);
+  background: var(--bg-help-overlay);
   display: none;
   align-items: center;
   justify-content: center;
@@ -275,7 +371,7 @@ mark.wd-del {
 }
 #help-overlay.visible { display: flex; }
 #help-content {
-  background: rgb(22, 27, 34);
+  background: var(--bg-help-content);
   border: 1px solid var(--fg-sep);
   border-radius: 8px;
   padding: 24px 32px;
@@ -299,4 +395,35 @@ mark.wd-del {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* ---------- Resize handle ---------- */
+#resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+#resize-handle:hover,
+#resize-handle.dragging {
+  background: var(--fg-sep);
+}
+/* Hide resize handle when tree is hidden (CSS :has selector) */
+#resize-handle:has(+ #tree.hidden) { display: none; }
+
+/* ---------- Theme toggle ---------- */
+#theme-toggle {
+  background: transparent;
+  border: none;
+  color: var(--fg-gutter);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 14px;
+  font-family: var(--font-icons);
+  line-height: 24px;
+  transition: color 0.15s;
+}
+#theme-toggle:hover {
+  color: var(--fg);
 }

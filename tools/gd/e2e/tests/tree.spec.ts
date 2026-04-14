@@ -121,18 +121,21 @@ test.describe("File Tree", () => {
     expect(jsIcon).not.toEqual(mdIcon);
   });
 
-  test("file icons are emoji (not Nerd Font PUA)", async ({ page }) => {
+  test("file icons are Nerd Font (PUA codepoints)", async ({ page }) => {
     const tree = page.locator("#tree");
 
-    // Find a .rs file entry and check its icon is an emoji (not a Nerd Font PUA codepoint)
+    // Find a .rs file entry and check its icon is a Nerd Font PUA codepoint
     const rsEntry = tree.locator(".tree-entry", { hasText: ".rs" }).first();
     const rsIconElement = rsEntry.locator(".tree-icon");
 
     const iconText = await rsIconElement.textContent();
     expect(iconText).not.toBeNull();
-    // Emoji should not be in PUA range (U+E000 - U+F8FF)
+    // Nerd Font icons are in PUA ranges (U+E000 - U+F8FF and U+F0000 - U+F1FFF)
     const codePoint = iconText!.codePointAt(0)!;
-    expect(codePoint).toBeGreaterThan(0xf8ff);
+    const isPUA =
+      (codePoint >= 0xe000 && codePoint <= 0xf8ff) ||
+      (codePoint >= 0xf0000 && codePoint <= 0xf1fff);
+    expect(isPUA).toBe(true);
   });
 
   test("g goes to first tree entry when tree is focused", async ({ page }) => {
