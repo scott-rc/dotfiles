@@ -24,6 +24,7 @@ const state = {
   searchActive: false,
   helpVisible: false,
   collapsedDirs: new Set(),
+  fullContext: false,
 };
 
 // DOM refs
@@ -39,9 +40,11 @@ const helpOverlay = document.getElementById('help-overlay');
 // ---------------------------------------------------------------------------
 // WebSocket
 // ---------------------------------------------------------------------------
+let ws = null;
+
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/ws`);
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
 
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
@@ -54,8 +57,20 @@ function connect() {
   };
 
   ws.onclose = () => {
+    ws = null;
     setTimeout(connect, 2000);
   };
+}
+
+function sendMessage(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(obj));
+  }
+}
+
+function toggleFullContext() {
+  state.fullContext = !state.fullContext;
+  sendMessage({ type: 'SetFullContext', enabled: state.fullContext });
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +310,7 @@ function renderStatus() {
 function moveCursor(delta) {
   const newPos = Math.max(0, Math.min(state.flatLines.length - 1, state.cursorLine + delta));
   setCursor(newPos);
+  syncTreeCursor();
 }
 
 function setCursor(pos) {
@@ -321,6 +337,7 @@ function setCursor(pos) {
     el.scrollIntoView({ block: 'nearest' });
   }
   renderStatus();
+  syncTreeCursor();
 }
 
 function pageHeight() {
@@ -346,6 +363,7 @@ function jumpNextHunk() {
         state.cursorLine = 0;
       }
       renderAll();
+      syncTreeCursor();
     }
   } else {
     // Find next file's first hunk
@@ -386,6 +404,7 @@ function jumpPrevHunk() {
         state.cursorLine = Math.max(0, state.flatLines.length - 1);
       }
       renderAll();
+      syncTreeCursor();
     }
   } else {
     // Find previous file's last hunk
@@ -419,6 +438,7 @@ function jumpNextFile() {
       state.cursorLine = 0;
       flattenLines();
       renderAll();
+      syncTreeCursor();
     }
     return;
   }
@@ -437,6 +457,7 @@ function jumpPrevFile() {
       state.cursorLine = 0;
       flattenLines();
       renderAll();
+      syncTreeCursor();
     }
     return;
   }
@@ -597,6 +618,22 @@ function treeToggleCollapseRecursive() {
   renderTree();
 }
 
+function syncTreeCursor() {
+  if (!state.treeVisible || state.treeFocused) return;
+  const item = state.flatLines[state.cursorLine];
+  if (!item || item.fileIdx == null) return;
+  const visible = getVisibleTree();
+  for (let i = 0; i < visible.length; i++) {
+    if (!visible[i].is_dir && visible[i].file_idx === item.fileIdx) {
+      if (state.treeCursor !== i) {
+        state.treeCursor = i;
+        renderTree();
+      }
+      return;
+    }
+  }
+}
+
 // ---------- Search ----------
 function openSearch() {
   state.searchActive = true;
@@ -755,6 +792,7 @@ document.addEventListener('keydown', (e) => {
     case '}': e.preventDefault(); jumpNextFile(); break;
     case '{': e.preventDefault(); jumpPrevFile(); break;
     case 's': e.preventDefault(); toggleSingleFile(); break;
+    case 'o': e.preventDefault(); toggleFullContext(); break;
 
     // Tree
     case 'l': e.preventDefault(); toggleTree(); break;

@@ -3,7 +3,6 @@ use tui::highlight::{HighlightLines, SYNTAX_SET, THEME, highlight_line_html};
 use crate::git::diff::{DiffFile, LineKind};
 use crate::pager::tree::{TreeEntry, build_tree_entries};
 use crate::render::compute_hunk_word_ranges;
-use crate::style::{dir_icon, file_icon};
 
 use super::protocol::{
     ServerMessage, WebDiffFile, WebDiffHunk, WebDiffLine, WebLineKind, WebTreeEntry,
@@ -189,12 +188,13 @@ fn decode_html_char(html: &str, pos: usize) -> (char, usize) {
 
 fn render_tree_entry(entry: &TreeEntry) -> WebTreeEntry {
     let is_dir = entry.file_idx.is_none();
-    let (icon, ansi_color) = if is_dir {
-        dir_icon(entry.collapsed)
+    let icon = if is_dir {
+        web_dir_icon(entry.collapsed)
     } else {
-        file_icon(&entry.label)
+        web_file_icon(&entry.label)
     };
-    let icon_color = ansi_to_css_color(ansi_color);
+    // Emoji icons have intrinsic colors; no CSS color needed
+    let icon_color = String::new();
 
     WebTreeEntry {
         label: entry.label.clone(),
@@ -208,16 +208,91 @@ fn render_tree_entry(entry: &TreeEntry) -> WebTreeEntry {
     }
 }
 
-/// Convert an ANSI 24-bit color code to CSS rgb() format.
-/// Input format: `\x1b[38;2;R;G;Bm`
-fn ansi_to_css_color(ansi: &str) -> String {
-    // Skip "\x1b[38;2;" prefix (7 chars) and trailing "m" (1 char)
-    if ansi.len() > 8 && ansi.starts_with("\x1b[38;2;") && ansi.ends_with('m') {
-        let rgb_part = &ansi[7..ansi.len() - 1];
-        let parts: Vec<&str> = rgb_part.split(';').collect();
-        if parts.len() == 3 {
-            return format!("rgb({},{},{})", parts[0], parts[1], parts[2]);
-        }
+/// Returns an emoji icon for a file based on its extension.
+/// Unlike `style::file_icon`, these are browser-compatible Unicode emoji
+/// rather than Nerd Font Private-Use-Area codepoints.
+fn web_file_icon(filename: &str) -> &'static str {
+    let ext = std::path::Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+
+    match ext {
+        "rs" => "\u{1F980}",                                   // 🦀 crab
+        "js" | "jsx" | "ts" | "tsx" => "\u{1F4DC}",            // 📜 scroll
+        "md" => "\u{1F4D6}",                                   // 📖 open book
+        "toml" | "yaml" | "yml" | "json" => "\u{2699}\u{FE0F}", // ⚙️ gear
+        "html" | "css" => "\u{1F310}",                         // 🌐 globe
+        "sh" | "fish" => "\u{1F41A}",                          // 🐚 shell
+        "go" => "\u{1F439}",                                   // 🐹 hamster (gopher approx)
+        "py" => "\u{1F40D}",                                   // 🐍 snake
+        _ => "\u{1F4C4}",                                      // 📄 page facing up
     }
-    String::new()
+}
+
+/// Returns an emoji icon for a directory based on collapsed state.
+fn web_dir_icon(collapsed: bool) -> &'static str {
+    if collapsed {
+        "\u{1F4C1}" // 📁 folder
+    } else {
+        "\u{1F4C2}" // 📂 open folder
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn is_printable_non_pua(s: &str) -> bool {
+        !s.is_empty()
+            && s.chars().all(|c| {
+                // Nerd Font PUA range: U+E000 - U+F8FF
+                let code = c as u32;
+                !(0xE000..=0xF8FF).contains(&code)
+            })
+    }
+
+    #[test]
+    fn test_web_file_icon_returns_emoji_for_rust() {
+        let icon = web_file_icon("main.rs");
+        assert!(
+            is_printable_non_pua(icon),
+            "expected printable non-PUA string, got {:?}",
+            icon
+        );
+    }
+
+    #[test]
+    fn test_web_file_icon_returns_distinct_icons() {
+        let rs_icon = web_file_icon("main.rs");
+        let js_icon = web_file_icon("app.js");
+        let md_icon = web_file_icon("README.md");
+        let toml_icon = web_file_icon("Cargo.toml");
+
+        let icons = vec![rs_icon, js_icon, md_icon, toml_icon];
+        let unique: std::collections::HashSet<_> = icons.iter().collect();
+        assert_eq!(
+            unique.len(),
+            4,
+            "expected 4 distinct icons, got {:?}",
+            icons
+        );
+    }
+
+    #[test]
+    fn test_web_dir_icon_returns_emoji() {
+        let collapsed = web_dir_icon(true);
+        let expanded = web_dir_icon(false);
+
+        assert!(
+            is_printable_non_pua(collapsed),
+            "collapsed icon should be printable non-PUA: {:?}",
+            collapsed
+        );
+        assert!(
+            is_printable_non_pua(expanded),
+            "expanded icon should be printable non-PUA: {:?}",
+            expanded
+        );
+    }
 }

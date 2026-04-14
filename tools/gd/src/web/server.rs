@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::SystemTime;
 
 use axum::Router;
@@ -29,6 +29,8 @@ struct AppState {
     shutdown_tx: broadcast::Sender<()>,
     /// Grace period before shutdown after last connection closes (milliseconds).
     shutdown_grace_ms: u64,
+    /// Whether to show full file context (-U999999).
+    full_context: AtomicBool,
 }
 
 async fn index_handler() -> Html<&'static str> {
@@ -81,7 +83,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
     };
 
     // Send current diff data immediately
-    let files = load_files(&state.diff_ctx);
+    let files = load_files(&state.diff_ctx, false);
     let msg = build_json(&files);
     if socket.send(Message::Text(msg.into())).await.is_err() {
         return;
@@ -103,11 +105,23 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
-            // Detect when browser closes the WebSocket
+            // Detect when browser closes the WebSocket or sends client messages
             msg = socket.recv() => {
                 match msg {
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Err(_)) => break,
+                    Some(Ok(Message::Text(text))) => {
+                        if let Ok(client_msg) = serde_json::from_str::<super::protocol::ClientMessage>(&text) {
+                            match client_msg {
+                                super::protocol::ClientMessage::SetFullContext { enabled } => {
+                                    state.full_context.store(enabled, Ordering::SeqCst);
+                                    let files = load_files(&state.diff_ctx, enabled);
+                                    let json = Arc::new(build_json(&files));
+                                    let _ = state.tx.send(json);
+                                }
+                            }
+                        }
+                    }
                     Some(Ok(_)) => {} // Ignore other messages (pings, etc.)
                 }
             }
@@ -115,10 +129,13 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
     }
 }
 
-fn load_files(diff_ctx: &DiffContext) -> Vec<DiffFile> {
+fn load_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
     let mut args = diff_ctx.source.diff_args();
     if diff_ctx.ignore_whitespace {
         args.push("-w".into());
+    }
+    if full_context {
+        args.push("-U999999".into());
     }
     let str_args: Vec<&str> = args.iter().map(String::as_str).collect();
     let raw = git::run_diff(&diff_ctx.repo, &str_args);
@@ -162,7 +179,8 @@ async fn watch_git_index(
                 let current_mtime = git_index_mtime(&diff_ctx.repo);
                 if current_mtime != last_mtime {
                     last_mtime = current_mtime;
-                    let files = load_files(&diff_ctx);
+                    // Watcher always uses false since it doesn't track full_context state
+                    let files = load_files(&diff_ctx, false);
                     if tx.receiver_count() > 0 {
                         let json = Arc::new(build_json(&files));
                         let _ = tx.send(json);
@@ -191,6 +209,7 @@ pub(crate) fn start_server(
             connection_count: AtomicUsize::new(0),
             shutdown_tx: shutdown_tx.clone(),
             shutdown_grace_ms,
+            full_context: AtomicBool::new(false),
         });
 
         let app = Router::new()
@@ -266,6 +285,7 @@ mod tests {
             connection_count: AtomicUsize::new(0),
             shutdown_tx,
             shutdown_grace_ms,
+            full_context: AtomicBool::new(false),
         })
     }
 
@@ -388,6 +408,14 @@ mod tests {
             result.is_ok(),
             "shutdown should be sent after last connection closes"
         );
+    }
+
+    #[test]
+    fn test_load_files_signature_accepts_full_context() {
+        // This test verifies that load_files accepts a full_context bool parameter.
+        // We can't actually call it without a real git repo, but type-checking
+        // this function reference ensures the signature is correct.
+        let _: fn(&DiffContext, bool) -> Vec<DiffFile> = load_files;
     }
 
     /// Test that verifies handle_socket exits when WebSocket closes.

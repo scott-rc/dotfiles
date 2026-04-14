@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::git::diff::{FileStatus, LineKind};
 
@@ -9,6 +9,12 @@ pub(crate) enum ServerMessage {
         files: Vec<WebDiffFile>,
         tree: Vec<WebTreeEntry>,
     },
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(tag = "type")]
+pub(crate) enum ClientMessage {
+    SetFullContext { enabled: bool },
 }
 
 #[derive(Serialize)]
@@ -84,5 +90,17 @@ impl From<LineKind> for WebLineKind {
             LineKind::Added => Self::Added,
             LineKind::Deleted => Self::Deleted,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_message_deserialize_set_full_context() {
+        let json = r#"{"type":"SetFullContext","enabled":true}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert!(matches!(msg, ClientMessage::SetFullContext { enabled: true }));
     }
 }

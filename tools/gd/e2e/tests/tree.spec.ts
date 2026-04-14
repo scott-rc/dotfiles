@@ -98,16 +98,18 @@ test.describe("File Tree", () => {
     expect(jsIcon).not.toEqual(mdIcon);
   });
 
-  test("file icons have type-specific colors", async ({ page }) => {
+  test("file icons are emoji (not Nerd Font PUA)", async ({ page }) => {
     const tree = page.locator("#tree");
 
-    // Find a .rs file entry and check its icon has a color style
+    // Find a .rs file entry and check its icon is an emoji (not a Nerd Font PUA codepoint)
     const rsEntry = tree.locator(".tree-entry", { hasText: ".rs" }).first();
     const rsIconElement = rsEntry.locator(".tree-icon");
 
-    const style = await rsIconElement.getAttribute("style");
-    expect(style).not.toBeNull();
-    expect(style).toContain("color:");
+    const iconText = await rsIconElement.textContent();
+    expect(iconText).not.toBeNull();
+    // Emoji should not be in PUA range (U+E000 - U+F8FF)
+    const codePoint = iconText!.codePointAt(0)!;
+    expect(codePoint).toBeGreaterThan(0xf8ff);
   });
 
   test("g goes to first tree entry when tree is focused", async ({ page }) => {
@@ -270,5 +272,47 @@ test.describe("File Tree", () => {
     // Should have moved down
     const newActive = await tree.locator(".tree-entry.active").getAttribute("data-tree-idx");
     expect(Number(newActive)).toBeGreaterThan(Number(initialActive));
+  });
+
+  test("tree cursor follows diff navigation with }", async ({ page }) => {
+    const tree = page.locator("#tree");
+    const entries = tree.locator(".tree-entry:not(.dir)");
+
+    // Get the second file entry's name (we'll jump to it with })
+    const secondEntry = entries.nth(1);
+    const secondFileName = await secondEntry.locator(".tree-label").textContent();
+
+    // Press } to jump to next file
+    await page.keyboard.press("}");
+
+    // The tree's active entry should now be the second file
+    const activeEntry = tree.locator(".tree-entry.active");
+    const activeLabel = await activeEntry.locator(".tree-label").textContent();
+    expect(activeLabel).toEqual(secondFileName);
+  });
+
+  test("tree cursor follows diff navigation with j/k across file boundary", async ({ page }) => {
+    const tree = page.locator("#tree");
+    const entries = tree.locator(".tree-entry:not(.dir)");
+
+    // Get the first file entry name (definitely visible)
+    const firstEntry = entries.first();
+    const firstName = await firstEntry.locator(".tree-label").textContent();
+
+    // Initially tree cursor should be on first file
+    let activeEntry = tree.locator(".tree-entry.active");
+    let activeLabel = await activeEntry.locator(".tree-label").textContent();
+    expect(activeLabel).toEqual(firstName);
+
+    // Navigate using } to jump to next file, tree cursor should follow
+    await page.keyboard.press("}");
+    await page.keyboard.press("}");
+
+    // Now tree cursor should be on the third file (jumped twice)
+    activeEntry = tree.locator(".tree-entry.active");
+    activeLabel = await activeEntry.locator(".tree-label").textContent();
+
+    // Should have moved past the first file
+    expect(activeLabel).not.toEqual(firstName);
   });
 });

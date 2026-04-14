@@ -58,15 +58,36 @@ test.describe("Keybindings", () => {
     await expect(page.locator("#diff-pane")).toBeVisible();
   });
 
-  test("o toggles full context", async ({ page }) => {
-    // Press o to toggle full context
+  test("o toggles full context mode", async ({ page }) => {
+    // Get initial count of diff lines
+    const initialCount = await page.locator(".diff-line").count();
+
+    // Press o to enable full context
     await page.keyboard.press("o");
 
-    // Verify no errors
-    await expect(page.locator("#diff-pane")).toBeVisible();
+    // Wait for diff to update (server sends new DiffData)
+    await page.waitForFunction(
+      (prevCount) => document.querySelectorAll(".diff-line").length !== prevCount,
+      initialCount,
+      { timeout: 5000 }
+    );
 
-    // Toggle back
+    // Count should have increased (full context shows more lines)
+    const fullContextCount = await page.locator(".diff-line").count();
+    expect(fullContextCount).toBeGreaterThan(initialCount);
+
+    // Press o again to disable full context
     await page.keyboard.press("o");
-    await expect(page.locator("#diff-pane")).toBeVisible();
+
+    // Wait for diff to update back
+    await page.waitForFunction(
+      (prevCount) => document.querySelectorAll(".diff-line").length !== prevCount,
+      fullContextCount,
+      { timeout: 5000 }
+    );
+
+    // Count should return to approximately original value
+    const restoredCount = await page.locator(".diff-line").count();
+    expect(restoredCount).toBeLessThan(fullContextCount);
   });
 });
