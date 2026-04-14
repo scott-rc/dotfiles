@@ -48,6 +48,7 @@
   --bg-help-content: rgb(22, 27, 34);
   --bg-added-hover: rgb(26, 46, 32);
   --bg-deleted-hover: rgb(58, 28, 28);
+  --syntax-filter: none;
 }
 
 /* Light theme */
@@ -88,6 +89,7 @@
   --bg-help-content: rgb(255, 255, 255);
   --bg-added-hover: rgb(200, 245, 210);
   --bg-deleted-hover: rgb(255, 220, 215);
+  --syntax-filter: invert(0.88) hue-rotate(180deg) saturate(2.5);
 }
 
 /* System preference (auto) */
@@ -129,6 +131,7 @@
     --bg-help-content: rgb(255, 255, 255);
     --bg-added-hover: rgb(200, 245, 210);
     --bg-deleted-hover: rgb(255, 220, 215);
+    --syntax-filter: invert(0.88) hue-rotate(180deg) saturate(2.5);
   }
 }
 
@@ -429,4 +432,10 @@ mark.wd-del {
 }
 #theme-toggle:hover {
   color: var(--fg);
+}
+
+/* ---------- Syntax highlighting filter for light mode ---------- */
+/* Dark theme syntax colors are inverted/rotated for light backgrounds */
+.line-content span[style*="color"] {
+  filter: var(--syntax-filter);
 }
