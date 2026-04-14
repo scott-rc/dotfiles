@@ -50,7 +50,7 @@ test.describe("Screenshots", () => {
     await page.keyboard.press("j");
     // Start visual selection
     await page.keyboard.press("v");
-    await expect(page.locator(".visual-selected")).toBeVisible();
+    await expect(page.locator(".visual-selected").first()).toBeVisible();
     await expect(page).toHaveScreenshot("visual-selection-single.png");
   });
 
@@ -63,7 +63,8 @@ test.describe("Screenshots", () => {
     await page.keyboard.press("j");
     await page.keyboard.press("j");
     await page.keyboard.press("j");
-    await expect(page.locator(".visual-selected")).toBeVisible();
+    // All 4 lines (anchor + 3 j presses) should be selected
+    await expect(page.locator(".visual-selected")).toHaveCount(4);
     await expect(page).toHaveScreenshot("visual-selection-extended.png");
   });
 });

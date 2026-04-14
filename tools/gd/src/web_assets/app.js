@@ -382,9 +382,7 @@ function moveCursor(delta) {
 }
 
 function setCursor(pos) {
-  const old = diffPane.querySelector('.cursor-line');
-  if (old) old.classList.remove('cursor-line');
-
+  const oldCursor = state.cursorLine;
   state.cursorLine = Math.max(0, Math.min(state.flatLines.length - 1, pos));
 
   // Skip headers/separators
@@ -398,6 +396,19 @@ function setCursor(pos) {
       }
     }
   }
+
+  // If visual selection is active and cursor moved, need to re-render
+  // to update which lines have visual-selected class
+  if (state.visualAnchor !== null && state.cursorLine !== oldCursor) {
+    renderDiff();
+    renderStatus();
+    syncTreeCursor();
+    return;
+  }
+
+  // Otherwise just update cursor class efficiently
+  const old = diffPane.querySelector('.cursor-line');
+  if (old) old.classList.remove('cursor-line');
 
   const el = diffPane.querySelector(`[data-flat-idx="${state.cursorLine}"]`);
   if (el) {

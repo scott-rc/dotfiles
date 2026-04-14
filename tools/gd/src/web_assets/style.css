@@ -142,8 +142,9 @@ html, body {
 /* Visual selection - must come after line-added/deleted to take precedence */
 .diff-line.visual-selected,
 .diff-line.visual-selected.line-added,
-.diff-line.visual-selected.line-deleted,
-.diff-line.visual-selected.cursor-line { background: var(--bg-visual); }
+.diff-line.visual-selected.line-deleted { background: var(--bg-visual); }
+/* Cursor line always shows cursor styling, even in visual selection (matches TUI) */
+.diff-line.cursor-line.visual-selected { background: var(--bg-cursor); }
 
 .gutter {
   flex-shrink: 0;
