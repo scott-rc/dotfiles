@@ -25,7 +25,9 @@ const state = {
   searchActive: false,
   helpVisible: false,
   collapsedDirs: new Set(),
+  expandedDirs: new Set(),
   fullContext: false,
+  visualAnchor: null, // null or line index for visual selection
 };
 
 // DOM refs
@@ -52,6 +54,8 @@ function connect() {
     if (msg.type === 'DiffData') {
       state.files = msg.files;
       state.tree = msg.tree;
+      // Pre-populate expandedDirs so all directories start expanded
+      state.expandedDirs = initExpandedDirs(msg.tree);
       flattenLines();
       // Focus first change group on initial load (like TUI)
       focusFirstChangeGroup();
@@ -260,11 +264,27 @@ function treeDirKey(entry) {
   return `${entry.depth}:${entry.label}`;
 }
 
+// Initialize expandedDirs with all directories so tree starts fully expanded
+function initExpandedDirs(tree) {
+  const set = new Set();
+  for (const entry of tree) {
+    if (entry.is_dir) {
+      set.add(treeDirKey(entry));
+    }
+  }
+  return set;
+}
+
 // ---------- Diff ----------
 function renderDiff() {
   const flat = state.flatLines;
   // For performance we render into a document fragment
   const frag = document.createDocumentFragment();
+
+  // Compute visual selection range
+  const hasVisualSelection = state.visualAnchor !== null;
+  const visualLo = hasVisualSelection ? Math.min(state.visualAnchor, state.cursorLine) : -1;
+  const visualHi = hasVisualSelection ? Math.max(state.visualAnchor, state.cursorLine) : -1;
 
   for (let i = 0; i < flat.length; i++) {
     const item = flat[i];
@@ -295,6 +315,7 @@ function renderDiff() {
         : line.kind === 'deleted' ? 'line-deleted' : '';
       div.className = `diff-line ${kindCls}`;
       if (i === state.cursorLine) div.classList.add('cursor-line');
+      if (hasVisualSelection && i >= visualLo && i <= visualHi) div.classList.add('visual-selected');
       div.dataset.flatIdx = i;
 
       const marker = line.kind === 'added' ? '+' : line.kind === 'deleted' ? '-' : ' ';
@@ -329,7 +350,9 @@ function scrollCursorIntoView() {
 // ---------- Status bar ----------
 function renderStatus() {
   let left = '';
-  if (state.viewScope === 'single') {
+  if (state.visualAnchor !== null) {
+    left = '<span style="color: var(--fg-search-match)">-- VISUAL --</span>';
+  } else if (state.viewScope === 'single') {
     const file = state.files[state.singleFileIdx];
     if (file) {
       const total = state.files.length;
@@ -389,8 +412,21 @@ function pageHeight() {
   return Math.floor(diffPane.clientHeight / 20); // 20px line height
 }
 
+// Get the file index for the current cursor position
+function currentFileIdx() {
+  for (let i = state.fileStarts.length - 1; i >= 0; i--) {
+    if (state.fileStarts[i] <= state.cursorLine) {
+      return state.flatLines[state.fileStarts[i]]?.fileIdx ?? 0;
+    }
+  }
+  return 0;
+}
+
 function jumpNextHunk() {
-  // Use change groups (like TUI's nav_du_down) for accurate navigation
+  // Match TUI's nav_du_down + reducer logic:
+  // 1. Find next change group > cursor
+  // 2. If none found AND in single mode, advance to next file's first change group
+  // 3. If none found AND in all mode, stay put
   const targets = state.changeGroupStarts;
   for (const t of targets) {
     if (t > state.cursorLine) {
@@ -398,8 +434,9 @@ function jumpNextHunk() {
       return;
     }
   }
-  // No more change groups found - advance to next file
+  // No more change groups found in current view
   if (state.viewScope === 'single') {
+    // Single-file mode: advance to next file if available
     if (state.singleFileIdx < state.files.length - 1) {
       state.singleFileIdx++;
       flattenLines();
@@ -412,36 +449,33 @@ function jumpNextHunk() {
       renderAll();
       syncTreeCursor();
     }
-  } else {
-    // Find next file's first change group
-    for (const fs of state.fileStarts) {
-      if (fs > state.cursorLine) {
-        const nextFileIdx = state.flatLines[fs]?.fileIdx;
-        for (const cg of state.changeGroupStarts) {
-          if (cg >= fs && state.flatLines[cg]?.fileIdx === nextFileIdx) {
-            setCursor(cg);
-            return;
-          }
-        }
-        // No change group found, just go to file start
-        setCursor(fs);
-        return;
-      }
-    }
+    // else: last file, stay put (do nothing)
   }
+  // else: all mode, stay put (do nothing - matches TUI)
 }
 
 function jumpPrevHunk() {
-  // Use change groups (like TUI's nav_du_up) for accurate navigation
+  // Match TUI's nav_du_up + reducer logic:
+  // 1. Find previous change group < cursor
+  // 2. If none found AND in single mode, retreat to previous file's last change group
+  // 3. If none found AND in all mode, stay put
+
+  // Early return if already at first change group (guard from chunk spec)
   const targets = state.changeGroupStarts;
+  if (targets.length > 0 && state.cursorLine <= targets[0]) {
+    return; // Already at or before first change group, stay put
+  }
+
   for (let i = targets.length - 1; i >= 0; i--) {
     if (targets[i] < state.cursorLine) {
       setCursor(targets[i]);
       return;
     }
   }
-  // No previous change group found - go to previous file's last change group
+
+  // No previous change group found in current view
   if (state.viewScope === 'single') {
+    // Single-file mode: retreat to previous file if available
     if (state.singleFileIdx > 0) {
       state.singleFileIdx--;
       flattenLines();
@@ -454,27 +488,9 @@ function jumpPrevHunk() {
       renderAll();
       syncTreeCursor();
     }
-  } else {
-    // Find the start of current file
-    let currentFileStart = 0;
-    for (let i = state.fileStarts.length - 1; i >= 0; i--) {
-      if (state.fileStarts[i] <= state.cursorLine) {
-        currentFileStart = state.fileStarts[i];
-        break;
-      }
-    }
-    // Find previous file's last change group
-    if (currentFileStart > 0) {
-      const prevFileIdx = state.flatLines[currentFileStart - 1]?.fileIdx;
-      for (let i = targets.length - 1; i >= 0; i--) {
-        const cg = targets[i];
-        if (cg < currentFileStart && state.flatLines[cg]?.fileIdx === prevFileIdx) {
-          setCursor(cg);
-          return;
-        }
-      }
-    }
+    // else: first file, stay put (do nothing)
   }
+  // else: all mode, stay put (do nothing - matches TUI)
 }
 
 function jumpNextFile() {
@@ -764,6 +780,97 @@ function toggleHelp() {
   helpOverlay.classList.toggle('visible', state.helpVisible);
 }
 
+// ---------- Visual Selection ----------
+function toggleVisualSelect() {
+  if (state.visualAnchor !== null) {
+    state.visualAnchor = null;
+  } else {
+    state.visualAnchor = state.cursorLine;
+  }
+  renderDiff();
+  renderStatus();
+}
+
+function resolveLineno(flatIdx) {
+  const item = state.flatLines[flatIdx];
+  if (!item || item.type !== 'line') return null;
+  // Prefer new_lineno (for added/context), fall back to old_lineno (for deleted)
+  return item.data.new_lineno ?? item.data.old_lineno ?? null;
+}
+
+function yankSelection() {
+  if (state.visualAnchor === null) return;
+
+  const lo = Math.min(state.visualAnchor, state.cursorLine);
+  const hi = Math.max(state.visualAnchor, state.cursorLine);
+
+  // Get path from first selected line
+  const item = state.flatLines[lo];
+  let path = '';
+  if (item?.data?.path) {
+    path = item.data.path;
+  } else if (item?.fileIdx != null && state.files[item.fileIdx]) {
+    path = state.files[item.fileIdx].path;
+  }
+
+  const loLine = resolveLineno(lo);
+  const hiLine = resolveLineno(hi);
+
+  // Format the reference string
+  let ref;
+  if (loLine != null && hiLine != null) {
+    ref = loLine === hiLine ? `${path}:${loLine}` : `${path}:${loLine}-${hiLine}`;
+  } else {
+    ref = path;
+  }
+
+  navigator.clipboard.writeText(ref);
+  state.visualAnchor = null;
+  renderDiff();
+  renderStatus();
+}
+
+// ---------- Staging ----------
+// Helper: get info about the current cursor line
+function currentLineInfo() {
+  const item = state.flatLines[state.cursorLine];
+  if (!item) return null;
+  return {
+    type: item.type,
+    fileIdx: item.fileIdx,
+    hunkIdx: item.hunkIdx,
+    lineIdx: item.data?.line_idx ?? item.lineIdx,
+    kind: item.data?.kind,
+  };
+}
+
+function stageCurrentLine() {
+  const info = currentLineInfo();
+  if (!info || info.type !== 'line') return;
+  // Can't stage context lines (mirrors TUI behavior)
+  if (info.kind === 'context') return;
+  sendMessage({
+    type: 'StageLine',
+    file_idx: info.fileIdx,
+    hunk_idx: info.hunkIdx,
+    line_idx: info.lineIdx,
+  });
+}
+
+function stageCurrentHunk() {
+  const info = currentLineInfo();
+  if (!info) return;
+  // Can't stage from file header (no hunk context)
+  if (info.type === 'file-header') return;
+  // For hunk-sep or line, hunkIdx is valid
+  if (info.hunkIdx == null) return;
+  sendMessage({
+    type: 'StageHunk',
+    file_idx: info.fileIdx,
+    hunk_idx: info.hunkIdx,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Event handlers
 // ---------------------------------------------------------------------------
@@ -844,12 +951,26 @@ document.addEventListener('keydown', (e) => {
     case 'l': e.preventDefault(); toggleTree(); break;
     case 't': e.preventDefault(); toggleTreeFocus(); break;
 
+    // Staging
+    case 'a': e.preventDefault(); stageCurrentLine(); break;
+    case 'A': e.preventDefault(); stageCurrentHunk(); break;
+
+    // Visual selection
+    case 'v': e.preventDefault(); toggleVisualSelect(); break;
+    case 'y': e.preventDefault(); yankSelection(); break;
+
     // Search
     case '/': e.preventDefault(); openSearch(); break;
     case 'n': e.preventDefault(); nextMatch(); break;
     case 'N': e.preventDefault(); prevMatch(); break;
     case 'Escape':
-      if (state.searchActive) closeSearch();
+      if (state.visualAnchor !== null) {
+        state.visualAnchor = null;
+        renderDiff();
+        renderStatus();
+      } else if (state.searchActive) {
+        closeSearch();
+      }
       break;
 
     // Help

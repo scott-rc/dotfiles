@@ -1,6 +1,5 @@
 ---
 source: gd/src/pager/tests/tree.rs
-assertion_line: 320
 expression: build_tree_entries(&files)
 ---
 [
@@ -9,7 +8,7 @@ expression: build_tree_entries(&files)
         depth: 0,
         file_idx: None,
         status: None,
-        collapsed: true,
+        collapsed: false,
     },
     TreeEntry {
         label: "bar.rs",

@@ -15,6 +15,8 @@ pub(crate) enum ServerMessage {
 #[serde(tag = "type")]
 pub(crate) enum ClientMessage {
     SetFullContext { enabled: bool },
+    StageLine { file_idx: usize, hunk_idx: usize, line_idx: usize },
+    StageHunk { file_idx: usize, hunk_idx: usize },
 }
 
 #[derive(Serialize)]
@@ -39,6 +41,7 @@ pub(crate) struct WebDiffLine {
     pub raw_content: String,
     pub old_lineno: Option<u32>,
     pub new_lineno: Option<u32>,
+    pub line_idx: usize,
 }
 
 #[derive(Serialize)]
@@ -102,5 +105,32 @@ mod tests {
         let json = r#"{"type":"SetFullContext","enabled":true}"#;
         let msg: ClientMessage = serde_json::from_str(json).unwrap();
         assert!(matches!(msg, ClientMessage::SetFullContext { enabled: true }));
+    }
+
+    #[test]
+    fn test_client_message_deserialize_stage_line() {
+        let json = r#"{"type":"StageLine","file_idx":0,"hunk_idx":1,"line_idx":2}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert!(matches!(
+            msg,
+            ClientMessage::StageLine {
+                file_idx: 0,
+                hunk_idx: 1,
+                line_idx: 2
+            }
+        ));
+    }
+
+    #[test]
+    fn test_client_message_deserialize_stage_hunk() {
+        let json = r#"{"type":"StageHunk","file_idx":0,"hunk_idx":1}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert!(matches!(
+            msg,
+            ClientMessage::StageHunk {
+                file_idx: 0,
+                hunk_idx: 1
+            }
+        ));
     }
 }

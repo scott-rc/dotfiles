@@ -11,6 +11,29 @@ test.describe("File Tree", () => {
     await expect(tree).toBeVisible();
   });
 
+  test("directories start expanded on initial load", async ({ page }) => {
+    const tree = page.locator("#tree");
+
+    // Get all directory entries
+    const dirEntries = tree.locator(".tree-entry.dir");
+    const dirCount = await dirEntries.count();
+
+    // Skip if no directories
+    if (dirCount === 0) return;
+
+    // All directory icons should show expanded folder icon (not collapsed)
+    // Expanded folder icon is &#xf413; (unicode: \uf413), collapsed is &#xf4d8; (\uf4d8)
+    for (let i = 0; i < dirCount; i++) {
+      const dirEntry = dirEntries.nth(i);
+      const icon = await dirEntry.locator(".tree-icon").textContent();
+
+      // Check that it's not the collapsed folder icon
+      // Unicode F4D8 is the collapsed folder icon
+      const isCollapsed = icon?.charCodeAt(0) === 0xf4d8;
+      expect(isCollapsed).toBe(false);
+    }
+  });
+
   test("tree is on the right side", async ({ page }) => {
     const tree = page.locator("#tree");
     const diffPane = page.locator("#diff-pane");

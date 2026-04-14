@@ -134,6 +134,8 @@ html, body {
 }
 .diff-line:hover { background: var(--bg-cursor); }
 .diff-line.cursor-line { background: var(--bg-cursor); }
+.diff-line.visual-selected { background: var(--bg-visual); }
+.diff-line.visual-selected.cursor-line { background: var(--bg-visual); }
 
 .diff-line.line-added { background: var(--bg-added); }
 .diff-line.line-deleted { background: var(--bg-deleted); }

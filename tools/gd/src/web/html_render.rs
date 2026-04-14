@@ -57,6 +57,7 @@ fn render_file(file: &DiffFile) -> WebDiffFile {
                         raw_content: diff_line.content.clone(),
                         old_lineno: diff_line.old_lineno,
                         new_lineno: diff_line.new_lineno,
+                        line_idx: i,
                     }
                 })
                 .collect();

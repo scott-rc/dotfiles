@@ -859,3 +859,32 @@ fn test_precompute_connectors_start_depth_beyond_all_entries() {
     // start_depth=5, all entries at depth 0 → connector loop is empty
     assert_precomputed_connectors_match(&refs, 5, "start_depth beyond entries mismatch");
 }
+
+#[test]
+fn collapsed_dirs_start_expanded() {
+    // When a directory chain is collapsed into a single entry (e.g., src/lib),
+    // it should start expanded (collapsed: false), not hidden.
+    // Include a top-level file so we have multiple root entries (avoiding sole_root exception).
+    let mut files = vec![
+        make_diff_file("src/lib/foo.rs"),
+        make_diff_file("src/lib/bar.rs"),
+        make_diff_file("README.md"),
+    ];
+    crate::git::sort_files_for_display(&mut files);
+    let entries = build_tree_entries(&files);
+    let dir_entry = entries
+        .iter()
+        .find(|e| e.file_idx.is_none() && e.label.contains('/'));
+    assert!(
+        dir_entry.is_some(),
+        "should have a compressed directory entry"
+    );
+    assert_eq!(
+        dir_entry.unwrap().label, "src/lib",
+        "single-child chain should be collapsed into 'src/lib'"
+    );
+    assert!(
+        !dir_entry.unwrap().collapsed,
+        "compressed directory entry should start expanded (collapsed: false)"
+    );
+}

@@ -1861,7 +1861,9 @@ fn single_child_chain_sole_root_stays_expanded() {
 }
 
 #[test]
-fn single_child_chain_collapses_when_not_sole_root() {
+fn single_child_chain_starts_expanded_when_not_sole_root() {
+    // All directories start expanded (collapsed: false), regardless of whether
+    // they're sole-root or have collapsed labels (e.g., "pkg/deep/nested").
     let mut files = vec![
         make_diff_file("pkg/deep/nested/foo.rs"),
         make_diff_file("src/bar.rs"),
@@ -1873,8 +1875,8 @@ fn single_child_chain_collapses_when_not_sole_root() {
         .find(|e| e.file_idx.is_none() && e.label.contains('/'));
     assert!(chain.is_some(), "should have a chain dir entry");
     assert!(
-        chain.unwrap().collapsed,
-        "non-sole-root single-child chain should default to collapsed"
+        !chain.unwrap().collapsed,
+        "single-child chain should start expanded (collapsed: false)"
     );
 }
 

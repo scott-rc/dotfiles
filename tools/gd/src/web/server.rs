@@ -12,9 +12,10 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use tokio::sync::broadcast;
 
-use crate::git;
+use crate::git::{self, DiffSource, patch, stage_patch, unstage_patch};
 use crate::git::diff::DiffFile;
 use crate::pager::DiffContext;
+use std::collections::HashSet;
 
 use super::html_render::build_diff_data;
 
@@ -119,6 +120,14 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                                     let json = Arc::new(build_json(&files));
                                     let _ = state.tx.send(json);
                                 }
+                                super::protocol::ClientMessage::StageLine { file_idx, hunk_idx, line_idx } => {
+                                    let mut indices = HashSet::new();
+                                    indices.insert(line_idx);
+                                    apply_staging(&state, file_idx, hunk_idx, Some(indices));
+                                }
+                                super::protocol::ClientMessage::StageHunk { file_idx, hunk_idx } => {
+                                    apply_staging(&state, file_idx, hunk_idx, None);
+                                }
                             }
                         }
                     }
@@ -127,6 +136,56 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
             }
         }
     }
+}
+
+/// Apply staging action (line or hunk). If line_indices is Some, stage specific lines.
+/// If None, stage the entire hunk.
+fn apply_staging(
+    state: &AppState,
+    file_idx: usize,
+    hunk_idx: usize,
+    line_indices: Option<HashSet<usize>>,
+) {
+    // Guard: only WorkingTree and Staged modes support staging
+    let is_unstage = match &state.diff_ctx.source {
+        DiffSource::WorkingTree => false,  // Stage working tree changes
+        DiffSource::Staged => true,        // Unstage staged changes
+        DiffSource::Commit(_) | DiffSource::Range(_, _) => return, // Can't stage
+    };
+
+    // Reload files to get current state
+    let full_context = state.full_context.load(Ordering::SeqCst);
+    let files = load_files(&state.diff_ctx, full_context);
+
+    // Get file and hunk
+    let Some(file) = files.get(file_idx) else { return };
+    let Some(hunk) = file.hunks.get(hunk_idx) else { return };
+
+    // Generate patch
+    let patch_content = match line_indices {
+        Some(indices) if !indices.is_empty() => {
+            patch::generate_line_patch(file, hunk, &indices)
+        }
+        Some(_) => return, // Empty indices
+        None => patch::generate_hunk_patch(file, hunk),
+    };
+
+    // Apply patch
+    let result = if is_unstage {
+        unstage_patch(&state.diff_ctx.repo, &patch_content)
+    } else {
+        stage_patch(&state.diff_ctx.repo, &patch_content)
+    };
+
+    if let Err(e) = result {
+        eprintln!("gd: staging error: {e}");
+        return;
+    }
+
+    // Broadcast updated diff
+    let updated_files = load_files(&state.diff_ctx, full_context);
+    let json = Arc::new(build_json(&updated_files));
+    let _ = state.tx.send(json);
 }
 
 fn load_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
@@ -417,6 +476,58 @@ mod tests {
         // this function reference ensures the signature is correct.
         let _: fn(&DiffContext, bool) -> Vec<DiffFile> = load_files;
     }
+
+    // Tests for apply_staging guard conditions
+
+    #[test]
+    fn test_apply_staging_skips_commit_source() {
+        // apply_staging should return early for Commit diff source (can't stage)
+        let state = make_test_state();
+        // Override diff_ctx to use Commit source
+        let state_commit = Arc::new(AppState {
+            diff_ctx: DiffContext {
+                repo: PathBuf::from("/tmp"),
+                source: crate::git::DiffSource::Commit("HEAD".into()),
+                no_untracked: false,
+                ignore_whitespace: false,
+            },
+            tx: state.tx.clone(),
+            connection_count: AtomicUsize::new(0),
+            shutdown_tx: state.shutdown_tx.clone(),
+            shutdown_grace_ms: TEST_GRACE_MS,
+            full_context: AtomicBool::new(false),
+        });
+
+        // Should not panic, should silently return
+        apply_staging(&state_commit, 0, 0, None);
+    }
+
+    #[test]
+    fn test_apply_staging_skips_range_source() {
+        // apply_staging should return early for Range diff source (can't stage)
+        let state = make_test_state();
+        let state_range = Arc::new(AppState {
+            diff_ctx: DiffContext {
+                repo: PathBuf::from("/tmp"),
+                source: crate::git::DiffSource::Range("main".into(), "HEAD".into()),
+                no_untracked: false,
+                ignore_whitespace: false,
+            },
+            tx: state.tx.clone(),
+            connection_count: AtomicUsize::new(0),
+            shutdown_tx: state.shutdown_tx.clone(),
+            shutdown_grace_ms: TEST_GRACE_MS,
+            full_context: AtomicBool::new(false),
+        });
+
+        // Should not panic, should silently return
+        apply_staging(&state_range, 0, 0, None);
+    }
+
+    // Note: Tests for invalid file_idx and empty line_indices require a real git repo
+    // to reach those guards (since load_files runs first). The guards at lines 161-169
+    // are verified via E2E tests. The DiffSource guards above are the critical ones
+    // to unit-test since they prevent staging attempts on non-stageable diffs.
 
     /// Test that verifies handle_socket exits when WebSocket closes.
     /// This test would have failed before the fix that added socket.recv() to the select.
