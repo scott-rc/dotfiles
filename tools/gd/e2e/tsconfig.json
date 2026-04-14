@@ -2,7 +2,7 @@
   "compilerOptions": {
     "erasableSyntaxOnly": true,
     "isolatedModules": true,
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "module": "nodenext",
     "moduleDetection": "force",
     "noUncheckedSideEffectImports": true,

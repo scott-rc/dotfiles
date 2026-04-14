@@ -39,11 +39,20 @@ test.describe("Hunk Navigation", () => {
     // Enable full context mode
     await page.keyboard.press("o");
 
-    // Wait for full context data to load
+    // Wait for full context data to load AND for change lines to have proper classes
     await page.waitForFunction(
-      () => document.querySelectorAll(".diff-line").length > 10,
+      () => {
+        const lines = document.querySelectorAll(".diff-line");
+        if (lines.length <= 10) return false;
+        // Also ensure we have some change lines with proper classes
+        const changeLines = document.querySelectorAll(".line-added, .line-deleted");
+        return changeLines.length > 0;
+      },
       { timeout: 5000 }
     );
+
+    // Small delay for render to fully settle
+    await page.waitForTimeout(100);
 
     // Go to top
     await page.keyboard.press("g");
@@ -70,6 +79,7 @@ test.describe("Hunk Navigation", () => {
     // Navigate forward several times
     for (let i = 0; i < 5; i++) {
       await page.keyboard.press("]");
+      await page.waitForTimeout(50); // Wait for scroll/render to settle
       const pos = await page.evaluate(() => {
         const cursor = document.querySelector(".cursor-line");
         return cursor ? parseInt(cursor.getAttribute("data-flat-idx") || "-1") : -1;

@@ -386,8 +386,9 @@ function moveCursor(delta) {
   syncTreeCursor();
 }
 
-function setCursor(pos, direction = 'forward') {
+function setCursor(pos, direction = 'forward', center = false) {
   const oldCursor = state.cursorLine;
+  const requestedPos = pos; // Remember original request for top/bottom detection
   state.cursorLine = Math.max(0, Math.min(state.flatLines.length - 1, pos));
 
   // Skip headers/separators in the direction of movement
@@ -449,7 +450,21 @@ function setCursor(pos, direction = 'forward') {
   const el = diffPane.querySelector(`[data-flat-idx="${state.cursorLine}"]`);
   if (el) {
     el.classList.add('cursor-line');
-    el.scrollIntoView({ block: 'nearest' });
+    // Determine scroll behavior:
+    // - For top (g/Home): scroll pane to 0 directly
+    // - For bottom (G/End): use 'end' to show cursor at bottom
+    // - 'center' for hunk navigation (like TUI)
+    // - 'nearest' for regular movement (j/k)
+    if (requestedPos <= 0) {
+      // Going to top: scroll pane to absolute top
+      diffPane.scrollTop = 0;
+    } else if (center) {
+      el.scrollIntoView({ block: 'center' });
+    } else if (requestedPos >= state.flatLines.length - 1) {
+      el.scrollIntoView({ block: 'end' });
+    } else {
+      el.scrollIntoView({ block: 'nearest' });
+    }
   }
   renderStatus();
   syncTreeCursor();
@@ -477,7 +492,7 @@ function jumpNextHunk() {
   const targets = state.changeGroupStarts;
   for (const t of targets) {
     if (t > state.cursorLine) {
-      setCursor(t, 'forward');
+      setCursor(t, 'forward', true); // center cursor like TUI
       return;
     }
   }
@@ -495,6 +510,7 @@ function jumpNextHunk() {
       }
       renderAll();
       syncTreeCursor();
+      centerCursor(); // center after file transition
     }
     // else: last file, stay put (do nothing)
   }
@@ -512,7 +528,7 @@ function jumpPrevHunk() {
   // Try to find a previous change group in current view
   for (let i = targets.length - 1; i >= 0; i--) {
     if (targets[i] < state.cursorLine) {
-      setCursor(targets[i], 'backward');
+      setCursor(targets[i], 'backward', true); // center cursor like TUI
       return;
     }
   }
@@ -531,6 +547,7 @@ function jumpPrevHunk() {
       }
       renderAll();
       syncTreeCursor();
+      centerCursor(); // center after file transition
     }
     // else: first file, stay put (do nothing)
   }
