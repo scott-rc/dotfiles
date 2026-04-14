@@ -161,6 +161,21 @@ npm run test:headed            # run with visible browser
 
 Tests cover navigation (j/k/g/G/d/u), file tree (toggle, focus, click), search (open/close, n/N), and keybindings (help overlay, view toggles). The server's quit-on-close behavior ensures clean test teardown.
 
+### Screenshot Tests
+
+Visual regression tests using Playwright's built-in `toHaveScreenshot()`. Baseline PNGs are stored in `tests/screenshots.spec.ts-snapshots/`. Screenshots cover:
+
+- Initial load (tree visible, all-files view)
+- Tree hidden/focused states
+- Help overlay, search overlay, single-file view
+- Visual selection (single line and extended)
+
+To update baselines after intentional UI changes:
+
+```bash
+npm test -- --grep "Screenshots" --update-snapshots
+```
+
 ## Coverage
 
 Requires [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov`).

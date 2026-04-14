@@ -7,7 +7,7 @@
   --bg-added-word: rgb(38, 68, 42);
   --bg-deleted-word: rgb(85, 36, 36);
   --bg-cursor: rgb(36, 46, 62);
-  --bg-visual: rgb(40, 50, 80);
+  --bg-visual: rgb(38, 79, 120);
   --fg-file-header: rgb(121, 192, 255);
   --fg-gutter: rgb(110, 118, 129);
   --fg-sep: rgb(68, 76, 86);
@@ -134,13 +134,16 @@ html, body {
 }
 .diff-line:hover { background: var(--bg-cursor); }
 .diff-line.cursor-line { background: var(--bg-cursor); }
-.diff-line.visual-selected { background: var(--bg-visual); }
-.diff-line.visual-selected.cursor-line { background: var(--bg-visual); }
-
 .diff-line.line-added { background: var(--bg-added); }
 .diff-line.line-deleted { background: var(--bg-deleted); }
 .diff-line.line-added:hover { background: rgb(26, 46, 32); }
 .diff-line.line-deleted:hover { background: rgb(58, 28, 28); }
+
+/* Visual selection - must come after line-added/deleted to take precedence */
+.diff-line.visual-selected,
+.diff-line.visual-selected.line-added,
+.diff-line.visual-selected.line-deleted,
+.diff-line.visual-selected.cursor-line { background: var(--bg-visual); }
 
 .gutter {
   flex-shrink: 0;
