@@ -31,12 +31,74 @@ const state = {
   fullContext: false,
   visualAnchor: null, // null or line index for visual selection
   theme: 'system',  // 'light' | 'dark' | 'system'
+  // Virtual rendering state
+  renderedRange: { start: 0, end: 0 },
+  lineOffsets: [],    // Pre-computed cumulative offsets for each line
+  totalHeight: 0,     // Total scrollable height
+  scrollScheduled: false,
 };
 
 // Expose state for e2e tests (access via window.__gdState in Playwright)
 if (typeof window !== 'undefined') {
   window.__gdState = state;
 }
+
+// ---------------------------------------------------------------------------
+// Performance instrumentation for agent profiling
+// ---------------------------------------------------------------------------
+const __gdPerf = {
+  ready: false,
+  wsConnectTime: null,
+  firstRenderTime: null,
+  lastRenderStart: null,
+  lastRenderDuration: null,
+  navigationTimes: [],
+
+  markWsConnect() { this.wsConnectTime = performance.now(); },
+  markFirstRender() {
+    this.firstRenderTime = performance.now();
+    this.ready = true;
+  },
+  startRender() { this.lastRenderStart = performance.now(); },
+  endRender() {
+    if (this.lastRenderStart) {
+      this.lastRenderDuration = performance.now() - this.lastRenderStart;
+    }
+  },
+  recordNavigation(key, duration) {
+    this.navigationTimes.push({ key, duration, ts: Date.now() });
+    if (this.navigationTimes.length > 100) this.navigationTimes.shift();
+  },
+
+  getMetrics() {
+    return {
+      initialLoad: {
+        wsConnectMs: this.wsConnectTime,
+        firstRenderMs: this.firstRenderTime,
+        totalMs: this.firstRenderTime
+      },
+      render: { lastMs: this.lastRenderDuration },
+      navigation: this.navigationTimes.slice(-20),
+      dom: {
+        nodeCount: document.querySelectorAll('*').length,
+        diffLineCount: document.querySelectorAll('.diff-line').length
+      },
+      memory: performance.memory ? {
+        usedMB: performance.memory.usedJSHeapSize / 1024 / 1024,
+        totalMB: performance.memory.totalJSHeapSize / 1024 / 1024
+      } : null
+    };
+  }
+};
+window.__gdPerf = __gdPerf;
+
+// ---------------------------------------------------------------------------
+// Virtual rendering constants
+// ---------------------------------------------------------------------------
+const LINE_HEIGHT = 20;       // .diff-line min-height
+const HEADER_HEIGHT = 35;     // .file-header approximate height
+const HUNK_SEP_HEIGHT = 20;   // .hunk-sep height
+const BUFFER_LINES = 30;      // Extra lines above/below viewport to render
 
 // DOM refs
 const treeEl = document.getElementById('tree');
@@ -59,6 +121,8 @@ function connect() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${proto}//${location.host}/ws`);
 
+  ws.onopen = () => { __gdPerf.markWsConnect(); };
+
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === 'DiffData') {
@@ -70,6 +134,7 @@ function connect() {
       // Focus first change group on initial load (like TUI)
       focusFirstChangeGroup();
       renderAll();
+      if (!__gdPerf.ready) __gdPerf.markFirstRender();
     }
   };
 
@@ -140,10 +205,74 @@ function flattenLines() {
   state.hunkStarts = hunkStarts;
   state.changeGroupStarts = computeChangeGroupStarts(flat);
 
+  // Pre-compute line offsets for virtual rendering
+  computeLineOffsets();
+
   // Clamp cursor
   if (state.cursorLine >= flat.length) {
     state.cursorLine = Math.max(0, flat.length - 1);
   }
+}
+
+// Pre-compute cumulative y-offsets for each line (for virtual rendering)
+function computeLineOffsets() {
+  const offsets = [];
+  let offset = 0;
+  for (const item of state.flatLines) {
+    offsets.push(offset);
+    if (item.type === 'file-header') {
+      offset += HEADER_HEIGHT;
+    } else if (item.type === 'hunk-sep') {
+      offset += HUNK_SEP_HEIGHT;
+    } else {
+      offset += LINE_HEIGHT;
+    }
+  }
+  state.lineOffsets = offsets;
+  state.totalHeight = offset;
+}
+
+// Get the height of a line item
+function getLineHeight(item) {
+  if (item.type === 'file-header') return HEADER_HEIGHT;
+  if (item.type === 'hunk-sep') return HUNK_SEP_HEIGHT;
+  return LINE_HEIGHT;
+}
+
+// Binary search to find first visible line at given scroll position
+function findFirstVisibleLine(scrollTop) {
+  const offsets = state.lineOffsets;
+  if (offsets.length === 0) return 0;
+
+  let lo = 0, hi = offsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    const lineBottom = offsets[mid] + getLineHeight(state.flatLines[mid]);
+    if (lineBottom <= scrollTop) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+// Binary search to find last visible line at given scroll position + viewport height
+function findLastVisibleLine(scrollTop, viewportHeight) {
+  const offsets = state.lineOffsets;
+  if (offsets.length === 0) return 0;
+
+  const target = scrollTop + viewportHeight;
+  let lo = 0, hi = offsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (offsets[mid] < target) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return lo;
 }
 
 // Compute change group starts (like TUI's change_group_starts).
@@ -200,9 +329,11 @@ const STATUS_ABBREV = {
 };
 
 function renderAll() {
+  __gdPerf.startRender();
   renderTree();
-  renderDiff();
+  renderDiff(true); // Force full render when data changes
   renderStatus();
+  __gdPerf.endRender();
 }
 
 // ---------- Tree ----------
@@ -285,29 +416,102 @@ function initExpandedDirs(tree) {
   return set;
 }
 
-// ---------- Diff ----------
-function renderDiff() {
+// ---------- Diff (Virtual Rendering) ----------
+// Virtual rendering only creates DOM elements for visible lines + buffer,
+// dramatically reducing DOM node count and improving performance on large diffs.
+
+function renderDiff(forceFullRender = false) {
   const flat = state.flatLines;
-  // For performance we render into a document fragment
-  const frag = document.createDocumentFragment();
+  if (flat.length === 0) {
+    diffPane.innerHTML = '';
+    return;
+  }
+
+  // Ensure we have a content wrapper for absolute positioning
+  let content = diffPane.querySelector('.diff-content');
+  let spacer = diffPane.querySelector('.diff-spacer');
+
+  if (!content || forceFullRender) {
+    diffPane.innerHTML = '';
+    spacer = document.createElement('div');
+    spacer.className = 'diff-spacer';
+    spacer.style.height = state.totalHeight + 'px';
+    spacer.style.position = 'relative';
+
+    content = document.createElement('div');
+    content.className = 'diff-content';
+    content.style.position = 'absolute';
+    content.style.left = '0';
+    content.style.right = '0';
+    content.style.top = '0';
+
+    spacer.appendChild(content);
+    diffPane.appendChild(spacer);
+  } else {
+    // Update spacer height if content changed
+    spacer.style.height = state.totalHeight + 'px';
+  }
+
+  // Calculate visible range
+  const scrollTop = diffPane.scrollTop;
+  const viewportHeight = diffPane.clientHeight;
+
+  let start = findFirstVisibleLine(scrollTop);
+  let end = findLastVisibleLine(scrollTop, viewportHeight);
+
+  // Add buffer
+  start = Math.max(0, start - BUFFER_LINES);
+  end = Math.min(flat.length - 1, end + BUFFER_LINES);
+
+  // Also include file header for current file if not already in range
+  // (needed for sticky header behavior)
+  const currentFileStart = findFileStartForLine(state.cursorLine);
+  if (currentFileStart >= 0 && currentFileStart < start) {
+    start = currentFileStart;
+  }
+
+  // Skip re-render if range hasn't changed significantly (optimization)
+  const prev = state.renderedRange;
+  if (!forceFullRender &&
+      Math.abs(prev.start - start) < 5 &&
+      Math.abs(prev.end - end) < 5 &&
+      start >= prev.start && end <= prev.end) {
+    // Just update cursor and visual selection classes
+    updateCursorClasses();
+    return;
+  }
+
+  state.renderedRange = { start, end };
 
   // Compute visual selection range
   const hasVisualSelection = state.visualAnchor !== null;
   const visualLo = hasVisualSelection ? Math.min(state.visualAnchor, state.cursorLine) : -1;
   const visualHi = hasVisualSelection ? Math.max(state.visualAnchor, state.cursorLine) : -1;
 
-  for (let i = 0; i < flat.length; i++) {
+  // Render only visible lines
+  const frag = document.createDocumentFragment();
+
+  for (let i = start; i <= end; i++) {
     const item = flat[i];
+    const top = state.lineOffsets[i];
+    const height = getLineHeight(item);
 
     if (item.type === 'file-header') {
       const div = document.createElement('div');
       div.className = 'file-header';
       div.dataset.flatIdx = i;
+      div.style.position = 'absolute';
+      div.style.left = '0';
+      div.style.right = '0';
+      div.style.top = top + 'px';
+      div.style.height = height + 'px';
       const file = item.data;
       const label = STATUS_LABELS[file.status] || file.status;
       div.innerHTML = `${escapeHtml(file.path)}<span class="file-status">(${label})</span>`;
+      // Use closure to capture fileIdx
+      const fileIdx = item.fileIdx;
       div.addEventListener('click', () => {
-        state.singleFileIdx = item.fileIdx;
+        state.singleFileIdx = fileIdx;
         state.viewScope = 'single';
         state.cursorLine = 0;
         flattenLines();
@@ -317,6 +521,11 @@ function renderDiff() {
     } else if (item.type === 'hunk-sep') {
       const div = document.createElement('div');
       div.className = 'hunk-sep';
+      div.style.position = 'absolute';
+      div.style.left = '0';
+      div.style.right = '0';
+      div.style.top = top + 'px';
+      div.style.height = height + 'px';
       frag.appendChild(div);
     } else {
       const line = item.data;
@@ -327,6 +536,11 @@ function renderDiff() {
       if (i === state.cursorLine) div.classList.add('cursor-line');
       if (hasVisualSelection && i >= visualLo && i <= visualHi) div.classList.add('visual-selected');
       div.dataset.flatIdx = i;
+      div.style.position = 'absolute';
+      div.style.left = '0';
+      div.style.right = '0';
+      div.style.top = top + 'px';
+      div.style.height = height + 'px';
 
       const marker = line.kind === 'added' ? '+' : line.kind === 'deleted' ? '-' : ' ';
       const oldNo = line.old_lineno != null ? line.old_lineno : '';
@@ -346,15 +560,85 @@ function renderDiff() {
     }
   }
 
-  diffPane.innerHTML = '';
-  diffPane.appendChild(frag);
-
-  scrollCursorIntoView();
+  content.innerHTML = '';
+  content.appendChild(frag);
 }
 
-function scrollCursorIntoView() {
-  const el = diffPane.querySelector('.cursor-line');
-  if (el) el.scrollIntoView({ block: 'nearest' });
+// Find the file-header line that contains a given line index
+function findFileStartForLine(lineIdx) {
+  for (let i = state.fileStarts.length - 1; i >= 0; i--) {
+    if (state.fileStarts[i] <= lineIdx) {
+      return state.fileStarts[i];
+    }
+  }
+  return 0;
+}
+
+// Update only cursor/visual classes without full re-render
+function updateCursorClasses() {
+  const content = diffPane.querySelector('.diff-content');
+  if (!content) return;
+
+  const hasVisualSelection = state.visualAnchor !== null;
+  const visualLo = hasVisualSelection ? Math.min(state.visualAnchor, state.cursorLine) : -1;
+  const visualHi = hasVisualSelection ? Math.max(state.visualAnchor, state.cursorLine) : -1;
+
+  // Remove old cursor
+  const oldCursor = content.querySelector('.cursor-line');
+  if (oldCursor) oldCursor.classList.remove('cursor-line');
+
+  // Update visual selection and cursor
+  const lines = content.querySelectorAll('[data-flat-idx]');
+  for (const el of lines) {
+    const idx = parseInt(el.dataset.flatIdx, 10);
+    el.classList.toggle('cursor-line', idx === state.cursorLine);
+    el.classList.toggle('visual-selected', hasVisualSelection && idx >= visualLo && idx <= visualHi);
+  }
+}
+
+// Handle scroll events for virtual rendering
+function onDiffScroll() {
+  if (state.scrollScheduled) return;
+  state.scrollScheduled = true;
+  requestAnimationFrame(() => {
+    state.scrollScheduled = false;
+    renderDiff();
+  });
+}
+
+function scrollCursorIntoView(center = false) {
+  // Use requestAnimationFrame to avoid forced reflow
+  requestAnimationFrame(() => {
+    // Ensure the cursor line is rendered
+    const cursorOffset = state.lineOffsets[state.cursorLine];
+    if (cursorOffset === undefined) return;
+
+    const cursorHeight = getLineHeight(state.flatLines[state.cursorLine]);
+    const scrollTop = diffPane.scrollTop;
+    const viewportHeight = diffPane.clientHeight;
+
+    // Account for sticky header and status bar
+    const headerBuffer = 40;
+    const footerBuffer = 24;
+
+    if (center) {
+      // Center the cursor line
+      const targetScroll = cursorOffset - (viewportHeight / 2) + (cursorHeight / 2);
+      diffPane.scrollTop = Math.max(0, targetScroll);
+    } else {
+      // Scroll minimally to make cursor visible
+      if (cursorOffset < scrollTop + headerBuffer) {
+        // Cursor above viewport
+        diffPane.scrollTop = Math.max(0, cursorOffset - headerBuffer);
+      } else if (cursorOffset + cursorHeight > scrollTop + viewportHeight - footerBuffer) {
+        // Cursor below viewport
+        diffPane.scrollTop = cursorOffset + cursorHeight - viewportHeight + footerBuffer;
+      }
+    }
+
+    // Re-render to ensure cursor line is visible
+    renderDiff();
+  });
 }
 
 // ---------- Status bar ----------
@@ -448,38 +732,44 @@ function setCursor(pos, direction = 'forward', center = false) {
     }
   }
 
-  // If visual selection is active and cursor moved, need to re-render
-  // to update which lines have visual-selected class
-  if (state.visualAnchor !== null && state.cursorLine !== oldCursor) {
-    renderDiff();
-    renderStatus();
-    syncTreeCursor();
-    return;
-  }
+  // With virtual rendering, we compute scroll position from line offsets
+  // rather than relying on DOM elements existing
+  const cursorOffset = state.lineOffsets[state.cursorLine];
+  const cursorHeight = getLineHeight(state.flatLines[state.cursorLine]);
+  const scrollTop = diffPane.scrollTop;
+  const viewportHeight = diffPane.clientHeight;
+  const headerBuffer = 40; // account for sticky headers
+  const footerBuffer = 24; // account for status bar
 
-  // Otherwise just update cursor class efficiently
-  const old = diffPane.querySelector('.cursor-line');
-  if (old) old.classList.remove('cursor-line');
-
-  const el = diffPane.querySelector(`[data-flat-idx="${state.cursorLine}"]`);
-  if (el) {
-    el.classList.add('cursor-line');
-    // Determine scroll behavior:
-    // - For top (g/Home): scroll pane to 0 directly
-    // - For bottom (G/End): use 'end' to show cursor at bottom
-    // - 'center' for hunk navigation (like TUI)
-    // - 'nearest' for regular movement (j/k)
-    if (requestedPos <= 0) {
-      // Going to top: scroll pane to absolute top
-      diffPane.scrollTop = 0;
-    } else if (center) {
-      el.scrollIntoView({ block: 'center' });
-    } else if (requestedPos >= state.flatLines.length - 1) {
-      el.scrollIntoView({ block: 'end' });
-    } else {
-      el.scrollIntoView({ block: 'nearest' });
+  if (requestedPos <= 0) {
+    // Going to top: scroll to absolute top
+    diffPane.scrollTop = 0;
+  } else if (requestedPos >= state.flatLines.length - 1) {
+    // Going to bottom: ensure last line is visible
+    diffPane.scrollTop = Math.max(0, state.totalHeight - viewportHeight + footerBuffer);
+  } else if (center) {
+    // Center the cursor line in viewport
+    const targetScroll = cursorOffset - (viewportHeight / 2) + (cursorHeight / 2);
+    diffPane.scrollTop = Math.max(0, targetScroll);
+  } else {
+    // Scroll minimally to make cursor visible (nearest behavior)
+    if (cursorOffset < scrollTop + headerBuffer) {
+      // Cursor above viewport
+      diffPane.scrollTop = Math.max(0, cursorOffset - headerBuffer);
+    } else if (cursorOffset + cursorHeight > scrollTop + viewportHeight - footerBuffer) {
+      // Cursor below viewport
+      diffPane.scrollTop = cursorOffset + cursorHeight - viewportHeight + footerBuffer;
     }
   }
+
+  // Re-render to show updated cursor position
+  // Visual selection requires full update to set classes correctly
+  if (state.visualAnchor !== null && state.cursorLine !== oldCursor) {
+    renderDiff();
+  } else {
+    renderDiff();
+  }
+
   renderStatus();
   syncTreeCursor();
 }
@@ -634,8 +924,13 @@ function toggleTreeFocus() {
 }
 
 function centerCursor() {
-  const el = diffPane.querySelector('.cursor-line');
-  if (el) el.scrollIntoView({ block: 'center' });
+  if (state.flatLines.length === 0) return;
+  const cursorOffset = state.lineOffsets[state.cursorLine];
+  const cursorHeight = getLineHeight(state.flatLines[state.cursorLine]);
+  const viewportHeight = diffPane.clientHeight;
+  const targetScroll = cursorOffset - (viewportHeight / 2) + (cursorHeight / 2);
+  diffPane.scrollTop = Math.max(0, targetScroll);
+  renderDiff();
 }
 
 // ---------- Tree navigation ----------
@@ -949,7 +1244,11 @@ function stageCurrentHunk() {
 // ---------------------------------------------------------------------------
 // Event handlers
 // ---------------------------------------------------------------------------
+const NAV_KEYS = new Set(['j', 'k', 'ArrowDown', 'ArrowUp', 'd', 'u', 'g', 'G', 'Home', 'End', ']', '[', '}', '{', 'n', 'N']);
+
 document.addEventListener('keydown', (e) => {
+  const navStart = performance.now();
+
   // Search input mode
   if (state.searchActive && document.activeElement === searchInput) {
     if (e.key === 'Enter') {
@@ -1053,6 +1352,11 @@ document.addEventListener('keydown', (e) => {
 
     // Theme toggle
     case 'T': e.preventDefault(); cycleTheme(); break;
+  }
+
+  // Record navigation timing for perf analysis
+  if (NAV_KEYS.has(e.key)) {
+    __gdPerf.recordNavigation(e.key, performance.now() - navStart);
   }
 });
 
@@ -1186,4 +1490,8 @@ function escapeHtml(str) {
 // ---------------------------------------------------------------------------
 initTheme();
 initTreeResize();
+
+// Virtual rendering: re-render on scroll
+diffPane.addEventListener('scroll', onDiffScroll, { passive: true });
+
 connect();

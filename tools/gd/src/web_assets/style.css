@@ -238,6 +238,15 @@ html, body {
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
   padding-bottom: 24px; /* Account for fixed status bar */
+  position: relative;
+}
+
+/* Virtual rendering spacer and content wrapper */
+.diff-spacer {
+  width: 100%;
+}
+.diff-content {
+  width: 100%;
 }
 
 /* File header */
@@ -247,12 +256,13 @@ html, body {
   font-weight: bold;
   border-bottom: 1px solid var(--fg-sep);
   border-top: 1px solid var(--fg-sep);
-  position: sticky;
-  top: 0;
   background: var(--bg);
   z-index: 10;
   cursor: pointer;
   user-select: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
 }
 .file-header:first-child { border-top: none; }
 .file-header .file-status {
@@ -266,6 +276,7 @@ html, body {
   height: 20px;
   background: var(--bg);
   border-top: 1px dashed var(--fg-sep);
+  box-sizing: border-box;
 }
 
 /* Diff lines */
@@ -273,8 +284,7 @@ html, body {
   display: flex;
   min-height: 20px;
   line-height: 20px;
-  scroll-margin-top: 40px; /* 2 lines padding for sticky file header */
-  scroll-margin-bottom: 24px; /* 1 line padding for fixed status bar */
+  box-sizing: border-box;
 }
 .diff-line:hover { background: var(--bg-cursor); }
 .diff-line.line-added { background: var(--bg-added); }
@@ -325,8 +335,9 @@ html, body {
 
 .line-content {
   flex: 1;
-  white-space: pre-wrap;
-  word-break: break-all;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding-right: 12px;
   tab-size: 4;
 }
