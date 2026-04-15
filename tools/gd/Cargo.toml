@@ -5,7 +5,7 @@ edition = "2024"
 
 [features]
 default = []
-web = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:serde", "dep:serde_json"]
+web = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:serde", "dep:serde_json", "dep:rust-embed", "dep:mime_guess"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -19,6 +19,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "
 tower-http = { version = "0.6", features = ["cors"], optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
+rust-embed = { version = "8", optional = true }
+mime_guess = { version = "2", optional = true }
 
 [dev-dependencies]
 insta = "1"

@@ -8,6 +8,8 @@ pub(crate) enum ServerMessage {
     DiffData {
         files: Vec<WebDiffFile>,
         tree: Vec<WebTreeEntry>,
+        branch: String,
+        source_label: String,
     },
 }
 

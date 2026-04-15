@@ -106,13 +106,14 @@ test.describe("Cursor Centering", () => {
     await page.keyboard.press("s");
 
     // Check if multiple files exist
-    const fileInfo = await page.evaluate(() => {
-      const statusText = document.querySelector("#status-left")?.textContent || "";
-      const match = statusText.match(/(\d+)\/(\d+)/);
-      return match ? { current: parseInt(match[1]), total: parseInt(match[2]) } : null;
+    const fileCount = await page.evaluate(() => {
+      const st = (window as any).__gdState;
+      if (!st || !st.flatLines) return 0;
+      const fileIndices = new Set(st.flatLines.map((l: any) => l.fileIdx).filter((i: any) => i !== undefined));
+      return fileIndices.size;
     });
 
-    if (!fileInfo || fileInfo.total <= 1) {
+    if (fileCount <= 1) {
       return; // Skip if only one file
     }
 
@@ -139,13 +140,14 @@ test.describe("Cursor Centering", () => {
     await page.keyboard.press("s");
 
     // Check if multiple files exist
-    const fileInfo = await page.evaluate(() => {
-      const statusText = document.querySelector("#status-left")?.textContent || "";
-      const match = statusText.match(/(\d+)\/(\d+)/);
-      return match ? { current: parseInt(match[1]), total: parseInt(match[2]) } : null;
+    const fileCount = await page.evaluate(() => {
+      const st = (window as any).__gdState;
+      if (!st || !st.flatLines) return 0;
+      const fileIndices = new Set(st.flatLines.map((l: any) => l.fileIdx).filter((i: any) => i !== undefined));
+      return fileIndices.size;
     });
 
-    if (!fileInfo || fileInfo.total <= 1) {
+    if (fileCount <= 1) {
       return; // Skip if only one file
     }
 

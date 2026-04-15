@@ -7,28 +7,21 @@ test.describe("Visual Selection", () => {
   });
 
   test("v toggles visual selection mode", async ({ page }) => {
-    // Initially no visual indicator
-    const statusLeft = page.locator("#status-left");
-    await expect(statusLeft).not.toContainText("VISUAL");
+    // Initially no visual-selected lines
+    await expect(page.locator(".visual-selected")).toHaveCount(0);
 
     // Press v to start selection
     await page.keyboard.press("v");
 
-    // Status bar should show VISUAL
-    await expect(statusLeft).toContainText("VISUAL");
-
     // Current line should have visual-selected class
-    const cursorLine = page.locator(".cursor-line");
-    await expect(cursorLine).toHaveClass(/visual-selected/);
+    const selectedLines = page.locator(".visual-selected");
+    await expect(selectedLines).not.toHaveCount(0);
 
     // Press v again to cancel
     await page.keyboard.press("v");
 
-    // Status bar should not show VISUAL
-    await expect(statusLeft).not.toContainText("VISUAL");
-
-    // Line should not have visual-selected class
-    await expect(cursorLine).not.toHaveClass(/visual-selected/);
+    // No lines should have visual-selected class
+    await expect(page.locator(".visual-selected")).toHaveCount(0);
   });
 
   test("visual selection highlights lines between anchor and cursor", async ({ page }) => {
@@ -71,8 +64,7 @@ test.describe("Visual Selection", () => {
     await page.keyboard.press("y");
 
     // Selection should be cleared
-    await expect(page.locator("#status-left")).not.toContainText("VISUAL");
-    await expect(page.locator(".diff-line.visual-selected")).toHaveCount(0);
+    await expect(page.locator(".visual-selected")).toHaveCount(0);
 
     // Check clipboard content contains path:line format
     const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
@@ -82,14 +74,13 @@ test.describe("Visual Selection", () => {
   test("Escape cancels visual selection", async ({ page }) => {
     // Start visual selection
     await page.keyboard.press("v");
-    await expect(page.locator("#status-left")).toContainText("VISUAL");
+    await expect(page.locator(".visual-selected")).not.toHaveCount(0);
 
     // Press Escape
     await page.keyboard.press("Escape");
 
     // Selection should be cleared
-    await expect(page.locator("#status-left")).not.toContainText("VISUAL");
-    await expect(page.locator(".diff-line.visual-selected")).toHaveCount(0);
+    await expect(page.locator(".visual-selected")).toHaveCount(0);
   });
 
   test("visual selection persists during navigation", async ({ page }) => {
@@ -102,8 +93,7 @@ test.describe("Visual Selection", () => {
     await page.keyboard.press("k");
 
     // Selection should still be active
-    await expect(page.locator("#status-left")).toContainText("VISUAL");
-    const selectedLines = page.locator(".diff-line.visual-selected");
+    const selectedLines = page.locator(".visual-selected");
     const count = await selectedLines.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });

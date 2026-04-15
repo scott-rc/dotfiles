@@ -7,18 +7,16 @@ test.describe("Keybindings", () => {
   });
 
   test("? toggles help overlay", async ({ page }) => {
-    const helpOverlay = page.locator("#help-overlay");
-
-    // Hidden initially
-    await expect(helpOverlay).not.toHaveClass(/visible/);
+    // Hidden initially (absent from DOM)
+    await expect(page.locator("#help-overlay")).toHaveCount(0);
 
     // Press ? to show help
     await page.keyboard.press("?");
-    await expect(helpOverlay).toHaveClass(/visible/);
+    await expect(page.locator("#help-overlay")).toHaveCount(1);
 
     // Press ? again to hide
     await page.keyboard.press("?");
-    await expect(helpOverlay).not.toHaveClass(/visible/);
+    await expect(page.locator("#help-overlay")).toHaveCount(0);
   });
 
   test("help overlay contains keybinding info", async ({ page }) => {
@@ -35,15 +33,13 @@ test.describe("Keybindings", () => {
   });
 
   test("Escape closes help overlay", async ({ page }) => {
-    const helpOverlay = page.locator("#help-overlay");
-
     // Open help
     await page.keyboard.press("?");
-    await expect(helpOverlay).toHaveClass(/visible/);
+    await expect(page.locator("#help-overlay")).toHaveCount(1);
 
     // Close with Escape
     await page.keyboard.press("Escape");
-    await expect(helpOverlay).not.toHaveClass(/visible/);
+    await expect(page.locator("#help-overlay")).toHaveCount(0);
   });
 
   test("s toggles single-file view", async ({ page }) => {

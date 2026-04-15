@@ -7,9 +7,10 @@ use std::time::SystemTime;
 use axum::Router;
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::response::Html;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::get;
+use rust_embed::Embed;
 use tokio::sync::broadcast;
 
 use crate::git::{self, DiffSource, patch, stage_patch, unstage_patch};
@@ -19,12 +20,43 @@ use std::collections::HashSet;
 
 use super::html_render::build_diff_data;
 
-const INDEX_HTML: &str = include_str!("../web_assets/index.html");
-const STYLE_CSS: &str = include_str!("../web_assets/style.css");
-const APP_JS: &str = include_str!("../web_assets/app.js");
+#[derive(Embed)]
+#[folder = "src/web/app/dist/"]
+struct Assets;
+
+fn serve_embedded(path: &str) -> axum::response::Response {
+    match Assets::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            (
+                StatusCode::OK,
+                [(axum::http::header::CONTENT_TYPE, mime.as_ref().to_string())],
+                content.data.to_vec(),
+            )
+                .into_response()
+        }
+        None => (StatusCode::NOT_FOUND, "Not Found").into_response(),
+    }
+}
+
+async fn static_handler(uri: axum::http::Uri) -> axum::response::Response {
+    let path = uri.path().trim_start_matches('/');
+    let path = if path.is_empty() { "index.html" } else { path };
+
+    let resp = serve_embedded(path);
+    // SPA fallback: serve index.html for paths that aren't found (but not asset paths)
+    if resp.status() == StatusCode::NOT_FOUND && !path.contains('.') {
+        return serve_embedded("index.html");
+    }
+    resp
+}
 
 struct AppState {
     diff_ctx: DiffContext,
+    /// Current branch name (e.g. "main", "HEAD" if detached).
+    branch: String,
+    /// Human-readable diff source label (e.g. "working tree", "staged", "main..HEAD").
+    source_label: String,
     tx: broadcast::Sender<Arc<String>>,
     connection_count: AtomicUsize,
     shutdown_tx: broadcast::Sender<()>,
@@ -34,21 +66,6 @@ struct AppState {
     shutdown_grace_ms: u64,
     /// Whether to show full file context (-U999999).
     full_context: AtomicBool,
-}
-
-async fn index_handler() -> Html<&'static str> {
-    Html(INDEX_HTML)
-}
-
-async fn style_handler() -> impl IntoResponse {
-    ([("content-type", "text/css; charset=utf-8")], STYLE_CSS)
-}
-
-async fn js_handler() -> impl IntoResponse {
-    (
-        [("content-type", "application/javascript; charset=utf-8")],
-        APP_JS,
-    )
 }
 
 async fn ws_handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -79,7 +96,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
 
     // Send current diff data immediately
     let files = load_files(&state.diff_ctx, false);
-    let msg = build_json(&files);
+    let msg = build_json(&files, &state.branch, &state.source_label);
     if socket.send(Message::Text(msg.into())).await.is_err() {
         return;
     }
@@ -110,7 +127,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                                 super::protocol::ClientMessage::SetFullContext { enabled } => {
                                     state.full_context.store(enabled, Ordering::SeqCst);
                                     let files = load_files(&state.diff_ctx, enabled);
-                                    let json = Arc::new(build_json(&files));
+                                    let json = Arc::new(build_json(&files, &state.branch, &state.source_label));
                                     let _ = state.tx.send(json);
                                 }
                                 super::protocol::ClientMessage::StageLine { file_idx, hunk_idx, line_idx } => {
@@ -177,7 +194,7 @@ fn apply_staging(
 
     // Broadcast updated diff
     let updated_files = load_files(&state.diff_ctx, full_context);
-    let json = Arc::new(build_json(&updated_files));
+    let json = Arc::new(build_json(&updated_files, &state.branch, &state.source_label));
     let _ = state.tx.send(json);
 }
 
@@ -202,8 +219,8 @@ fn load_files(diff_ctx: &DiffContext, full_context: bool) -> Vec<DiffFile> {
     files
 }
 
-fn build_json(files: &[DiffFile]) -> String {
-    let msg = build_diff_data(files);
+fn build_json(files: &[DiffFile], branch: &str, source_label: &str) -> String {
+    let msg = build_diff_data(files, branch, source_label);
     serde_json::to_string(&msg).unwrap()
 }
 
@@ -220,6 +237,8 @@ fn git_index_mtime(repo: &std::path::Path) -> Option<SystemTime> {
 /// File watcher task — polls .git/index mtime and broadcasts on change.
 async fn watch_git_index(
     diff_ctx: DiffContext,
+    branch: String,
+    source_label: String,
     tx: broadcast::Sender<Arc<String>>,
     mut shutdown_rx: broadcast::Receiver<()>,
 ) {
@@ -234,7 +253,7 @@ async fn watch_git_index(
                     // Watcher always uses false since it doesn't track full_context state
                     let files = load_files(&diff_ctx, false);
                     if tx.receiver_count() > 0 {
-                        let json = Arc::new(build_json(&files));
+                        let json = Arc::new(build_json(&files, &branch, &source_label));
                         let _ = tx.send(json);
                     }
                 }
@@ -275,8 +294,13 @@ pub(crate) fn start_server(
         let (shutdown_tx, _) = broadcast::channel::<()>(1);
         let (disconnect_tx, disconnect_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
 
+        let branch = git::current_branch(&diff_ctx.repo);
+        let source_label = diff_ctx.source.source_label();
+
         let state = Arc::new(AppState {
             diff_ctx: diff_ctx.clone(),
+            branch: branch.clone(),
+            source_label: source_label.clone(),
             tx: tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: shutdown_tx.clone(),
@@ -292,11 +316,9 @@ pub(crate) fn start_server(
         ));
 
         let app = Router::new()
-            .route("/", get(index_handler))
-            .route("/style.css", get(style_handler))
-            .route("/app.js", get(js_handler))
             .route("/ws", get(ws_handler))
-            .with_state(state);
+            .with_state(state)
+            .fallback(get(static_handler));
 
         // Bind to requested port (0 = OS picks random available port)
         let listener = match tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port))).await {
@@ -319,6 +341,8 @@ pub(crate) fn start_server(
         // Start file watcher
         tokio::spawn(watch_git_index(
             diff_ctx.clone(),
+            branch,
+            source_label,
             tx,
             shutdown_tx.subscribe(),
         ));
@@ -357,6 +381,8 @@ mod tests {
                 no_untracked: false,
                 ignore_whitespace: false,
             },
+            branch: "main".into(),
+            source_label: "working tree".into(),
             tx,
             connection_count: AtomicUsize::new(0),
             shutdown_tx,
@@ -520,6 +546,8 @@ mod tests {
                 no_untracked: false,
                 ignore_whitespace: false,
             },
+            branch: "main".into(),
+            source_label: "HEAD".into(),
             tx: state.tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: state.shutdown_tx.clone(),
@@ -544,6 +572,8 @@ mod tests {
                 no_untracked: false,
                 ignore_whitespace: false,
             },
+            branch: "main".into(),
+            source_label: "main..HEAD".into(),
             tx: state.tx.clone(),
             connection_count: AtomicUsize::new(0),
             shutdown_tx: state.shutdown_tx.clone(),

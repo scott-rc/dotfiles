@@ -7,14 +7,12 @@ test.describe("Search", () => {
   });
 
   test("/ opens search bar", async ({ page }) => {
-    const searchBar = page.locator("#search-bar");
-
-    // Search bar hidden initially
-    await expect(searchBar).not.toHaveClass(/visible/);
+    // Search bar absent initially
+    await expect(page.locator("#search-bar")).toHaveCount(0);
 
     // Press / to open search
     await page.keyboard.press("/");
-    await expect(searchBar).toHaveClass(/visible/);
+    await expect(page.locator("#search-bar")).toHaveCount(1);
 
     // Search input should be focused
     const searchInput = page.locator("#search-input");
@@ -22,15 +20,13 @@ test.describe("Search", () => {
   });
 
   test("Escape closes search bar", async ({ page }) => {
-    const searchBar = page.locator("#search-bar");
-
     // Open search
     await page.keyboard.press("/");
-    await expect(searchBar).toHaveClass(/visible/);
+    await expect(page.locator("#search-bar")).toHaveCount(1);
 
     // Close with Escape
     await page.keyboard.press("Escape");
-    await expect(searchBar).not.toHaveClass(/visible/);
+    await expect(page.locator("#search-bar")).toHaveCount(0);
   });
 
   test("search finds matches", async ({ page }) => {
@@ -60,8 +56,7 @@ test.describe("Search", () => {
     await page.keyboard.press("N");
 
     // Verify search is still active
-    const searchBar = page.locator("#search-bar");
-    await expect(searchBar).toHaveClass(/visible/);
+    await expect(page.locator("#search-bar")).toHaveCount(1);
   });
 
   test("search highlights matches", async ({ page }) => {

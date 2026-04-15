@@ -34,6 +34,21 @@ impl DiffSource {
         args
     }
 
+    pub fn source_label(&self) -> String {
+        match self {
+            Self::WorkingTree => "working tree".into(),
+            Self::Staged => "staged".into(),
+            Self::Commit(c) => c.clone(),
+            Self::Range(l, r) => {
+                if r.is_empty() {
+                    l.clone()
+                } else {
+                    format!("{l}..{r}")
+                }
+            }
+        }
+    }
+
     pub fn diff_args_full_context(&self) -> Vec<String> {
         let mut args = self.diff_args();
         args.insert(1, "-U999999".into());
@@ -99,6 +114,12 @@ pub fn run_diff(repo: &Path, args: &[&str]) -> String {
         std::process::exit(1);
     }
     String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+/// Get the current branch name (e.g. "main"). Returns "HEAD" if detached.
+pub fn current_branch(repo: &Path) -> String {
+    run(repo, &["rev-parse", "--abbrev-ref", "HEAD"])
+        .map_or_else(|| "HEAD".to_string(), |s| s.trim().to_string())
 }
 
 /// Get the repo root from any path inside it.

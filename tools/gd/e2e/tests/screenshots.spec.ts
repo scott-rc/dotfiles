@@ -14,7 +14,8 @@ test.describe("Screenshots", () => {
 
   test("tree hidden", async ({ page }) => {
     await page.keyboard.press("l");
-    await expect(page.locator("#tree")).toHaveClass(/hidden/);
+    // Tree is removed from DOM when hidden
+    await expect(page.locator("#tree")).toHaveCount(0);
     await expect(page).toHaveScreenshot("tree-hidden.png");
   });
 

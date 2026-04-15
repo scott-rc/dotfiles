@@ -12,13 +12,19 @@ use super::protocol::{
 };
 
 /// Build the full server message from parsed diff files.
-pub(crate) fn build_diff_data(files: &[DiffFile]) -> ServerMessage {
+pub(crate) fn build_diff_data(
+    files: &[DiffFile],
+    branch: &str,
+    source_label: &str,
+) -> ServerMessage {
     let web_files: Vec<WebDiffFile> = files.iter().map(render_file).collect();
     let tree_entries = build_tree_entries(files);
     let web_tree = tree_entries.iter().map(render_tree_entry).collect();
     ServerMessage::DiffData {
         files: web_files,
         tree: web_tree,
+        branch: branch.to_string(),
+        source_label: source_label.to_string(),
     }
 }
 

@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* Font stacks */
+:root {
+  --font-mono: ui-monospace, 'MonaspiceAr Nerd Font Mono', 'JetBrainsMono Nerd Font',
+               'FiraCode Nerd Font', 'Hack Nerd Font', 'SF Mono', 'Fira Code',
+               Menlo, Monaco, Consolas, monospace;
+  --font-icons: 'Symbols Nerd Font', 'Symbols Nerd Font Mono',
+                'MonaspiceAr Nerd Font Mono', 'MonaspiceAr Nerd Font',
+                'JetBrainsMono Nerd Font', 'FiraCode Nerd Font',
+                'Hack Nerd Font', var(--font-mono);
+}
+
+/* Dark theme (default) */
+:root, [data-theme="dark"] {
+  --bg: rgb(13, 17, 23);
+  --bg-secondary: rgb(22, 27, 34);
+  --fg: rgb(201, 209, 217);
+  --bg-added: rgb(22, 39, 27);
+  --bg-deleted: rgb(50, 24, 24);
+  --bg-added-word: rgb(38, 68, 42);
+  --bg-deleted-word: rgb(85, 36, 36);
+  --bg-cursor: rgb(36, 46, 62);
+  --bg-visual: rgb(38, 79, 120);
+  --fg-file-header: rgb(121, 192, 255);
+  --fg-gutter: rgb(110, 118, 129);
+  --fg-sep: rgb(68, 76, 86);
+  --fg-added-marker: rgb(63, 185, 80);
+  --fg-deleted-marker: rgb(248, 81, 73);
+
+  /* Syntax highlighting (GitHub Dark) */
+  --syn-comment: #8b949e;
+  --syn-string: #a5d6ff;
+  --syn-keyword: #ff7b72;
+  --syn-number: #79c0ff;
+  --syn-function: #d2a8ff;
+  --syn-type: #79c0ff;
+  --syn-variable: #e6edf3;
+  --syn-operator: #ff7b72;
+  --syn-punctuation: #c9d1d9;
+  --syn-constant: #79c0ff;
+  --syn-attribute: #79c0ff;
+  --syn-tag: #7ee787;
+  --syn-default: #c9d1d9;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: rgb(255, 255, 255);
+  --bg-secondary: rgb(246, 248, 250);
+  --fg: rgb(31, 35, 40);
+  --bg-added: rgb(218, 251, 225);
+  --bg-deleted: rgb(255, 235, 233);
+  --bg-added-word: rgb(172, 238, 187);
+  --bg-deleted-word: rgb(255, 200, 195);
+  --bg-cursor: rgb(243, 244, 246);
+  --bg-visual: rgb(180, 215, 255);
+  --fg-file-header: rgb(9, 105, 218);
+  --fg-gutter: rgb(110, 119, 129);
+  --fg-sep: rgb(209, 217, 224);
+  --fg-added-marker: rgb(26, 127, 55);
+  --fg-deleted-marker: rgb(207, 34, 46);
+
+  --syn-comment: #6e7781;
+  --syn-string: #0a3069;
+  --syn-keyword: #cf222e;
+  --syn-number: #0550ae;
+  --syn-function: #8250df;
+  --syn-type: #0550ae;
+  --syn-variable: #24292f;
+  --syn-operator: #cf222e;
+  --syn-punctuation: #24292f;
+  --syn-constant: #0550ae;
+  --syn-attribute: #0550ae;
+  --syn-tag: #116329;
+  --syn-default: #24292f;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0ms;
+}
+[data-theme-transitioning] *, [data-theme-transitioning] *::before, [data-theme-transitioning] *::after {
+  transition-duration: 150ms;
+}
+
+/* Focus indicators for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--fg-file-header);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+/* Syntax highlighting classes (from Rust html_render) */
+.diff-content .syn-comment { color: var(--syn-comment); }
+.diff-content .syn-string { color: var(--syn-string); }
+.diff-content .syn-keyword { color: var(--syn-keyword); }
+.diff-content .syn-number { color: var(--syn-number); }
+.diff-content .syn-function { color: var(--syn-function); }
+.diff-content .syn-type { color: var(--syn-type); }
+.diff-content .syn-variable { color: var(--syn-variable); }
+.diff-content .syn-operator { color: var(--syn-operator); }
+.diff-content .syn-punctuation { color: var(--syn-punctuation); }
+.diff-content .syn-constant { color: var(--syn-constant); }
+.diff-content .syn-attribute { color: var(--syn-attribute); }
+.diff-content .syn-tag { color: var(--syn-tag); }
+.diff-content .syn-default { color: var(--syn-default); }
+
+/* Modal entrance animation */
+.animate-in {
+  animation: modal-in 150ms ease-out;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Word-level diff highlights */
+.diff-content .wd-add {
+  background: var(--bg-added-word);
+  border-radius: 2px;
+}
+.diff-content .wd-del {
+  background: var(--bg-deleted-word);
+  border-radius: 2px;
+}

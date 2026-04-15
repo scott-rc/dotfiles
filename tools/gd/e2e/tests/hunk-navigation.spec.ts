@@ -200,17 +200,27 @@ test.describe("Hunk Navigation", () => {
     // Enter single-file mode
     await page.keyboard.press("s");
 
-    // Get file info from status bar
-    const getFileInfo = async () => {
-      const statusText = await page.locator("#status-left").textContent();
-      const match = statusText?.match(/(\d+)\/(\d+)/);
-      return match ? { current: parseInt(match[1]), total: parseInt(match[2]) } : { current: 1, total: 1 };
+    // Get file info from __gdState
+    const getFileIdx = async () => {
+      return page.evaluate(() => {
+        const st = (window as any).__gdState;
+        return st ? st.flatLines[st.cursorLine]?.fileIdx ?? -1 : -1;
+      });
     };
 
-    const initialInfo = await getFileInfo();
+    const getTotalFiles = async () => {
+      return page.evaluate(() => {
+        const st = (window as any).__gdState;
+        if (!st || !st.flatLines) return 0;
+        const fileIndices = new Set(st.flatLines.map((l: any) => l.fileIdx).filter((i: any) => i !== undefined));
+        return fileIndices.size;
+      });
+    };
+
+    const totalFiles = await getTotalFiles();
 
     // Skip test if only one file (can't advance)
-    if (initialInfo.total <= 1) return;
+    if (totalFiles <= 1) return;
 
     // Navigate to last change in current file by pressing ] until position stops changing
     let lastPos = -1;
@@ -224,12 +234,14 @@ test.describe("Hunk Navigation", () => {
       lastPos = pos;
     }
 
+    const fileIdxBefore = await getFileIdx();
+
     // Press ] again - should advance to next file
     await page.keyboard.press("]");
 
-    const newInfo = await getFileInfo();
+    const fileIdxAfter = await getFileIdx();
 
     // Should have advanced to next file (or wrapped to first if was on last)
-    expect(newInfo.current).not.toBe(initialInfo.current);
+    expect(fileIdxAfter).not.toBe(fileIdxBefore);
   });
 });
