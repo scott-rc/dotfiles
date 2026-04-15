@@ -1,16 +1,10 @@
 ---
 name: brainstorm
-description: Facilitates collaborative brainstorming sessions to generate, explore, and refine ideas on any topic — use when the user asks to brainstorm, ideate, explore possibilities, think through options, or generate ideas.
-argument-hint: "<topic>"
-allowed-tools: Bash, AskUserQuestion, Write
+description: Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to brainstorm, stress-test a plan, get grilled on their design, or mentions "grill me".
 ---
 
-# Brainstorm
+Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
-Facilitate collaborative brainstorming sessions to generate and refine ideas.
+Ask the questions one at a time.
 
-## Operations
-
-### Brainstorm
-Conduct a multi-round brainstorming session on a topic, then synthesize the best ideas.
-MUST read operations/brainstorm.md before executing.
+If a question can be answered by exploring the codebase, explore the codebase instead.

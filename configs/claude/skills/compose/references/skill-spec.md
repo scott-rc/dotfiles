@@ -4,6 +4,14 @@ Rules specific to authoring Claude Code skills. All operations in this skill val
 
 ## Mental Model
 
+Skills have two valid shapes. Start simple; add structure only when complexity demands it.
+
+**Simple** — single file, all instructions inline:
+```
+SKILL.md (instructions + routing, all inline)
+```
+
+**Hub-and-spoke** — SKILL.md routes; operation files execute:
 ```
 SKILL.md (router)
 │   Inline operations (linear, no refs, no branching — stay in SKILL.md)
@@ -15,11 +23,12 @@ SKILL.md (router)
 └── agents/                # Judgment work reused 2+ times
 ```
 
-Three principles:
+Four principles:
 
-1. **Deciding vs doing** — See Delegation > Behavior in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
-2. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
-3. **References are DRY leaves** — They prevent update-in-N-places problems. Operations link to them at the steps where their content is needed.
+1. **Simple by default** — Start with a single SKILL.md containing all instructions inline. Extract to operation files and references only when a concrete trigger is met (see Inline Operations below).
+2. **Deciding vs doing** — See Delegation > Behavior in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
+3. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
+4. **References are DRY leaves** — They prevent update-in-N-places problems. Operations link to them at the steps where their content is needed.
 
 ## Instructions
 
@@ -108,7 +117,7 @@ The body after frontmatter is the hub that routes to operation files. Constraint
 - **Required sections**: MUST have "Operations" (H2) listing each operation with a one-line summary and a link to its file
 - **Operation file gate**: Each operation's `MUST read operations/X.md before executing.` line is a mandatory read gate — SKILL.md routes intent but operation files contain required steps, tool-specific commands, and safety checks that MUST NOT be skipped or inferred from general knowledge. For combined operations, read each operation file immediately before executing that operation.
 - **Optional sections**: MAY have "Combined Operations" (H2) for multi-operation intent mapping, "References" (H2) for shared reference files
-- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context. MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file.
+- **Inline operations**: MAY contain inline operations for operations that meet ALL of these criteria: (1) linear sequence with no conditional branches, (2) no file references (patterns, guidelines, templates), (3) no agent delegation with context, (4) the total number of inline operations doesn't make SKILL.md hard to scan as a router (if SKILL.md has many inline operations competing for attention, extract them). MUST route to an operation file when any criterion is not met. A secondary test: does executing this operation require opening another file? If yes, it needs its own file.
   - **Tiebreaker**: when an operation is structurally simple (inline-eligible) but consumes enough context to crowd out later work, context cost wins -- move it to its own operation file with a delegation step rather than keeping it inline.
 
 ### Operation Files

@@ -2,7 +2,49 @@
 
 Annotated templates for creating skill files. Replace placeholders (`<...>`) with actual content.
 
-## SKILL.md Template
+**Default to the simple template.** Use the hub-and-spoke template only when a concrete extraction trigger is met: an operation has conditional branches, reads shared reference files, delegates to a subagent, or multiple operations together make SKILL.md hard to scan as a router.
+
+## Simple Skill Template
+
+For skills with one or a few linear operations that need no shared references or agent delegation. Everything lives in SKILL.md.
+
+```markdown
+---
+name: <skill-name>
+description: <Third-person sentence. What it does AND when to use it. Include trigger keywords.>
+# Optional fields (include only what applies):
+# disable-model-invocation: true
+# user-invocable: false
+# allowed-tools: Read, Grep, Glob
+# model: sonnet
+# context: fork
+# agent: Explore
+# argument-hint: "[issue-number]"
+---
+
+# <Skill Title>
+
+<One sentence: what this skill helps Claude do.>
+
+## Operations
+
+### <Operation Name>
+
+<One-line summary.>
+
+1. **<Step name>**: <What to do.>
+2. **<Step name>**: <What to do.>
+3. **<Step name>**: MUST report results to the user. <Specify what to include.>
+
+### <Operation Name>
+
+<One-line summary.>
+
+1. **<Step name>**: <What to do.>
+2. **<Step name>**: <What to do.>
+```
+
+## Hub-and-Spoke SKILL.md Template
 
 ```markdown
 ---
