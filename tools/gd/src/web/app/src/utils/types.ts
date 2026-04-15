@@ -57,10 +57,11 @@ export interface ClientMessage {
 export type ServerMessage = DiffData;
 
 export function isDiffData(msg: unknown): msg is DiffData {
+  if (typeof msg !== "object" || msg === null) return false;
+  const obj = msg as Record<string, unknown>;
   return (
-    typeof msg === "object" &&
-    msg !== null &&
-    "type" in msg &&
-    (msg as Record<string, unknown>).type === "DiffData"
+    obj.type === "DiffData" &&
+    Array.isArray(obj.files) &&
+    Array.isArray(obj.tree)
   );
 }

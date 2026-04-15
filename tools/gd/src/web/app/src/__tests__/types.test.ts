@@ -29,4 +29,24 @@ describe("isDiffData", () => {
   it("returns false for missing type field", () => {
     expect(isDiffData({ files: [], tree: [] })).toBe(false);
   });
+
+  it("returns false when files is missing", () => {
+    expect(isDiffData({ type: "DiffData", tree: [] })).toBe(false);
+  });
+
+  it("returns false when tree is missing", () => {
+    expect(isDiffData({ type: "DiffData", files: [] })).toBe(false);
+  });
+
+  it("returns false when files is not an array", () => {
+    expect(isDiffData({ type: "DiffData", files: "not-array", tree: [] })).toBe(false);
+  });
+
+  it("returns false when tree is not an array", () => {
+    expect(isDiffData({ type: "DiffData", files: [], tree: {} })).toBe(false);
+  });
+
+  it("returns false for undefined", () => {
+    expect(isDiffData(undefined)).toBe(false);
+  });
 });

@@ -1,6 +1,13 @@
 import { useEffect, useCallback } from "preact/hooks";
 import { mapKey, type Action } from "../utils/keyboard";
-import type { DisplayItem } from "../utils/display";
+import {
+  findContentLine as findContentLinePure,
+  filePathAt as filePathAtPure,
+  findNextHunk,
+  findPrevHunk,
+  findNextFile,
+  findPrevFile,
+} from "../utils/navigation";
 import {
   cursor,
   displayItems,
@@ -21,30 +28,18 @@ import {
 } from "../state/store";
 import { jumpToCurrentMatch } from "../components/CommandPalette";
 
-/** Check if display item at index is an added or deleted line. */
-function isChangeLine(items: DisplayItem[], idx: number): boolean {
-  const item = items[idx];
-  if (!item || item.type !== "line") return false;
-  return item.line.kind === "added" || item.line.kind === "deleted";
-}
-
-/** Find the next line-type item index at or after `from` in the given direction. */
+/** Find content line using current signal state as context. */
 function findContentLine(from: number, direction: 1 | -1): number {
-  const items = displayItems.value;
-  let i = from;
-  while (i >= 0 && i < items.length) {
-    if (items[i].type === "line") return i;
-    i += direction;
-  }
-  return cursor.value; // no valid target, stay put
+  return findContentLinePure(displayItems.value, from, direction, cursor.value);
 }
 
-/** Get the file path for the display item at the given index. */
+/** Get file path using current signal state as context. */
 function filePathAt(idx: number): string | null {
-  const item = displayItems.value[idx];
-  if (!item) return null;
-  const fileIdx = item.type === "file-header" ? item.fileIdx : item.fileIdx;
-  return files.value[fileIdx]?.path ?? null;
+  return filePathAtPure(
+    displayItems.value,
+    files.value.map((f) => f.path),
+    idx,
+  );
 }
 
 export function useKeyboard(
@@ -104,60 +99,34 @@ export function useKeyboard(
           break;
         }
         case "next-hunk": {
-          // Jump to the start of the next change group (block of added/deleted lines)
-          // Skip past current change group (if in one)
-          let i = cursor.value;
-          while (i < items.length && isChangeLine(items, i)) i++;
-          // Find next change line
-          while (i < items.length && !isChangeLine(items, i)) i++;
-          if (i < items.length) {
-            cursor.value = i;
-            scrollToIndex(i, { align: "center" });
+          const next = findNextHunk(items, cursor.value);
+          if (next !== null) {
+            cursor.value = next;
+            scrollToIndex(next, { align: "center" });
           }
           break;
         }
         case "prev-hunk": {
-          // Jump to the start of the previous change group
-          // Find start of current change group (if cursor is in one)
-          let groupStart = cursor.value;
-          while (groupStart > 0 && isChangeLine(items, groupStart - 1)) groupStart--;
-          // Search backward from before current group for end of previous group
-          let i = groupStart - 1;
-          while (i >= 0 && !isChangeLine(items, i)) i--;
-          if (i < 0) break; // Already at first group
-          // Find start of that group
-          while (i > 0 && isChangeLine(items, i - 1)) i--;
-          cursor.value = i;
-          scrollToIndex(i, { align: "center" });
+          const prev = findPrevHunk(items, cursor.value);
+          if (prev !== null) {
+            cursor.value = prev;
+            scrollToIndex(prev, { align: "center" });
+          }
           break;
         }
         case "next-file": {
-          for (let i = cursor.value + 1; i < items.length; i++) {
-            if (items[i].type === "file-header") {
-              const line = findContentLine(i + 1, 1);
-              cursor.value = line;
-              scrollToIndex(i, { align: "start" });
-              return;
-            }
+          const result = findNextFile(items, cursor.value, cursor.value);
+          if (result) {
+            cursor.value = result.cursor;
+            scrollToIndex(result.headerIdx, { align: "start" });
           }
           break;
         }
         case "prev-file": {
-          // Find the file header for the current position, then go to the one before
-          let currentFileHeader = -1;
-          for (let i = cursor.value; i >= 0; i--) {
-            if (items[i].type === "file-header") {
-              currentFileHeader = i;
-              break;
-            }
-          }
-          for (let i = currentFileHeader - 1; i >= 0; i--) {
-            if (items[i].type === "file-header") {
-              const line = findContentLine(i + 1, 1);
-              cursor.value = line;
-              scrollToIndex(i, { align: "start" });
-              return;
-            }
+          const result = findPrevFile(items, cursor.value, cursor.value);
+          if (result) {
+            cursor.value = result.cursor;
+            scrollToIndex(result.headerIdx, { align: "start" });
           }
           break;
         }
