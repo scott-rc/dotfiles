@@ -1,11 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { spawn, ChildProcess } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const fixtureRepo = join(__dirname, "..", "fixtures", "test-repo");
-const gdBinary = join(__dirname, "..", "..", "..", "target", "release", "gd");
+import { fixtureRepo, gdBinary } from "./fixtures.js";
 
 // Use a short grace period for faster tests (default is 2000ms)
 const TEST_GRACE_MS = 200;

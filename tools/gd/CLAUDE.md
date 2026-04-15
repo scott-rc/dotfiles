@@ -28,8 +28,8 @@ To profile the gd web UI performance:
 
 ### Setup
 
-1. Reset test fixture: `./e2e/fixtures/setup.sh`
-2. Start server: `cd e2e/fixtures/test-repo && gd --web --no-open`
+1. Reset test fixture: `./src/web/e2e/fixtures/setup.sh`
+2. Start server: `cd src/web/e2e/fixtures/test-repo && gd --web --no-open`
 3. Parse URL from stderr (e.g., `http://127.0.0.1:3845`)
 
 ### Using Chrome DevTools MCP Tools

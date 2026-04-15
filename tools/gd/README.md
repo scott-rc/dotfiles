@@ -161,10 +161,10 @@ cargo build --release --features web # from tools/gd/ — includes --web browser
 
 ## E2E Tests
 
-Browser-based Playwright tests for `--web` mode live in `e2e/`. Requires the web feature and a test git repo fixture.
+Browser-based Playwright tests for `--web` mode live in `src/web/e2e/`. Requires the web feature and a test git repo fixture.
 
 ```bash
-cd e2e
+cd src/web/e2e
 npm install                    # install Playwright
 npx playwright install chromium # install browser
 ./fixtures/setup.sh            # create test repo with known diff state

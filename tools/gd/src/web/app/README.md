@@ -205,10 +205,10 @@ All commands use VitePlus (`vp`) under the hood. The `dist/` directory is embedd
 
 ### E2E Tests
 
-E2E tests live in `../../e2e/` (relative to this app, at `tools/gd/e2e/`). They use Playwright against the full Rust server + embedded frontend.
+E2E tests live in `../e2e/` (relative to this app, at `tools/gd/src/web/e2e/`). They use Playwright against the full Rust server + embedded frontend.
 
 ```bash
-cd tools/gd/e2e
+cd tools/gd/src/web/e2e
 ./fixtures/setup.sh            # create test repo with known diff state
 npm test                       # run all tests
 npm run test:headed            # run with visible browser

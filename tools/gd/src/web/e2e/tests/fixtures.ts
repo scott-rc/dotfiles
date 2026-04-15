@@ -4,8 +4,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const fixtureRepo = join(__dirname, "..", "fixtures", "test-repo");
-const gdBinary = join(__dirname, "..", "..", "..", "target", "release", "gd");
+export const fixtureRepo = join(__dirname, "..", "fixtures", "test-repo");
+export const gdBinary = join(__dirname, "..", "..", "..", "..", "..", "target", "release", "gd");
 
 export const test = base.extend<{ serverUrl: string }>({
   serverUrl: async ({}, use) => {
