@@ -11,6 +11,16 @@ test.describe("File Tree", () => {
     await expect(tree).toBeVisible();
   });
 
+  test("tree cursor highlights a file (not directory) on initial load", async ({ page }) => {
+    const tree = page.locator("#tree");
+    const activeEntry = tree.locator(".tree-entry.active");
+    await expect(activeEntry).toBeVisible();
+
+    // The active entry should be a file, not a directory
+    const isDir = await activeEntry.evaluate((el) => el.classList.contains("dir"));
+    expect(isDir).toBe(false);
+  });
+
   test("directories start expanded on initial load", async ({ page }) => {
     const tree = page.locator("#tree");
 

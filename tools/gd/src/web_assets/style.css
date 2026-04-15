@@ -188,7 +188,7 @@ html, body {
 
 #app {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 24px); /* Reserve space for fixed status bar */
   width: 100vw;
 }
 
@@ -215,17 +215,19 @@ html, body {
   color: var(--fg-tree);
   user-select: none;
   line-height: 1;
+  display: flex;
+  align-items: baseline;
 }
 .tree-entry:hover { background: var(--bg-tree-cursor-unfocused); }
 .tree-entry.active { background: var(--bg-tree-cursor-focused); color: var(--fg-tree-active); }
 .tree-entry.active.unfocused { background: var(--bg-tree-cursor-unfocused); }
-.tree-entry .tree-icon { display: inline-block; width: 20px; text-align: center; font-family: var(--font-icons); }
-.tree-entry .tree-status { display: inline-block; width: 16px; text-align: center; font-weight: bold; }
-.tree-entry .tree-label { }
+.tree-entry .tree-icon { display: inline-block; width: 20px; text-align: center; font-family: var(--font-icons); flex-shrink: 0; }
+.tree-entry .tree-status { display: inline-block; width: 16px; text-align: center; font-weight: bold; flex-shrink: 0; }
+.tree-entry .tree-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 .tree-entry.dir .tree-label { color: var(--fg-tree-dir); }
-.tree-entry .tree-guide { color: var(--fg-tree-guide); white-space: pre; font-family: var(--font-mono); display: inline-block; margin: -2px 0; }
+.tree-entry .tree-guide { color: var(--fg-tree-guide); white-space: pre; font-family: var(--font-mono); display: inline-block; margin: -2px 0; flex-shrink: 0; }
 
-.tree-entry .tree-stats { margin-left: 8px; font-size: 11px; opacity: 0.7; }
+.tree-entry .tree-stats { margin-left: 8px; font-size: 11px; opacity: 0.7; flex-shrink: 0; }
 .tree-entry .stat-add { color: var(--fg-status-added); }
 .tree-entry .stat-del { color: var(--fg-status-deleted); }
 
@@ -242,7 +244,6 @@ html, body {
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-scrollbar-thumb) var(--bg-scrollbar-track);
-  padding-bottom: 24px; /* Account for fixed status bar */
   position: relative;
 }
 

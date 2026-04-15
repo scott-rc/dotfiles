@@ -77,14 +77,59 @@ test.describe("Navigation", () => {
   });
 
   test("} and { navigate between files", async ({ page }) => {
+    // Get the file the cursor starts in
+    const startFileIdx = await page.evaluate(() => {
+      const s = (window as any).__gdState;
+      return s.flatLines[s.cursorLine]?.fileIdx;
+    });
+
     // Navigate to next file
     await page.keyboard.press("}");
+    const afterNext = await page.evaluate(() => {
+      const s = (window as any).__gdState;
+      return s.flatLines[s.cursorLine]?.fileIdx;
+    });
+    expect(afterNext).toBeGreaterThan(startFileIdx);
 
-    // Navigate to previous file
+    // Navigate back with {
     await page.keyboard.press("{");
+    const afterPrev = await page.evaluate(() => {
+      const s = (window as any).__gdState;
+      return s.flatLines[s.cursorLine]?.fileIdx;
+    });
+    expect(afterPrev).toBeLessThan(afterNext);
+  });
 
-    // Verify no errors
-    await expect(page.locator("#diff-pane")).toBeVisible();
+  test("{ navigates backward through all files without getting stuck", async ({ page }) => {
+    // Jump forward several files
+    await page.keyboard.press("}");
+    await page.keyboard.press("}");
+    await page.keyboard.press("}");
+
+    const fileAfterForward = await page.evaluate(() => {
+      const s = (window as any).__gdState;
+      return s.flatLines[s.cursorLine]?.fileIdx;
+    });
+    expect(fileAfterForward).toBeGreaterThan(0);
+
+    // Now press { repeatedly — should walk backward without getting stuck
+    const visitedFiles: number[] = [fileAfterForward];
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press("{");
+      const fileIdx = await page.evaluate(() => {
+        const s = (window as any).__gdState;
+        return s.flatLines[s.cursorLine]?.fileIdx;
+      });
+      visitedFiles.push(fileIdx);
+      if (fileIdx === 0) break;
+    }
+
+    // Should have reached file 0
+    expect(visitedFiles[visitedFiles.length - 1]).toBe(0);
+    // Should be monotonically non-increasing (no stuck loops)
+    for (let i = 1; i < visitedFiles.length; i++) {
+      expect(visitedFiles[i]).toBeLessThanOrEqual(visitedFiles[i - 1]);
+    }
   });
 
   test("] at last hunk advances to next file", async ({ page }) => {

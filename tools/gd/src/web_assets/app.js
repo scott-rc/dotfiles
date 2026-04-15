@@ -185,8 +185,10 @@ function connect() {
       // Pre-populate expandedDirs so all directories start expanded
       state.expandedDirs = initExpandedDirs(msg.tree);
       flattenLines();
+      computeIdealTreeWidth();
       // Focus first change group on initial load (like TUI)
       focusFirstChangeGroup();
+      syncTreeCursorImmediate();
       renderAll();
       if (!__gdPerf.ready) __gdPerf.markFirstRender();
     }
@@ -541,16 +543,23 @@ function renderTree() {
     html += `<span class="tree-guide">${connectors[i]}</span>`;
     html += `<span class="tree-icon" ${iconStyle}>${icon}</span>`;
     html += statusHtml;
-    html += `<span class="tree-label">${escapeHtml(entry.label)}</span>`;
+    html += `<span class="tree-label" title="${escapeHtml(entry.label)}">${escapeHtml(entry.label)}</span>`;
     html += statsHtml;
     html += `</div>`;
   }
   treeEl.innerHTML = html;
 
-  // Scroll active into view - deferred to avoid forced reflow
+  // Scroll active into view and show rightmost part of truncated labels
   requestAnimationFrame(() => {
     const activeEl = treeEl.querySelector('.tree-entry.active');
-    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: 'nearest' });
+      // Scroll the label to show the end (filename) when truncated
+      const label = activeEl.querySelector('.tree-label');
+      if (label) label.scrollLeft = label.scrollWidth;
+    }
+    // Reset non-active labels to show the start
+    treeEl.querySelectorAll('.tree-entry:not(.active) .tree-label').forEach(l => { l.scrollLeft = 0; });
   });
 }
 
@@ -1073,11 +1082,16 @@ function jumpPrevFile() {
     }
     return;
   }
+  // Find which file the cursor is currently in
+  let currentFile = 0;
   for (let i = state.fileStarts.length - 1; i >= 0; i--) {
-    if (state.fileStarts[i] < state.cursorLine) {
-      setCursor(state.fileStarts[i]);
-      return;
+    if (state.fileStarts[i] <= state.cursorLine) {
+      currentFile = i;
+      break;
     }
+  }
+  if (currentFile > 0) {
+    setCursor(state.fileStarts[currentFile - 1]);
   }
 }
 
@@ -1647,13 +1661,47 @@ if (themeToggle) {
 // Tree resizing
 // ---------------------------------------------------------------------------
 function initTreeResize() {
-  const saved = localStorage.getItem('gd-tree-width');
-  if (saved) {
-    const width = parseInt(saved, 10);
-    if (!isNaN(width) && width >= 150 && width <= 500) {
-      state.treeWidth = width;
-    }
+  applyTreeWidth();
+}
+
+// Compute ideal tree width from tree content, viewport, and font metrics.
+// Mirrors TUI's compute_tree_width + resolve_tree_layout heuristics.
+function computeIdealTreeWidth() {
+  const tree = state.tree;
+  if (!tree.length) return;
+
+  // Measure character width using the mono font (connectors + labels share it)
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:14px var(--font-mono, monospace)';
+  probe.textContent = 'M';
+  document.body.appendChild(probe);
+  const charW = probe.getBoundingClientRect().width || 8;
+  document.body.removeChild(probe);
+
+  // Compute widest entry in character units:
+  //   connector: (depth+1)*4 chars, icon: ~3 chars, status: 2 chars, label, stats: ~8 chars
+  let maxChars = 0;
+  const fileStats = computeFileStats();
+  for (const e of tree) {
+    const connectorChars = (e.depth + 1) * 4;
+    const iconChars = 3;
+    const statusChars = (e.file_idx != null && e.status) ? 2 : 0;
+    const labelChars = e.label.length;
+    const hasStats = e.file_idx != null && fileStats[e.file_idx] &&
+      (fileStats[e.file_idx].added || fileStats[e.file_idx].deleted);
+    const statsChars = hasStats ? 8 : 0;
+    maxChars = Math.max(maxChars, connectorChars + iconChars + statusChars + labelChars + statsChars);
   }
+
+  const idealPx = Math.ceil(maxChars * charW) + 16; // 16px for padding
+
+  // Cap: at least 150px, at most 40% of viewport or 500px
+  const maxPx = Math.min(500, Math.floor(window.innerWidth * 0.4));
+  const minPx = 150;
+  // Also ensure diff pane has at least 600px (rough equivalent of TUI's 80-col min)
+  const maxForDiff = Math.max(minPx, window.innerWidth - 600);
+
+  state.treeWidth = Math.max(minPx, Math.min(idealPx, maxPx, maxForDiff));
   applyTreeWidth();
 }
 
@@ -1685,7 +1733,6 @@ function onResizeEnd() {
   resizeHandle.classList.remove('dragging');
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
-  localStorage.setItem('gd-tree-width', state.treeWidth.toString());
 }
 
 if (resizeHandle) {
