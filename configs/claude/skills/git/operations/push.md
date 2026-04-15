@@ -11,8 +11,8 @@ Push commits and create/update PR.
 2. **Check for uncommitted changes**:
    - If changes exist, run the Commit operation first
 
-3. **Gather stack metadata**: Run `git-spice log short --json 2>/dev/null` to collect all stack metadata in one pass. This also serves as the git-spice availability check.
-   - If the command fails (git-spice not installed or branch not tracked): run the Ensure Git-Spice pattern from references/git-spice-patterns.md, then retry.
+3. **Gather stack metadata**: Run `git-spice log short --json 2>/dev/null` to collect all stack metadata in one pass.
+   - If the command fails: follow the Error Recovery pattern from references/git-spice-patterns.md, then retry.
    - Parse the JSONL output per the "Stack Metadata via JSON" section of references/git-spice-patterns.md. For each line: `.name` is the branch name, `.change` holds PR info (null if no PR), `.push.ahead` and `.push.behind` indicate divergence vs remote, `.down.name` is the base branch.
    - From the current branch's entry: note whether `.change` is non-null (PR exists) and extract `.push.ahead`/`.push.behind`.
    - Identify branches needing pushing: any branch where `.push.ahead > 0`, `.push.behind > 0`, or `.push` is absent (remote doesn't exist).
@@ -47,7 +47,7 @@ Push commits and create/update PR.
 
 7. **Gather PR context** (run in parallel after push):
    - Read branch context file (path per references/git-patterns.md "Branch Context File")
-   - `git log origin/<base>..HEAD --format=%B` for commit messages (base branch from `.down.name` in step 3 JSON, or from the Ensure Git-Spice step)
+   - `git log origin/<base>..HEAD --format=%B` for commit messages (base branch from `.down.name` in step 3 JSON)
    - `git diff --stat origin/<base>...HEAD` for diff stats
 
 8. **Context adequacy check**: Count distinct top-level directories from the diff stats. If 20+ files or 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or thin. Present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:

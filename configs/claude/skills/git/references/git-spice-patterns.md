@@ -6,7 +6,7 @@ git-spice patterns for stacked branch management. Reference this file for all gi
 
 - Detection
 - Initialization
-- Ensure Git-Spice
+- Error Recovery
 - Tracked Branch Check
 - Stack Metadata via JSON
 - Push via Git-Spice
@@ -37,19 +37,14 @@ git-spice repo init --trunk <base> --remote origin --no-prompt
 git config spice.branchCreate.prefix sc/
 ```
 
-## Ensure Git-Spice
+## Error Recovery
 
-A composite pattern that all operations use before running any `git-spice` command:
+When any `git-spice` command fails, check the error message:
 
-1. **Detect**: Run the Detection check above. If git-spice is already initialized, skip to step 3.
-2. **Initialize**: Run initialization silently (no user prompt):
-   ```bash
-   DEFAULT_BRANCH=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||')
-   git-spice repo init --trunk "${DEFAULT_BRANCH:-main}" --remote origin --no-prompt
-   ```
-   Then: `git config spice.branchCreate.prefix sc/`
-3. **Check tracked**: If the current branch is trunk (main/master) or the dotfiles exception applies (on main in dotfiles repo), skip to step 4. Otherwise, check if the current branch is tracked per the Tracked Branch Check below. If not tracked, run `git-spice branch track --no-prompt` to track it (git-spice auto-guesses the base by comparing against other tracked branches).
-4. **Done**: git-spice is ready to use.
+- **Repo not initialized** (e.g., `not a git-spice repo`): run the Initialization pattern above, then retry.
+- **Branch not tracked** (e.g., `not tracked`): run `git-spice branch track --no-prompt` to track it (git-spice auto-guesses the base), then retry.
+
+Do NOT run detection or initialization proactively — just run the git-spice command and handle errors.
 
 ## Tracked Branch Check
 

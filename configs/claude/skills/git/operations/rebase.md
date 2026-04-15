@@ -6,7 +6,7 @@ Fetch latest and rebase onto base branch.
 
 1. **Fetch latest from remote**: Run `git fetch origin`.
 
-2. **Detect base branch**: Detect base branch per references/git-patterns.md (this runs Ensure Git-Spice internally).
+2. **Detect base branch**: Detect base branch per references/git-patterns.md.
 
 3. **Rebase onto base branch**: Run `git-spice upstack restack`. This rebases the current branch AND all branches above it onto their updated bases.
 

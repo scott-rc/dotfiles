@@ -4,8 +4,6 @@ Auto-detect and fix CI failures, unresolved review threads, and PR description q
 
 ## Instructions
 
-0. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md. Required because commit-and-push steps use `git-spice branch submit`.
-
 ### Stack Mode
 
 When the user asks to fix "the stack" / "all PRs" / "every branch," run Fix across every branch in the stack that has a PR.

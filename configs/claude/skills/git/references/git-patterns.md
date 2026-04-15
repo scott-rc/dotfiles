@@ -35,12 +35,11 @@ Custom fish functions (`gwc`, `gwt`) MUST be called via `fish -c '...'` in the B
 
 ## Base Branch Detection
 
-1. **Ensure Git-Spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md if not already done in this operation.
-2. **Read base from git-spice JSON**:
+1. **Read base from git-spice JSON**:
    ```bash
    git-spice log short --json 2>/dev/null | jq -r --arg branch "$(git branch --show-current)" 'select(.name == $branch) | .down.name'
    ```
-   After Ensure Git-Spice, the branch is tracked and `.down.name` is populated. This is the authoritative base for both regular and stacked branches. If `.down.name` is null or empty (e.g., trunk branch), fall back to `git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` with default `main`.
+   If the command fails, follow the Error Recovery pattern from references/git-spice-patterns.md and retry. Once the branch is tracked, `.down.name` is populated. This is the authoritative base for both regular and stacked branches. If `.down.name` is null or empty (e.g., trunk branch), fall back to `git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'` with default `main`.
 
 ## Dotfiles Exception
 

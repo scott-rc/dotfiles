@@ -6,7 +6,7 @@ Squash all commits on the current branch into a single commit.
 
 1. **Fetch latest from remote**: `git fetch origin`
 
-2. **Detect base branch**: Detect base branch per references/git-patterns.md (this runs Ensure Git-Spice internally).
+2. **Detect base branch**: Detect base branch per references/git-patterns.md.
 
 3. **List commits to squash**: `git log origin/<base>..HEAD --oneline`. Also capture full commit messages for step 8: `git log origin/<base>..HEAD --format=%B`.
 

@@ -10,7 +10,7 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 
 1. **Understand the correction**: Identify what's wrong and what's right from the user's message. If unclear, ask via AskUserQuestion.
 
-2. **Detect base branch**: per references/git-patterns.md (this runs Ensure Git-Spice internally).
+2. **Detect base branch**: per references/git-patterns.md.
 
 3. **Scan all artifacts**: Read the following artifacts in parallel, checking each for the incorrect claim:
    - Commit message — `git log -1 --format=%B` (or `git log origin/<base>..HEAD --format=%B` for multi-commit branches)

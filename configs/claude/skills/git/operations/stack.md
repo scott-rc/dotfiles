@@ -4,9 +4,7 @@ Navigate and manage stacked branches tracked by git-spice.
 
 ## Instructions
 
-1. **Ensure git-spice**: Run the Ensure Git-Spice pattern from references/git-spice-patterns.md. This auto-initializes silently if needed.
-
-2. **Route by intent**:
+1. **Route by intent**:
    - **Navigate**: `git-spice up`, `git-spice down`, `git-spice top`, `git-spice bottom`, `git-spice trunk` — move to the requested position in the stack.
    - **Restack**: `git-spice upstack restack` (current branch and all above) — rebase the stack onto updated bases.
    - **List**: `git-spice log short` — show the stack with current position and CR status.
@@ -18,4 +16,4 @@ Navigate and manage stacked branches tracked by git-spice.
    - **Diff**: `git-spice branch diff` — show the diff between the current branch and its base. Quick way to see what the current branch changes.
    - **Branch squash**: `git-spice branch squash --no-prompt` — squash all commits in the current branch into one and auto-restack upstack branches. Use `-m "<msg>"` to provide the message inline, or `--no-edit` to keep the combined message without opening an editor.
 
-3. **Report**: Show current position and stack state via `git-spice log short`.
+2. **Report**: Show current position and stack state via `git-spice log short`.

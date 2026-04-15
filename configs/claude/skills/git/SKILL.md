@@ -91,7 +91,7 @@ Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review t
 
 Reference files:
 - references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
-- references/git-spice-patterns.md - git-spice patterns: detection, initialization, Ensure Git-Spice, stack metadata via JSON, push/commit/amend/squash via git-spice, rebase conflict resolution, branch fold, stack submit, CR discovery
+- references/git-spice-patterns.md - git-spice patterns: detection, initialization, error recovery, stack metadata via JSON, push/commit/amend/squash via git-spice, rebase conflict resolution, branch fold, stack submit, CR discovery
 - references/git-spice-cli.md - git-spice skill conventions (non-interactive rule, branch prefix, command name) and links to official LLM-friendly CLI docs
 - references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
 - references/pr-writer-rules.md - PR title and description writing rules
