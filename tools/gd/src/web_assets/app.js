@@ -391,6 +391,95 @@ function renderAll() {
 }
 
 // ---------- Tree ----------
+
+// Port of TUI's precompute_connectors() from pager/tree.rs
+function computeConnectors(visible) {
+  const n = visible.length;
+  if (n === 0) return [];
+
+  // Backward pass: min depth among entries after position i
+  const minDepthAfter = new Array(n).fill(Infinity);
+  let minSoFar = Infinity;
+  for (let i = n - 2; i >= 0; i--) {
+    minSoFar = Math.min(minSoFar, visible[i + 1].depth);
+    minDepthAfter[i] = minSoFar;
+  }
+
+  // Backward pass: has sibling at same depth with no shallower entry in between
+  const maxDepth = visible.reduce((m, e) => Math.max(m, e.depth), 0);
+  const hasSibling = new Array(n).fill(false);
+  const lastAtDepth = new Array(maxDepth + 1).fill(null);
+  for (let i = n - 1; i >= 0; i--) {
+    const d = visible[i].depth;
+    if (lastAtDepth[d] !== null) hasSibling[i] = true;
+    lastAtDepth[d] = i;
+    for (let slot = d + 1; slot <= maxDepth; slot++) lastAtDepth[slot] = null;
+  }
+
+  // Forward pass: build connector strings
+  const result = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const depth = visible[i].depth;
+    let prefix = '';
+    for (let d = 0; d < depth; d++) {
+      prefix += minDepthAfter[i] <= d ? '│   ' : '    ';
+    }
+    prefix += hasSibling[i] ? '├── ' : '└── ';
+    result[i] = prefix;
+  }
+  return result;
+}
+
+// Compute per-file change stats { added, deleted } from file hunks
+function computeFileStats() {
+  const stats = {};
+  for (let fi = 0; fi < state.files.length; fi++) {
+    let added = 0, deleted = 0;
+    for (const hunk of state.files[fi].hunks) {
+      for (const line of hunk.lines) {
+        if (line.kind === 'added') added++;
+        else if (line.kind === 'deleted') deleted++;
+      }
+    }
+    stats[fi] = { added, deleted };
+  }
+  return stats;
+}
+
+// Aggregate stats for a directory entry: sum all descendant file stats
+function aggregateDirStats(visible, dirIdx, fileStats) {
+  const dirDepth = visible[dirIdx].depth;
+  let added = 0, deleted = 0;
+  for (let i = dirIdx + 1; i < visible.length; i++) {
+    if (visible[i].depth <= dirDepth) break;
+    if (!visible[i].is_dir && visible[i].file_idx != null) {
+      const s = fileStats[visible[i].file_idx];
+      if (s) { added += s.added; deleted += s.deleted; }
+    }
+  }
+  // For collapsed dirs, also walk the full tree to include hidden children
+  if (visible[dirIdx].collapsed) {
+    const fullTree = state.tree;
+    // Find corresponding entry in full tree
+    const dirKey = treeDirKey(visible[dirIdx]);
+    let inSubtree = false;
+    for (const e of fullTree) {
+      if (!inSubtree && treeDirKey(e) === dirKey && e.is_dir) {
+        inSubtree = true;
+        continue;
+      }
+      if (inSubtree) {
+        if (e.depth <= dirDepth) break;
+        if (!e.is_dir && e.file_idx != null) {
+          const s = fileStats[e.file_idx];
+          if (s) { added += s.added; deleted += s.deleted; }
+        }
+      }
+    }
+  }
+  return { added, deleted };
+}
+
 function renderTree() {
   if (!state.treeVisible) {
     treeEl.classList.add('hidden');
@@ -399,12 +488,13 @@ function renderTree() {
   treeEl.classList.remove('hidden');
 
   const visible = getVisibleTree();
+  const connectors = computeConnectors(visible);
+  const fileStats = computeFileStats();
   let html = '';
   for (let i = 0; i < visible.length; i++) {
     const entry = visible[i];
     const isActive = i === state.treeCursor;
     const isFocused = state.treeFocused;
-    const indent = '&nbsp;'.repeat(entry.depth * 3);
     const cls = [
       'tree-entry',
       entry.is_dir ? 'dir' : '',
@@ -422,11 +512,37 @@ function renderTree() {
       : '&#xf15b;');
     const iconStyle = entry.icon_color ? `style="color: ${entry.icon_color}"` : '';
 
-    html += `<div class="${cls}" data-tree-idx="${i}">`;
-    html += `<span class="tree-guide">${indent}</span>`;
+    // Change stats
+    let statsHtml = '';
+    if (!entry.is_dir && entry.file_idx != null) {
+      const s = fileStats[entry.file_idx];
+      if (s && (s.added || s.deleted)) {
+        statsHtml = '<span class="tree-stats">';
+        if (s.added) statsHtml += `<span class="stat-add">+${s.added}</span>`;
+        if (s.added && s.deleted) statsHtml += ' ';
+        if (s.deleted) statsHtml += `<span class="stat-del">-${s.deleted}</span>`;
+        statsHtml += '</span>';
+      }
+    } else if (entry.is_dir) {
+      const s = aggregateDirStats(visible, i, fileStats);
+      if (s.added || s.deleted) {
+        statsHtml = '<span class="tree-stats">';
+        if (s.added) statsHtml += `<span class="stat-add">+${s.added}</span>`;
+        if (s.added && s.deleted) statsHtml += ' ';
+        if (s.deleted) statsHtml += `<span class="stat-del">-${s.deleted}</span>`;
+        statsHtml += '</span>';
+      }
+    }
+
+    const fileIdx = entry.file_idx;
+    const dataFileIdx = fileIdx != null ? ` data-file-idx="${fileIdx}"` : '';
+
+    html += `<div class="${cls}" data-tree-idx="${i}"${dataFileIdx}>`;
+    html += `<span class="tree-guide">${connectors[i]}</span>`;
     html += `<span class="tree-icon" ${iconStyle}>${icon}</span>`;
     html += statusHtml;
     html += `<span class="tree-label">${escapeHtml(entry.label)}</span>`;
+    html += statsHtml;
     html += `</div>`;
   }
   treeEl.innerHTML = html;
@@ -458,7 +574,27 @@ function getVisibleTree() {
 }
 
 function treeDirKey(entry) {
-  return `${entry.depth}:${entry.label}`;
+  // Use full path for uniqueness: walk the flat tree backward to find ancestors
+  if (entry._pathKey) return entry._pathKey;
+  const parts = [entry.label];
+  const tree = state.tree;
+  // Find entry's index in the full tree
+  let idx = -1;
+  for (let i = 0; i < tree.length; i++) {
+    if (tree[i] === entry) { idx = i; break; }
+  }
+  if (idx >= 0) {
+    let targetDepth = entry.depth;
+    for (let i = idx - 1; i >= 0 && targetDepth > 0; i--) {
+      if (tree[i].depth < targetDepth) {
+        parts.unshift(tree[i].label);
+        targetDepth = tree[i].depth;
+      }
+    }
+  }
+  const key = parts.join('/');
+  entry._pathKey = key;
+  return key;
 }
 
 // Initialize expandedDirs with all directories so tree starts fully expanded
@@ -1422,6 +1558,23 @@ document.addEventListener('keydown', (e) => {
     __gdPerf.recordNavigation(e.key, performance.now() - navStart);
   }
 });
+
+// Tree hover → highlight corresponding file header in diff
+treeEl.addEventListener('mouseenter', (e) => {
+  const entry = e.target.closest('.tree-entry');
+  if (!entry) return;
+  const fileIdx = entry.dataset.fileIdx;
+  if (fileIdx == null) return;
+  // Find the file header element in the diff pane
+  const header = diffPane.querySelector(`.file-header[data-flat-idx="${state.fileStarts[parseInt(fileIdx, 10)]}"]`);
+  if (header) header.classList.add('tree-hover');
+}, true);
+
+treeEl.addEventListener('mouseleave', (e) => {
+  const entry = e.target.closest('.tree-entry');
+  if (!entry) return;
+  diffPane.querySelectorAll('.file-header.tree-hover').forEach(el => el.classList.remove('tree-hover'));
+}, true);
 
 // Tree click handler
 treeEl.addEventListener('click', (e) => {

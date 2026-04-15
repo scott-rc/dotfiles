@@ -214,6 +214,7 @@ html, body {
   cursor: pointer;
   color: var(--fg-tree);
   user-select: none;
+  line-height: 1;
 }
 .tree-entry:hover { background: var(--bg-tree-cursor-unfocused); }
 .tree-entry.active { background: var(--bg-tree-cursor-focused); color: var(--fg-tree-active); }
@@ -222,7 +223,11 @@ html, body {
 .tree-entry .tree-status { display: inline-block; width: 16px; text-align: center; font-weight: bold; }
 .tree-entry .tree-label { }
 .tree-entry.dir .tree-label { color: var(--fg-tree-dir); }
-.tree-entry .tree-guide { color: var(--fg-tree-guide); }
+.tree-entry .tree-guide { color: var(--fg-tree-guide); white-space: pre; font-family: var(--font-mono); display: inline-block; margin: -2px 0; }
+
+.tree-entry .tree-stats { margin-left: 8px; font-size: 11px; opacity: 0.7; }
+.tree-entry .stat-add { color: var(--fg-status-added); }
+.tree-entry .stat-del { color: var(--fg-status-deleted); }
 
 .tree-entry .status-modified { color: var(--fg-status-modified); }
 .tree-entry .status-added { color: var(--fg-status-added); }
@@ -265,6 +270,7 @@ html, body {
   align-items: center;
 }
 .file-header:first-child { border-top: none; }
+.file-header.tree-hover { border-left: 3px solid var(--fg-file-header); }
 .file-header .file-status {
   font-weight: normal;
   opacity: 0.6;
