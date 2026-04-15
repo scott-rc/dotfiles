@@ -1,7 +1,7 @@
 ---
 name: code
 description: Writes, reviews, tests, and optimizes code -- enforces TDD for new features and bug fixes, runs code review, benchmarks, and mutation testing.
-argument-hint: "[write | test | plan | review | benchmark] [context]"
+argument-hint: "[write | test | plan | execute | review | benchmark] [context]"
 ---
 
 # Code
@@ -26,6 +26,10 @@ Delegate immediately to the compose skill: `skill: "compose", args: "$ARGUMENTS"
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis. Supports an evaluate-fix loop mode for iterative convergence.
 MUST read operations/review.md before executing.
 
+### Execute
+Orchestrate multi-phase plan execution (from prd-to-plan or similar) with commit checkpoints between phases, skip tracking, and interactive UI verification.
+MUST read operations/execute.md before executing.
+
 ### Benchmark
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
 MUST read operations/benchmark.md before executing.
@@ -37,6 +41,7 @@ Users often request multiple operations together. Handle these as follows:
 **Default: TDD for new behavior.** When the request adds new functionality or fixes a bug, use the TDD operation — don't wait for the user to say "TDD" or "write tests first".
 
 - **plan / design / "how should I implement"** → Plan
+- **"continue implementing" / "implement plan" / "execute plan"** (with a plan file path) → Execute
 - **add feature / write** (new behavior) → Write (Feature mode)
 - **implement / full cycle / build and verify** → Write (Feature or Fix mode), then Review (loop mode) on all changed files
 - **implement with mutation testing / harden** → Write (Feature or Fix mode), then Test (Mutate mode), then Review (loop mode) on all changed files
