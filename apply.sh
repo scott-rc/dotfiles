@@ -17,6 +17,8 @@ fi
 defaults write -g ApplePressAndHoldEnabled -bool false
 # shellcheck disable=SC2016
 defaults write NSGlobalDomain NSUserKeyEquivalents -dict-add "Minimize" '@~^$m'
+# Disable macOS "Move focus to next window" (cmd+`) so Ghostty can use it for quick terminal toggle
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 27 '{ enabled = 0; value = { parameters = (96, 50, 1048576); type = standard; }; }'
 
 # Determine the workspace root (assumed to be the directory of this script)
 WORKSPACE_ROOT="$SCRIPT_DIR"
