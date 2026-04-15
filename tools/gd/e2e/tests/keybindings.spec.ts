@@ -55,35 +55,39 @@ test.describe("Keybindings", () => {
   });
 
   test("o toggles full context mode", async ({ page }) => {
-    // Get initial count of diff lines
-    const initialCount = await page.locator(".diff-line").count();
+    // Verify full context is initially off
+    const initialState = await page.evaluate(
+      () => (window as any).__gdState?.fullContext,
+    );
+    expect(initialState).toBe(false);
 
     // Press o to enable full context
     await page.keyboard.press("o");
 
-    // Wait for diff to update (server sends new DiffData)
-    await page.waitForFunction(
-      (prevCount) => document.querySelectorAll(".diff-line").length !== prevCount,
-      initialCount,
-      { timeout: 5000 }
-    );
+    // Wait for full context to be enabled and collapsed context groups to appear
+    // (server re-diffs with -U999999, then long context runs get collapsed)
+    await page.waitForSelector(".collapsed-context", { timeout: 5000 });
 
-    // Count should have increased (full context shows more lines)
-    const fullContextCount = await page.locator(".diff-line").count();
-    expect(fullContextCount).toBeGreaterThan(initialCount);
+    expect(
+      await page.$$eval(".collapsed-context", (els) => els.length),
+    ).toBeGreaterThan(0);
 
     // Press o again to disable full context
     await page.keyboard.press("o");
 
-    // Wait for diff to update back
+    // Wait for full context to be disabled and diff to re-render
     await page.waitForFunction(
-      (prevCount) => document.querySelectorAll(".diff-line").length !== prevCount,
-      fullContextCount,
-      { timeout: 5000 }
+      () =>
+        (window as any).__gdState?.fullContext === false &&
+        document.querySelectorAll(".collapsed-context").length === 0,
+      { timeout: 5000 },
     );
 
-    // Count should return to approximately original value
-    const restoredCount = await page.locator(".diff-line").count();
-    expect(restoredCount).toBeLessThan(fullContextCount);
+    // No collapsed groups in normal mode
+    const restoredCount = await page.$$eval(
+      ".collapsed-context",
+      (els) => els.length,
+    );
+    expect(restoredCount).toBe(0);
   });
 });

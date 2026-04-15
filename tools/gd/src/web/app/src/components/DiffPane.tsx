@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { displayItems, cursor, selectionAnchor, collapsedFiles, searchMatches, searchCurrentIdx } from "../state/store";
 import { ITEM_HEIGHTS, type DisplayItem } from "../utils/display";
 import { DiffLine } from "./DiffLine";
+import { CollapsedContext } from "./CollapsedContext";
 import { useKeyboard } from "../hooks/useKeyboard";
 
 // Global scroll function for use by CommandPalette
@@ -123,6 +124,8 @@ function DisplayRow({
       return <FileHeader item={item} />;
     case "hunk-sep":
       return <HunkSep />;
+    case "collapsed-context":
+      return <CollapsedContext groupKey={item.groupKey} count={item.count} />;
     case "line": {
       const kindClass = item.line.kind === "added" ? " line-added" : item.line.kind === "deleted" ? " line-deleted" : "";
       return (

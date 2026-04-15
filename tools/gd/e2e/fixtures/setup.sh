@@ -42,6 +42,39 @@ pub fn format_number(n: i32) -> String {
 }
 EOF
 
+# File with many context lines between changes (for collapsible context testing)
+cat > long_file.rs << 'EOF'
+use std::io;
+
+pub struct Config {
+    pub name: String,
+    pub version: u32,
+    pub debug: bool,
+    pub max_retries: u32,
+    pub timeout_ms: u64,
+}
+
+impl Config {
+    pub fn new() -> Self {
+        Self {
+            name: String::from("default"),
+            version: 1,
+            debug: false,
+            max_retries: 3,
+            timeout_ms: 5000,
+        }
+    }
+
+    pub fn validate(&self) -> bool {
+        !self.name.is_empty() && self.timeout_ms > 0
+    }
+
+    pub fn display(&self) {
+        println!("Config: {} v{}", self.name, self.version);
+    }
+}
+EOF
+
 git add .
 git commit -q -m "Initial commit"
 
@@ -56,6 +89,40 @@ fn main() {
 }
 EOF
 git add main.rs
+
+# Unstaged change: modify long_file.rs (changes spread far apart, creates collapsible context)
+cat > long_file.rs << 'EOF'
+use std::io;
+use std::fmt;
+
+pub struct Config {
+    pub name: String,
+    pub version: u32,
+    pub debug: bool,
+    pub max_retries: u32,
+    pub timeout_ms: u64,
+}
+
+impl Config {
+    pub fn new() -> Self {
+        Self {
+            name: String::from("default"),
+            version: 1,
+            debug: true,
+            max_retries: 3,
+            timeout_ms: 5000,
+        }
+    }
+
+    pub fn validate(&self) -> bool {
+        !self.name.is_empty() && self.timeout_ms > 0
+    }
+
+    pub fn display(&self) {
+        println!("Config: {} v{} (debug={})", self.name, self.version, self.debug);
+    }
+}
+EOF
 
 # Unstaged change: modify lib.rs (includes deletion and addition)
 cat > lib.rs << 'EOF'

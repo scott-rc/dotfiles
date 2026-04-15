@@ -18,6 +18,7 @@ export const fullContext = signal(false);
 
 // Collapse state
 export const collapsedFiles = signal<Set<number>>(new Set());
+export const expandedContextGroups = signal<Set<string>>(new Set());
 
 // Cursor state
 export const cursor = signal(0);
@@ -46,9 +47,9 @@ export const theme = signal<"system" | "light" | "dark">(
 // UI state
 export const helpOpen = signal(false);
 
-// Derived: flat display items (respects view scope and collapsed files)
+// Derived: flat display items (respects view scope, collapsed files, and context groups)
 export const displayItems = computed(() => {
-  const allItems = flattenFiles(files.value);
+  const allItems = flattenFiles(files.value, expandedContextGroups.value);
   const collapsed = collapsedFiles.value;
   const scope = viewScope.value;
   const fileIdx = singleFileIdx.value;
