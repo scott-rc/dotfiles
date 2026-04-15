@@ -195,8 +195,15 @@ if command -v cargo &>/dev/null; then
 	mkdir -p "$HOME/.cargo/bin"
 	run_with_spinner "Building tools workspace" bash -c "cd \"$WORKSPACE_ROOT/tools\" && cargo build --release 2>&1"
 	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/md" "$HOME/.cargo/bin/md"
-	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/gd" "$HOME/.cargo/bin/gd"
 	ensure_symlink "$WORKSPACE_ROOT/tools/target/release/boom" "$HOME/.cargo/bin/boom"
+
+	GD_DIR="$HOME/Code/personal/gd"
+	if [ -d "$GD_DIR" ]; then
+		run_with_spinner "Building gd" bash -c "cd \"$GD_DIR\" && cargo build --release 2>&1"
+		ensure_symlink "$GD_DIR/target/release/gd" "$HOME/.cargo/bin/gd"
+	else
+		log_warn "gd repo not found at $GD_DIR — skipping"
+	fi
 	log_success "Tools built and linked"
 fi
 

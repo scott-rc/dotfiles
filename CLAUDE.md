@@ -9,7 +9,8 @@
 
 ### Cargo Tools
 
-- `tools/tui/` is a workspace dependency of both `tools/md/` and `tools/gd/`
+- `tools/tui/` is a workspace dependency of `tools/md/`
+- `gd` lives in its own repo at `~/Code/personal/gd/` (inlines its own copy of `tui`)
 
 ### Fish Shell
 

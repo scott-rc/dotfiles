@@ -1,9 +1,0 @@
----
-source: gd/src/git/mod.rs
-expression: "DiffSource::Range(\"main\".into(), \"HEAD\".into()).diff_args()"
----
-[
-    "diff",
-    "main",
-    "HEAD",
-]

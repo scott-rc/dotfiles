@@ -1,7 +1,0 @@
----
-source: gd/src/git/mod.rs
-expression: "DiffSource::WorkingTree.diff_args()"
----
-[
-    "diff",
-]

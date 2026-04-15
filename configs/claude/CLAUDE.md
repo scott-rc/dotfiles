@@ -44,6 +44,7 @@ When the user references a repo by name (e.g., "check gadget", "look at the skil
 **Convention:** All repos live under `~/Code/{personal,gadget,scratch}/<name>`. For repos not listed here, check those directories.
 
 - `~/Code/personal/dotfiles` — macOS dotfiles, symlink-managed configs, **Claude Code skills**
+- `~/Code/personal/gd` — Terminal git diff viewer (Rust), standalone repo
 - `~/Code/gadget/gadget` — Main Gadget monorepo
 - `~/Code/gadget/ggt` — Gadget CLI tool
 - `~/Code/gadget/skipper` — Kubernetes operator for Gadget apps

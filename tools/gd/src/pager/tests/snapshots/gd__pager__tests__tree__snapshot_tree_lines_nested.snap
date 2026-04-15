@@ -1,8 +1,0 @@
----
-source: gd/src/pager/tests/tree.rs
-expression: "stripped.join(\"\\n\")"
----
-├──  M README.md    
-└──  src            
-    ├──  M lib.rs   
-    └──  M main.rs

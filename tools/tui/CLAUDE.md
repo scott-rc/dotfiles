@@ -4,11 +4,7 @@ Key modules: `tui::ansi` (ANSI regex patterns and escape helpers), `tui::highlig
 
 ---
 
-`tui` is a shared library crate used by `md` and `gd`. It MUST NOT contain any binary targets.
-
----
-
-All public API changes MUST be backwards-compatible with both consumers (`md` and `gd`).
+`tui` is a shared library crate used by `md`. It MUST NOT contain any binary targets. (`gd` has moved to `~/Code/personal/gd/` with its own inlined copy of tui.)
 
 ---
 
@@ -16,4 +12,4 @@ ANSI regex patterns and escape helpers live exclusively in `tui::ansi` — consu
 
 ---
 
-After changing tui, run `cargo test` in both `tools/md/` and `tools/gd/` to verify downstream compatibility. See `.claude/rules/tools.md` for build requirements.
+After changing tui, run `cargo test` in `tools/md/` to verify downstream compatibility. See `.claude/rules/tools.md` for build requirements.
