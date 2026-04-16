@@ -7,7 +7,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
 1. **Locate the skill**:
    - If the user provides a path, use it directly
    - If the user provides a skill name, search for `<name>/SKILL.md` in `~/.claude/skills/` and the project's `.claude/skills/` directory
-   - If neither, discover available skills and present them as AskUserQuestion options
+   - If neither, discover available skills and present them as options
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Read the current skill**:
@@ -18,7 +18,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Reference file names with their topics
 
 3. **Determine the update scope**:
-   If the user's request is specific (e.g., "add a deploy operation"), proceed directly. If the request is vague (e.g., "update this skill"), interview the user via AskUserQuestion about what to change. Present the current skill structure from step 2 and ask which of these update types apply:
+   If the user's request is specific (e.g., "add a deploy operation"), proceed directly. If the request is vague (e.g., "update this skill"), interview the user about what to change. Present the current skill structure from step 2 and ask which of these update types apply:
    - Add a new operation
    - Modify an existing operation
    - Remove an operation
@@ -27,7 +27,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - Remove a reference file
    - Rename the skill
 
-   Multiple update types may apply simultaneously. Confirm all planned changes together via AskUserQuestion before proceeding. Apply them in the order listed in step 4.
+   Multiple update types may apply simultaneously. Confirm all planned changes together with the user before proceeding. Apply them in the order listed in step 4.
 
 4. **Apply changes**:
    Read the authoring specs (references/skill-spec.md, references/skill-template.md, references/shared-rules.md) and apply changes inline using Edit/Write:
@@ -41,9 +41,9 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    - **Renaming**: rename directory via `mv`, update `name` in frontmatter, note external references needing manual updates
 
    Special cases requiring user interaction before applying:
-   - **Renaming**: confirm new name candidates via AskUserQuestion
-   - **Removing references**: if operation files link to a reference being removed, warn and confirm via AskUserQuestion
-   - **Orphaned references**: present via AskUserQuestion: "Remove orphaned file", "Keep it"
+   - **Renaming**: confirm new name candidates with the user
+   - **Removing references**: if operation files link to a reference being removed, warn and confirm with the user
+   - **Orphaned references**: present options to the user: "Remove orphaned file", "Keep it"
 
    Validate against references/quality-checklist.md; fix any issues, up to 3 iterations.
 

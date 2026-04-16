@@ -60,7 +60,7 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
      - **transient** or **flake**: report the classification to the user (rerun already triggered). Stop.
      - **real**: proceed to the fix step using the trimmed logs and root cause from the triage.
 
-   - **Buildkite**: Fetch logs per references/buildkite-handling.md. Skip automated triage for Buildkite -- treat all failures as real. Truncate logs to the last 200 lines per job. **Before fixing**, present a summary of failed jobs (job name + one-line failure snippet from each log) and ask the user via AskUserQuestion with options: "Fix all", "Skip (likely flakes)", "Let me choose". If "Let me choose", present each job individually and let the user select which to fix. Only fix jobs the user selected.
+   - **Buildkite**: Fetch logs per references/buildkite-handling.md. Skip automated triage for Buildkite -- treat all failures as real. Truncate logs to the last 200 lines per job. **Before fixing**, present a summary of failed jobs (job name + one-line failure snippet from each log) and ask the user with options: "Fix all", "Skip (likely flakes)", "Let me choose". If "Let me choose", present each job individually and let the user select which to fix. Only fix jobs the user selected.
 
 2. **Fix the issues directly**, using:
    - For GitHub Actions: the triage results as context (root cause analysis, trimmed failure logs, relevant file paths)
@@ -68,7 +68,7 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
    - The local fix commands resolved from "Local Fix Commands" in references/git-patterns.md
    - The project's CLAUDE.md for project-specific build/test commands
 
-   If the fix is ambiguous or risky, present candidate fixes as AskUserQuestion options before applying. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user via AskUserQuestion before applying.
+   If the fix is ambiguous or risky, present candidate fixes as options before applying. If the failure is in CI configuration (not source code), explain what needs to change and confirm with the user before applying.
 
 3. **Commit and push**: Summarize what failed, why, what was fixed, and whether local verification passed. Stage changed files, commit with message "Fix <workflow/check name> CI failure: <brief cause>" per the Inline Commit Procedure in references/commit-message-format.md. Then check PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field): if a PR exists, push with `git-spice branch submit --update-only --no-prompt`; otherwise use `git-spice branch submit --no-publish --no-prompt`.
 
@@ -80,7 +80,7 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
 
 2. **Present a summary**: Run `get-pr-comments.sh --summary` and present its compact output. For large thread sets, group by file and show counts rather than listing every thread individually.
 
-3. **Classify threads**: Classify each thread by commenter type — **bot threads** (bugbot, dependabot, or any automated bot) are handled autonomously; **human reviewer threads** require explicit user approval before applying code fixes. Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm via AskUserQuestion before applying code fixes to human threads.
+3. **Classify threads**: Classify each thread by commenter type — **bot threads** (bugbot, dependabot, or any automated bot) are handled autonomously; **human reviewer threads** require explicit user approval before applying code fixes. Agents MUST NOT post replies to human reviewer threads. MUST ask the user to confirm before applying code fixes to human threads.
 
    Independently classify each thread by **target**: **code threads** (feedback about source code, tests, configs, or CI files) vs **description threads** (feedback about the PR title, summary, or description text being inaccurate, misleading, or incomplete — the comment discusses what the PR *says*, not what it *does*). Classify each thread on both axes independently — a thread may be both a bot thread and a description thread.
 
@@ -96,7 +96,7 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
    - Self-classify each applicable finding's fix approach: if it's a security or correctness bug (path traversal, injection, data loss, missing validation with observable wrong behavior), write a failing test demonstrating the bug first, then fix. If it's consistency or style (pattern matching, naming, formatting), fix and verify existing tests pass — no new test required. Tiebreaker: if the missing handling could cause data loss or silent wrong results, treat as test-first.
    - Group threads by file path to minimize context switching
 
-5. **Scope-check fixes**: After fixing, run `git diff --name-only` and compare against the file paths from the thread list. Flag any unexpected files (not referenced by any thread) to the user via AskUserQuestion before proceeding.
+5. **Scope-check fixes**: After fixing, run `git diff --name-only` and compare against the file paths from the thread list. Flag any unexpected files (not referenced by any thread) to the user before proceeding.
 
 6. **React to not-applicable bot threads**: For each bot thread classified as not applicable in step 4:
    - Add a thumbs-down reaction to the first comment: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content="-1"`
@@ -115,7 +115,7 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
    - **Already addressed** (no code change needed): reply concisely that it's already addressed.
    - **Needs discussion**: draft a thoughtful response.
 
-10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options via AskUserQuestion: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
+10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
 11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
 
@@ -149,10 +149,10 @@ Improve a PR description that is missing diff coverage or lacks verification inf
 
 1. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from `references/git-patterns.md`.
-   - If the file contains the `N/A` sentinel: ask via AskUserQuestion -- "The PR description could be improved, but there's no branch context. What's the motivation for this branch?" with options: **"I'll explain"** (user provides the reason; write it to the branch context file) or **"Skip description update"** (stop this path entirely).
+   - If the file contains the `N/A` sentinel: ask the user -- "The PR description could be improved, but there's no branch context. What's the motivation for this branch?" with options: **"I'll explain"** (user provides the reason; write it to the branch context file) or **"Skip description update"** (stop this path entirely).
    - If the file has real content but is a single sentence AND the diff spans 20+ files or 3+ top-level directories: run the context adequacy check from operations/push.md's "Context adequacy check" step (ask user if they want to update context before proceeding).
 
-2. **Present findings**: Show the user which quality issues were detected (missing coverage, missing verification info) and ask via AskUserQuestion: "Refresh the PR description?" with options: **"Refresh it"** (proceed to step 3) or **"Skip"** (stop this path).
+2. **Present findings**: Show the user which quality issues were detected (missing coverage, missing verification info) and ask: "Refresh the PR description?" with options: **"Refresh it"** (proceed to step 3) or **"Skip"** (stop this path).
 
 3. **Refresh**: Run the Refresh Description mode from operations/push.md starting at the "Write PR title and description" step -- the PR check, branch context, and adequacy steps are already covered by Detection step 3 and Description Path step 1 above. Pass the quality findings as the `context` field (e.g., "Description was missing coverage for CI workflow changes").
 

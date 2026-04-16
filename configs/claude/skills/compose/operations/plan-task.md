@@ -26,8 +26,8 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
    Confirm when the agent synthesized information from multiple sources or made non-obvious inferences. Skip when the user's request was already complete and codebase exploration (step 2) added no unexpected context.
    When this step runs:
    - MUST summarize the goal, scope, and codebase context in 3-5 sentences
-   - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
-   - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options
+   - MUST present the summary and ask for confirmation with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
    - If the user selects "Start over", return to step 1
    - MUST NOT proceed to decomposition until the user selects "Looks good"
 
@@ -50,8 +50,8 @@ Decompose a large task into ordered chunks with orchestrated subagent execution,
      - **Independently verifiable** -- each chunk's Verification section should confirm its work without relying on later chunks.
    - Return the proposed chunk list with all details
 
-   Present the Plan subagent's proposed decomposition to the user. MUST use AskUserQuestion with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
-   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust via AskUserQuestion, revise the decomposition (re-running the Plan subagent if the changes are substantial), and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
+   Present the Plan subagent's proposed decomposition to the user with options: "Approve chunks", "Request changes" (description: "I'll describe what to adjust"), "Add/remove chunks" (description: "I'll specify which chunks to add or remove")
+   If the user selects "Request changes" or "Add/remove chunks", ask what to adjust, revise the decomposition (re-running the Plan subagent if the changes are substantial), and re-present with the same options. MUST NOT proceed to writing chunk files until the user selects "Approve chunks".
 
 5. **Write chunk files**:
    For each approved chunk, write a chunk file at `./tmp/<plan-name>/chunk-NN-<slug>.md` using the format from references/chunk-format.md. Expand the high-level steps into concrete checkboxes using the codebase context for specific file paths, function names, and commands. Use TDD step groups when steps involve testable behavior; use plain step groups for refactoring, config, or glue.

@@ -5,10 +5,10 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
+   Follow the interview pattern from references/content-patterns.md. Ask the user about:
    - What goal or outcome the session should accomplish
    - Constraints or boundaries (e.g., don't change public API, stay within one file, use existing patterns)
-   - Expected output type -- present as AskUserQuestion options: "New feature", "Refactor", "Bug fix", "Migration", "Documentation", "Other"
+   - Expected output type -- present as options: "New feature", "Refactor", "Bug fix", "Migration", "Documentation", "Other"
    - Whether a relevant codebase exists and where it lives
    - Any prior decisions, context, or failed approaches to include
 
@@ -26,8 +26,8 @@ Craft a session task prompt interactively, producing a polished prompt ready to 
    Confirm when any requirement was inferred or when multiple valid interpretations exist. Skip when the user's request already stated the goal, constraints, and output clearly.
    When this step runs:
    - MUST summarize the goal, constraints, and planned context in 2-3 sentences
-   - MUST present the summary and ask for confirmation via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
-   - If the user selects "Needs changes", ask what to adjust via AskUserQuestion, update understanding, and re-confirm with the same options
+   - MUST present the summary and ask for confirmation with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   - If the user selects "Needs changes", ask what to adjust, update understanding, and re-confirm with the same options
    - If the user selects "Start over", return to step 1
    - MUST NOT proceed to drafting until the user selects "Looks good"
 

@@ -8,7 +8,7 @@ Evaluate a session task prompt against best practices, report findings, and offe
    - If the user pastes prompt text directly, use it as-is
    - If the user provides a file path, read the file
    - If the user says "clipboard" or "from clipboard", read from `pbpaste`
-   - If unclear, present source options via AskUserQuestion: "Paste text", "From clipboard", "From file"
+   - If unclear, present source options to the user: "Paste text", "From clipboard", "From file"
 
 2. **Analyze structure**:
    Check for these sections:
@@ -50,5 +50,5 @@ Evaluate a session task prompt against best practices, report findings, and offe
    For each finding, state the issue, quote the problematic text, and provide a specific fix.
 
 5. **Offer to rewrite**:
-   - MUST present options via AskUserQuestion: "Apply all fixes", "Apply blocking fixes only", "No changes"
+   - MUST present options to the user: "Apply all fixes", "Apply blocking fixes only", "No changes"
    - If approved, apply the selected fixes and deliver the improved prompt following the delivery pattern from references/content-patterns.md. Claude applies fixes inline (no writer subagent) since prompts are ephemeral text, not persisted skill/rules files.

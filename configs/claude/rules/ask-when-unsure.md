@@ -11,7 +11,7 @@ Default to action when there's an obvious path. Ask when the answer genuinely ch
 
 ## How to Ask
 
-MUST use the `AskUserQuestion` tool — not inline text — so the question is surfaced as an explicit prompt.
+Present questions clearly — how to surface them (interactive prompt, inline text, options list) is up to the agent based on context.
 
 - Lead with a recommendation: "I'd go with X because Y — want me to proceed, or would you prefer Z?"
 - Be concrete — name the specific options or trade-offs, not a vague "what should I do?"

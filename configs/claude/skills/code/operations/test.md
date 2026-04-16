@@ -55,7 +55,7 @@ Evaluate test suite quality by introducing mutations into source code and checki
 
    The subagent MUST return a numbered list with: mutation type, file path, line number, original code, mutated code, and which behavior it tests.
 
-   Present the mutation plan to the user via AskUserQuestion with options: "Proceed with all mutations", "Adjust count", "Pick specific mutations".
+   Present the mutation plan to the user with options: "Proceed with all mutations", "Adjust count", "Pick specific mutations".
    - **Proceed** → continue to step 6 with all mutations
    - **Adjust count** → re-run the Explore subagent with the new count
    - **Pick specific** → filter the list to user-selected mutations, then continue to step 6

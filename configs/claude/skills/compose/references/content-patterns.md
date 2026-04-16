@@ -11,8 +11,8 @@ Use these patterns inside operation files when they fit the task:
 - **Template pattern**: Provide a strict output template (low freedom) or a flexible one with optional sections (medium freedom).
 - **Examples pattern**: Show 1-2 input/output pairs when the desired style or format is ambiguous.
 - **Conditional routing pattern**: "If X, go to step N. If Y, go to step M." Use when an operation has meaningfully different paths.
-- **Interview pattern**: When an operation needs user input before proceeding, batch related questions into a single step rather than asking one at a time. Ask only what's needed to unblock the next decision -- don't front-load every possible question. Use follow-up rounds to drill into areas the user's answers reveal as complex or ambiguous. End the interview by summarizing your understanding and confirming before proceeding. Use this pattern when requirements are unclear, the domain has many valid options, or the user's initial request is vague. See the Interview Pattern rules below for AskUserQuestion mechanics.
-- **Confirmation pattern**: When asking the user to choose or provide a value, present 1-3 idiomatic defaults as AskUserQuestion options. The tool provides an automatic "Other" free-text option. Choose defaults that reflect common, recommended, or contextually inferred choices -- one click vs typing from scratch. Use for naming choices, location picks, configuration options, disambiguation, and action selection. Do not use for open-ended questions where defaults would mislead, or pure summary confirmations ("does this look right?").
+- **Interview pattern**: When an operation needs user input before proceeding, batch related questions into a single step rather than asking one at a time. Ask only what's needed to unblock the next decision -- don't front-load every possible question. Use follow-up rounds to drill into areas the user's answers reveal as complex or ambiguous. End the interview by summarizing your understanding and confirming before proceeding. Use this pattern when requirements are unclear, the domain has many valid options, or the user's initial request is vague. See the Interview Pattern rules below.
+- **Confirmation pattern**: When asking the user to choose or provide a value, present 1-3 idiomatic defaults as options. The tool provides an automatic "Other" free-text option. Choose defaults that reflect common, recommended, or contextually inferred choices -- one click vs typing from scratch. Use for naming choices, location picks, configuration options, disambiguation, and action selection. Do not use for open-ended questions where defaults would mislead, or pure summary confirmations ("does this look right?").
 - **Deciding vs doing pattern**: See Delegation > Behavior in the global CLAUDE.md. Quick tests for operation authors — inline if "am I gathering info to decide what to do next?" Delegate if "does this consume context I'll need later?"
 - **Scripts vs agents pattern**: Scripts handle deterministic data extraction (fetch, parse, pipe — output is structured data). Agents handle work requiring judgment (triage, analysis, classification, writing — output is a decision or artifact). One-off work stays inline. Work reused 2+ times in the same skill gets extracted to `scripts/` (scripts) or a named agent (agents). Full workflows from another skill use the Skill tool.
 - **Cross-skill delegation pattern**: When an operation needs functionality from another skill, use the Skill tool (`skill: "<name>", args: "<routing context>"`). MUST NOT reference another skill's files via relative paths — the other skill's routing and transitive references are not loaded.
@@ -22,16 +22,16 @@ Use these patterns inside operation files when they fit the task:
 ### Interview Pattern
 
 When an operation begins with user Q&A:
-- MUST use AskUserQuestion for all questions
-- MUST batch related questions into a single AskUserQuestion call (up to 4 questions per call)
+- MUST ask the user explicitly — how to present (interactive prompt, inline text, options list) is up to the agent based on context
+- MUST batch related questions into a single prompt (up to 4 questions per prompt)
 - MUST skip questions the user's initial request already answered
-- SHOULD complete the interview in 2 AskUserQuestion rounds (8 questions max). A 3rd round is acceptable when the skill has 5+ distinct topics or when follow-up reveals unexpected complexity. MUST NOT exceed 3 rounds.
+- SHOULD complete the interview in 2 rounds (8 questions max). A 3rd round is acceptable when the skill has 5+ distinct topics or when follow-up reveals unexpected complexity. MUST NOT exceed 3 rounds.
 
 ## Task Skill Pattern
 
 Skills that run a specific workflow (deploys, migrations, data transforms) rather than augmenting knowledge. Combine `context: fork` for isolation with `disable-model-invocation: true` for safety.
 
-A `context: fork` skill runs in an isolated subagent. AskUserQuestion is NOT available inside the fork — any user interaction MUST happen before forking. If the skill needs interactive input, resolve it inline in SKILL.md (where AskUserQuestion works), then dispatch the resolved input to the fork via the Task tool.
+A `context: fork` skill runs in an isolated subagent. User interaction is NOT available inside the fork — any user interaction MUST happen before forking. If the skill needs interactive input, resolve it inline in SKILL.md (where user interaction works), then dispatch the resolved input to the fork via the Task tool.
 
 ```markdown
 ---
@@ -45,7 +45,7 @@ disable-model-invocation: true
 Run pending database migrations for $ARGUMENTS.
 
 1. **Check current state**: Run `db migrate status` and report pending migrations
-2. **Confirm with user**: List migrations that will run and confirm via AskUserQuestion
+2. **Confirm with user**: List migrations that will run and confirm with the user
 3. **Apply**: Dispatch migration to a Task subagent (general-purpose): run `db migrate up`, verify with `db migrate status`, report results
 ```
 

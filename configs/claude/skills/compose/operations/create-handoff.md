@@ -10,7 +10,7 @@ Write a self-contained task description that captures the current session's cont
    - What has been completed or decided in this session
    - Any constraints, gotchas, or blockers already discovered
 
-   If the user provided no context at all (e.g., just `/compose handoff` with nothing else), ask via AskUserQuestion: what should the next session accomplish? MUST batch all questions into a single call. MUST skip anything the conversation history already answers.
+   If the user provided no context at all (e.g., just `/compose handoff` with nothing else), ask the user: what should the next session accomplish? MUST batch all questions into a single prompt. MUST skip anything the conversation history already answers.
 
    MUST NOT investigate, explore, or research on behalf of the next session. If the user said "figure out how X works", write that as-is -- do not figure it out now.
 

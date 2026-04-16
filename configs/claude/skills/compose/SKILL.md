@@ -67,7 +67,7 @@ Users often request multiple operations together. Handle these as follows:
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
 - **"hand this off"** / **"handoff"** / **"save context"** / **"continue later"** / **"write what's left"** → Run Create Handoff
 - **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
-- **"review"** (ambiguous) → Present options via AskUserQuestion: "Review a skill", "Review a rules file", "Review a prompt"
+- **"review"** (ambiguous) → Present options: "Review a skill", "Review a rules file", "Review a prompt"
 
 ## References
 

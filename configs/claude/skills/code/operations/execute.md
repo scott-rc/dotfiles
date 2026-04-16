@@ -4,7 +4,7 @@ Orchestrate multi-phase plan execution with commit checkpoints, skip tracking, a
 
 ## Instructions
 
-1. **Read the plan file**: Parse phases from the plan file (path provided by user). Each phase has a title, "What to build" section, and acceptance criteria checkboxes (`- [ ]`). Identify the first phase with unchecked criteria -- resume from there.
+1. **Read the plan file**: If the user provided a path, use it. Otherwise, search for plan files in `./tmp/` (e.g., `tmp/feedback/plan.md`, `tmp/prd/*/plan.md`). If exactly one is found, use it. If multiple are found, present them as options to the user. If none are found, ask the user for the path. Parse phases from the plan file. Each phase has a title, "What to build" section, and acceptance criteria checkboxes (`- [ ]`). Identify the first phase with unchecked criteria -- resume from there.
 
 2. **For each phase in order**:
 

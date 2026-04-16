@@ -8,7 +8,7 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
 
 ## Instructions
 
-1. **Understand the correction**: Identify what's wrong and what's right from the user's message. If unclear, ask via AskUserQuestion.
+1. **Understand the correction**: Identify what's wrong and what's right from the user's message. If unclear, ask the user.
 
 2. **Detect base branch**: per references/git-patterns.md.
 
@@ -28,4 +28,4 @@ When the user corrects a factual claim (e.g., "that's not what this does", "thos
    - PR title — write an updated title inline following references/pr-writer-rules.md with `context` set to the correction
    - PR description — write an updated description inline following references/pr-writer-rules.md with `context` set to the correction
 
-6. **Report**: Confirm what was updated. If the commit was amended and a remote tracking branch exists, present force push options via AskUserQuestion: first run the Downstream PR Safety check from references/git-patterns.md, then determine the submit flag by checking PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`. Present options: "Force push" or "Skip push".
+6. **Report**: Confirm what was updated. If the commit was amended and a remote tracking branch exists, present force push options to the user: first run the Downstream PR Safety check from references/git-patterns.md, then determine the submit flag by checking PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`. Present options: "Force push" or "Skip push".

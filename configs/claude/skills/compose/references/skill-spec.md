@@ -92,7 +92,7 @@ Use `` !`command` `` syntax to inject the output of a shell command into skill c
 
 ### Subagent Execution
 
-When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent. `AskUserQuestion` is NOT available inside a fork — any user interaction MUST happen before forking.
+When `context: fork` is set in frontmatter, the skill runs in an isolated subagent context. The `agent` field selects the executor type (`Explore`, `Plan`, `general-purpose`, or custom). The skill content becomes the task prompt for the subagent. User interaction is NOT available inside a fork — any user interaction MUST happen before forking.
 
 Custom agent types reference `.claude/agents/<name>.md` files; the name MUST match the filename without extension. Companion agents ship in `configs/claude/agents/` and are symlinked to `~/.claude/agents/` by `apply.sh`.
 

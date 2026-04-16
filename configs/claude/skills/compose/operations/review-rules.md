@@ -7,7 +7,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
 1. **Locate the rules file(s)**:
    - If the user provides a path, use it directly
    - If the user says "review my CLAUDE.md", check the current project root first, then `~/.claude/CLAUDE.md`
-   - If neither, discover CLAUDE.md files in the project and present them as AskUserQuestion options
+   - If neither, discover CLAUDE.md files in the project and present them as options
    - SHOULD also identify related files: other CLAUDE.md files in parent/child directories, `.claude/rules/` files (including subdirectories), `~/.claude/rules/` user-level rules
 
 2. **Evaluate rules via multi-perspective review**:

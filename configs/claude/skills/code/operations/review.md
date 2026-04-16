@@ -4,7 +4,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
 
 ## Instructions
 
-**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing AskUserQuestion prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
+**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
 
 1. **Identify review scope**:
    Determine what code to review. If the user specifies files, functions, or a diff, use that. If unspecified, ask what they want reviewed.
@@ -19,7 +19,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    Count changed files and lines (`git diff --stat` or file list).
    - **Quick** (≤8 files AND ≤500 lines, user didn't request thorough) → steps 5–8.
    - **Auto-thorough** (any of: user said "thorough"/"deep review", >20 files, or >1500 lines) → steps 5, then 9–14. No confirmation needed.
-   - **Ask** (between the two thresholds) → present an AskUserQuestion: "Thorough review (subagent decomposition)" or "Quick review (single-pass)", then route accordingly.
+   - **Ask** (between the two thresholds) → ask the user: "Thorough review (subagent decomposition)" or "Quick review (single-pass)", then route accordingly.
 
 4. **Load guidelines**: Read references/load-guidelines.md for the full list of guidelines. Load references/general-guidelines.md and any applicable language-specific files. Skip references/testing-guidelines.md only if the scope contains no test files.
 
@@ -61,7 +61,7 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
    - Propose 2–5 non-overlapping scopes, each with a name, concrete file list, focus, and scope-specific criteria beyond the standard checklist
    - Return the scopes as a structured list
 
-   Present the proposed scopes to the user via AskUserQuestion for confirmation or adjustment before proceeding. (Skipped in loop mode — use proposed scopes directly.)
+   Present the proposed scopes to the user for confirmation or adjustment before proceeding. (Skipped in loop mode — use proposed scopes directly.)
 
 10. **Spawn review subagents**:
     Spawn parallel subagents, one per scope. Pass each:

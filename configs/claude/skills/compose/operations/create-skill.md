@@ -5,15 +5,15 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from references/content-patterns.md. Cover each topic via AskUserQuestion:
+   Follow the interview pattern from references/content-patterns.md. Cover each topic:
    - Purpose and domain
    - Trigger phrases
    - Operations needed
    - Shared knowledge requirements
    - Runtime dependencies
-   - Location — present applicable locations as AskUserQuestion options
-   - Invocation mode — present as AskUserQuestion options: "User only" (`disable-model-invocation: true`), "Claude only" (`user-invocable: false`), "Both" (default)
-   - Subagent execution (`context: fork`) — present as AskUserQuestion options
+   - Location — present applicable locations as options
+   - Invocation mode — present as options: "User only" (`disable-model-invocation: true`), "Claude only" (`user-invocable: false`), "Both" (default)
+   - Subagent execution (`context: fork`) — present as options
    - Tool restrictions (`allowed-tools`)
 
 2. **Determine skill shape**:
@@ -28,11 +28,11 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
 3. **Determine skill name**:
    - MUST apply naming rules from references/skill-spec.md: lowercase, hyphens, max 64 chars
    - SHOULD prefer gerund form when natural (e.g., `managing-deploys`)
-   - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements via AskUserQuestion
+   - MUST confirm the name with the user -- suggest 1-3 name candidates derived from the requirements
 
 4. **Create the skill directory**:
    - Create `<location>/<skill-name>/`
-   - If the directory already exists, present options via AskUserQuestion: "Overwrite existing", "Pick a different name"
+   - If the directory already exists, present options to the user: "Overwrite existing", "Pick a different name"
 
 5. **Confirm the spec**:
    Before writing, confirm the full skill spec with the user. MUST summarize:
@@ -43,7 +43,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Reference files to create (hub-and-spoke only)
    - Frontmatter options (invocation mode, context, allowed-tools)
 
-   Present via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   Present options to the user: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
    - If "Needs changes", ask what to adjust, update, and re-confirm
    - If "Start over", return to step 1
    - MUST NOT proceed to writing until the user selects "Looks good"

@@ -43,14 +43,14 @@ Push commits and create/update PR.
    - If `.change` is null: no PR exists — skip to step 9 (create PR).
    - If `.change` is non-null: run `gh pr view --json state,headRefOid 2>/dev/null` (PR number known from `.change.id`) to check for staleness:
      - If `state` is `MERGED` or `CLOSED`: treat as no PR (skip to step 9).
-     - If `state` is `OPEN`, verify head commit: `git merge-base --is-ancestor <headRefOid> HEAD`. If NOT an ancestor: present options via AskUserQuestion: "Close old PR and create new", "Abort push".
+     - If `state` is `OPEN`, verify head commit: `git merge-base --is-ancestor <headRefOid> HEAD`. If NOT an ancestor: present options to the user: "Close old PR and create new", "Abort push".
 
 7. **Gather PR context** (run in parallel after push):
    - Read branch context file (path per references/git-patterns.md "Branch Context File")
    - `git log origin/<base>..HEAD --format=%B` for commit messages (base branch from `.down.name` in step 3 JSON)
    - `git diff --stat origin/<base>...HEAD` for diff stats
 
-8. **Context adequacy check**: Count distinct top-level directories from the diff stats. If 20+ files or 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or thin. Present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
+8. **Context adequacy check**: Count distinct top-level directories from the diff stats. If 20+ files or 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), the context may be stale or thin. Ask the user: "The branch has grown since context was captured — update branch context?" with options:
    - **"Update it"** -- run the Branch Context Creation pattern (update path) from references/git-patterns.md, then continue.
    - **"Continue as-is"** -- proceed with existing context.
 
@@ -72,12 +72,12 @@ Update the PR description without pushing new commits.
 
 2. **Ensure branch context**: Check if the branch context file exists (path per references/git-patterns.md "Branch Context File").
    - If **missing**: run the Branch Context Creation pattern from references/git-patterns.md.
-   - If the file contains the `N/A` sentinel (per references/git-patterns.md "Opt-out sentinel") **and** the user did not already specify a reason for the update: ask via AskUserQuestion -- "What changed or why update the description?" with options:
+   - If the file contains the `N/A` sentinel (per references/git-patterns.md "Opt-out sentinel") **and** the user did not already specify a reason for the update: ask the user -- "What changed or why update the description?" with options:
      - **"I'll explain"** -- user provides the reason; use their response as the `context` field when writing the PR description.
      - **"Just rewrite from the diff"** -- proceed without `context`.
    - If the file has real content: proceed normally (`branch_context` carries the motivation).
 
-3. **Context adequacy check**: If the branch context file has real content (not missing, not `N/A`), detect base branch per references/git-patterns.md, then run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), present via AskUserQuestion: "The branch has grown since context was captured — update branch context?" with options:
+3. **Context adequacy check**: If the branch context file has real content (not missing, not `N/A`), detect base branch per references/git-patterns.md, then run `git diff --stat origin/<base>...HEAD` and count distinct top-level directories touched. If the diff touches 20+ files or spans 3+ distinct top-level directories AND the branch context is a single sentence (no line breaks, no bullets), ask the user: "The branch has grown since context was captured — update branch context?" with options:
    - **"Update it"** -- run the Branch Context Creation pattern (update path) from references/git-patterns.md, then continue.
    - **"Continue as-is"** -- proceed with existing context.
 
@@ -90,7 +90,7 @@ Update the PR description without pushing new commits.
 
    PR text MUST follow references/github-text.md.
 
-5. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), first run the Downstream PR Safety check from references/git-patterns.md, then present options via AskUserQuestion: "Force push" or "Skip push". Only push if the user accepts. To push: check PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`.
+5. **Check for unpushed history rewrite**: If the local HEAD differs from the remote tracking branch's HEAD (i.e., history was rewritten by a squash or amend but not yet pushed), first run the Downstream PR Safety check from references/git-patterns.md, then present options to the user: "Force push" or "Skip push". Only push if the user accepts. To push: check PR existence via the Stack Metadata via JSON pattern in references/git-spice-patterns.md (`.change` field). If the branch has a PR, use `git-spice branch submit --update-only --force --no-prompt`; if no PR, use `git-spice branch submit --no-publish --force --no-prompt`.
 
 6. **Verify**: Read back the posted description (`gh pr view <pr_number> --json body -q .body`). Spot-check any factual claims about before/after states (types, signatures, behavior changes) against the diff (re-read if needed). If something looks wrong, correct the description inline and re-post.
 

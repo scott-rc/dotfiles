@@ -8,7 +8,7 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - If the user provides a path, use it directly
    - If the user provides a skill name, search for `<name>/SKILL.md` in `~/.claude/skills/` and the project's skill directory
    - If a skill was just created or modified in the current conversation, default to reviewing that skill without asking
-   - If neither, discover available skills and present them as AskUserQuestion options
+   - If neither, discover available skills and present them as options
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Multi-perspective review**:

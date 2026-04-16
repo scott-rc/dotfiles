@@ -141,7 +141,7 @@ Before any force push, check for open PRs that target the current branch as thei
 gh pr list --base "$(git branch --show-current)" --state open --json number,title,headRefName --jq '.[]'
 ```
 
-If any exist, warn the user and present options via AskUserQuestion:
+If any exist, warn the user and present options:
 - "Update their bases first" — for each downstream PR, run `gh pr edit <number> --base <new-base>` where `<new-base>` is this branch's own base (detected per Base Branch Detection above); then proceed with the force push
 - "Force push anyway" — proceed without updating bases (risk: GitHub may auto-merge downstream PRs)
 - "Abort" — stop the operation
@@ -179,9 +179,9 @@ Read or create the branch context file that captures the "why" for the current b
 
 4. **Draft from conversation**: If context is sufficient (step 3 passed), draft a branch context: 1-3 sentences of purpose/motivation, related links if discussed, no headers/change lists/implementation details. If the conversation reveals multiple distinct concerns (e.g., docs site + CI workflow + tooling rules + config removal), enumerate each concern as a separate sentence or bullet -- downstream operations use this to decide whether to structure output as prose or numbered lists. Follow the format constraints in step 6. Then skip to step 6 (write the file).
 
-5. **Gather context**: Prompt via AskUserQuestion with a single combined prompt. The header is "Branch Context" and the question is "What's the purpose of this branch?". Include exactly these options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts):
+5. **Gather context**: Ask the user with a single combined prompt. The header is "Branch Context" and the question is "What's the purpose of this branch?". Include exactly these options (MUST NOT substitute domain-specific alternatives -- they are intentionally domain-agnostic so they work consistently across all repos and contexts):
    - **"Skip"** -- write `N/A` to the branch context file and skip to step 8 (skip confirmation).
-   - **"Help me articulate it"** -- pre-fill answers from whatever IS available in the conversation (spec files, commit messages, diff stats) and present them as a single AskUserQuestion with three questions: "What problem are you solving or what triggered this work?" (pre-fill the best guess as the first option, with "Something else" as second), "What's the expected outcome when this branch merges?" (pre-fill if inferable, with "Something else" as second), and "Any related issues, PRs, or links?" (with "Skip" and "Yes" options). This MUST be a single AskUserQuestion call with all three questions, not sequential prompts.
+   - **"Help me articulate it"** -- pre-fill answers from whatever IS available in the conversation (spec files, commit messages, diff stats) and present them as a single prompt with three questions: "What problem are you solving or what triggered this work?" (pre-fill the best guess as the first option, with "Something else" as second), "What's the expected outcome when this branch merges?" (pre-fill if inferable, with "Something else" as second), and "Any related issues, PRs, or links?" (with "Skip" and "Yes" options). This MUST be a single prompt with all three questions, not sequential prompts.
 
    The free-text input ("Type something...") serves as the direct-entry path -- no separate option is needed for it. If the user provides free text, treat it as the purpose. Synthesize all answers into a concise purpose statement (1-3 sentences) plus any links provided.
 
@@ -191,7 +191,7 @@ Read or create the branch context file that captures the "why" for the current b
 
    Lead with the problem or trigger, not the solution. "CONTRIBUTING.md mixed audiences and couldn't scale" is why; "Add a Starship docs site" is what. If the branch includes changes with separate motivations (e.g., a cleanup alongside a feature), mention each motivation -- the reader needs to understand why the diff touches seemingly unrelated areas. For branches with 3 or more distinct concerns, each concern MUST be its own sentence or bullet -- do NOT compress them into a single compound sentence with semicolons. This gives downstream operations explicit concern boundaries to work from. Do NOT include headers, change lists, implementation details, or what files were modified -- the diff is the source of truth for "what". Keep the user's original phrasing where possible.
 
-7. **Confirm with user**: Show the written content and ask via AskUserQuestion -- "Does this accurately capture the purpose?" with options:
+7. **Confirm with user**: Show the written content and ask -- "Does this accurately capture the purpose?" with options:
    - **"Looks good"** -- proceed to report.
    - **"Needs changes"** -- user provides corrections; update the file and re-confirm.
 

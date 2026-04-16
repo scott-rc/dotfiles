@@ -5,13 +5,13 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
 ## Instructions
 
 1. **Gather requirements**:
-   Follow the interview pattern from references/content-patterns.md. Ask the user via AskUserQuestion about:
-   - What type of rules file they need -- present as AskUserQuestion options: "Project CLAUDE.md" (description: project root, loads every conversation), "Global CLAUDE.md" (description: `~/.claude/CLAUDE.md`, user-wide across all projects), "CLAUDE.local.md" (description: private per-project, auto-gitignored), "Unconditional rule" (description: `.claude/rules/<name>.md` without `paths:`, always loads), "Scoped rule" (description: `.claude/rules/<name>.md` with `paths:`, loads for matching files), "User-level rule" (description: `~/.claude/rules/<name>.md`, personal across all projects), "Managed policy" (description: org-wide, requires IT/DevOps deployment)
+   Follow the interview pattern from references/content-patterns.md. Ask the user about:
+   - What type of rules file they need -- present as options: "Project CLAUDE.md" (description: project root, loads every conversation), "Global CLAUDE.md" (description: `~/.claude/CLAUDE.md`, user-wide across all projects), "CLAUDE.local.md" (description: private per-project, auto-gitignored), "Unconditional rule" (description: `.claude/rules/<name>.md` without `paths:`, always loads), "Scoped rule" (description: `.claude/rules/<name>.md` with `paths:`, loads for matching files), "User-level rule" (description: `~/.claude/rules/<name>.md`, personal across all projects), "Managed policy" (description: org-wide, requires IT/DevOps deployment)
    - What project or directory the rules are for
    - What instructions or conventions they want to encode
    - Whether existing documentation (README, CONTRIBUTING, etc.) should be referenced via `@file`
    - If scoped: which file paths or patterns the rules should apply to
-   - If personal/private: present as AskUserQuestion options: "CLAUDE.local.md" (description: per-project, auto-gitignored), "~/.claude/rules/" (description: cross-project)
+   - If personal/private: present as options: "CLAUDE.local.md" (description: per-project, auto-gitignored), "~/.claude/rules/" (description: cross-project)
 
 2. **Determine file location and type**:
    - **Project CLAUDE.md**: `<project-root>/CLAUDE.md` or `<project-root>/.claude/CLAUDE.md` — for project-wide instructions
@@ -23,8 +23,8 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - **User-level rule**: `~/.claude/rules/<name>.md` — for personal rules across all projects (loaded before project rules)
    - **Managed policy**: `/Library/Application Support/ClaudeCode/CLAUDE.md` (macOS) — organization-wide, requires IT/DevOps deployment
    - Rules files MAY be organized into subdirectories (e.g., `.claude/rules/frontend/react.md`)
-   - MUST confirm the location with the user -- present 1-3 applicable locations via AskUserQuestion based on the user's requirements (e.g., project CLAUDE.md, `.claude/rules/<name>.md`, `~/.claude/rules/<name>.md`)
-   - If a file already exists at the target location, read it and present options via AskUserQuestion: "Replace existing", "Extend existing", "Pick a different location"
+   - MUST confirm the location with the user -- present 1-3 applicable locations based on the user's requirements (e.g., project CLAUDE.md, `.claude/rules/<name>.md`, `~/.claude/rules/<name>.md`)
+   - If a file already exists at the target location, read it and present options to the user: "Replace existing", "Extend existing", "Pick a different location"
 
 3. **Assess existing documentation**:
    Spawn a Task subagent (type: Explore, model: haiku) to scan the project for existing documentation. The subagent MUST:
@@ -40,7 +40,7 @@ Write a CLAUDE.md or `.claude/rules/` rules file, producing clear and concise pr
    - `@file` references to include (from step 3)
    - Mode: create, replace, or extend
 
-   Present via AskUserQuestion with options: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
+   Present options to the user: "Looks good", "Needs changes" (description: "I'll describe what to adjust"), "Start over" (description: "Re-gather requirements from scratch")
    - If "Needs changes", ask what to adjust, update, and re-confirm
    - If "Start over", return to step 1
    - MUST NOT proceed to writing until the user selects "Looks good"
