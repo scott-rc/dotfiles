@@ -7,7 +7,10 @@ function _zellij_tab_name --on-event fish_prompt
     set -q ZELLIJ; or return
     set -l branch (git branch --show-current 2>/dev/null)
     if test -n "$branch"
-        zellij action rename-tab "$branch"
+        set -l repo (basename (git rev-parse --show-toplevel 2>/dev/null))
+        zellij action rename-tab "$repo/$branch"
+    else
+        zellij action rename-tab (basename $PWD)
     end
 end
 

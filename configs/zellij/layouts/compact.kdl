@@ -31,9 +31,9 @@ layout {
                 mode_rename_pane   "#[fg=$green] RENAME "
                 mode_tmux          "#[fg=$orange] TMUX "
 
-                tab_normal              "#[fg=$bg]#[fg=$muted] {name} #[fg=$bg]"
-                tab_normal_fullscreen   "#[fg=$bg]#[fg=$muted] [{name}] #[fg=$bg]"
-                tab_normal_sync         "#[fg=$bg]#[fg=$muted] <{name}> #[fg=$bg]"
+                tab_normal              "#[fg=#161b22,bg=$bg]#[bg=#161b22,fg=$muted] {name} #[fg=#161b22,bg=$bg]"
+                tab_normal_fullscreen   "#[fg=#161b22,bg=$bg]#[bg=#161b22,fg=$muted] [{name}] #[fg=#161b22,bg=$bg]"
+                tab_normal_sync         "#[fg=#161b22,bg=$bg]#[bg=#161b22,fg=$muted] <{name}> #[fg=#161b22,bg=$bg]"
                 tab_active              "#[fg=#1c2128,bg=$bg]#[bg=#1c2128,fg=$fg] {name} #[fg=#1c2128,bg=$bg]"
                 tab_active_fullscreen   "#[fg=#1c2128,bg=$bg]#[bg=#1c2128,fg=$fg] [{name}] #[fg=#1c2128,bg=$bg]"
                 tab_active_sync         "#[fg=#1c2128,bg=$bg]#[bg=#1c2128,fg=$fg] <{name}> #[fg=#1c2128,bg=$bg]"
