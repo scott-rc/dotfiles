@@ -2,6 +2,16 @@
 
 Test design patterns for writing tests that are easy to extend, maintain, and debug. Apply these when writing tests in any operation.
 
+## Philosophy
+
+**Test behavior, not implementation.** Tests should verify what the system does through its public interfaces, not how it does it internally. A good test describes a capability -- "user can checkout with valid cart" -- and survives any internal refactor that doesn't change that capability. If renaming a private function or restructuring internals breaks your tests, those tests are testing implementation, not behavior.
+
+**Use public interfaces only.** Don't reach into private methods, query the database directly to verify writes, or assert on call counts of internal collaborators. Verify outcomes through the same surface real callers use. The test is a specification of behavior from the caller's perspective.
+
+**Tests should survive refactors.** The warning sign that a test is wrong: it breaks when behavior is unchanged. If that happens, the test was coupled to implementation details rather than observable behavior.
+
+See [test-examples.md](test-examples.md) for concrete good-vs-bad examples, [mocking.md](mocking.md) for when mocking is appropriate, and [interface-design.md](interface-design.md) for designing interfaces that resist bad tests.
+
 ## Make It Easy to Add New Cases
 
 Structure tests so adding a new case requires only new data, not new logic. The test loop, assertions, and setup should be written once.

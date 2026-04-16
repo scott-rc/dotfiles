@@ -1,7 +1,7 @@
 ---
 name: compose
-description: Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity.
-argument-hint: "[create | update | review | plan | handoff] [target]"
+description: Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, and writes handoff files for session continuity.
+argument-hint: "[create | update | review | handoff] [target]"
 ---
 
 # Composing for Claude Code
@@ -40,10 +40,6 @@ MUST read operations/review-prompt.md before executing.
 Write a self-contained handoff and deliver via plan mode so the user can accept and continue in a fresh context.
 MUST read operations/create-handoff.md before executing.
 
-### Plan Task
-Decompose a large task into ordered chunks with orchestrated subagent execution.
-MUST read operations/plan-task.md before executing.
-
 ## Delegation
 
 - Skill files (operations, references, SKILL.md) — write inline; read the authoring specs (references/skill-spec.md, references/skill-template.md, references/quality-checklist.md) and apply them directly
@@ -66,7 +62,6 @@ Users often request multiple operations together. Handle these as follows:
 - **"review prompt"** / **"improve prompt"** / **"check my prompt"** → Run Review Prompt
 - **"write and review prompt"** → Run Create Prompt, then Review Prompt on the result
 - **"hand this off"** / **"handoff"** / **"save context"** / **"continue later"** / **"write what's left"** → Run Create Handoff
-- **"plan this"** / **"break this down"** / **"chunk this"** / **"decompose this task"** → Run Plan Task
 - **"review"** (ambiguous) → Present options: "Review a skill", "Review a rules file", "Review a prompt"
 
 ## References
@@ -79,5 +74,3 @@ Users often request multiple operations together. Handle these as follows:
 - references/content-patterns.md - Reusable patterns for operation steps, task skills, and dynamic context injection
 - references/rules-template.md - Templates for CLAUDE.md and scoped rules files
 - references/multi-perspective-review.md - Two-agent parallel review loop (Sonnet/Opus) with convergence criteria
-- references/chunk-format.md - Canonical chunk file structure: TDD and non-TDD templates, checkbox rules, size limits (used by Plan Task operation)
-- references/plan-template.md - Templates for plan artifacts: master plan, chunk files, orchestrator prompt

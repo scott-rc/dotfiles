@@ -79,15 +79,15 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
 
    Write the body and title to PR-specific temp file paths to avoid clobbering when updating multiple PRs.
 
-   **Update mode** -- use the PR number as the suffix:
+   **Update mode** -- use the PR number as the directory name:
 
    ```bash
-   mkdir -p ./tmp && cat <<'EOF' > ./tmp/pr-<pr_number>-body.txt
+   mkdir -p ./tmp/pr/<pr_number> && cat <<'EOF' > ./tmp/pr/<pr_number>/body.txt
    ...
    EOF
-   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-<pr_number>-body.txt
-   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-<pr_number>-title.txt
-   TITLE=$(cat ./tmp/pr-<pr_number>-title.txt)
+   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr/<pr_number>/body.txt
+   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr/<pr_number>/title.txt
+   TITLE=$(cat ./tmp/pr/<pr_number>/title.txt)
    ```
 
    - Fetch current body: `gh pr view <pr_number> --json body -q .body`
@@ -99,20 +99,20 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
      4. **Strip unverified claims**: Any factual claim not confirmed by steps 1-3 must be removed. Do not trust session memory, branch context, or commit messages for before/after facts.
 
    ```bash
-   gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr-<pr_number>-body.txt
+   gh pr edit <pr_number> --title "$TITLE" --body-file ./tmp/pr/<pr_number>/body.txt
    ```
 
-   **Create mode** -- use the base branch name (slashes replaced with dashes) as the suffix:
+   **Create mode** -- use the base branch name (slashes replaced with dashes) as the directory name:
 
    ```bash
    BRANCH_SLUG=$(echo "<base_branch>" | tr '/' '-')
-   mkdir -p ./tmp && cat <<'EOF' > ./tmp/pr-${BRANCH_SLUG}-body.txt
+   mkdir -p ./tmp/pr/${BRANCH_SLUG} && cat <<'EOF' > ./tmp/pr/${BRANCH_SLUG}/body.txt
    ...
    EOF
-   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr-${BRANCH_SLUG}-body.txt
-   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr-${BRANCH_SLUG}-title.txt
-   TITLE=$(cat ./tmp/pr-${BRANCH_SLUG}-title.txt)
-   git-spice branch submit --title "$TITLE" --body "$(cat ./tmp/pr-${BRANCH_SLUG}-body.txt)" --no-prompt
+   ~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr/${BRANCH_SLUG}/body.txt
+   ~/.claude/skills/git/scripts/sanitize.sh --title ./tmp/pr/${BRANCH_SLUG}/title.txt
+   TITLE=$(cat ./tmp/pr/${BRANCH_SLUG}/title.txt)
+   git-spice branch submit --title "$TITLE" --body "$(cat ./tmp/pr/${BRANCH_SLUG}/body.txt)" --no-prompt
    ```
 
    Note: `--base` is not needed because git-spice knows the base from branch tracking.

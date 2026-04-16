@@ -4,13 +4,13 @@ Orchestrate multi-phase plan execution with commit checkpoints, skip tracking, a
 
 ## Instructions
 
-1. **Read the plan file**: If the user provided a path, use it. Otherwise, search for plan files in `./tmp/` (e.g., `tmp/feedback/plan.md`, `tmp/prd/*/plan.md`). If exactly one is found, use it. If multiple are found, present them as options to the user. If none are found, ask the user for the path. Parse phases from the plan file. Each phase has a title, "What to build" section, and acceptance criteria checkboxes (`- [ ]`). Identify the first phase with unchecked criteria -- resume from there.
+1. **Read the plan file**: If the user provided a path, use it. Otherwise, search for plan files in `./tmp/` (e.g., `tmp/prd/*/plan.md`, `tmp/refactor/*/plan.md`). If exactly one is found, use it. If multiple are found, present them as options to the user. If none are found, ask the user for the path. Parse phases from the plan file. Each phase has a title, "What to build" section, and acceptance criteria checkboxes (`- [ ]`). Identify the first phase with unchecked criteria -- resume from there.
 
 2. **For each phase in order**:
 
    a. **Announce the phase**: Tell the user which phase you're starting and what it covers.
 
-   b. **Implement**: Build what the phase describes. Route to the appropriate Write mode internally -- Feature mode for new behavior, Fix mode for bug fixes, Apply mode for refactoring/config/glue. For phases that span multiple concerns, work through them sequentially within the phase.
+   b. **Implement**: Build what the phase describes. Route to the appropriate Write mode internally -- **TDD mode** for new behavior or bug fixes; **Apply mode** for refactoring, config, or glue. For phases that span multiple concerns, work through them sequentially within the phase.
 
    c. **Verify acceptance criteria**: For each criterion, confirm it's met and mark `- [x]` in the plan file. Run the project's build and test commands. If a criterion can't be met after 3 attempts, STOP and report to the user -- do not continue to the next phase.
 
