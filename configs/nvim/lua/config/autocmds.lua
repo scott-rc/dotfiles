@@ -71,11 +71,58 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			desc = "Find references",
 		})
 		vim.keymap.set("n", "<C-Space>", function()
-			local diagnostics = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
-			if #diagnostics > 0 then
-				vim.diagnostic.open_float({ scope = "cursor", focus = false })
+			local bufnr = vim.api.nvim_get_current_buf()
+			local diagnostics = vim.diagnostic.get(bufnr, { lnum = vim.fn.line(".") - 1 })
+			local clients = vim.lsp.get_clients({ bufnr = bufnr, method = "textDocument/hover" })
+
+			local function render(hover_lines)
+				local lines = {}
+				for _, d in ipairs(diagnostics) do
+					local sev = vim.diagnostic.severity[d.severity]
+					sev = sev:sub(1, 1) .. sev:sub(2):lower()
+					local header = "**" .. sev .. "**"
+					if d.source and d.source ~= "" then
+						header = header .. " *(" .. d.source .. ")*"
+					end
+					table.insert(lines, header)
+					for _, msg in ipairs(vim.split(d.message, "\n", { plain = true })) do
+						table.insert(lines, msg)
+					end
+					table.insert(lines, "")
+				end
+				if hover_lines and #hover_lines > 0 then
+					if #lines > 0 then
+						table.insert(lines, "---")
+						table.insert(lines, "")
+					end
+					vim.list_extend(lines, hover_lines)
+				end
+				if #lines == 0 then
+					return
+				end
+				vim.lsp.util.open_floating_preview(lines, "markdown", {
+					border = "rounded",
+					focusable = true,
+					focus_id = "hover_with_diagnostics",
+				})
 			end
-			vim.lsp.buf.hover()
+
+			if #clients == 0 then
+				render(nil)
+				return
+			end
+
+			local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding)
+			vim.lsp.buf_request_all(bufnr, "textDocument/hover", params, function(results)
+				local hover_lines = {}
+				for _, res in pairs(results) do
+					if res.result and res.result.contents then
+						local md = vim.lsp.util.convert_input_to_markdown_lines(res.result.contents)
+						vim.list_extend(hover_lines, md)
+					end
+				end
+				render(hover_lines)
+			end)
 		end, {
 			buf = args.buf,
 			desc = "Hover documentation + diagnostics",
