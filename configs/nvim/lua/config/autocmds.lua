@@ -100,11 +100,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				if #lines == 0 then
 					return
 				end
-				vim.lsp.util.open_floating_preview(lines, "markdown", {
+				local _, winid = vim.lsp.util.open_floating_preview(lines, "markdown", {
 					border = "rounded",
 					focusable = true,
 					focus_id = "hover_with_diagnostics",
 				})
+				if winid and vim.api.nvim_win_is_valid(winid) then
+					vim.wo[winid].concealcursor = "nvic"
+				end
 			end
 
 			if #clients == 0 then
