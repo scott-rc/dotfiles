@@ -11,7 +11,9 @@ Design an architectural refactor. Identify shallow modules or friction points, g
 
 ### 1. Identify candidate (skip in targeted mode)
 
-Dispatch a subagent to explore the codebase for friction points:
+**Explore the codebase inline — do NOT delegate to a subagent.** Discovery is architectural judgment against verified ground truth; a subagent summary drops the numbers and cross-file detail that shape the design. Use Glob, Grep, and Read directly. If context budget is tight, say so and stop — do not smuggle delegation back in under the guise of "just one narrow Explore agent."
+
+Look for friction points:
 
 - Concepts scattered across many files
 - Overly simple interfaces hiding complex implementations, or overly large interfaces hiding trivial ones
@@ -19,9 +21,12 @@ Dispatch a subagent to explore the codebase for friction points:
 - Tightly-coupled modules with integration risk
 - Untestable or hard-to-test sections
 
-Present findings as a numbered list. For each candidate:
-- Which modules cluster together
-- Why they're coupled (shared types, ordering requirements, leaking state)
+**Ground every claim.** Each candidate you surface must cite specific files (with line numbers where useful) and verified counts. No approximations like "~16 fields" when a Read or grep gives the exact number. If you're about to write a range or a hedge, run the tool call first.
+
+Present findings as a numbered list, **ranked by architectural payoff, highest first, max 3 candidates, no minimum** (zero is a valid terminal output — "nothing stands out"). For each candidate:
+
+- Which modules cluster together (with file paths and line references)
+- Why they're coupled (shared types, ordering requirements, leaking state — with concrete evidence)
 - Dependency category per [references/dependency-categories.md](../references/dependency-categories.md)
 - Testing implications (what's currently tested; what's hard to test; what would be possible after deepening)
 
