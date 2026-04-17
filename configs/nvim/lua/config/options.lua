@@ -50,7 +50,7 @@ vim.o.statusline = table.concat({
 	"%{%v:lua.require'config.statusline'.mode()%}",
 	" %<%f %m%r",
 	"%=",
-	"%{v:lua.vim.diagnostic.status()} ",
+	"%{%v:lua.vim.diagnostic.status()%} ",
 	"%{v:lua.vim.lsp.status()} ",
 	"%l:%c ",
 })
