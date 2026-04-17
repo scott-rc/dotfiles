@@ -36,7 +36,7 @@ For `review`, see step 4 — review has additional orchestrator-owned behavior b
 
 **c. Verify acceptance criteria.** For each checkbox in the phase's `### Acceptance criteria` section, confirm the criterion is met. Mark `- [x]` in the plan file. If a criterion cannot be met after reasonable effort, STOP and report to the user; do not continue to the next phase.
 
-**d. Commit.** After all criteria pass, commit the phase's changes using the `git` skill. Each phase produces exactly one commit. The commit message derives from the phase title and type (e.g. `refactor(search): introduce SearchState`, `test(search): backfill boundary tests`). Do NOT amend or batch phases into one commit.
+**d. Commit.** After all criteria pass, invoke `Skill(git, commit)` to commit the phase's changes. Each phase produces exactly one commit — the git skill decides the message per its own conventions. Do NOT amend or batch phases into one commit.
 
 **e. Clean up.** Kill any dev servers or background processes started during this phase that aren't needed later.
 
@@ -58,7 +58,7 @@ A phase with `**Type**: review` runs as an evaluate-fix loop combining static an
 
 **Termination:**
 
-- **Converged** — all `**Code**:` and `**Behavior**:` criteria checked, no unresolved Blocking or Improvement findings. Mark criteria as `- [x]`, commit all changes made during the loop as one review-phase commit, proceed.
+- **Converged** — all `**Code**:` and `**Behavior**:` criteria checked, no unresolved Blocking or Improvement findings. Mark criteria as `- [x]`, invoke `Skill(git, commit)` to commit all changes made during the loop as one review-phase commit, proceed.
 - **No progress** — an iteration produces the same set of unresolved findings as the prior iteration (same files, same severities). Halt. Do NOT commit.
 - **Regression** — findings increase in count or severity after a fix attempt. Halt. Do NOT commit.
 
@@ -69,7 +69,7 @@ A phase with `**Type**: review` runs as an evaluate-fix loop combining static an
 - **Prompt the user** with three choices:
   1. **Add a fixup phase to this plan.** Edit the plan to append `## Phase N+1: Fixup` with `**Type**: write` and a description derived from the findings. Re-run `plan execute`. Use when findings are narrow and within the current refactor's scope.
   2. **Spawn a new plan.** Create `tmp/<name>-fixup/plan.md` with a Brief that captures the findings as a new scope. Use when findings reveal scope creep.
-  3. **Accept as-is.** Mark the findings as "acknowledged, not addressed" with rationale (inline in the `## Review findings` section). Check the criteria boxes. Commit all working-tree changes as the review-phase commit. Proceed.
+  3. **Accept as-is.** Mark the findings as "acknowledged, not addressed" with rationale (inline in the `## Review findings` section). Check the criteria boxes. Invoke `Skill(git, commit)` to commit all working-tree changes as the review-phase commit. Proceed.
 
 ### 5. Skipping a phase
 
