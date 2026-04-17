@@ -1,21 +1,21 @@
-vim.keymap.set("n", "<leader>mp", function()
+local function md()
 	local file = vim.api.nvim_buf_get_name(0)
 	if file == "" then
-		vim.notify("No file to preview", vim.log.levels.WARN)
+		vim.notify("No file to open", vim.log.levels.WARN)
 		return
 	end
-	local width = math.floor(vim.o.columns * 0.85)
-	local height = math.floor(vim.o.lines * 0.85)
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
-		width = width,
-		height = height,
-		col = math.floor((vim.o.columns - width) / 2),
-		row = math.floor((vim.o.lines - height) / 2),
-		style = "minimal",
-		border = "rounded",
+	vim.cmd("enew")
+	local buf = vim.api.nvim_get_current_buf()
+	vim.fn.jobstart("md " .. vim.fn.shellescape(file), {
+		term = true,
+		on_exit = function()
+			if vim.api.nvim_buf_is_valid(buf) then
+				vim.api.nvim_buf_delete(buf, { force = true })
+			end
+		end,
 	})
-	vim.fn.termopen("md " .. vim.fn.shellescape(file))
 	vim.cmd("startinsert")
-end, { buf = 0, desc = "Preview with md" })
+end
+
+vim.api.nvim_buf_create_user_command(0, "Md", md, { desc = "Open with md" })
+vim.keymap.set("n", "<localleader>m", md, { buffer = 0, desc = "Open with md" })
