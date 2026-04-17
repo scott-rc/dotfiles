@@ -1,9 +1,11 @@
 ---
 name: prd
-description: Create a PRD through user interview, codebase exploration, and module design, saved as a local Markdown file in ./tmp/prd/<name>/. Use when user wants to write a PRD, create a product requirements document, or plan a new feature.
+description: Create a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at ./tmp/<name>/plan.md. Use when the user wants to write a PRD, create a product requirements document, or plan a new feature.
 ---
 
-This skill will be invoked when the user wants to create a PRD. You may skip steps if you don't consider them necessary.
+This skill is invoked when the user wants to create a PRD. The output is a plan file at `./tmp/<name>/plan.md` with its `## Brief` section populated — ready for `plan create` to phase into runnable work. You may skip steps below if you don't consider them necessary.
+
+## Process
 
 1. Ask the user for a long, detailed description of the problem they want to solve and any potential ideas for solutions.
 
@@ -17,21 +19,26 @@ A deep module (as opposed to a shallow module) is one which encapsulates a lot o
 
 Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
 
-5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. Create `./tmp/prd/<name>/` if it doesn't exist, then save the PRD as `./tmp/prd/<name>/prd.md` (e.g. `./tmp/prd/user-onboarding/prd.md`).
+5. Once you have a complete understanding, write the plan file. Create `./tmp/<name>/` if it doesn't exist (flat layout — no `tmp/prd/` subdirectory). Save as `./tmp/<name>/plan.md` (e.g. `./tmp/user-onboarding/plan.md`). The file contains ONLY the `## Brief` section at this stage — no phases. Use the template below.
 
-<prd-template>
+6. Report the plan file path and the next step: `plan create <plan-path>` to phase the Brief into a runnable plan.
 
-## Problem Statement
+<plan-brief-template>
+# Plan: <name>
+
+## Brief
+
+### Problem Statement
 
 The problem that the user is facing, from the user's perspective.
 
-## Solution
+### Solution
 
 The solution to the problem, from the user's perspective.
 
-## User Stories
+### User Stories
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+A LONG, numbered list of user stories. Each user story in the format:
 
 1. As an <actor>, I want a <feature>, so that <benefit>
 
@@ -39,11 +46,11 @@ A LONG, numbered list of user stories. Each user story should be in the format o
 1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
 </user-story-example>
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+This list should be extensive and cover all aspects of the feature.
 
-## Implementation Decisions
+### Implementation Decisions
 
-A list of implementation decisions that were made. This can include:
+A list of implementation decisions that were made. Include:
 
 - The modules that will be built/modified
 - The interfaces of those modules that will be modified
@@ -53,22 +60,31 @@ A list of implementation decisions that were made. This can include:
 - API contracts
 - Specific interactions
 
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
+Do NOT include specific file paths or code snippets — they may go stale quickly.
 
-## Testing Decisions
+### Testing Decisions
 
-A list of testing decisions that were made. Include:
+A list of testing decisions. Include:
 
-- A description of what makes a good test (only test external behavior, not implementation details)
+- What makes a good test for this feature (test observable behavior, not implementation details)
 - Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
+- Prior art for the tests (similar types of tests already in the codebase)
 
-## Out of Scope
+### Out of Scope
 
-A description of the things that are out of scope for this PRD.
+Things explicitly out of scope for this PRD.
 
-## Further Notes
+### Further Notes
 
 Any further notes about the feature.
 
-</prd-template>
+### Review Criteria
+
+Criteria `plan create` will turn into acceptance criteria on the terminal review phase. Split into static code checks and behavioral checks.
+
+**Code**:
+- [one bullet per static criterion — e.g. "No feature-flag leakage", "Module interfaces match the PRD", "Test coverage ≥ X%", "Lint clean"]
+
+**Behavior**:
+- [one bullet per behavioral criterion — each user-visible behavior described in the user stories becomes a reviewable check, plus any regression surfaces worth exercising]
+</plan-brief-template>

@@ -2,9 +2,19 @@
 
 Evaluate code for test gaps, idiomaticity, simplification opportunities, and other issues — producing a structured findings report.
 
+## Severities
+
+Every finding MUST carry one of three severity labels. These labels determine loop behavior and downstream handling.
+
+- **Blocking** — something is wrong and must be fixed before merging: correctness bug, security issue, broken invariant, missing error handling, regression. Fix in-loop.
+- **Improvement** — code is correct but departs from guidelines: idiomaticity issue, weak test coverage, naming mismatch, duplication, shallow module. Fix in-loop.
+- **Suggestion** — minor polish, style preference, alternative approach. Fix if the action is clear and cheap; otherwise capture as follow-up and do not block convergence.
+
+Every finding MUST follow the format: `file:line — severity — one-sentence problem description`. The concrete fix or recommendation is provided alongside in the report body.
+
 ## Instructions
 
-**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
+**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation (notably `plan execute`'s review phase) — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
 
 1. **Identify review scope**:
    Determine what code to review. If the user specifies files, functions, or a diff, use that. If unspecified, ask what they want reviewed.
@@ -97,21 +107,28 @@ Evaluate code for test gaps, idiomaticity, simplification opportunities, and oth
     - The guideline files loaded in step 4
     - Project context (repo root, conventions observed)
 
-    Handle Suggestions per the project's loop rules: fix if quick (fewer than 3 per file); otherwise note and move on.
+    Handle Suggestions inline: fix if the action is clear and cheap; otherwise capture as follow-up and do not block convergence.
 
 17. **Re-evaluate**:
     Re-review only the files that were fixed in step 16 — not the full original scope. Pass the same guidelines and checklist from step 4, plus the list of findings delegated in step 16 with the instruction "verify these specific issues were addressed."
 
-18. **Check convergence**:
-    If no Blocking or Improvement findings remain, proceed to step 20. If findings remain and iteration count < max iterations (default: 4), return to step 16. If a recurring finding persists after a fix attempt, escalate to the user or record as "acknowledged, not addressed" with rationale, per the project's loop rules.
+18. **Check termination**:
+    Three termination conditions; use whichever matches first:
+    - **Converged** — no Blocking or Improvement findings remain. Proceed to step 20.
+    - **No progress** — the new iteration's unresolved findings are the same set as the previous iteration's (same files, same severities). Halt at step 19.
+    - **Regression** — the new iteration's findings have increased in count or severity. Halt at step 19 — something in the fixer made it worse.
 
-19. **Report loop status**:
-    If max iterations reached without convergence, present remaining findings with their status and let the user decide.
+    Otherwise, return to step 16 for another iteration.
+
+    If a specific finding recurs after a fix attempt, mark it as "acknowledged, not addressed" with rationale and exclude it from further iterations. This can unblock convergence even if the finding itself remains.
+
+19. **Report non-convergence**:
+    Present the remaining findings (grouped by severity) and the termination reason (no progress / regression). Let the caller decide next steps — for an interactive user, ask what to do; for `plan execute`'s review phase, hand the findings back for the phase-level halt behavior (no commit, append to plan, prompt user).
 
 20. **Persist final findings**:
     Write `./tmp/branches/<sanitized-branch>/review.md` using the review artifact format below. Add loop metadata fields to the Metadata section:
     - iterations_completed: <n>
-    - convergence_status: converged | max_iterations_reached | escalated
+    - convergence_status: converged | no_progress | regression | acknowledged
 
 ---
 

@@ -1,91 +1,110 @@
 # Create Plan
 
-Break a design document (PRD or refactor RFC) into a phased implementation plan using vertical slices (tracer bullets). Output is a Markdown file placed next to the source design document.
+Turn a Brief-populated plan file into a phased plan. Input is `tmp/<name>/plan.md` with its `## Brief` section populated (produced by `prd` or `code architect <target>`); output is the SAME file with `## Phase N` blocks appended and `**Type**:` metadata on each phase.
+
+Plans are never authored by humans. The Brief is written by a seeder skill (`prd` for features, `code architect` for refactors). This operation reads the Brief, slices it into tracer-bullet phases, assigns a type to each, pulls templated acceptance criteria from `references/phase-templates.md`, and appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
 
 ## Process
 
-### 1. Confirm the design document is in context
+### 1. Locate the plan file
 
-The design document (PRD or RFC) should already be in the conversation. If it isn't, ask the user to paste it or point you to the file.
+If the user provided a path, use it. Otherwise search for Brief-only plan files (plan files with `## Brief` populated but no `## Phase N` sections) in `./tmp/*/plan.md`. If exactly one is found, use it. If multiple are found, present them as options. If none are found, ask the user for the path.
 
-Accepted inputs:
-- **PRD** — typically at `./tmp/prd/<name>/prd.md`
-- **Refactor RFC** — typically at `./tmp/refactor/<name>/rfc.md`
-- Any other design document the user points to
+If the target file already has `## Phase N` sections, STOP and report — re-phasing a phased plan requires explicit user confirmation. Ask before proceeding.
 
-### 2. Explore the codebase
+### 2. Identify the Brief shape
 
-If you have not already explored the codebase, do so to understand the current architecture, existing patterns, and integration layers.
+Two input Brief shapes are supported:
 
-### 3. Identify durable architectural decisions
+- **Architect-seeded Brief** — `## Brief` contains sections: Problem, Proposed Interface, Dependency Strategy, Testing Strategy, Implementation Recommendations, Rejected Alternatives, Review Criteria. Produced by `code architect <target>`.
+- **PRD-seeded Brief** — `## Brief` contains feature-spec content: user stories, behavior spec, constraints, open questions, Review Criteria. Produced by `prd`.
 
-Before slicing, identify high-level decisions that are unlikely to change throughout implementation:
+Detect which shape the Brief has by scanning for section headers. Use the shape to guide phase slicing.
 
-- Route structures / URL patterns
-- Database schema shape
-- Key data models
-- Authentication / authorization approach
-- Third-party service boundaries
-- **For refactors specifically**: module boundaries, port interface contracts, adapter shapes, dependency categories (in-process, local-substitutable, ports-and-adapters, mock-boundary)
+### 3. Explore the codebase (if not already done in this session)
 
-These go in the plan header so every phase can reference them.
+Understand the current architecture, existing patterns, and integration layers. The Brief describes *what* to build; the codebase tells you *how* to slice it into phases that keep tests green at each checkpoint.
 
-### 4. Draft vertical slices
+### 4. Extract durable decisions
 
-Break the design doc into **tracer bullet** phases. Each phase is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+Scan the Brief for decisions unlikely to change during implementation:
+
+- Module boundaries / interface names (from Proposed Interface in architect Briefs)
+- Route patterns, schema, data models (from PRD Briefs)
+- Dependency strategy (every Brief)
+- Test boundary (every Brief)
+
+These stay implicit unless they'd be useful at-a-glance during execution. Do NOT add a separate `## Architectural decisions` section unless the Brief explicitly calls for cross-phase decisions not captured in the Brief itself; a single-refactor plan's Brief already contains them.
+
+### 5. Slice into tracer-bullet phases
+
+Apply vertical-slice rules:
 
 <vertical-slice-rules>
 - Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
 - A completed slice is demoable or verifiable on its own
-- Prefer many thin slices over few thick ones
+- Prefer many thin slices over few thick ones — but only where each slice leaves the tree green
 - Do NOT include specific file names, function names, or implementation details that are likely to change as later phases are built
-- DO include durable decisions: route paths, schema shapes, data model names, port interfaces
+- DO include durable decisions: interface names, data model names, route paths
 </vertical-slice-rules>
 
-### 5. Quiz the user
+For refactor Briefs, the Brief's `### Implementation recommendations` section may suggest a phase sequence; use it as a starting point and adjust as needed.
 
-Present the proposed breakdown as a numbered list. For each phase show:
+### 6. Assign a Type to each phase
+
+Every phase MUST have `**Type**: <write|test|review|benchmark>`. No defaults — this is a hard requirement.
+
+- `write` covers most phases: behavior changes, bug fixes, refactoring, config/glue.
+- `test` covers pure test-coverage work (backfills, mutation testing).
+- `benchmark` covers performance-target phases.
+- `review` is the terminal phase (see step 8).
+
+See `references/phase-templates.md` for per-type conventions and starter criteria.
+
+### 7. Check for cross-plan dependencies
+
+If the Brief states or implies the plan presupposes another plan has been executed (e.g. "depends on the search refactor landing first"), add a `**Depends on**:` line in the plan's header immediately after the title:
+
+```markdown
+# Plan: <name>
+
+**Depends on**: tmp/<other-plan-name>/plan.md
+```
+
+Multiple dependencies are supported — one path per line. `plan execute` will refuse to start if any dependency plan is not complete.
+
+### 8. Append a default terminal review phase
+
+Every plan ends with a review phase UNLESS the user explicitly opts out (by adding `**No review**: <rationale>` in the plan header or deleting the phase after creation).
+
+The review phase's acceptance criteria are derived from the Brief's `### Review Criteria` section, which splits into `**Code**:` (static) and `**Behavior**:` (behavioral). Copy each bullet verbatim from the Brief into the phase's acceptance criteria as checkbox items, preserving the Code / Behavior split.
+
+If the Brief has no Review Criteria section, use the defaults from `references/phase-templates.md` under the `Type: review` section.
+
+### 9. Quiz the user
+
+Present the proposed phase breakdown as a numbered list. For each phase show:
 
 - **Title**: short descriptive name
-- **Covered**: which user stories (from a PRD) or which parts of the refactor (from an RFC) this addresses
+- **Type**: the assigned phase type
+- **Covers**: one-line description of the slice
 
 Ask the user:
 
 - Does the granularity feel right? (too coarse / too fine)
-- Should any phases be merged or split further?
+- Are the Type assignments correct?
+- Should any phases be merged, split, or re-typed?
 
-Iterate until the user approves the breakdown.
+Iterate until the user approves.
 
-### 6. Write the plan file
+### 10. Write the phases into the plan file
 
-Output location mirrors the source design document's directory:
+Append phase blocks to the existing plan file (below the Brief). Do NOT overwrite the Brief. Use the template below for each phase.
 
-- PRD at `./tmp/prd/<name>/prd.md` → plan at `./tmp/prd/<name>/plan.md`
-- RFC at `./tmp/refactor/<name>/rfc.md` → plan at `./tmp/refactor/<name>/plan.md`
-- Other input → ask the user where to save
+<phase-template>
+## Phase N: <Title>
 
-Use the template below.
-
-<plan-template>
-# Plan: <Name>
-
-> Source: <path to prd.md or rfc.md>
-
-## Architectural decisions
-
-Durable decisions that apply across all phases:
-
-- **Routes**: ...
-- **Schema**: ...
-- **Key models**: ...
-- **Module boundaries / ports** (for refactors): ...
-- (add/remove sections as appropriate)
-
----
-
-## Phase 1: <Title>
-
-**Covered**: <user stories from PRD, or refactor scope from RFC>
+**Type**: <write | test | review | benchmark>
 
 ### What to build
 
@@ -93,23 +112,12 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 ### Acceptance criteria
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
+- [ ] <starter criteria from references/phase-templates.md, customized per Brief>
+- [ ] <phase-specific behavior criteria derived from the Brief>
+</phase-template>
 
----
+The review phase uses the review-specific template from `references/phase-templates.md` (with the Code / Behavior split).
 
-## Phase 2: <Title>
+### 11. Report
 
-**Covered**: ...
-
-### What to build
-
-...
-
-### Acceptance criteria
-
-- [ ] ...
-
-<!-- Repeat for each phase -->
-</plan-template>
+Summarize: plan file path, number of phases, phase types, any `**Depends on**:` header, next step (`plan execute <plan-path>`).

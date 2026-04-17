@@ -30,7 +30,7 @@ Evaluate a CLAUDE.md or scoped rules file against best practices, report finding
    Group results by severity (Blocking, Improvements, Suggestions) per references/quality-checklist.md. For each finding, state: what the issue is, which file and line/section it's in, what the fix would be.
 
 6. **Review-fix loop**:
-   Run the evaluate-fix loop per references/multi-perspective-review.md and the project's loop rules. Apply fixes inline using Edit/Write. Iterate until all pass or 4 cycles complete.
+   Run the evaluate-fix loop per references/multi-perspective-review.md. Apply fixes inline using Edit/Write. Findings follow `file:line — severity — one-sentence problem` format with severities Blocking / Improvement / Suggestion. Iterate until the loop terminates: **Converged** (no Blocking/Improvement findings remain), **No progress** (unresolved findings unchanged across iterations — halt), or **Regression** (findings increased after a fix attempt — halt).
 
 7. **Report outcomes**:
    Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

@@ -128,7 +128,7 @@ Each operation file (e.g., `operations/create-skill.md`, `operations/review-skil
 - **Summary line**: MUST have one sentence after the heading describing what the operation does
 - **Numbered steps**: MUST use numbered steps where each step has a **bold step name** followed by the instructions
 - **Cross-references**: MUST reference files as plain text paths (e.g., references/commit-guidelines.md). Do NOT use markdown link syntax or backtick-wrapped paths.
-- **Global rules**: Project CLAUDE.md and `.claude/rules/` files are always present in Claude's context window. Operations MAY reference them by description (e.g., "follow the project's loop rules") without providing a file path — they do not require explicit linking.
+- **Global rules**: Project CLAUDE.md and `.claude/rules/` files are always present in Claude's context window. Operations MAY reference them by description (e.g., "follow the project's path-resolution rule") without providing a file path — they do not require explicit linking.
 - **Step nesting**: Steps MUST NOT nest numbered sub-steps. Informational bullet points under a step are acceptable. If a step needs nested numbered sub-steps, flatten into sequential top-level steps or extract into a reference file.
 - **Readable standalone**: SHOULD be understandable from the operation file alone — intent and flow are clear without loading references, but correct execution depends on referenced content
 

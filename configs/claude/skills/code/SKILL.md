@@ -27,7 +27,7 @@ Write a benchmark that captures the performance target, then write or optimize c
 MUST read operations/benchmark.md before executing.
 
 ### Architect
-Design an architectural refactor. Identifies shallow modules or friction points (discovery mode) or takes a specified target, frames the problem, dispatches 4 parallel design subagents with different constraints, and outputs a refactor RFC at `./tmp/refactor/<name>/rfc.md`. Does NOT implement — the RFC is terminal output; hand off to `plan create` for implementation phasing or `git` to push as an issue.
+Design an architectural refactor. Identifies shallow modules or friction points (discovery mode) or takes a specified target, frames the problem, dispatches 4 parallel design subagents with different constraints, and writes the chosen design as the `## Brief` of a plan file at `./tmp/<target>/plan.md`. Does NOT implement — the plan's Brief is terminal output for this operation; hand off to `plan create` to phase it into runnable work.
 MUST read operations/architect.md before executing.
 
 ## Combined Operations
@@ -63,7 +63,7 @@ Users often request multiple operations together. Handle these as follows:
 - **mutate / mutation test / test my tests** → Test (Mutate mode)
 - **add coverage then mutate** → Test (Coverage mode), then Test (Mutate mode)
 - **skip tests / no tests / just the code** → Write (Apply mode — user opts out of TDD)
-- **design and implement** (for a refactor) → Architect, then user reviews RFC, then `plan create` on the RFC, then `plan execute` on the plan
+- **design and implement** (for a refactor) → Architect (writes Brief to `tmp/<target>/plan.md`), then user reviews the Brief, then `plan create <plan-path>` phases it, then `plan execute <plan-path>` runs it
 
 **When to use Write (Apply mode) instead of TDD**: refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 

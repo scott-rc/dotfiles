@@ -28,6 +28,20 @@ If a skill covers the task and it's non-trivial, MUST invoke it via the Skill to
 
 ---
 
+## Ask When Unsure
+
+Default to action when the path is obvious. Ask when the answer genuinely changes what gets built or how — ambiguous requirements with meaningfully different scope, multiple valid approaches with real trade-offs, uncertain side effects, or missing context that can't be safely inferred. When you do ask, lead with a recommendation, be concrete about the options, and batch related unknowns into a single question.
+
+### When Not to Ask
+
+- Trivial style choices with a clear convention in the codebase
+- Decisions the user can easily reverse
+- Anything Claude can verify or infer from the existing code without guessing
+- Plan iteration — when the user provides feedback on a plan, incorporate it and present the updated plan; do not ask permission to incorporate feedback the user just gave
+- Obvious next step — if the user pointed out a problem or gap, address it directly; do not ask "should I fix this?"
+
+---
+
 ## Timezone
 
 - Assume the user is in **Eastern Time (ET)** — America/Toronto.

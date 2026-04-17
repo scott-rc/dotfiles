@@ -1,26 +1,30 @@
 ---
 name: plan
-description: Create multi-phase implementation plans from design documents (PRDs or refactor RFCs) using tracer-bullet vertical slices, and execute them with commit checkpoints. Use when user wants to break down a PRD or RFC, create an implementation plan, execute a plan, continue implementing, or mentions "tracer bullets" or "vertical slices".
+description: Turn a Brief-populated plan file into phased work, then execute it phase by phase with commit checkpoints. Use when the user wants to break down a PRD or refactor Brief into phases, create an implementation plan, execute a plan, continue implementing, or mentions "tracer bullets" or "vertical slices".
 argument-hint: "[create | execute] [path]"
 ---
 
 # Plan
 
-Create and execute phased implementation plans. Works with design documents (PRDs from the `prd` skill, or refactor RFCs from `code architect`). Plans use tracer-bullet vertical slices; execution orchestrates the plan phase-by-phase with commit checkpoints.
+Create and execute phased implementation plans. Plans live as single files at `tmp/<name>/plan.md` — one file per piece of work, from initial Brief through final review. Plans are seeded by `prd` (for features) or `code architect <target>` (for refactors); each seeder writes the Brief and hands off to `plan create`.
 
 ## Operations
 
 ### Create
-Break a design document (PRD or RFC) into a phased implementation plan using vertical slices. Output is `plan.md` saved next to the source design document.
+Read a Brief-populated plan file and append phases to it. Assigns `**Type**:` per phase (`write`, `test`, `review`, `benchmark`); pulls per-type starter acceptance criteria from `references/phase-templates.md`; appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
 MUST read operations/create.md before executing.
 
 ### Execute
-Orchestrate multi-phase plan execution with commit checkpoints between phases, skip tracking, and interactive UI verification. Routes each phase's implementation to the `code` skill's Write mode (TDD for new behavior/fixes, Apply for refactoring/config/glue).
+Run the plan phase by phase. Validates that every phase has `**Type**:` (hard error if missing) and that any `**Depends on**:` dependencies are complete. For each phase, invokes `Skill(code, <type>)` — instruction-loading in the orchestrator, not subagent dispatch. Commits once per phase. The terminal review phase runs an evaluate-fix loop combining static verification (`code review`) and orchestrator-driven behavioral verification; on non-convergence, halts without committing.
 MUST read operations/execute.md before executing.
 
 ## Combined Operations
 
-- **"plan this"** / **"break this down"** / **"create plan"** / **"phase plan"** / **"turn this PRD/RFC into a plan"** → Run Create
+- **"plan this"** / **"break this down"** / **"create plan"** / **"phase plan"** / **"turn this Brief into phases"** → Run Create
 - **"continue implementing"** / **"implement plan"** / **"execute plan"** / **"run plan"** / **"work through the plan"** → Run Execute
 - **"plan and execute"** / **"plan and build"** → Run Create, then Execute on the resulting plan.md
 - **"tracer bullets"** / **"vertical slices"** → Run Create (these terms refer to the planning method)
+
+## References
+
+- references/phase-templates.md — Per-type starter acceptance criteria and phase-title conventions for each of the four phase types (`write`, `test`, `review`, `benchmark`).
