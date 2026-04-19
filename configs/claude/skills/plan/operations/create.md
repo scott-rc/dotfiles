@@ -61,17 +61,30 @@ Every phase MUST have `**Type**: <write|test|review|benchmark>`. No defaults —
 
 See `references/phase-templates.md` for per-type conventions and starter criteria.
 
-### 7. Check for cross-plan dependencies
+### 7. Record the Base SHA and any cross-plan dependencies in the plan header
 
-If the Brief states or implies the plan presupposes another plan has been executed (e.g. "depends on the search refactor landing first"), add a `**Depends on**:` line in the plan's header immediately after the title:
+Record the current git HEAD as the plan's **Base SHA** — the commit from which this plan's work begins. `plan execute` records per-phase commit SHAs; `plan review` uses `<Base SHA>..HEAD` as the plan's commit range to distinguish phase commits from scope-creep commits.
+
+Capture the SHA with `git rev-parse HEAD`. Write it on its own line in the plan header, immediately after the title:
 
 ```markdown
 # Plan: <name>
 
+**Base**: <full-sha>
+```
+
+Additionally, if the Brief states or implies the plan presupposes another plan has been executed (e.g. "depends on the search refactor landing first"), add a `**Depends on**:` line below the Base line:
+
+```markdown
+# Plan: <name>
+
+**Base**: <full-sha>
 **Depends on**: tmp/<other-plan-name>/plan.md
 ```
 
-Multiple dependencies are supported — one path per line. `plan execute` will refuse to start if any dependency plan is not complete.
+Multiple `**Depends on**:` lines are supported — one path per line. `plan execute` will refuse to start if any dependency plan is not complete.
+
+If the working tree has uncommitted changes at plan-create time, still capture HEAD; note to the user that the base is HEAD, not the working tree — any uncommitted changes will either be included in phase 1's commit or stay uncommitted and show up as a Scope-creep item at review time.
 
 ### 8. Append a default terminal review phase
 

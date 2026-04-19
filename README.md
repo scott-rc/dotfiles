@@ -207,6 +207,7 @@ Custom CLI tools.
 | `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
 | `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, stacked PRs via git-spice, and GitHub interactions |
 | `brainstorm/` | Facilitates collaborative brainstorming sessions to generate, explore, and refine ideas on any topic |
+| `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with per-phase commit SHAs and checkpoints (`execute`), and writes a dated Retrospective with auto-proposed Fixup phases on completion (`review`) |
 
 Each skill follows this directory structure:
 

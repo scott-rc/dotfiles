@@ -38,6 +38,20 @@ For `review`, see step 4 — review has additional orchestrator-owned behavior b
 
 **d. Commit.** After all criteria pass, invoke `Skill(git, commit)` to commit the phase's changes. Each phase produces exactly one commit — the git skill decides the message per its own conventions. Do NOT amend or batch phases into one commit.
 
+After the commit returns, capture the resulting SHA (`git rev-parse HEAD`) and record it on a `**Commit**:` line directly under the phase title, alongside the existing `**Type**:` line:
+
+```markdown
+## Phase N: <Title>
+
+**Type**: <type>
+**Commit**: <full-sha>
+
+### What to build
+...
+```
+
+This mapping lets `plan review` cross-reference every phase against its commit and detect Scope-creep commits — commits in the Base-SHA-to-HEAD range that aren't tied to any phase.
+
 **e. Clean up.** Kill any dev servers or background processes started during this phase that aren't needed later.
 
 ### 4. Review phase behavior
@@ -58,18 +72,15 @@ A phase with `**Type**: review` runs as an evaluate-fix loop combining static an
 
 **Termination:**
 
-- **Converged** — all `**Code**:` and `**Behavior**:` criteria checked, no unresolved Blocking or Improvement findings. Mark criteria as `- [x]`, invoke `Skill(git, commit)` to commit all changes made during the loop as one review-phase commit, proceed.
+- **Converged** — all `**Code**:` and `**Behavior**:` criteria checked, no unresolved Blocking or Improvement findings. Mark criteria as `- [x]`, invoke `Skill(git, commit)` to commit all changes made during the loop as one review-phase commit, record the SHA on the review phase's `**Commit**:` line, proceed to step 6.
 - **No progress** — an iteration produces the same set of unresolved findings as the prior iteration (same files, same severities). Halt. Do NOT commit.
 - **Regression** — findings increase in count or severity after a fix attempt. Halt. Do NOT commit.
 
 **On non-convergence halt:**
 
 - **Do NOT commit.** Any changes made during the review phase loop stay in the working tree uncommitted. The user can inspect, revert with `git restore`, or fold into a follow-up phase.
-- **Append a `## Review findings` section** to the end of the plan file, listing each unresolved finding in `file:line — severity — one sentence` form, grouped under `**Code**:` and `**Behavior**:` sub-headers to match the criteria structure.
-- **Prompt the user** with three choices:
-  1. **Add a fixup phase to this plan.** Edit the plan to append `## Phase N+1: Fixup` with `**Type**: write` and a description derived from the findings. Re-run `plan execute`. Use when findings are narrow and within the current refactor's scope.
-  2. **Spawn a new plan.** Create `tmp/<name>-fixup/plan.md` with a Brief that captures the findings as a new scope. Use when findings reveal scope creep.
-  3. **Accept as-is.** Mark the findings as "acknowledged, not addressed" with rationale (inline in the `## Review findings` section). Check the criteria boxes. Invoke `Skill(git, commit)` to commit all working-tree changes as the review-phase commit. Proceed.
+- **Append a Halt-findings section** (`## Review findings`) to the end of the plan file, listing each unresolved finding in `file:line — severity — one sentence` form, grouped under `**Code**:` and `**Behavior**:` sub-headers to match the criteria structure.
+- **Hand off to `plan review`.** Do NOT prompt the user inline for fixup vs new-plan vs acknowledge — that decision flow lives in `plan review` now. Proceed to step 6, which invokes `Skill(plan, review)` regardless of outcome.
 
 ### 5. Skipping a phase
 
@@ -79,13 +90,18 @@ If a phase is genuinely unnecessary given prior phases' results, do NOT silently
 - Mark all its checkboxes as `- [s]`
 - Inform the user which phase was skipped and why before continuing
 
-### 6. After all phases complete
+### 6. Hand off to `plan review`
 
-Kill any remaining dev servers or background processes. Report the full plan as done with a summary of phases completed, skipped, any `## Review findings` still open, and any cross-plan dependents that unblock now that this plan finished.
+Regardless of outcome — clean completion of all phases, halt on non-convergence, full skip, or partial skip — invoke `Skill(plan, review)` on the current plan file as the final step of execution. `plan review` owns the retrospective, the three-way resolution decision for any Open items (Fixup phase / New plan / Acknowledgment), and the Auto-continue prompt when Fixup phases are appended.
+
+Before handing off: kill any remaining dev servers or background processes started during this plan that aren't needed later.
+
+Do NOT report completion yourself — `plan review` produces the final report, which includes the Retrospective section path, the count of Fixup phases appended, any New plans spawned, and any cross-plan dependents that now unblock.
 
 ## Rules
 
-- **Never commit during a halted review loop.** No partial commits. Working-tree changes stay uncommitted; the user decides what to keep.
-- **Never amend a prior phase's commit** to retroactively fix a review finding. Create a fixup phase or a new plan instead.
-- **Never auto-extend the plan mid-execution** to add phases that weren't there at validation time. The exception is the user-confirmed fixup phase on review non-convergence (step 4), which happens between executions, not during one.
+- **Never commit during a halted review loop.** No partial commits. Working-tree changes stay uncommitted; `plan review` surfaces them as an Open item.
+- **Never amend a prior phase's commit** to retroactively fix a review finding. `plan review` proposes a Fixup phase or a New plan instead.
+- **Never auto-extend the plan mid-execution** to add phases that weren't there at validation time. New phases only land via `plan review`'s confirmed Fixup-phase flow, which happens between executions — not during one.
 - **Never bypass `**Depends on**:` enforcement.** If a dependency is incomplete, refuse. The user can remove the header if they know better, but `plan execute` does not infer.
+- **Never skip the handoff to `plan review`.** Every `plan execute` ends with `plan review`, even on clean completion with zero open items. On a clean run, the Retrospective is a one-line summary and exits immediately.
