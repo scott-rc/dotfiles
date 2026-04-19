@@ -107,6 +107,7 @@ For each Open item, compute a default Resolution the user will confirm or redire
 |---------------------|--------------------|
 | Deferral, rationale mentions system noise / benchmarks / fixtures / "quiet system" / performance measurement | Fixup phase, Type: `benchmark` |
 | Deferral, rationale mentions test coverage / characterization / mutation | Fixup phase, Type: `test` |
+| Deferral, rationale mentions audit / sweep / scan / reconciliation | Fixup phase, Type: `audit` |
 | Deferral, rationale mentions API changes / refactors / "broader" / "out of scope" | New plan |
 | Deferral, other rationale | Fixup phase, Type: `write` |
 | Oversight | Ask the user — no default |

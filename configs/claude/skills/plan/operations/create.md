@@ -52,12 +52,13 @@ For refactor Briefs, the Brief's `### Implementation recommendations` section ma
 
 ### 6. Assign a Type to each phase
 
-Every phase MUST have `**Type**: <write|test|review|benchmark>`. No defaults — this is a hard requirement.
+Every phase MUST have `**Type**: <write|test|review|benchmark|audit>`. No defaults — this is a hard requirement.
 
 - `write` covers most phases: behavior changes, bug fixes, refactoring, config/glue.
 - `test` covers pure test-coverage work (backfills, mutation testing).
 - `benchmark` covers performance-target phases.
 - `review` is the terminal phase (see step 8).
+- `audit` covers "sweep the surface, surface findings, triage with user, apply approved fixes" workflows — docs audits, dependency audits, security audits, config audits. STUB-status Type; its spec is minimal and expected to be refined as it gets real use.
 
 See `references/phase-templates.md` for per-type conventions and starter criteria.
 

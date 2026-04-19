@@ -18,7 +18,7 @@ If the user provided a path, use it. Otherwise search for plan files in `./tmp/*
 
 Before running any phase:
 
-- **Every phase MUST declare `**Type**:`**. Scan each `## Phase N` block for the metadata line. If any phase is missing `**Type**:` — or declares an unknown type (not one of `write`, `test`, `review`, `benchmark`) — HARD ERROR. Report which phases are unlabeled; do not proceed. Fixing this is a `plan create` re-run or a manual edit, not an execution concern.
+- **Every phase MUST declare `**Type**:`**. Scan each `## Phase N` block for the metadata line. If any phase is missing `**Type**:` — or declares an unknown type (not one of `write`, `test`, `review`, `benchmark`, `audit`) — HARD ERROR. Report which phases are unlabeled; do not proceed. Fixing this is a `plan create` re-run or a manual edit, not an execution concern.
 
 - **`**Depends on**:` header enforcement.** If the plan header (between title and `## Brief`) has one or more `**Depends on**: <path>` lines, open each dependency plan and confirm all phases in it have every acceptance criterion checked. If any dependency is incomplete, refuse to start. Report which dependency is unmet and which criteria remain unchecked; do not proceed.
 
@@ -28,11 +28,11 @@ Before running any phase:
 
 **a. Announce the phase.** Tell the user which phase number and title is starting, and its `**Type**:`.
 
-**b. Load the operation instructions.** Invoke `Skill(code, <type>)`. This loads `code/operations/<type>.md` into the orchestrator's context. Follow those instructions to do the phase's work.
-
-For `write`, `test`, and `benchmark`, the operation's instructions are the full guidance for the phase. Do the work, verify results as the operation directs.
+**b. Load the operation instructions.** For `write`, `test`, and `benchmark`, invoke `Skill(code, <type>)`. This loads `code/operations/<type>.md` into the orchestrator's context. Follow those instructions to do the phase's work.
 
 For `review`, see step 4 — review has additional orchestrator-owned behavior beyond what `code review` alone does.
+
+For `audit`, there is no code-skill dispatch. Audit is orchestrator-owned. Consult `plan/references/phase-templates.md` under `## Type: audit` for the generic protocol, and follow the phase's own `### What to build` for the audit surface and category set. Audit is currently a STUB Type — its spec is deliberately minimal, and learnings from each real use should be captured back into `phase-templates.md`.
 
 **c. Verify acceptance criteria.** For each checkbox in the phase's `### Acceptance criteria` section, confirm the criterion is met. Mark `- [x]` in the plan file. If a criterion cannot be met after reasonable effort, STOP and report to the user; do not continue to the next phase.
 

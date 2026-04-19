@@ -22,7 +22,7 @@ Create, execute, and retrospect phased implementation plans. Plans live as singl
 ## Operations
 
 ### Create
-Read a Brief-populated plan file and append phases to it. Records the Base SHA (current `HEAD`) in the plan header. Assigns `**Type**:` per phase (`write`, `test`, `review`, `benchmark`); pulls per-type starter acceptance criteria from `references/phase-templates.md`; appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
+Read a Brief-populated plan file and append phases to it. Records the Base SHA (current `HEAD`) in the plan header. Assigns `**Type**:` per phase (`write`, `test`, `review`, `benchmark`, `audit`); pulls per-type starter acceptance criteria from `references/phase-templates.md`; appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
 MUST read operations/create.md before executing.
 
 ### Execute
