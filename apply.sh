@@ -116,7 +116,7 @@ fi
 
 log_success "Config symlinks"
 
-log_section "Claude Code & Codex"
+log_section "Claude Code"
 
 ensure_symlink "$CONFIGS/claude/settings.json" "$HOME/.claude/settings.json"
 ensure_symlink "$CONFIGS/claude/keybindings.json" "$HOME/.claude/keybindings.json"
@@ -125,19 +125,8 @@ ensure_symlink "$CONFIGS/claude/hooks" "$HOME/.claude/hooks"
 ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ensure_symlink "$CONFIGS/claude/statusline" "$HOME/.claude/statusline"
 ensure_symlink "$CONFIGS/claude/rules" "$HOME/.claude/rules"
-ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.codex/AGENTS.md"
-ensure_symlink "$CONFIGS/codex/config.toml" "$HOME/.codex/config.toml"
-ensure_symlink "$CONFIGS/codex/rules/default.rules" "$HOME/.codex/rules/default.rules"
-ensure_symlink "$CONFIGS/claude/rules" "$HOME/.codex/claude-rules"
 
-mkdir -p "$HOME/.codex/skills" "$HOME/.agents/skills"
-for skill_dir in "$CONFIGS/claude/skills"/*; do
-	[ -d "$skill_dir" ] || continue
-	skill_name="$(basename "$skill_dir")"
-	ensure_symlink "$skill_dir" "$HOME/.codex/skills/$skill_name"
-	ensure_symlink "$skill_dir" "$HOME/.agents/skills/$skill_name"
-done
-log_success "Claude Code & Codex symlinks"
+log_success "Claude Code symlinks"
 
 log_section "Cursor"
 

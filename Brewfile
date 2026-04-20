@@ -12,7 +12,6 @@ brew "bottom"
 brew "direnv"
 brew "fd"
 brew "fzf"
-brew "glow"
 brew "lsd"
 brew "ripgrep"
 brew "starship"
@@ -25,8 +24,6 @@ brew "hyperfine"
 # Git
 brew "git-delta"
 brew "git-spice"
-brew "gitui"
-brew "lazygit"
 
 # Languages & runtimes
 brew "deno"
