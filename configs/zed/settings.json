@@ -1,4 +1,5 @@
 {
+  "icon_theme": "VSCode Icons for Zed (Dark Official Icons)",
   "agent": {
     "default_model": {
       "provider": "zed.dev",
