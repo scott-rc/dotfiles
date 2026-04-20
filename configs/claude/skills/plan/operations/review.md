@@ -17,7 +17,7 @@ This operation introduces distinct terms. Docs MUST use the two-word forms; bare
 - **Oversight** — an Unchecked criterion with no deferral signal.
 - **Fixup phase** / **New plan** / **Acknowledgment** — the three Resolutions.
 
-See `UBIQUITOUS_LANGUAGE.md` if one exists alongside the plan file.
+See `UBIQUITOUS_LANGUAGE.md` if one exists in the working directory (the `ubiquitous-language` skill writes it there).
 
 ## Entry points
 

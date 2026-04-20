@@ -120,7 +120,6 @@ log_section "Claude Code & Codex"
 
 ensure_symlink "$CONFIGS/claude/settings.json" "$HOME/.claude/settings.json"
 ensure_symlink "$CONFIGS/claude/keybindings.json" "$HOME/.claude/keybindings.json"
-ensure_symlink "$CONFIGS/claude/commands" "$HOME/.claude/commands"
 ensure_symlink "$CONFIGS/claude/skills" "$HOME/.claude/skills"
 ensure_symlink "$CONFIGS/claude/hooks" "$HOME/.claude/hooks"
 ensure_symlink "$CONFIGS/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"

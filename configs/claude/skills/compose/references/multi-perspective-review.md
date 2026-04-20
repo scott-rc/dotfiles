@@ -11,14 +11,21 @@ After applying changes, spawn two review agents in parallel with distinct perspe
 
 ## The Loop
 
-The loop runs until both agents pass or 4 cycles complete. Each cycle: both agents review in parallel, findings are synthesized into Blocking / Improvements / Suggestions tiers, Blocking and Improvements issues are fixed, then both agents re-review the updated files. Suggestions: fix if quick (fewer than 3 per file), otherwise note and move on. If 4 cycles complete without both agents passing, present remaining findings to the user with "acknowledged, not addressed" status and let the user decide.
+The loop runs until both agents pass or 4 cycles complete. Each cycle: both agents review in parallel, findings are synthesized into Blocking / Improvement / Suggestion tiers, Blocking and Improvement issues are fixed, then both agents re-review the updated files. Suggestions: fix if quick (fewer than 3 per file), otherwise note and move on.
+
+## Termination
+
+- **Converged** — both agents PASS. Report and exit.
+- **No progress** — an iteration produces the same set of unresolved findings as the prior iteration (same files, same severities). Halt, present findings with "acknowledged, not addressed" status, let the user decide.
+- **Regression** — findings increase in count or severity after a fix attempt. Halt, present findings, let the user decide.
+- **Cycle budget exhausted** — 4 cycles completed without both agents passing. Same as No progress.
 
 **Fix delegation**: Apply all fixes inline using Edit/Write. See the Delegation section in SKILL.md for constraints.
 
 ## Pass Criteria
 
 - Both agents report no Blocking issues.
-- Both agents report no Improvements issues, OR the orchestrator judges a flagged item as a design choice rather than a spec violation and explains why.
+- Both agents report no Improvement issues, OR the orchestrator judges a flagged item as a design choice rather than a spec violation and explains why.
 - Suggestions do not block a pass.
 
 ## Handling Disagreements
@@ -28,16 +35,14 @@ The loop runs until both agents pass or 4 cycles complete. Each cycle: both agen
 
 ## Agent Prompt Templates
 
-Operations customize these fragments with file paths and skill names.
+Operations customize `<spec-file>` and `<target>` when dispatching. `<spec-file>` is the compose spec that matches the artifact being reviewed (`configs/claude/skills/compose/references/skill-spec.md` for skills, `configs/claude/skills/compose/references/rules-spec.md` for rules files). `<target>` is the directory or file under review.
 
 **Sonnet prompt:**
 ```
-Read references/skill-spec.md, references/quality-checklist.md, then read all files in <target>. (Resolve references/ paths relative to the compose skill directory, not the target being reviewed.) You are Claude executing these instructions. Evaluate: checklist compliance, contradictions between files, correct tier assignments, under-explained or over-explained areas. Quote file names and line numbers. Format each finding as `file:line — severity — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
+Read <spec-file> and configs/claude/skills/compose/references/quality-checklist.md, then read all files in <target>. You are Claude executing these instructions. Evaluate: checklist compliance, contradictions between files, correct tier assignments, under-explained or over-explained areas. Quote file names and line numbers. Format each finding as `file:line — severity — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
 ```
 
 **Opus prompt:**
 ```
-Read references/skill-spec.md, references/quality-checklist.md, then read all files in <target>. (Resolve references/ paths relative to the compose skill directory, not the target being reviewed.) Evaluate internal consistency: principle interactions, missing guidance, edge cases where rules contradict or leave Claude without a clear path. Quote file names and line numbers. Format each finding as `file:line — severity — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
+Read <spec-file> and configs/claude/skills/compose/references/quality-checklist.md, then read all files in <target>. Evaluate internal consistency: principle interactions, missing guidance, edge cases where rules contradict or leave Claude without a clear path. Quote file names and line numbers. Format each finding as `file:line — severity — one sentence`. Keep output under 1000 words (500 words on final passes). If no issues, say PASS.
 ```
-
-**For rules reviews**: Use the same two prompt templates above, but instruct agents to read `references/rules-spec.md` instead of (or in addition to) `references/skill-spec.md`.

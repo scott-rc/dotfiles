@@ -76,6 +76,7 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
 - **"show stack"** / **"list branches"** / **"where am I"** → Stack (list)
 - **"track this branch"** → Stack (track)
+- **"untrack this branch"** / **"stop tracking this branch"** → Stack (untrack)
 - **"fold this branch"** / **"merge into base"** / **"combine branches"** / **"combine upstack"** / **"combine into one PR"** → Stack (fold)
 - **"delete this branch"** / **"remove from stack"** → Stack (delete)
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)

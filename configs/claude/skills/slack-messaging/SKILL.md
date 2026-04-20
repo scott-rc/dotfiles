@@ -1,6 +1,6 @@
 ---
 name: slack-messaging
-description: Enforces Slack formatting rules and tool selection when sending Slack messages — use when calling any Slack:slack_send_message or Slack:slack_send_message_draft MCP tool.
+description: Enforces Slack formatting rules and tool selection when sending Slack messages — use when calling any Slack MCP `send_message` or `send_message_draft` tool.
 user-invocable: false
 ---
 
@@ -14,7 +14,7 @@ Applies correct tool selection and Slack-native formatting whenever sending a me
 
 Enforce tool selection and format the message body using Slack-native markup before sending.
 
-1. **Select the correct tool**: MUST use `Slack:slack_send_message`. MUST NOT use `Slack:slack_send_message_draft` — send_message attributes the message to Claude, while draft silently puts words in the user's mouth.
+1. **Select the correct tool**: MUST use the Slack MCP `send_message` tool. MUST NOT use `send_message_draft` — `send_message` attributes the message to Claude, while the draft variant silently puts words in the user's mouth.
 
 2. **Apply Slack-native formatting**: Slack uses its own markup, not standard Markdown. Apply the following rules to the message body:
 

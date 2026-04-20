@@ -5,8 +5,12 @@ This directory contains configuration files for [Claude Code](https://claude.ai/
 ## Tracked Files
 
 - `settings.json` - Main Claude Code settings (permissions, plugins, etc.)
-- `commands/*.md` - Custom command definitions
+- `keybindings.json` - Key binding overrides
+- `CLAUDE.md` - Global preferences loaded by every session
 - `skills/` - Custom skill definitions (multi-file commands)
+- `rules/` - Scoped rules (path- or context-scoped guidance)
+- `hooks/` - Hook scripts invoked by settings.json
+- `statusline` - Status line script
 
 ## Untracked Files
 
@@ -26,11 +30,15 @@ The following files/directories remain in `~/.claude/` but are NOT tracked in ve
 
 ## Setup
 
-The `init.sh` script creates symlinks:
+The repo-root `apply.sh` creates these symlinks:
+- `~/.claude/CLAUDE.md` → `configs/claude/CLAUDE.md`
 - `~/.claude/settings.json` → `configs/claude/settings.json`
-- `~/.claude/commands/` → `configs/claude/commands/`
+- `~/.claude/keybindings.json` → `configs/claude/keybindings.json`
 - `~/.claude/skills/` → `configs/claude/skills/`
+- `~/.claude/rules/` → `configs/claude/rules/`
+- `~/.claude/hooks/` → `configs/claude/hooks/`
+- `~/.claude/statusline` → `configs/claude/statusline`
 
 ## Shared With Codex
 
-For Codex/Agents symlink mappings, see `README.md` under `Shared Agent Configuration (Claude Authority)`.
+For Codex/Agents symlink mappings, see the repo-root `README.md` under `Shared Configuration (Claude Authority)`.

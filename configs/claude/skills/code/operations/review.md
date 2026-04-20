@@ -46,7 +46,7 @@ Every finding MUST follow the format: `file:line — severity — one-sentence p
    - If prior findings were loaded in step 2: the full prior findings list with the instruction "These findings were identified in a prior review of this branch. [If head_sha matched: they are fully current — do not re-flag unless a fix is demonstrably incorrect or introduced a new issue.] [If head_sha differed: new commits have been pushed since this review — the findings were likely addressed or superseded. Pass them as historical context only; focus on finding NEW issues.]"
 
 6. **Report findings**:
-   MUST present findings grouped by severity (issues first, then suggestions, then nits). Each finding MUST include:
+   MUST present findings grouped by severity (Blocking first, then Improvement, then Suggestion). Each finding MUST include:
    - File and location
    - What the problem is (one sentence)
    - A concrete fix or recommendation
@@ -82,7 +82,7 @@ Every finding MUST follow the format: `file:line — severity — one-sentence p
     - If prior findings were loaded in step 2: the full prior findings list with the instruction "These findings were identified in a prior review of this branch. [If head_sha matched: they are fully current — do not re-flag unless a fix is demonstrably incorrect or introduced a new issue.] [If head_sha differed: new commits have been pushed since this review — the findings were likely addressed or superseded. Pass them as historical context only; focus on finding NEW issues.]"
 
 11. **Consolidate findings**:
-    Merge all subagent findings. Deduplicate by file + location. Group by severity (issues → suggestions → nits).
+    Merge all subagent findings. Deduplicate by file + location. Group by severity (Blocking → Improvement → Suggestion).
 
 12. **Report findings**:
     Same format as step 6 — grouped by severity, each with file/location, problem description, and concrete fix.
@@ -91,7 +91,7 @@ Every finding MUST follow the format: `file:line — severity — one-sentence p
     Write `./tmp/branches/<sanitized-branch>/review.md` (create the directory if needed) using the review artifact format below.
 
 14. **Offer fix plan or loop**:
-    If NOT in loop mode — if any issues or suggestions were found, ask the user if they want a fix plan. If yes, invoke the compose skill: `skill: "compose", args: "plan fixes from the review findings"`.
+    If NOT in loop mode — if any Blocking or Improvement findings were found, ask the user if they want to enter loop mode or write a Brief for a larger refactor. If the scope is small, proceed directly into the Loop Phase; if large, hand off to `code architect` to produce a plan Brief.
     If in loop mode — proceed to the Loop Phase (steps 15–20).
 
 ---

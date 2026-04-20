@@ -32,7 +32,7 @@ Before running any phase:
 
 For `review`, see step 4 — review has additional orchestrator-owned behavior beyond what `code review` alone does.
 
-For `audit`, there is no code-skill dispatch. Audit is orchestrator-owned. Consult `plan/references/phase-templates.md` under `## Type: audit` for the generic protocol, and follow the phase's own `### What to build` for the audit surface and category set. Audit is currently a STUB Type — its spec is deliberately minimal, and learnings from each real use should be captured back into `phase-templates.md`.
+For `audit`, there is no code-skill dispatch. Audit is orchestrator-owned. Consult `references/phase-templates.md` under `## Type: audit` for the Process steps, and follow the phase's own `### What to build` for the audit surface and category set.
 
 **c. Verify acceptance criteria.** For each checkbox in the phase's `### Acceptance criteria` section, confirm the criterion is met. Mark `- [x]` in the plan file. If a criterion cannot be met after reasonable effort, STOP and report to the user; do not continue to the next phase.
 

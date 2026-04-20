@@ -43,7 +43,7 @@ Configuration directories symlinked to their expected locations:
 |-----------|--------|
 | `atuin/` | `~/.config/atuin/config.toml` |
 | `bat/` | `~/.config/bat` |
-| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,commands,skills,hooks,statusline,rules}` |
+| `claude/` | `~/.claude/{CLAUDE.md,settings.json,keybindings.json,skills,hooks,statusline,rules}` (individual symlinks per file/directory) |
 | `codex/` | `~/.codex/config.toml`, `~/.codex/rules/default.rules` |
 | `configs/claude/CLAUDE.md` | `~/.codex/AGENTS.md` (Codex global AGENTS guidance) |
 | `cursor/` | `~/Library/Application Support/Cursor/User/{settings.json,keybindings.json}`, `~/.cursor/mcp.json`, extensions via `cursor --install-extension` |
@@ -61,6 +61,7 @@ Configuration directories symlinked to their expected locations:
 | `orbstack/` | `~/.orbstack/config/docker.json` |
 | `starship/` | `~/.config/starship.toml` |
 | `nvim/` | `~/.config/nvim` — modular Neovim 0.12 config with vim.pack plugin manager, native LSP, native statusline, snacks.nvim (picker, explorer, scroll, indent), satellite.nvim, format-on-save (conform.nvim), codelens, undotree |
+| `terminal/` | macOS Terminal.app color theme (GitHub Dark; imported manually, not symlinked) |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
 | `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin) |
 | `zsh/` | `~/.zshrc` |
@@ -202,12 +203,14 @@ Custom CLI tools.
 
 | Skill | Description |
 |-------|-------------|
-| `code/` | Applies coding style preferences, enforces TDD, runs code reviews, manages benchmarks, and evaluates test quality via mutation testing |
-| `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, decomposes large tasks into chunked execution plans, and writes handoff files for session continuity |
-| `evidence/` | Investigates questions and builds structured arguments by collecting proof from code, runtime, and research sources |
-| `git/` | Git workflow automation — commits, PRs, rebases, worktrees, CI fixes, CI monitoring (watch loop with auto-triage/fix/push), review handling, correction propagation, stacked PRs via git-spice, and GitHub interactions |
-| `brainstorm/` | Facilitates collaborative brainstorming sessions to generate, explore, and refine ideas on any topic |
-| `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with per-phase commit SHAs and checkpoints (`execute`), and writes a dated Retrospective with auto-proposed Fixup phases on completion (`review`) |
+| `brainstorm/` | Interviews the user relentlessly about a plan or design, walking each branch of the decision tree until shared understanding is reached. |
+| `code/` | Writes, reviews, tests, and optimizes code, and designs architectural refactors — enforces TDD for new features and bug fixes, runs code review, benchmarks, and mutation testing. |
+| `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, and writes handoff files for session continuity. |
+| `git/` | Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, and GitHub interactions. |
+| `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with commit checkpoints (`execute`), and retrospects with auto-proposed Fixup phases on completion (`review`). |
+| `prd/` | Creates a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at `./tmp/<name>/plan.md`. |
+| `slack-messaging/` | Enforces Slack formatting rules and tool selection when sending Slack messages via the Slack MCP integration. |
+| `ubiquitous-language/` | Extracts a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms; saves to `UBIQUITOUS_LANGUAGE.md`. |
 
 Each skill follows this directory structure:
 
@@ -218,14 +221,6 @@ Each skill follows this directory structure:
 ├── references/        # Shared knowledge and guidelines (optional)
 └── scripts/           # Shell scripts (optional)
 ```
-
-### Custom Commands
-
-Custom slash commands live in `configs/claude/commands/` (symlinked to `~/.claude/commands/`).
-
-| Command | Description |
-|---------|-------------|
-| `slack-message` | Summarizes conversation findings and writes to `tmp/slack_messages/` for sharing on Slack |
 
 ### Shared Configuration (Claude Authority)
 

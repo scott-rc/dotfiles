@@ -93,7 +93,7 @@ The chosen design:
 
 ### Dependency strategy
 
-Which category applies and how dependencies are handled (per [dependency-categories.md](../../../configs/claude/skills/code/references/dependency-categories.md)):
+Which category applies and how dependencies are handled (per [dependency-categories.md](../references/dependency-categories.md)):
 - **In-process**: merged directly
 - **Local-substitutable**: tested with [specific stand-in]
 - **Ports & adapters**: port definition, production adapter, test adapter

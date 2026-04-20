@@ -56,7 +56,7 @@ Scaffold a new Claude Code skill interactively, producing a complete skill direc
    - Validate against references/quality-checklist.md; fix any issues, up to 3 iterations
 
 7. **Review and iterate**:
-   Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
+   Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until both agents pass or 4 cycles complete.
 
 8. **Report results**:
    - MUST list all files created with a one-line description of each

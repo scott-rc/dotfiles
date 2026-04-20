@@ -10,14 +10,7 @@ Create, execute, and retrospect phased implementation plans. Plans live as singl
 
 ## Terminology
 
-"Review" and "findings" are both overloaded in this skill. Docs MUST use the unambiguous forms below; never use the bare words.
-
-- **plan review** — the retrospective operation (see below).
-- **review phase** — a Phase whose `**Type**:` is `review`; runs inside `plan execute`.
-- **code review** — the `code` skill's review operation, invoked by a review phase.
-- **Halt-findings section** — `## Review findings` appended by `plan execute` on review-phase halt.
-- **Phase-findings section** — `## Phase N review-phase findings` written by a converged review phase.
-- **Retrospective section** — `## Retrospective — <date>` written by `plan review`.
+"Review" and "findings" are both overloaded in this skill. See `operations/review.md` for the canonical glossary; docs MUST use the unambiguous forms (plan review, review phase, code review, Halt-findings section, Phase-findings section, Retrospective section) and never the bare words.
 
 ## Operations
 
@@ -26,7 +19,7 @@ Read a Brief-populated plan file and append phases to it. Records the Base SHA (
 MUST read operations/create.md before executing.
 
 ### Execute
-Run the plan phase by phase. Validates that every phase has `**Type**:` (hard error if missing) and that any `**Depends on**:` dependencies are complete. For each phase, invokes `Skill(code, <type>)` — instruction-loading in the orchestrator, not subagent dispatch. Commits once per phase via `Skill(git, commit)` and records the resulting SHA on the phase's `**Commit**:` line. The terminal review phase runs an evaluate-fix loop combining static verification (`code review`) and orchestrator-driven behavioral verification; on non-convergence, halts without committing. As its final step — regardless of outcome — invokes `Skill(plan, review)` to produce the Retrospective.
+Run the plan phase by phase. Validates that every phase has `**Type**:` (hard error if missing) and that any `**Depends on**:` dependencies are complete. For each `write`, `test`, or `benchmark` phase, invokes `Skill(code, <type>)` — instruction-loading in the orchestrator, not subagent dispatch. `audit` is orchestrator-owned (no code-skill dispatch). Commits once per phase via `Skill(git, commit)` and records the resulting SHA on the phase's `**Commit**:` line. The terminal review phase runs an evaluate-fix loop combining static verification (`code review`) and orchestrator-driven behavioral verification; on non-convergence, halts without committing. As its final step — regardless of outcome — invokes `Skill(plan, review)` to produce the Retrospective.
 MUST read operations/execute.md before executing.
 
 ### Review
@@ -43,4 +36,4 @@ MUST read operations/review.md before executing.
 
 ## References
 
-- references/phase-templates.md — Per-type starter acceptance criteria and phase-title conventions for each of the four phase types (`write`, `test`, `review`, `benchmark`).
+- references/phase-templates.md — Per-type starter acceptance criteria and phase-title conventions for each of the five phase types (`write`, `test`, `review`, `benchmark`, `audit`).

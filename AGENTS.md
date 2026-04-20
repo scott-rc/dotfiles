@@ -13,6 +13,7 @@ Claude configuration is the source of truth for shared agent behavior in this re
 ## Codex Alignment
 
 - `apply.sh` maintains Claude-backed links for Codex/Agents:
-- `~/.codex/skills/*` and `~/.agents/skills/*` → `configs/claude/skills/*`
-- `~/.codex/claude-rules` → `configs/claude/rules`
+  - `~/.codex/skills/*` and `~/.agents/skills/*` → `configs/claude/skills/*`
+  - `~/.codex/claude-rules` → `configs/claude/rules`
+  - `~/.codex/AGENTS.md` → `configs/claude/CLAUDE.md`
 - Codex should treat Claude-authored markdown guidance as canonical unless overridden by Codex system/developer instructions.

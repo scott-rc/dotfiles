@@ -36,16 +36,3 @@ Available on `branch submit` and `stack submit`. Updates existing CRs only — s
 
 `git-spice repo restack` rebases ALL tracked branches in dependency order (not just the current stack). Used by `repo sync --restack`.
 
-### Targeted Submit
-
-- `git-spice upstack submit` — submit current branch and all above
-- `git-spice downstack submit` — submit current branch and all below
-
-Available for future use; the skill currently uses `stack submit` for full-stack operations.
-
-### PR Metadata Flags (v0.21+)
-
-- `--reviewer <user>` — assign reviewer on submit
-- `--assign <user>` — assign assignee on submit
-
-Available for future use; PR metadata is currently handled separately during PR writing.

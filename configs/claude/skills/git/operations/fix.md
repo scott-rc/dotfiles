@@ -117,10 +117,11 @@ If CI, Review, or Combined path ran AND the description quality check (missing c
 
 10. **Present drafts for approval**: Show each draft alongside the reviewer's comment for context. For each human thread draft, present options: "Approve", "Skip", "Edit". MUST NOT post any reply to a human reviewer's comment without showing the draft and receiving explicit user approval.
 
-11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/reply.txt` using Bash (`mkdir -p ./tmp && cat <<'EOF' > ./tmp/reply.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/reply.txt`, then post using the in-thread reply endpoint:
+11. **Post approved replies and bot replies**: For each reply, write the text to `./tmp/pr/<pr_number>/reply-<comment_id>.txt` using Bash (`mkdir -p ./tmp/pr/<pr_number> && cat <<'EOF' > ./tmp/pr/<pr_number>/reply-<comment_id>.txt` ... `EOF`), sanitize in place with `~/.claude/skills/git/scripts/sanitize.sh ./tmp/pr/<pr_number>/reply-<comment_id>.txt`, then post using the in-thread reply endpoint:
 
     ```bash
-    gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@./tmp/reply.txt
+    gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies \
+      -F body=@./tmp/pr/<pr_number>/reply-<comment_id>.txt
     ```
 
     Where `{comment_id}` is the REST ID of the **first comment in the thread** being replied to (available from the get-pr-comments.sh output), and `{owner}`, `{repo}`, `{pull_number}` also come from that script's output.

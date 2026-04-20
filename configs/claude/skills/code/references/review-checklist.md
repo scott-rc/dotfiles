@@ -54,8 +54,9 @@ Criteria for code review evaluation.
 
 ## Output Format
 
-Report findings grouped by severity (issues first, then suggestions, then nits). Each finding MUST include:
+Report findings grouped by severity (Blocking first, then Improvement, then Suggestion). Each finding MUST include:
 - `file_path:line_number`
+- Severity (Blocking / Improvement / Suggestion)
 - What the problem is (one sentence)
 - A concrete fix or recommendation
 

@@ -19,7 +19,7 @@
 ## Claude Code
 
 - Skills: `configs/claude/skills/`
-- Commands: `configs/claude/commands/`
+- Rules: `configs/claude/rules/`
 
 ## Build & Test
 

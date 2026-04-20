@@ -146,8 +146,6 @@ The phase establishes a performance target and confirms it's met. `plan execute`
 
 ## Type: audit
 
-> **Status: STUB.** This Type exists because "sweep the system for issues, surface findings, triage with the user, apply approved fixes" is a distinct workflow from TDD-shaped `write`, test-coverage-shaped `test`, or terminal `review`. The protocol below is the minimum viable spec. It SHOULD be refined and filled out during the first real use, and the learnings committed back into this document.
-
 An audit phase scans across a defined surface (files, modules, dependencies, configuration, docs), surfaces findings per a defined category set, lets the user triage them (fix now / defer / out of scope), and applies approved fixes in a single commit. The surface and category set are always defined in the phase's `### What to build` section — the phase itself is what makes an audit phase specific. Acceptance criteria are usually defined by *coverage* (was the whole surface audited across every category?) rather than by a fixed finding list (which is unknown until the audit runs).
 
 Audit is orchestrator-owned in `plan execute` — there is no `Skill(code, audit)` dispatch. The orchestrator follows the guidance here plus the phase's `### What to build`.
@@ -156,31 +154,35 @@ Audit is orchestrator-owned in `plan execute` — there is no `Skill(code, audit
 
 "Audit <surface>," "Audit and reconcile <surface>." Concrete about the surface: "Audit repo documentation," "Audit cross-service dependency declarations," "Audit security-sensitive endpoints."
 
-### Process (generic)
+### Process
 
-1. Enumerate the audit surface per the phase's What-to-build.
-2. For each item in the surface, check every category the phase specifies (drift, consistency, conflicts, design issues, etc. — phase-specific).
-3. Consolidate findings. Dedupe across files.
-4. Present findings to the user, grouped by category. Get triage per finding: fix now / defer (with rationale) / out of scope (with rationale).
-5. Apply approved fixes.
-6. Commit once per phase per the usual rule.
+1. **Enumerate the audit surface.** Use a concrete command (`git ls-files '*.md'`, `find src -name '*.ts'`, etc.) per the phase's What-to-build. Explicitly note exclusions (test fixtures, gitignored dirs, vendored code) as you go.
+2. **Read anchor files inline.** Before delegating anything, read the small set of files that define the shape of the audit (root README, top-level config, canonical schemas). This grounds cross-file consistency checks that come later.
+3. **Delegate per-sub-surface audits in parallel where the surface is large.** Sub-surfaces are bounded slices of the audit surface (one skill directory, one service module) that can be audited in isolation. Each subagent returns findings for its slice; the orchestrator retains context for cross-file checks. For small surfaces, skip delegation and walk inline.
+4. **Do the cross-file pass yourself.** Consistency and conflict categories require holding multiple files at once; keep that in the orchestrator.
+5. **Consolidate and dedupe.** Format each finding as `**<category>** — <file>:<line> — <one-sentence description>`. Collapse duplicates across files into one finding with multiple locations.
+6. **Present findings grouped by impact tier, not just by category.** Tiers help the user triage quickly: Tier 1 (drift / contradictions / broken references — recommend fix-now), Tier 2 (consistency / narrative alignment — recommend fix-now but lower priority), Tier 3 (nits / orphans — recommend skip unless fast), Tier 4 (out-of-scope — recommend New plans). For each tier, offer a default recommendation ("all / cherry-pick / skip / defer") so the user can approve in bulk.
+7. **Apply approved fixes.** Edits go inline — no subagents in the fix step, since the findings are now concrete. Batch related edits per file.
+8. **Commit once per phase.** Defer to `Skill(git, commit)`; the git skill will auto-split if findings touched multiple concerns.
+9. **Record deferred and out-of-scope items** inline on the relevant acceptance criterion or as a note below the phase block, so `plan review` can surface them.
 
 ### Starter acceptance criteria
 
 ```
-- [ ] Every item in the audit surface (as enumerated in What to build) was checked across every category defined by the phase
-- [ ] Findings were presented to the user and triaged; approved fixes applied; deferred / out-of-scope items captured with rationale
+- [ ] Audit surface enumerated via the concrete command in `### What to build`; every item was checked
+- [ ] Each item in the surface was checked against every category defined by the phase (spot-check by naming at least one finding per category, or explicitly noting "none found" per category)
+- [ ] Findings deduped and presented to the user grouped by impact tier
+- [ ] User triaged every finding: fix-now / defer / out-of-scope
+- [ ] All fix-now items landed in the phase commit
+- [ ] Deferred items have rationale captured for `plan review`
+- [ ] Out-of-scope items captured with rationale, to be proposed as New plans at review time
 - [ ] Existing tests pass (if the fixes touched anything under test coverage)
 - [ ] Build / lint passes (if the fixes touched buildable code)
 ```
 
 ### Customization guidance
 
-- Enumerate the audit surface concretely in `### What to build` — files, globs, modules, endpoints. An audit whose surface is ambiguous will produce ambiguous acceptance criteria.
+- Enumerate the audit surface concretely in `### What to build` — files, globs, modules, endpoints, plus the exact shell command to generate the list. An audit whose surface is ambiguous will produce ambiguous acceptance criteria.
 - Enumerate the category set concretely too — "drift," "consistency," "conflicts," "design issues," etc., each with a one-sentence definition of what that category looks like in this phase's context.
 - Expect the triage step to be interactive; don't pre-commit to a fix set.
 - When the audit surfaces items clearly out of scope for the phase, propose them to `plan review` as candidates for New plans (not Fixup phases).
-
-### Meta-note
-
-First real use (as of this writing): Phase 1 of `tmp/dotfiles-drift/plan.md`. Whatever protocol that execution settles into — how findings are formatted, how triage is presented, how the commit is structured — should be captured back into the Process section above as concrete guidance, replacing the generic sketch.

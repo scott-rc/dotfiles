@@ -48,7 +48,7 @@ Modify an existing Claude Code skill by adding, changing, or removing operations
    Validate against references/quality-checklist.md; fix any issues, up to 3 iterations.
 
 5. **Review and iterate**:
-   Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until all 3 agents pass or 4 cycles complete.
+   Run the multi-perspective review loop per references/multi-perspective-review.md. Iterate until both agents pass or 4 cycles complete.
 
 6. **Report results**:
    - MUST list all files added, modified, or removed with a one-line description of each change

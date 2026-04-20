@@ -1,67 +1,85 @@
 # Neovim Config
 
+Neovim 0.12 config using the built-in `vim.pack` plugin manager and native LSP.
+
 ## Structure
 
 ```
 configs/nvim/
-├── init.lua                  # Entry point: leader key + requires
+├── init.lua                  # Entry point: leader keys + requires
+├── ftdetect/
+│   └── jinja.lua             # Jinja2 filetype detection
 ├── ftplugin/
 │   └── markdown.lua          # Markdown preview (<localleader>m / :Md → md in current window)
-├── lsp/                      # Neovim 0.11 native LSP configs (auto-loaded)
-│   ├── ts_ls.lua
+├── lsp/                      # Neovim 0.12 native LSP configs (auto-loaded, each returns {cmd, filetypes, root_markers})
+│   ├── cue.lua
 │   ├── gopls.lua
-│   └── jsonls.lua
+│   ├── jinja_lsp.lua
+│   ├── jsonls.lua
+│   ├── rust_analyzer.lua
+│   └── ts_ls.lua
+├── nvim-pack-lock.json       # vim.pack lockfile (committed)
 └── lua/
     ├── config/
     │   ├── options.lua       # vim.o / vim.opt / vim.g settings
-    │   ├── keymaps.lua       # General keymaps (plugin keymaps stay in specs)
-    │   ├── autocmds.lua      # Autocommands + LspAttach
-    │   ├── lazy.lua          # Bootstrap lazy.nvim + load plugins
+    │   ├── keymaps.lua       # General keymaps (plugin keymaps stay in plugin setup files)
+    │   ├── autocmds.lua      # Autocommands (user_config augroup) + LspAttach
+    │   ├── pack.lua          # vim.pack.add() + loads lua/plugins/*.lua in dependency order
+    │   ├── statusline.lua    # Native statusline customization
     │   └── lsp.lua           # vim.lsp.config("*") + vim.lsp.enable()
-    └── plugins/              # lazy.nvim auto-discovers all files here
+    └── plugins/              # Imperative setup files (loaded by pack.lua)
         ├── theme.lua         # github-nvim-theme
         ├── treesitter.lua    # nvim-treesitter + treesitter-context
+        ├── completion.lua    # blink.cmp + blink-copilot + SchemaStore
+        ├── editing.lua       # which-key, hydra, multicursor, vim-sleuth, copilot.lua
         ├── gitsigns.lua      # gitsigns
-        ├── ui.lua            # mini.icons, snacks (picker, explorer, scroll, indent), satellite.nvim, lualine, scrollEOF
-        ├── editing.lua       # which-key, hydra, multicursor.nvim, vim-sleuth, copilot.lua
-        ├── completion.lua    # blink.cmp, blink-copilot, schemastore
         ├── conform.lua       # conform.nvim (format-on-save)
-        └── jinja.lua         # Jinja2 (ftdetect only, no plugin)
+        └── ui.lua            # mini.icons, snacks.nvim (picker, explorer, scroll, indent), scrollEOF, satellite
 ```
 
 ## Load Order
 
 ```
 init.lua
-  1. vim.g.mapleader = " "        (must be before any plugin/keymap)
-  2. require("config.options")     (vim.o/vim.opt settings)
-  3. require("config.autocmds")    (autocommands, LspAttach)
-  4. require("config.keymaps")     (general keymaps)
-  5. require("config.lazy")        (bootstrap + load plugins)
-  6. require("config.lsp")         (blink.cmp capabilities + vim.lsp.enable)
+  1. vim.g.mapleader = " " + vim.g.maplocalleader = ","  (must be before any plugin/keymap)
+  2. require("config.options")    (vim.o/vim.opt settings)
+  3. require("config.autocmds")   (autocommands, LspAttach)
+  4. require("config.keymaps")    (general keymaps)
+  5. require("config.pack")       (vim.pack.add() + require each plugins/*.lua in order)
+  6. require("config.lsp")        (vim.lsp.config("*") capabilities from blink.cmp, then vim.lsp.enable())
 ```
 
-`mapleader` must be set before any keymaps or plugins reference it. `config.lsp` loads last because `vim.lsp.config("*")` needs `blink.cmp` (loaded by lazy.nvim) for LSP capabilities.
+`mapleader` must be set before any keymaps or plugins reference it. `config.lsp` loads last because `vim.lsp.config("*")` needs `blink.cmp` (loaded by `config.pack`) for LSP capabilities.
 
 ## How to Add a New Plugin
 
-1. Create a new file in `lua/plugins/` (or add to an existing grouped file like `ui.lua`)
-2. Return a lazy.nvim spec table: `return { "author/plugin-name", opts = { ... } }`
-3. Plugin-specific keymaps go in the spec's `keys` field for lazy-loading
-4. Restart nvim or run `:Lazy sync`
+1. Add the URL to `vim.pack.add({...})` in `lua/config/pack.lua`
+2. Add a setup file under `lua/plugins/<name>.lua` (or add to an existing grouped file like `ui.lua`)
+3. Add `require("plugins.<name>")` to `pack.lua` in the correct dependency order
+4. Restart nvim; vim.pack resolves the plugin on next startup
+
+Plugin-specific keymaps go in the plugin's setup file, not `keymaps.lua`. General keymaps go in `lua/config/keymaps.lua`.
 
 ## How to Add a New LSP Server
 
 1. Create `lsp/<server_name>.lua` returning `{ cmd = {...}, filetypes = {...}, root_markers = {...} }`
-2. Add the server name to the `vim.lsp.enable()` list in `lua/config/lsp.lua`
-3. Install the language server binary (e.g., via `brew` or `npm`)
+2. Add the server name to `vim.lsp.enable({...})` in `lua/config/lsp.lua`
+3. Install the language server binary (via `brew`, `npm`, `cargo`, `go install`, etc.)
+
+Use `buf` (not deprecated `buffer`) in any `vim.keymap.set` opts.
 
 ## Key Design Choices
 
-- **Plugin-specific keymaps stay in plugin specs** -- keeps keymaps co-located with the plugin config and enables lazy-loading
-- **General keymaps in `lua/config/keymaps.lua`** -- vim motions, navigation, leader shortcuts not tied to any plugin
-- **`lsp/` directory uses Neovim 0.11 native feature** -- no `nvim-lspconfig` plugin needed; Neovim auto-loads configs from `lsp/*.lua` when matching filetypes are opened
+- **Plugin-specific keymaps stay in plugin setup files** — keeps keymaps co-located with the plugin config
+- **General keymaps in `lua/config/keymaps.lua`** — vim motions, navigation, leader shortcuts not tied to any plugin
+- **`lsp/` uses Neovim 0.12 native LSP** — no `nvim-lspconfig` plugin; Neovim auto-loads configs from `lsp/*.lua` when matching filetypes are opened
+- **All autocmds use the `user_config` augroup**
+- **`nvim-pack-lock.json` is committed** (generated by `vim.pack`)
 
 ## Formatting
 
-Format-on-save is handled by `conform.nvim` (`plugins/conform.lua`). Formatters per filetype are configured there.
+Format-on-save is handled by `conform.nvim` (`lua/plugins/conform.lua`). Formatters per filetype are configured there.
+
+## Verify
+
+No build step. Open `nvim` and run `:checkhealth`.

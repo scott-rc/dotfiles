@@ -3,10 +3,10 @@
 Pass/fail criteria for evaluating Claude Code skills and rules files. Items are tiered by severity.
 
 - **Blocking** — MUST pass. Breaks functionality if violated.
-- **Improvements** — SHOULD fix. Degrades quality.
-- **Suggestions** — MAY fix. Consistency polish.
+- **Improvement** — SHOULD fix. Degrades quality.
+- **Suggestion** — MAY fix. Consistency polish.
 
-Only blocking items can fail a review. Improvements are flagged. Suggestions are noted.
+A review passes when zero Blocking issues remain AND zero Improvement issues remain (or the orchestrator judges a flagged Improvement as a deliberate design choice and explains why). Suggestions do not block a pass.
 
 ## Structure — Skills
 
@@ -33,7 +33,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **Combined operation preconditions**: Combined operations that chain state-mutating operations note when a later operation has independent preconditions the orchestrator must not skip
 - [ ] **No inline heavy work**: Operations do not read more than 3 files, analyze large diffs, or generate multi-file artifacts inline when a subagent could do it
 
-### Improvements
+### Improvement
 
 - [ ] **Verification step (non-mutating)**: Read-only or informational operations include a step for verifying results where practical
 - [ ] **Feedback loops**: Quality-critical operations include a validate-fix-repeat loop (e.g., run linter, fix errors, re-run)
@@ -49,7 +49,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **No vague file names**: No files named `utils.md`, `helpers.md`, `misc.md`, or `other.md`
 - [ ] **No unprompted options**: Operations do not present multiple approaches when one clear default will do. User confirmation before destructive or irreversible actions is not a violation of this rule.
 
-### Suggestions
+### Suggestion
 
 - [ ] **H1 naming conventions**: Operation file H1s start with the operation name. Prefer standalone names (`# Review`, `# Benchmark`) or descriptive phrases (`# Mutation Testing`, `# Apply Coding Preferences`) over a generic "Operation" suffix.
 - [ ] **Section heading consistency**: All operation files use the same heading structure
@@ -66,7 +66,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 - [ ] **@file references resolve**: Every `@filename` reference points to a file that exists
 - [ ] **Flat heading hierarchy**: Headings do not go deeper than H3
 
-### Improvements
+### Improvement
 
 - [ ] **No content duplication**: Information in referenced files (`@README.md`, etc.) is not repeated in the rules file
 - [ ] **Scoped rules have paths**: Files in `.claude/rules/` intended to be path-specific have `paths:` frontmatter with valid glob patterns
@@ -79,7 +79,7 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 
 ## Content Efficiency
 
-### Improvements
+### Improvement
 
 - [ ] **Token justification**: Every file contributes unique information — no file exists just for organizational aesthetics
 - [ ] **No redundancy**: Instructions are stated once and referenced, not copied between files
@@ -90,22 +90,13 @@ Only blocking items can fail a review. Improvements are flagged. Suggestions are
 
 ## Scripts (if applicable, Skills only)
 
-### Improvements
+### Improvement
 
 - [ ] **Error handling**: Scripts check for failure conditions and provide useful error messages rather than failing silently
 - [ ] **Error recovery**: Scripts handle errors with concrete recovery actions rather than surfacing raw errors for Claude to interpret
 - [ ] **Dependencies declared**: Required tools are documented in the skill
 
-### Suggestions
+### Suggestion
 
 - [ ] **Documented constants**: Magic numbers and paths are explained or assigned to named variables
 
-## Testing (Skills only)
-
-Note: These criteria are aspirational — no operation currently enforces them automatically.
-
-### Improvements
-
-- [ ] **Tested with target models**: The skill has been tested with the models it targets
-- [ ] **Evaluation cases exist**: At least one test scenario per operation exists to verify correct behavior
-- [ ] **Structured evaluations**: Test scenarios specify input, expected behavior, and pass/fail criteria — not just vague descriptions

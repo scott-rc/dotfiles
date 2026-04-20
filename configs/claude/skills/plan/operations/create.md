@@ -118,7 +118,7 @@ Append phase blocks to the existing plan file (below the Brief). Do NOT overwrit
 <phase-template>
 ## Phase N: <Title>
 
-**Type**: <write | test | review | benchmark>
+**Type**: <write | test | review | benchmark | audit>
 
 ### What to build
 

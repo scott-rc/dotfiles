@@ -3,7 +3,7 @@ name: prd
 description: Create a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at ./tmp/<name>/plan.md. Use when the user wants to write a PRD, create a product requirements document, or plan a new feature.
 ---
 
-This skill is invoked when the user wants to create a PRD. The output is a plan file at `./tmp/<name>/plan.md` with its `## Brief` section populated — ready for `plan create` to phase into runnable work. You may skip steps below if you don't consider them necessary.
+This skill is invoked when the user wants to create a PRD. The output is a plan file at `./tmp/<name>/plan.md` with its `## Brief` section populated — ready for `plan create` to phase into runnable work.
 
 ## Process
 

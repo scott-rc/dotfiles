@@ -1,6 +1,6 @@
 ---
 name: code
-description: Writes, reviews, tests, and optimizes code, and designs architectural refactors -- enforces TDD for new features and bug fixes, runs code review, benchmarks, mutation testing, and deep-module refactor RFCs.
+description: Writes, reviews, tests, and optimizes code, and designs architectural refactors -- enforces TDD for new features and bug fixes, runs code review, benchmarks, mutation testing, and deep-module refactor briefs.
 argument-hint: "[write | test | review | benchmark | architect] [context]"
 ---
 
@@ -19,7 +19,7 @@ Improve or evaluate test coverage — Coverage mode (characterization tests for 
 MUST read operations/test.md before executing.
 
 ### Review
-Evaluate code for test gaps, idiomaticity, simplification opportunities, architectural smells, and correctness issues. Automatically decomposes large scopes (>8 files or >500 lines) into parallel review subagents for thorough analysis. Supports an evaluate-fix loop mode for iterative convergence.
+Evaluate code for test gaps, idiomaticity, simplification opportunities, architectural smells, correctness issues, and security. Auto-routes by scope: Quick path (≤8 files AND ≤500 lines), auto-thorough with parallel subagent decomposition (>20 files or >1500 lines), Ask otherwise. Supports an evaluate-fix loop mode for iterative convergence.
 MUST read operations/review.md before executing.
 
 ### Benchmark
@@ -83,18 +83,11 @@ Global delegation rules apply. Code-skill-specific additions:
 
 ## References
 
-- references/general-guidelines.md — Language-agnostic naming, comments, error handling, control flow, abstractions, and string conventions
-- references/testing-guidelines.md — Test design philosophy (behavior over implementation) plus patterns: case structure, data separation, exhaustiveness, special cases, failure readability, golden files, and test infrastructure
-- references/test-examples.md — Good vs bad test examples (language-agnostic prose with TypeScript illustrations)
-- references/mocking.md — When to mock (boundaries only) and how to design mockable boundaries (DI, SDK-style adapters)
+- references/load-guidelines.md — Index of the coding-guideline files below (general, testing, language-specific, environment); referenced by Write/Test/Review/Benchmark when they load guidelines
+- references/review-checklist.md — Review criteria (test coverage, idiomaticity, simplification, architectural smells, correctness, security, naming); referenced by the Review operation
 - references/interface-design.md — Testability principles: accept dependencies, functional returns, minimal interface complexity
 - references/deep-modules.md — Ousterhout summary: small interface + lots of implementation; signals of shallowness
 - references/refactor-smells.md — Local smells (duplication, long methods, feature envy, primitive obsession) and structural smells (shallow modules, tight clusters) that point to refactor or Architect
 - references/dependency-categories.md — In-process / local-substitutable / ports-and-adapters / mock-external — determines deepening strategy and testing approach
-- references/typescript-guidelines.md — TypeScript-specific type annotations, function style, and imports
-- references/go-guidelines.md — Go-specific naming, error handling, interfaces, structs, concurrency, testing, and logging conventions
-- references/rust-guidelines.md — Rust-specific error handling, type patterns, module organization, testing, and style conventions
-- references/shell-guidelines.md — Bash and Fish conventions, shellcheck enforcement
-- references/test-environment.md — Test and benchmark runner detection, file placement conventions, and framework setup
-- references/load-guidelines.md — Index of all coding guideline files with descriptions, referenced by all operations that load language-specific guidelines
-- references/review-checklist.md — Review criteria for test coverage, idiomaticity, simplification, architectural smells, correctness, and naming, referenced by review subagents
+- references/mocking.md — When to mock (boundaries only) and how to design mockable boundaries (DI, SDK-style adapters)
+- references/test-examples.md — Good vs bad test examples (language-agnostic prose with TypeScript illustrations)

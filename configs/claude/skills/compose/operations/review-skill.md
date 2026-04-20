@@ -12,27 +12,21 @@ Evaluate a Claude Code skill against best practices using multi-perspective revi
    - Confirm the skill directory exists and contains a SKILL.md file
 
 2. **Multi-perspective review**:
-   Spawn 2 subagents in parallel per references/multi-perspective-review.md:
+   Spawn 2 subagents in parallel per references/multi-perspective-review.md, substituting `<spec-file>` = `configs/claude/skills/compose/references/skill-spec.md` and `<target>` = the skill directory under review.
 
    - **Sonnet** — checklist compliance: structure validation, required fields, file links, anti-patterns from the checklist
    - **Opus** — principle consistency: progressive disclosure, workflow quality, degrees of freedom, cross-file coherence
 
-   Each agent receives the skill directory path and its lens as focus. Each returns findings grouped by Blocking/Improvements/Suggestions with per-file token counts. Agent outputs MUST be kept concise — the word limits in prompt templates (e.g., "under 1000 words") are binding. After receiving agent results, summarize each to key findings only before proceeding; do NOT carry full agent transcripts forward into subsequent steps.
+   Each agent receives the target directory path and its lens as focus. Each returns findings tagged with severity (Blocking / Improvement / Suggestion). Agent outputs MUST be kept concise — the word limits in prompt templates (e.g., "under 1000 words") are binding. After receiving agent results, summarize each to key findings only before proceeding; do NOT carry full agent transcripts forward into subsequent steps.
 
 3. **Synthesize findings**:
-   Merge results from both agents into a single deduplicated list grouped by severity (Blocking > Improvements > Suggestions). Where agents disagree on severity, note the disagreement and use the higher severity. Cross-reference findings against project-specific context the agents would not have (CLAUDE.md conventions, skill interdependencies). Summarize concisely — the synthesized findings list is what persists in context for the fix loop. Drop prose, keep only the structured `file:line — severity — description` format.
+   Merge results from both agents into a single deduplicated list grouped by severity (Blocking > Improvement > Suggestion). Where agents disagree on severity, note the disagreement and use the higher severity. Cross-reference findings against project-specific context the agents would not have (CLAUDE.md conventions, skill interdependencies). Summarize concisely — the synthesized findings list is what persists in context for the fix loop. Drop prose, keep only the structured `file:line — severity — description` format.
 
-4. **Estimate token usage**:
-   - Use the token counts from the agents' output
-   - Flag individual files over 2000 tokens as candidates for splitting
-   - Flag SKILL.md over 5000 tokens as exceeding the hub size limit
-   - If skipped for any reason, explicitly state: "Skipping step 4 — no token counts available."
+4. **Present findings**:
+   Group results by severity (Blocking, Improvement, Suggestion). For each finding, state: what the issue is, which file it's in, what the fix would be.
 
-5. **Present findings**:
-   Group results by severity (Blocking, Improvements, Suggestions). For each finding, state: what the issue is, which file it's in, what the fix would be.
+5. **Review-fix loop**:
+   Run the loop per references/multi-perspective-review.md. Apply fixes inline using Edit/Write — read the authoring specs (references/skill-spec.md, references/skill-template.md) if needed for guidance. Iterate until the loop terminates per the Termination section in multi-perspective-review.md. The fix loop is the most critical phase — all prior steps exist to serve it. If context is tight, aggressively summarize prior agent outputs before entering the loop. The loop MUST run; truncation before it starts means the review was incomplete.
 
-6. **Review-fix loop**:
-   Run the evaluate-fix loop per references/multi-perspective-review.md. Apply fixes inline using Edit/Write — read the authoring specs (references/skill-spec.md, references/skill-template.md) if needed for guidance. Iterate until the loop terminates: **Converged** (no Blocking/Improvement findings remain), **No progress** (unresolved findings unchanged across iterations — halt), or **Regression** (findings increased after a fix attempt — halt). Findings follow `file:line — severity — one-sentence problem` format with severities Blocking / Improvement / Suggestion. The fix loop is the most critical phase — all prior steps exist to serve it. If context is tight, aggressively summarize prior agent outputs before entering the loop. The loop MUST run; truncation before it starts means the review was incomplete.
-
-7. **Report outcomes**:
+6. **Report outcomes**:
    Present a summary of what was reviewed, what was fixed, and what remains (pass/fail, cycle count, unresolved findings with severity and reason).

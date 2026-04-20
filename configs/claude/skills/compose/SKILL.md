@@ -42,9 +42,7 @@ MUST read operations/create-handoff.md before executing.
 
 ## Delegation
 
-- Skill files (operations, references, SKILL.md) — write inline; read the authoring specs (references/skill-spec.md, references/skill-template.md, references/quality-checklist.md) and apply them directly
-- Rules files (CLAUDE.md, `.claude/rules/`) — write inline using the authoring specs (references/rules-spec.md, references/rules-template.md, references/quality-checklist.md)
-- Review-fix cycles — apply all fixes inline using Edit/Write
+Write inline. Authoring reads from references; fixes apply via Edit/Write. Do not delegate skill, rules, prompt, or handoff authoring to a subagent.
 
 ## Combined Operations
 

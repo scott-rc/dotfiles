@@ -26,7 +26,7 @@ SKILL.md (router)
 Four principles:
 
 1. **Simple by default** — Start with a single SKILL.md containing all instructions inline. Extract to operation files and references only when a concrete trigger is met (see Inline Operations below).
-2. **Deciding vs doing** — See Delegation > Behavior in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
+2. **Deciding vs doing** — See the Delegation section in the global CLAUDE.md. Operations must respect the deciding/doing boundary.
 3. **Right-size the abstraction** — Inline if simple and self-contained. Extract to a file when complexity demands it. Extract to a script when data extraction is reused. Extract to an agent when judgment work is reused. Use the Skill tool for cross-skill workflows.
 4. **References are DRY leaves** — They prevent update-in-N-places problems. Operations link to them at the steps where their content is needed.
 
