@@ -24,7 +24,7 @@ Your own services across a network boundary -- internal APIs, microservices, mes
 
 - **Deepening strategy**: Define a **port** (interface) at the module boundary. The deepened module owns the logic; the transport is injected via the port. Production gets an HTTP/gRPC/queue adapter; tests get an in-memory adapter.
 - **Testing**: Boundary tests use the in-memory adapter. Tests exercise the module as one deep unit, even though the system is deployed across a network.
-- **RFC phrasing**: "Define a shared interface (port), implement an HTTP adapter for production and an in-memory adapter for testing, so the logic can be tested as one deep module even though it's deployed across a network boundary."
+- **Brief phrasing**: "Define a shared interface (port), implement an HTTP adapter for production and an in-memory adapter for testing, so the logic can be tested as one deep module even though it's deployed across a network boundary."
 
 ## 4. True external (Mock-boundary)
 

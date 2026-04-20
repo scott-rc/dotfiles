@@ -29,4 +29,4 @@ See references/refactor-smells.md for a broader catalog, and references/dependen
 
 ## When to act on shallowness
 
-Small, localized shallowness can be addressed inline during a TDD refactor step. Broad or cross-cutting shallowness (multiple modules clustering, network boundaries, ports-and-adapters opportunities) is a signal to invoke `code architect <target>` -- which produces a refactor RFC with parallel design alternatives rather than trying to fix the depth problem inline.
+Small, localized shallowness can be addressed inline during a TDD refactor step. Broad or cross-cutting shallowness (multiple modules clustering, network boundaries, ports-and-adapters opportunities) is a signal to invoke `code architect <target>` -- which produces a refactor brief (as a plan file's `## Brief` section) with parallel design alternatives rather than trying to fix the depth problem inline.

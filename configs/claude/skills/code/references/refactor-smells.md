@@ -11,13 +11,13 @@ Smells to watch for after a TDD green cycle, when reviewing code, or when scopin
 
 ## Structural smells (often warrant `code architect`)
 
-- **Shallow modules** (see references/deep-modules.md) -- large interface hiding trivial implementation, or a thin wrapper that adds no abstraction. Single small shallowness can be fixed inline; broad shallowness across multiple modules deserves an RFC.
+- **Shallow modules** (see references/deep-modules.md) -- large interface hiding trivial implementation, or a thin wrapper that adds no abstraction. Single small shallowness can be fixed inline; broad shallowness across multiple modules deserves a brief via `code architect`.
 - **Tightly-coupled cluster** -- three or more modules that always change together, share internal types, or can't be tested independently. Consider combining into one deep module or introducing a shared interface (port).
 - **Pure-logic-extracted-only-for-testing** -- a function lives in isolation solely so tests can reach it. The test surface should be the real public API; if the only way to test is through a scaffold, the real API is wrong.
 
 ## Derived smells from new code
 
-- **"This would be easier if ..."** -- new code reveals friction in existing code. Note it, finish the current cycle, then decide: fix inline (small) or RFC (structural).
+- **"This would be easier if ..."** -- new code reveals friction in existing code. Note it, finish the current cycle, then decide: fix inline (small) or write a brief via `code architect` (structural).
 
 ## Cross-reference
 
