@@ -69,7 +69,6 @@
       "~/go/pkg/mod"
     ]
   },
-  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
