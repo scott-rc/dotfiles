@@ -16,14 +16,8 @@
       "WebSearch",
       "mcp__gadget-admin__*",
       "mcp__gopls__*",
-      "mcp__claude_ai_Slack__slack_read_canvas",
-      "mcp__claude_ai_Slack__slack_read_channel",
-      "mcp__claude_ai_Slack__slack_read_thread",
-      "mcp__claude_ai_Slack__slack_read_user_profile",
-      "mcp__claude_ai_Slack__slack_search_channels",
-      "mcp__claude_ai_Slack__slack_search_public",
-      "mcp__claude_ai_Slack__slack_search_public_and_private",
-      "mcp__claude_ai_Slack__slack_search_users",
+      "mcp__chrome-devtools__*",
+      "mcp__claude_ai_Linear__extract_images",
       "mcp__claude_ai_Linear__get_attachment",
       "mcp__claude_ai_Linear__get_document",
       "mcp__claude_ai_Linear__get_issue",
@@ -44,7 +38,14 @@
       "mcp__claude_ai_Linear__list_teams",
       "mcp__claude_ai_Linear__list_users",
       "mcp__claude_ai_Linear__search_documentation",
-      "mcp__claude_ai_Linear__extract_images"
+      "mcp__claude_ai_Slack__slack_read_canvas",
+      "mcp__claude_ai_Slack__slack_read_channel",
+      "mcp__claude_ai_Slack__slack_read_thread",
+      "mcp__claude_ai_Slack__slack_read_user_profile",
+      "mcp__claude_ai_Slack__slack_search_channels",
+      "mcp__claude_ai_Slack__slack_search_public",
+      "mcp__claude_ai_Slack__slack_search_public_and_private",
+      "mcp__claude_ai_Slack__slack_search_users"
     ],
     "defaultMode": "default",
     "additionalDirectories": [
@@ -95,8 +96,5 @@
   "effortLevel": "high",
   "showClearContextOnPlanAccept": true,
   "autoMemoryEnabled": false,
-  "trustedDirectories": [
-    "/Users/scott/Code/gadget",
-    "/Users/scott/Code/personal"
-  ]
+  "trustedDirectories": ["/Users/scott/Code/gadget", "/Users/scott/Code/personal"]
 }
