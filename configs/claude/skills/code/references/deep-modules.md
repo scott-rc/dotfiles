@@ -4,6 +4,17 @@ Per John Ousterhout's _A Philosophy of Software Design_, a **deep module** has a
 
 The opposite -- a **shallow module** with a **large interface + little implementation** -- fails to provide meaningful abstraction. The caller has to understand almost as much to use the module as they would without it.
 
+**Depth is leverage at the interface, not a line-count ratio.** A small implementation behind a small interface can still be deep if it concentrates behavior that callers would otherwise reinvent. Don't pad the implementation to "look" deep — measure depth by what callers get per unit of interface they must learn. See [architecture-language.md](architecture-language.md) for the full vocabulary.
+
+## The deletion test
+
+The cleanest filter for shallowness: imagine deleting the module.
+
+- If the complexity **vanishes** — nothing meaningful is lost — the module was a pass-through. It wasn't hiding anything; it was indirection.
+- If the complexity **reappears and spreads across N callers** — each one now has to reimplement what the module was doing — the module was earning its keep.
+
+"Vanishes" is the signal to act. Use it in discovery (Architect step 1) and in Review's structural section.
+
 ## Why depth matters
 
 - **Cognitive load**: callers reason about the interface, not the internals
@@ -25,7 +36,7 @@ The opposite -- a **shallow module** with a **large interface + little implement
 - Callers routinely chain 3+ methods in a specific order to accomplish one conceptual operation
 - Unit tests on the module are mostly setup glue with trivial assertions
 
-See references/refactor-smells.md for a broader catalog, and references/dependency-categories.md for how dependency type affects the depth strategy.
+See references/refactor-smells.md for a broader catalog, references/dependency-categories.md for how dependency type affects the depth strategy, and references/architecture-language.md for the shared vocabulary (module, interface, seam, adapter, leverage, locality).
 
 ## When to act on shallowness
 

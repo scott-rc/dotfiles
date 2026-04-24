@@ -2,6 +2,8 @@
 
 Design an architectural refactor. Identify shallow modules or friction points, generate parallel design alternatives, produce a plan file whose `## Brief` captures the chosen design. Does not implement. Hands off to `plan create` for phasing.
 
+Uses the vocabulary in [references/architecture-language.md](../references/architecture-language.md) — **module**, **interface**, **implementation**, **depth**, **seam**, **adapter**, **leverage**, **locality**. Use these terms exactly throughout discovery, framing, design, and the written Brief. Don't drift into "component", "service", or "boundary" when discussing architectural structure.
+
 ## Invocation modes
 
 - **Discovery** (no args) — explore the codebase for candidates, present a numbered list, user picks one or many. Each pick becomes a separate architect invocation.
@@ -15,11 +17,13 @@ Design an architectural refactor. Identify shallow modules or friction points, g
 
 Look for friction points:
 
-- Concepts scattered across many files
-- Overly simple interfaces hiding complex implementations, or overly large interfaces hiding trivial ones
-- Pure functions extracted solely to be testable
-- Tightly-coupled modules with integration risk
-- Untestable or hard-to-test sections
+- Concepts scattered across many files — understanding one idea requires bouncing between many small modules (no **locality**)
+- **Shallow modules** — interface nearly as complex as the implementation, giving callers no **leverage**
+- Pure functions extracted solely to be testable — the real bugs hide in how they're called, not in the extracted piece
+- Tightly-coupled modules with integration risk — modules that always change together or leak across their seams
+- Untestable or hard-to-test sections — tests that can only run by reaching past the interface are a shape problem, not a test problem
+
+**Apply the deletion test to anything you suspect is shallow.** Imagine deleting the module. If complexity vanishes, it was a pass-through — that's the signal you want. If complexity simply reappears and spreads across N callers, the module was earning its keep; move on. See [references/architecture-language.md](../references/architecture-language.md) for the full vocabulary and principles.
 
 **Ground every claim.** Each candidate you surface must cite specific files (with line numbers where useful) and verified counts. No approximations like "~16 fields" when a Read or grep gives the exact number. If you're about to write a range or a hedge, run the tool call first.
 
@@ -36,18 +40,21 @@ Do NOT propose specific interfaces yet. Ask the user to pick one or more candida
 
 For the selected candidate (or the specified target in targeted mode), write a user-facing explanation covering:
 
-- What any new interface must satisfy — inputs, outputs, invariants callers depend on
+- What any new interface must satisfy — inputs, outputs, invariants callers depend on, ordering constraints, error modes
 - Relevant dependencies, classified per [references/dependency-categories.md](../references/dependency-categories.md)
 - Illustrative code sketches grounding the problem space (small snippets, not full designs)
 
-Present this framing to the user before spawning design agents.
+Present this framing to the user, then proceed immediately to step 3 — the user reads the framing while the design subagents run in parallel.
 
 ### 3. Dispatch 4 parallel design subagents
+
+Based on Ousterhout's "Design It Twice" — the first idea is rarely the best. Spread the search across constraints so the alternatives are genuinely different, not variations of one pick.
 
 Each subagent receives:
 - The framing from step 2
 - ONE of the 4 design constraints below
-- A required deliverable: interface signature, usage example, hidden complexity, dependency strategy, trade-offs
+- A required deliverable: full interface (types, methods, params — plus invariants, ordering constraints, error modes), usage example, hidden complexity, dependency strategy, trade-offs
+- The vocabulary from [references/architecture-language.md](../references/architecture-language.md) — each subagent must name things consistently (module, interface, seam, adapter, leverage, locality)
 
 **Design constraints (3 fixed + 1 adaptive based on dependency category):**
 
@@ -62,9 +69,17 @@ Do not prescribe the subagent type — the orchestrator selects at dispatch time
 
 Run the 4 subagents in parallel.
 
-### 4. Present designs; user picks
+### 4. Present designs; recommend; user picks
 
-Surface all 4 designs side-by-side. For each: interface signature, usage example, hidden complexity, dependency strategy, trade-offs. User picks one (or directs a merge). Capture the 3 rejected designs with their constraint label and trade-offs — they go into the Brief's Rejected Alternatives section.
+Present each design in turn — full interface (types, methods, params, invariants, ordering, error modes), usage example, hidden complexity, dependency strategy, trade-offs — so the user can absorb them one at a time. Then compare them in prose, contrasting by:
+
+- **Depth** — which design gives callers the most leverage per unit of interface?
+- **Locality** — where does change concentrate in each design? Which one keeps bugs and future edits in one place?
+- **Seam placement** — where does each design put the seam, and is it a real seam (two adapters justified) or a hypothetical one (indirection without variance)?
+
+**Be opinionated.** End with your own recommendation — which design you think is strongest and why. If elements from different designs combine well, propose a hybrid. The user wants a strong read, not a menu; they can still override.
+
+User picks one (or directs a merge). Capture the 3 rejected designs with their constraint label and trade-offs — they go into the Brief's Rejected Alternatives section.
 
 ### 5. Write the plan file with Brief populated
 
@@ -87,7 +102,7 @@ Describe the architectural friction:
 ### Proposed interface
 
 The chosen design:
-- Interface signature (types, methods, params)
+- Interface: types, methods, params — plus invariants callers depend on, ordering constraints, error modes, required configuration
 - Usage example showing how callers use it
 - What complexity it hides internally
 
@@ -97,18 +112,18 @@ Which category applies and how dependencies are handled (per [dependency-categor
 - **In-process**: merged directly
 - **Local-substitutable**: tested with [specific stand-in]
 - **Ports & adapters**: port definition, production adapter, test adapter
-- **Mock**: mock boundary for external services
+- **Mock**: mock at the seam for external services
 
 ### Testing strategy
 
 Replace, don't layer:
-- Old unit tests on the formerly-shallow modules are waste once boundary tests exist — delete them
-- New tests live at the deepened module's interface boundary
+- Old unit tests on the formerly-shallow modules are waste once tests at the new interface exist — delete them
+- New tests live at the deepened module's interface — the interface is the test surface
 - Tests assert observable outcomes through the public interface, not internal state
-- Tests should survive internal refactors
+- Tests should survive internal refactors; if a test has to change when the implementation changes, it's testing past the interface
 
 Specifics:
-- **New boundary tests to write**: [describe behaviors to verify]
+- **New interface-level tests to write**: [describe behaviors to verify through the public interface]
 - **Old tests to delete**: [list shallow-module tests that become redundant]
 - **Test environment needs**: [local stand-ins or adapters required]
 

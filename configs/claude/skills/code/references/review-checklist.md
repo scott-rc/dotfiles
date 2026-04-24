@@ -29,8 +29,8 @@ Criteria for code review evaluation.
 
 ## Architectural Smells
 
-- **Shallow modules** — flag modules where the interface surface is large relative to the implementation (many exported methods hiding little), or where an overly simple interface hides tightly-coupled internals. Single small shallowness can be addressed inline; broad or cross-cutting shallowness warrants suggesting `code architect <target>` for a design-refactor brief with parallel design alternatives. See [deep-modules.md](deep-modules.md) and [refactor-smells.md](refactor-smells.md).
-- **Tightly-coupled clusters** — three or more modules that always change together or can't be tested independently. Suggest architect for boundary design.
+- **Shallow modules** — flag modules where the interface surface is large relative to the implementation (many exported methods hiding little), or where an overly simple interface hides tightly-coupled internals. Apply the **deletion test**: would removing the module concentrate complexity across callers, or make it vanish entirely? Vanish = it was a pass-through and likely wasn't earning its keep. Single small shallowness can be addressed inline; broad or cross-cutting shallowness warrants suggesting `code architect <target>` for a design-refactor brief with parallel design alternatives. See [architecture-language.md](architecture-language.md), [deep-modules.md](deep-modules.md), and [refactor-smells.md](refactor-smells.md).
+- **Tightly-coupled clusters** — three or more modules that always change together or can't be tested independently. Suggest architect for seam design.
 
 ## Correctness and Robustness
 

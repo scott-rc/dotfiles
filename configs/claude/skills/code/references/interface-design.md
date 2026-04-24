@@ -2,6 +2,8 @@
 
 Well-designed interfaces accommodate testing naturally -- no mocking tricks, no test-only hooks. Three principles.
 
+**"Interface" is broader than the type signature.** It's everything a caller must know to use the module correctly: the method names and parameter types, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics. A designed-for-testability interface minimizes all of these, not just the visible signature. See [architecture-language.md](architecture-language.md) for the full definition.
+
 ## 1. Accept dependencies, don't create them
 
 Functions and objects should receive their collaborators as parameters, not construct them internally. This lets tests substitute fakes, mocks, or alternate implementations without touching globals or environment.

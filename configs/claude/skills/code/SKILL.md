@@ -78,8 +78,9 @@ Users often request multiple operations together. Handle these as follows:
 
 - references/load-guidelines.md — Index of the coding-guideline files below (general, testing, language-specific, environment); referenced by Write/Test/Review/Benchmark when they load guidelines
 - references/review-checklist.md — Review criteria (test coverage, idiomaticity, simplification, architectural smells, correctness, security, naming); referenced by the Review operation
+- references/architecture-language.md — Shared vocabulary for Architect: module, interface, implementation, depth, seam, adapter, leverage, locality; plus deletion test and seam discipline
 - references/interface-design.md — Testability principles: accept dependencies, functional returns, minimal interface complexity
-- references/deep-modules.md — Ousterhout summary: small interface + lots of implementation; signals of shallowness
+- references/deep-modules.md — Ousterhout summary: small interface + lots of implementation; signals of shallowness; deletion test
 - references/refactor-smells.md — Local smells (duplication, long methods, feature envy, primitive obsession) and structural smells (shallow modules, tight clusters) that point to refactor or Architect
 - references/dependency-categories.md — In-process / local-substitutable / ports-and-adapters / mock-external — determines deepening strategy and testing approach
 - references/mocking.md — When to mock (boundaries only) and how to design mockable boundaries (DI, SDK-style adapters)
