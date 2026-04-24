@@ -1,6 +1,9 @@
 {
+  "use_system_prompts": false,
+  "use_system_path_prompts": false,
   "icon_theme": "VSCode Icons for Zed (Dark Official Icons)",
   "agent": {
+    "dock": "right",
     "default_model": {
       "provider": "zed.dev",
       "model": "claude-sonnet-4-5"
@@ -40,7 +43,7 @@
   },
   "theme": {
     "mode": "system",
-    "light": "GitHub Dark Dimmed",
+    "light": "GitHub Light",
     "dark": "GitHub Dark"
   },
   "vim_mode": true,
