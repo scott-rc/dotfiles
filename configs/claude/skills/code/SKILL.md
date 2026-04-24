@@ -11,22 +11,27 @@ Load and apply the user's coding style preferences when producing or reviewing c
 ## Operations
 
 ### Write
+
 Load preferences and write code — **Apply mode** (no TDD) for refactoring, config, and glue; **TDD mode** (red-green-refactor) for any behavior change, including new features and bug fixes.
 MUST read operations/write.md before executing.
 
 ### Test
+
 Improve or evaluate test coverage — Coverage mode (characterization tests for untested code) or Mutate mode (mutation testing to find and kill survivors).
 MUST read operations/test.md before executing.
 
 ### Review
+
 Evaluate code for test gaps, idiomaticity, simplification opportunities, architectural smells, correctness issues, and security. Auto-routes by scope: Quick path (≤8 files AND ≤500 lines), auto-thorough with parallel subagent decomposition (>20 files or >1500 lines), Ask otherwise. Supports an evaluate-fix loop mode for iterative convergence.
 MUST read operations/review.md before executing.
 
 ### Benchmark
+
 Write a benchmark that captures the performance target, then write or optimize code to meet it.
 MUST read operations/benchmark.md before executing.
 
 ### Architect
+
 Design an architectural refactor. Identifies shallow modules or friction points (discovery mode) or takes a specified target, frames the problem, dispatches 4 parallel design subagents with different constraints, and writes the chosen design as the `## Brief` of a plan file at `./tmp/<target>/plan.md`. Does NOT implement — the plan's Brief is terminal output for this operation; hand off to `plan create` to phase it into runnable work.
 MUST read operations/architect.md before executing.
 
@@ -68,18 +73,6 @@ Users often request multiple operations together. Handle these as follows:
 **When to use Write (Apply mode) instead of TDD**: refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 
 **When to use Architect instead of Write (Apply mode)**: the interface itself is the question; scope is large enough to warrant a design document first; shallow modules or cross-cutting coupling that a mechanical refactor can't address.
-
-## Delegation
-
-Global delegation rules apply. Code-skill-specific additions:
-
-- **Mode selection stays inline** — the orchestrator chooses Apply/TDD before delegating. Reading file lists and checking test infrastructure to inform that choice is fine.
-- **Broad refactors get a scope first** — for vague maintainability requests, identify the primary seam, expected touched files, and done condition before editing or delegating. If the scope is architectural (shallow modules, boundary redesign), route to Architect instead of Write.
-- **Call out repo state early** — if unrelated files are already modified, say so and limit edits to the intended scope.
-- **Simple changes stay inline** — single-file edits, config changes, and small fixes don't need a subagent. Delegate when the task spans multiple files or benefits from TDD scaffolding.
-- **Describe behavior, not code changes** — when delegating, tell the subagent what to add/fix/test and where the code lives. Do NOT prescribe struct fields, function signatures, or file-by-file edit lists.
-- **Architect uses 4 parallel design subagents** — the orchestrator picks subagent type at dispatch; passes the framing + one of the 4 design constraints per agent; collates results for user selection.
-- **Validate subagent results** — if the result summary is empty or the subagent ran under 30 seconds on a non-trivial task, investigate before reporting success.
 
 ## References
 
