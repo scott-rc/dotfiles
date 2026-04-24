@@ -96,5 +96,14 @@
   "effortLevel": "high",
   "showClearContextOnPlanAccept": true,
   "autoMemoryEnabled": false,
-  "trustedDirectories": ["/Users/scott/Code/gadget", "/Users/scott/Code/personal"]
+  "theme": "dark-daltonized",
+  "editorMode": "vim",
+  "verbose": true,
+  "autoCompactEnabled": false,
+  "agentPushNotifEnabled": true,
+  "trustedDirectories": [
+    "/Users/scott/Code/gadget",
+    "/Users/scott/Code/personal"
+  ],
+  "remoteControlAtStartup": true
 }
