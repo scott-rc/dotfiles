@@ -15,7 +15,7 @@ Create, execute, and retrospect phased implementation plans. Plans live as singl
 ## Operations
 
 ### Create
-Read a Brief-populated plan file and append phases to it. Records the Base SHA (current `HEAD`) in the plan header. Assigns `**Type**:` per phase (`write`, `test`, `review`, `benchmark`, `audit`); pulls per-type starter acceptance criteria from `references/phase-templates.md`; appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section. Before reporting completion, dispatches a mandatory Opus fresh-eyes-review subagent against the finished plan; user-approved findings get applied as Edits.
+Read a Brief-populated plan file and append phases to it. Records the Base SHA (current `HEAD`) in the plan header. Assigns `**Type**:` per phase (`write`, `test`, `review`, `benchmark`, `audit`); pulls per-type starter acceptance criteria from `references/phase-templates.md`; appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section. Before reporting completion, runs a mandatory iterated Opus fresh-eyes review — looping until convergence (no Tier 1 or Tier 2 findings) or a hard cap of 4 rounds; user-approved findings get applied as Edits between rounds.
 MUST read operations/create.md before executing.
 
 ### Execute

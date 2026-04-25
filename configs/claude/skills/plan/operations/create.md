@@ -132,24 +132,40 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 The review phase uses the review-specific template from `references/phase-templates.md` (with the Code / Behavior split).
 
-### 11. Dispatch fresh-eyes review subagent
+### 11. Iterated fresh-eyes review
 
-Before reporting completion, dispatch an **Opus** subagent with NO context from this conversation to review the plan for defects, risk, and weak criteria. Authoring eyes miss things fresh eyes catch — and at this stage the cost of finding a defect is one Edit, not a halted phase commit.
+Before reporting completion, run an **iterated** fresh-eyes review. Each round dispatches an Opus subagent with no prior context, returns findings, and informs the next round of edits. Loop until the plan converges (a round returns no Tier 1 and no Tier 2 findings) or a hard cap of **4 rounds** is reached, whichever comes first.
 
-**Dispatch parameters:**
+Why iterate: in practice each round catches different kinds of defects.
+
+- **Round 1** finds the obvious gaps: cited fact errors, missed call sites, weak criteria, surface-level vocabulary slippage.
+- **Round 2** finds second-order issues that depend on round-1 fixes — e.g. signature changes that cascade to test files, criteria that cite renamed methods.
+- **Round 3** catches contradictions introduced by recent edits — heavy editing creates new drift, like an interface signature asserted differently in two sections, or a return shape that two criteria disagree on.
+- **Round 4** is usually convergent. If it still finds Tier 1 issues, the plan has structural problems worth surfacing to the user before stopping.
+
+Stopping early matters too: if round N returns empty Tier 1 and Tier 2, do NOT dispatch round N+1. Tier 3 noise alone doesn't justify another round.
+
+**Dispatch parameters per round:**
 
 - `subagent_type: general-purpose`
 - `model: opus` — required (cross-file verification benefits from the larger context window)
-- Prompt is self-contained — the subagent has not seen this conversation
+- Prompt is self-contained — the subagent has not seen this conversation OR prior rounds
 
-**Materials to point the subagent at (in the prompt):**
+**Materials to point each subagent at (in the prompt):**
 
 - The plan file (absolute path)
 - Any supporting glossary: `UBIQUITOUS_LANGUAGE.md` at the repo root, if present
 - The codebase root and the architectural-language reference at `~/.claude/skills/code/references/architecture-language.md`
 - Subsystem `CLAUDE.md` files relevant to the Brief
 
-**Tell the subagent NOT to re-litigate the Brief's design.** Design is locked at this stage. The subagent's job is to verify that the **phases deliver the Brief** without stranding work, breaking invariants, or missing call sites.
+**Round-specific framing in the prompt header.** Tell the subagent which round this is and what's already been done — sets the bar appropriately:
+
+- **Round 1:** "Bring fresh eyes. The plan has had no review yet."
+- **Round 2:** "The plan has been through one round of fresh-eyes review and the easy stuff was fixed. Look for second-order issues, missed call sites in the migrations the round-1 edits touched, and inconsistencies the edits introduced."
+- **Round 3:** "The plan has been through two rounds. Heavy editing creates drift — look for contradictions across sections (interface signatures asserted differently, criteria that disagree on a return shape, dead parameter survivals). Empty tiers are entirely valid here."
+- **Round 4:** "The plan has been through three rounds and is approaching convergence. Only flag genuine defects you're confident about. Empty tiers are the expected result; don't manufacture findings."
+
+**Tell every subagent NOT to re-litigate the Brief's design.** Design is locked at this stage. The subagent's job is to verify that the **phases deliver the Brief** without stranding work, breaking invariants, or missing call sites.
 
 **Ask the subagent to look for:**
 
@@ -177,16 +193,24 @@ Before reporting completion, dispatch an **Opus** subagent with NO context from 
 - **Tier 2 — improvements that materially help execution** (the work could complete but a future agent will hit friction)
 - **Tier 3 — observations** (worth noting, no edit required)
 
-For each finding: one-sentence description, the specific plan section / phase / criterion, and what to change. Cite file paths + line numbers when relevant. Cap the report at ~1500 words. Empty tiers say "none."
+For each finding: one-sentence description, the specific plan section / phase / criterion, and what to change. Cite file paths + line numbers when relevant. Cap the report at ~1500 words. Empty tiers say "none." Do not manufacture findings to fill a tier.
 
-**After the subagent returns:**
+**After each round returns:**
 
-1. Present the findings to the user grouped by tier, with your own read on each (agree / disagree / verify).
-2. Apply approved Tier 1 + Tier 2 fixes inline via `Edit` on the plan file.
-3. Skip Tier 3 unless the user asks otherwise.
-4. If the subagent returned nothing in all three tiers, note that one-liner ("Fresh-eyes reviewer found no issues") and proceed.
+1. **Verify each finding before applying.** Read the cited file/lines, run the cited grep, confirm the issue exists. Subagents occasionally misread (e.g. claim a function has zero callers when it has test-only callers; misread a `vi.spyOn` target). Wrong findings, applied uncritically, degrade the plan and cause the next round to find new contradictions.
+2. Present findings to the user grouped by tier with your own read on each (agree / disagree / verify).
+3. Apply approved Tier 1 + Tier 2 fixes inline via `Edit` on the plan file.
+4. Skip Tier 3 unless the user asks otherwise.
+5. **Check the stop condition.** If both Tier 1 and Tier 2 came back empty, the plan has converged — exit the loop. Otherwise, dispatch the next round (up to round 4).
 
-The review is **mandatory** at the end of every `plan create` — there is no opt-out. A plan that's small enough to need no review is small enough that the review costs nothing.
+**Stop condition:**
+
+- **Convergence:** A round returns no Tier 1 and no Tier 2 findings. (Empty Tier 3 is not required.)
+- **Hard cap:** 4 rounds completed.
+
+When the loop ends, note the outcome to the user (e.g. "Fresh-eyes review converged after 3 rounds" or "Reached the round-4 cap; remaining Tier 1 findings are listed above for your review"). If the cap was reached with unresolved Tier 1 findings, prefer surfacing them rather than silently proceeding — they signal structural plan issues worth addressing before `plan execute`.
+
+The iterated review is **mandatory** at the end of every `plan create` — there is no opt-out. A plan that's small enough to need no review is small enough that the review costs nothing.
 
 ### 12. Report
 
