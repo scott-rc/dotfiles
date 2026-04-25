@@ -132,6 +132,62 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 The review phase uses the review-specific template from `references/phase-templates.md` (with the Code / Behavior split).
 
-### 11. Report
+### 11. Dispatch fresh-eyes review subagent
+
+Before reporting completion, dispatch an **Opus** subagent with NO context from this conversation to review the plan for defects, risk, and weak criteria. Authoring eyes miss things fresh eyes catch — and at this stage the cost of finding a defect is one Edit, not a halted phase commit.
+
+**Dispatch parameters:**
+
+- `subagent_type: general-purpose`
+- `model: opus` — required (cross-file verification benefits from the larger context window)
+- Prompt is self-contained — the subagent has not seen this conversation
+
+**Materials to point the subagent at (in the prompt):**
+
+- The plan file (absolute path)
+- Any supporting glossary: `UBIQUITOUS_LANGUAGE.md` at the repo root, if present
+- The codebase root and the architectural-language reference at `~/.claude/skills/code/references/architecture-language.md`
+- Subsystem `CLAUDE.md` files relevant to the Brief
+
+**Tell the subagent NOT to re-litigate the Brief's design.** Design is locked at this stage. The subagent's job is to verify that the **phases deliver the Brief** without stranding work, breaking invariants, or missing call sites.
+
+**Ask the subagent to look for:**
+
+- **Cited fact verification** — line numbers, LOC counts, caller claims, "zero callers" claims. Have it `Read` the cited files and confirm the citations are accurate.
+- **Missed call sites** — for each migration, does the phase's call-site list cover every consumer? `Grep` the codebase to verify.
+- **Weak / unverifiable acceptance criteria** — bullets that someone could check off without doing the work, or that aren't testable.
+- **Phase ordering risks** — does any phase depend on something a later phase delivers? Could a phase commit leave the tree red?
+- **Hidden coupling** — does the plan touch a subsystem (search, e2e snapshots, service worker, design tokens, config) without saying so? Does it leave a subsystem broken that wasn't in scope?
+- **Vocabulary slippage** — if the plan ran a renaming pass, does any prose still use old names? (Skip "Aliases to avoid" columns and "Flagged ambiguities" sections — those legitimately mention old terms.)
+- **Risk not surfaced** — what would actually go wrong during execution that the plan doesn't mention? Examples: schema migration ordering, binding name mismatches, durable-state size limits, test-pool cold-start surprises, type re-export breakage in framework loaders, snapshot test flakiness from changed timing.
+- **Scope drift** — Brief promising something a phase doesn't deliver, or a phase doing something the Brief doesn't authorize.
+- **Test gaps** — flows the new tests don't cover that today's tests do (multi-user isolation, partial-failure paths, timing-related guards).
+- **Audit phase coverage** (if present) — is the surface actually enumerable? Are categories distinct? Will it produce concrete findings or vague triage?
+
+**Default scope guardrails — the subagent stays out of these unless a defect makes it necessary:**
+
+- **Don't redesign.** The Brief's design is locked. EXCEPTION: flag a concrete defect in the chosen design — show the failure case (an invariant that can't hold, a call site that breaks). A working replacement isn't required; the goal is surfacing the defect.
+- **Don't re-litigate rejected alternatives.** EXCEPTION: flag factual errors in the rejection reasoning that would change the verdict.
+- **Don't expand this plan's scope.** EXCEPTION: flag coupling that crosses the plan's boundary — a subsystem outside this plan that's lockstep-coupled with one inside it. Surface as a Tier 3 follow-up candidate; do NOT propose adding it to the current plan.
+- **Don't comment on prose style.** Style affecting verifiability of a criterion is already covered under "weak / unverifiable acceptance criteria."
+
+**Output format the subagent should use:**
+
+- **Tier 1 — defects the plan ships with** (the work won't complete correctly as written)
+- **Tier 2 — improvements that materially help execution** (the work could complete but a future agent will hit friction)
+- **Tier 3 — observations** (worth noting, no edit required)
+
+For each finding: one-sentence description, the specific plan section / phase / criterion, and what to change. Cite file paths + line numbers when relevant. Cap the report at ~1500 words. Empty tiers say "none."
+
+**After the subagent returns:**
+
+1. Present the findings to the user grouped by tier, with your own read on each (agree / disagree / verify).
+2. Apply approved Tier 1 + Tier 2 fixes inline via `Edit` on the plan file.
+3. Skip Tier 3 unless the user asks otherwise.
+4. If the subagent returned nothing in all three tiers, note that one-liner ("Fresh-eyes reviewer found no issues") and proceed.
+
+The review is **mandatory** at the end of every `plan create` — there is no opt-out. A plan that's small enough to need no review is small enough that the review costs nothing.
+
+### 12. Report
 
 Summarize: plan file path, number of phases, phase types, any `**Depends on**:` header, next step (`plan execute <plan-path>`).
