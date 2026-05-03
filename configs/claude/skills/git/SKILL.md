@@ -61,8 +61,8 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"amend and push"** → Commit (amend mode), then push
 - **"squash and push"** → Squash, then push (push's uncommitted-changes check is redundant after squash)
 - **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then Push (Refresh Description mode). Set `context` to note the squash. After refresh, offer force push since history was rewritten.
-- **"push, then monitor"** → Push, then advise `/loop 2m /git fix`
-- **"rerun, then monitor"** → Run `~/.claude/skills/git/scripts/rerun.sh`, then advise `/loop 2m /git fix`
+- **"push, then monitor"** → Push, then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix if CI failed
+- **"rerun, then monitor"** → Run `~/.claude/skills/git/scripts/rerun.sh`, then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix if CI failed
 - **"review and push"** / **"fix reviews and push"** → Fix, then push
 - **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix (not check-ci)
 - **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix
@@ -82,11 +82,11 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
 - **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, message drafting, and optional push
 - **"fix the stack"** / **"fix all PRs"** / **"fix every branch"** / **"fix every PR"** → Fix (Stack Mode)
-- **"fix the stack, then monitor"** → Fix (Stack Mode), then advise `/loop 2m /git fix`
+- **"fix the stack, then monitor"** → Fix (Stack Mode), then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix (Stack Mode) again if any branch's CI failed
 
 ## Monitoring
 
-Use `/loop 2m /git fix` to continuously monitor and fix CI failures and review threads. Each tick fires the Fix operation, which auto-detects what needs attention (CI failures, unresolved threads, description quality, or any combination) and handles it. When the current branch is part of a git-spice stack with multiple PRs, each tick runs Fix in Stack Mode — iterating over every branch with a PR. The loop is session-scoped and auto-expires after 3 days.
+To watch CI after a push, run `gh run watch` as a backgrounded Bash command (`run_in_background: true`) and follow its output via Monitor. When the watch process exits, the run has reached a terminal state — invoke Fix to handle any failures, unresolved review threads, or description issues. For a stack of PRs, repeat the watch + Fix cycle per branch, or run Fix in Stack Mode once all watches have settled.
 
 ## References
 

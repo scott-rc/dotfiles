@@ -13,10 +13,9 @@ When the user asks to fix "the stack" / "all PRs" / "every branch," run Fix acro
 3. **Iterate bottom-to-top**: For each branch (in the order returned, which is top-to-bottom — reverse it):
    - `git-spice branch checkout <name> --no-prompt`
    - Run the standard Detection and path flow below (Detection through each path's final step)
-   - In the "Neither" routing, skip the cron/loop check — just report the branch as green and continue
    - Report per-branch results before moving to the next branch
 4. **Restore**: Checkout the original branch.
-5. **Unified report**: Summarize per-branch results (what was fixed, what was already green). If ALL branches are green, check `CronList` — if a `/git fix` loop is active and all CI checks across every branch have reached terminal state, suggest canceling it.
+5. **Unified report**: Summarize per-branch results (what was fixed, what was already green).
 
 When NOT in stack mode (single-branch fix), proceed to Detection below.
 
@@ -44,7 +43,7 @@ After all three complete, route based on results:
 - **Unresolved threads only** (CI green or no CI, description OK): follow the Review path below.
 - **Both CI failures and unresolved threads** (description OK): follow the Combined path below.
 - **Description issues only** (CI green, no unresolved threads): follow the Description path below.
-- **Neither** (CI green, no unresolved threads, description OK): report that everything is green. Then run `CronList` — if any job's prompt contains `/git fix`, check whether all CI checks have reached a terminal state (passed or failed). If any checks are still pending, in progress, or in a non-terminal state (including statuses like "OTHER"), keep the loop running and tell the user (e.g., "All passing so far, but N checks still in progress — keeping the loop active"). Only cancel with `CronDelete` when every check has reached a terminal state and all threads are resolved.
+- **Neither** (CI green, no unresolved threads, description OK): report that everything is green.
 
 If CI, Review, or Combined path ran AND the description quality check (missing coverage or missing verification info) also flagged issues, run the Description path after all other paths complete. Description threads found by Review Path step 3 are handled by Review Path step 8 — they do not trigger this rule.
 
