@@ -101,10 +101,18 @@
   "editorMode": "vim",
   "verbose": true,
   "autoCompactEnabled": false,
+  "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
     "/Users/scott/Code/personal"
   ],
-  "remoteControlAtStartup": true
+  "extraKnownMarketplaces": {
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    }
+  }
 }
