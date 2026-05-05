@@ -1,6 +1,8 @@
 {
   "respectGitignore": true,
-  "env": {},
+  "env": {
+    "DIRENV_LOG_FORMAT": ""
+  },
   "attribution": {
     "commit": "",
     "pr": ""
@@ -103,10 +105,7 @@
   "autoCompactEnabled": false,
   "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
-  "trustedDirectories": [
-    "/Users/scott/Code/gadget",
-    "/Users/scott/Code/personal"
-  ],
+  "trustedDirectories": ["/Users/scott/Code/gadget", "/Users/scott/Code/personal"],
   "extraKnownMarketplaces": {
     "cloudflare": {
       "source": {
