@@ -1,31 +1,128 @@
 # Create Plan
 
-Turn a Brief-populated plan file into a phased plan. Input is `tmp/<name>/plan.md` with its `## Brief` section populated (produced by `prd` or `code architect <target>`); output is the SAME file with `## Phase N` blocks appended and `**Type**:` metadata on each phase.
+Produce a phased plan in `tmp/<name>/plan.md`. Two entry shapes:
 
-Plans are never authored by humans. The Brief is written by a seeder skill (`prd` for features, `code architect` for refactors). This operation reads the Brief, slices it into tracer-bullet phases, assigns a type to each, pulls templated acceptance criteria from `references/phase-templates.md`, and appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
+- **No Brief yet** (new feature work) — interview the user to seed the `## Brief` section, then phase it.
+- **Brief already populated** — read the existing Brief (e.g. seeded by `code architect <target>`) and append phases.
+
+Output in both cases is the same file with `## Brief` populated and `## Phase N` blocks appended, each with `**Type**:` metadata.
+
+Plans are never authored by humans. The Brief is either seeded inline by this operation (for features) or by `code architect` (for refactors). This operation reads or seeds the Brief, slices it into tracer-bullet phases, assigns a type to each, pulls templated acceptance criteria from `references/phase-templates.md`, and appends a default terminal review phase whose criteria derive from the Brief's `### Review Criteria` section.
 
 ## Process
 
-### 1. Locate the plan file
+### 1. Locate or seed the plan file
 
-If the user provided a path, use it. Otherwise search for Brief-only plan files (plan files with `## Brief` populated but no `## Phase N` sections) in `./tmp/*/plan.md`. If exactly one is found, use it. If multiple are found, present them as options. If none are found, ask the user for the path.
+If the user provided a path to an existing plan file, use it.
+
+Otherwise search for Brief-only plan files (`## Brief` populated but no `## Phase N` sections) in `./tmp/*/plan.md`:
+
+- **Exactly one match** → use it.
+- **Multiple matches** → present them as options to the user.
+- **No matches** → switch to the no-Brief branch (step 2 will run the PRD interview to seed the Brief). Confirm with the user before launching the interview.
 
 If the target file already has `## Phase N` sections, STOP and report — re-phasing a phased plan requires explicit user confirmation. Ask before proceeding.
 
-### 2. Identify the Brief shape
+### 2. Seed the Brief (no-Brief branch only)
+
+If the plan file already has a populated `## Brief` section, skip this step and continue to step 3.
+
+Otherwise, run the PRD-style interview to write the Brief:
+
+1. **Ask for a long, detailed description** of the problem the user wants to solve and any potential ideas for solutions.
+
+2. **Explore the repo** to verify the user's assertions and understand the current state of the codebase.
+
+3. **Interview the user relentlessly** about every aspect of the plan until you reach shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+
+4. **Sketch the major modules** that will be built or modified. Actively look for opportunities to extract deep modules that can be tested in isolation.
+
+   A deep module (as opposed to a shallow module) is one which encapsulates a lot of functionality in a simple, testable interface which rarely changes.
+
+   Confirm with the user that these modules match their expectations. Confirm which modules they want tests written for.
+
+5. **Write the Brief** to `./tmp/<name>/plan.md`. Create `./tmp/<name>/` if it doesn't exist. At this stage the file contains ONLY the `## Brief` section — phases come later. Use the template below.
+
+<plan-brief-template>
+# Plan: <name>
+
+## Brief
+
+### Problem Statement
+
+The problem the user is facing, from the user's perspective.
+
+### Solution
+
+The solution to the problem, from the user's perspective.
+
+### User Stories
+
+A LONG, numbered list of user stories. Each user story in the format:
+
+1. As an <actor>, I want a <feature>, so that <benefit>
+
+<user-story-example>
+1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
+</user-story-example>
+
+This list should be extensive and cover all aspects of the feature.
+
+### Implementation Decisions
+
+A list of implementation decisions that were made. Include:
+
+- The modules that will be built/modified
+- The interfaces of those modules that will be modified
+- Technical clarifications from the developer
+- Architectural decisions
+- Schema changes
+- API contracts
+- Specific interactions
+
+Do NOT include specific file paths or code snippets — they may go stale quickly.
+
+### Testing Decisions
+
+A list of testing decisions. Include:
+
+- What makes a good test for this feature (test observable behavior, not implementation details)
+- Which modules will be tested
+- Prior art for the tests (similar types of tests already in the codebase)
+
+### Out of Scope
+
+Things explicitly out of scope for this plan.
+
+### Further Notes
+
+Any further notes about the feature.
+
+### Review Criteria
+
+Criteria that the terminal review phase will check. Split into static code checks and behavioral checks.
+
+**Code**:
+- [one bullet per static criterion — e.g. "No feature-flag leakage", "Module interfaces match the Brief", "Test coverage ≥ X%", "Lint clean"]
+
+**Behavior**:
+- [one bullet per behavioral criterion — each user-visible behavior described in the user stories becomes a reviewable check, plus any regression surfaces worth exercising]
+</plan-brief-template>
+
+### 3. Identify the Brief shape
 
 Two input Brief shapes are supported:
 
 - **Architect-seeded Brief** — `## Brief` contains sections: Problem, Proposed Interface, Dependency Strategy, Testing Strategy, Implementation Recommendations, Rejected Alternatives, Review Criteria. Produced by `code architect <target>`.
-- **PRD-seeded Brief** — `## Brief` contains feature-spec content: user stories, behavior spec, constraints, open questions, Review Criteria. Produced by `prd`.
+- **PRD-seeded Brief** — `## Brief` contains feature-spec content: Problem Statement, Solution, User Stories, Implementation Decisions, Testing Decisions, Out of Scope, Further Notes, Review Criteria. Produced by step 2 of this operation (or written by hand in the same shape).
 
-Detect which shape the Brief has by scanning for section headers. Use the shape to guide phase slicing.
+Detect which shape the Brief has by scanning for section headers. Use the shape to guide phase slicing. (If you just seeded the Brief in step 2, it's PRD-seeded.)
 
-### 3. Explore the codebase (if not already done in this session)
+### 4. Explore the codebase (if not already done in this session)
 
-Understand the current architecture, existing patterns, and integration layers. The Brief describes *what* to build; the codebase tells you *how* to slice it into phases that keep tests green at each checkpoint.
+Understand the current architecture, existing patterns, and integration layers. The Brief describes *what* to build; the codebase tells you *how* to slice it into phases that keep tests green at each checkpoint. (If the no-Brief branch ran in step 2, the codebase has already been explored — skip.)
 
-### 4. Extract durable decisions
+### 5. Extract durable decisions
 
 Scan the Brief for decisions unlikely to change during implementation:
 
@@ -36,7 +133,7 @@ Scan the Brief for decisions unlikely to change during implementation:
 
 These stay implicit unless they'd be useful at-a-glance during execution. Do NOT add a separate `## Architectural decisions` section unless the Brief explicitly calls for cross-phase decisions not captured in the Brief itself; a single-refactor plan's Brief already contains them.
 
-### 5. Slice into tracer-bullet phases
+### 6. Slice into tracer-bullet phases
 
 Apply vertical-slice rules:
 
@@ -50,19 +147,19 @@ Apply vertical-slice rules:
 
 For refactor Briefs, the Brief's `### Implementation recommendations` section may suggest a phase sequence; use it as a starting point and adjust as needed.
 
-### 6. Assign a Type to each phase
+### 7. Assign a Type to each phase
 
 Every phase MUST have `**Type**: <write|test|review|benchmark|audit>`. No defaults — this is a hard requirement.
 
 - `write` covers most phases: behavior changes, bug fixes, refactoring, config/glue.
 - `test` covers pure test-coverage work (backfills, mutation testing).
 - `benchmark` covers performance-target phases.
-- `review` is the terminal phase (see step 8).
+- `review` is the terminal phase (see step 9).
 - `audit` covers "sweep the surface, surface findings, triage with user, apply approved fixes" workflows — docs audits, dependency audits, security audits, config audits. STUB-status Type; its spec is minimal and expected to be refined as it gets real use.
 
 See `references/phase-templates.md` for per-type conventions and starter criteria.
 
-### 7. Record the Base SHA and any cross-plan dependencies in the plan header
+### 8. Record the Base SHA and any cross-plan dependencies in the plan header
 
 Record the current git HEAD as the plan's **Base SHA** — the commit from which this plan's work begins. `plan execute` records per-phase commit SHAs; `plan review` uses `<Base SHA>..HEAD` as the plan's commit range to distinguish phase commits from scope-creep commits.
 
@@ -87,29 +184,13 @@ Multiple `**Depends on**:` lines are supported — one path per line. `plan exec
 
 If the working tree has uncommitted changes at plan-create time, still capture HEAD; note to the user that the base is HEAD, not the working tree — any uncommitted changes will either be included in phase 1's commit or stay uncommitted and show up as a Scope-creep item at review time.
 
-### 8. Append a default terminal review phase
+### 9. Append a default terminal review phase
 
 Every plan ends with a review phase UNLESS the user explicitly opts out (by adding `**No review**: <rationale>` in the plan header or deleting the phase after creation).
 
 The review phase's acceptance criteria are derived from the Brief's `### Review Criteria` section, which splits into `**Code**:` (static) and `**Behavior**:` (behavioral). Copy each bullet verbatim from the Brief into the phase's acceptance criteria as checkbox items, preserving the Code / Behavior split.
 
 If the Brief has no Review Criteria section, use the defaults from `references/phase-templates.md` under the `Type: review` section.
-
-### 9. Quiz the user
-
-Present the proposed phase breakdown as a numbered list. For each phase show:
-
-- **Title**: short descriptive name
-- **Type**: the assigned phase type
-- **Covers**: one-line description of the slice
-
-Ask the user:
-
-- Does the granularity feel right? (too coarse / too fine)
-- Are the Type assignments correct?
-- Should any phases be merged, split, or re-typed?
-
-Iterate until the user approves.
 
 ### 10. Write the phases into the plan file
 

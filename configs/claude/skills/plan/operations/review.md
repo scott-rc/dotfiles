@@ -133,7 +133,7 @@ For Fixup phases, additionally gather:
 - Phase title (propose from the criterion text; user can override).
 - What-to-build description (propose a one-line derivation; user can edit).
 
-For New plans, propose a name (derived from the Open item) and confirm. Do NOT seed the new plan's Brief — that's `prd` or `code architect`'s job. `plan review` only creates the entry in the Retrospective; the user runs the seeder separately.
+For New plans, propose a name (derived from the Open item) and confirm. Do NOT seed the new plan's Brief — that's `plan create` (for features) or `code architect` (for refactors). `plan review` only creates the entry in the Retrospective; the user runs the seeder separately.
 
 ### 7. Write the Retrospective section
 
@@ -200,7 +200,7 @@ One-paragraph summary: plan path, Retrospective section header, number of Fixup 
 - **Never commit.** `plan review` edits only `tmp/<name>/plan.md`, which is gitignored. The retrospective is a local-workspace artifact; `plan review` runs are invisible in git history.
 - **Never replace a prior Retrospective section.** Append a new one. Earlier Retrospectives stand as historical record of prior decisions.
 - **Never auto-classify Oversights.** An Unchecked criterion without a deferral signal always prompts the user — there's no safe default between "bug" and "pending work."
-- **Never seed a New plan's Brief.** Record the spawn in the Retrospective, report the path to the user. The user invokes `prd` or `code architect` to seed the new plan.
+- **Never seed a New plan's Brief.** Record the spawn in the Retrospective, report the path to the user. The user invokes `plan create` (for features) or `code architect` (for refactors) to seed the new plan.
 - **Never skip the Auto-continue prompt** when Fixup phases were appended. Context-remaining is not a reliable signal; always ask.
 - **Every `plan execute` ends with `plan review`.** Clean completion, halt, or full skip — same handoff. On a converged plan with zero Open items, the Retrospective is a one-line summary and the operation exits without further action.
 
