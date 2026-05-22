@@ -44,6 +44,7 @@ These rules apply to ALL text that leaves the session -- commit messages, PR tit
   ```
 
 - **No invented metrics**: MUST NOT cite specific numbers, percentages, multipliers, or performance claims unless they appear literally in the diff or commit message. Phrases like "reduces by 2.8x" or "cuts latency by 40%" are hallucination risks when the source material contains no such figures.
+- **No `tmp/` references**: Files under `tmp/` are gitignored everywhere — local working artifacts (plan drafts at `tmp/<name>/plan.md`, branch context at `tmp/branches/<branch>/context.md`, PR scratch at `tmp/pr/<id>/`, commit-message scratch at `tmp/commit-msg.txt`, etc.) that no remote reader can resolve. MUST NOT mention `tmp/` paths or tmp-only filenames in any committed or remote-visible text: commit messages, PR titles, PR descriptions, PR comments, review replies, code comments, or repo documentation. Surface the *content* — quote the relevant motivation, paste the relevant criterion — instead of pointing at a file the reader cannot open. The same goes for any other ignored or developer-local path (e.g., `.claude/`, `.envrc.local`, untracked scratch files).
 
 ## Concurrent Agents
 

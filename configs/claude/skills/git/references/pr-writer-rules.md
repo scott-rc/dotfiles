@@ -43,6 +43,7 @@ These override everything else. Every title and description MUST follow them.
 - **Be concise**: The diff has the details; the description orients the reviewer. A few sentences suffices for a typical PR.
 - **Don't enumerate artifacts**: Do NOT list every type, helper, module, function, or file path introduced. Name only what a reviewer needs to orient themselves.
 - **Reviewer-first**: The description helps reviewers understand why the change exists and how to approach reviewing it. It is not a changelog or API reference.
+- **No local-only artifacts**: MUST NOT reference paths the reviewer can't see on GitHub. Any path under `tmp/` (plan files, branch context, scratch logs), files matching `.gitignore`, or local-only directories are off-limits — they exist only in the author's working tree. If the motivation came from a plan or design doc, restate the relevant rationale inline in the description instead of linking to the file. Quick filter: if `git check-ignore <path>` returns 0, do not mention the path in the PR body.
 
 ## ASCII and Posting
 
@@ -116,6 +117,8 @@ See references/github-text.md for ASCII-only rules and sanitize script usage. Ap
    ```
 
    Note: `--base` is not needed because git-spice knows the base from branch tracking.
+
+   **MUST NOT use `gh pr create`** for new PRs. `gh pr create` opens the PR via GitHub directly without informing git-spice, so the CR-to-branch link is not persisted in `refs/spice/data`. Symptoms include stack navigation comments that omit the unlinked branch (e.g. a stacked PR's nav comment shows only itself, because git-spice sees a solo stack), and `gh pr view` shows a base that drifts from `git-spice log short --json`'s `.down.name`. Recovery is `git-spice branch submit --update-only` on the affected branch, which discovers the existing CR ("Found existing CR #N") and persists the link, after which the next stack-aware operation refreshes nav comments. Always use `git-spice branch submit` with `--title`/`--body` as shown above — it pushes, creates the CR, and persists the link in one step.
 
    Clean up the PR-specific temp files after posting.
 
