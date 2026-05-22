@@ -52,7 +52,26 @@ After the commit returns, capture the resulting SHA (`git rev-parse HEAD`) and r
 
 This mapping lets `plan review` cross-reference every phase against its commit and detect Scope-creep commits — commits in the Base-SHA-to-HEAD range that aren't tied to any phase.
 
-**e. Clean up.** Kill any dev servers or background processes started during this phase that aren't needed later.
+**e. Push (treat phase as a PR).** Multi-phase plans default to **one PR per phase** so each phase reviews independently and merges on its own cadence. After the commit, the orchestrator MUST surface a checkpoint to the user — typically as the end-of-turn report — naming the phase, the commit SHA, and the option to push now or defer. Do not silently push without a user signal in this turn or a durable preference (e.g., a CLAUDE.md or session instruction that pre-authorizes per-phase pushing).
+
+When the user opts to push, invoke `Skill(git, push)`. Capture the PR URL from the push report (or via `git-spice log short --json` after the push completes) and record it on a `**PR**:` line directly under the existing `**Commit**:` line:
+
+```markdown
+## Phase N: <Title>
+
+**Type**: <type>
+**Commit**: <full-sha>
+**PR**: <pr-url>
+
+### What to build
+...
+```
+
+A single-phase or trivial plan MAY skip the push and ship as a single commit on the working branch; in that case omit the `**PR**:` line. When a phase's PR has already been opened on a prior turn (resumed session), do not re-push for the same SHA — verify the recorded PR URL still matches `git-spice log short --json` and continue.
+
+The `**PR**:` line is for human and agent reuse: future agents resuming the plan see at a glance which phases have shipped, which are in review, and which still sit on a local branch.
+
+**f. Clean up.** Kill any dev servers or background processes started during this phase that aren't needed later.
 
 ### 4. Review phase behavior
 

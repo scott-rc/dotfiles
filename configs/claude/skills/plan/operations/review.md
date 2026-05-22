@@ -49,6 +49,7 @@ For each Phase, capture:
 
 - Phase number, title, Type.
 - `**Commit**:` SHA if present (written by `plan execute`).
+- `**PR**:` URL if present (written by `plan execute` after `Skill(git, push)`).
 - `**Skipped**: <rationale>` if present.
 - All acceptance criteria with their state: `- [ ]` (unchecked), `- [x]` (checked), `- [s]` (skipped).
 - For each Unchecked criterion, capture the full line text (including any inline prose after the criterion text).
@@ -149,6 +150,7 @@ Retrospective structure:
 ### Summary
 
 - Shipped: <N> phases (phases <list>), <N> commits in range <base>..<head-sha>
+- PRs opened: <list of `**PR**:` URLs from phase headers, omit line if none>
 - Review phase: <converged | halted | n/a> <brief note>
 - Open items: <N> → <N> Fixup phase(s), <N> New plan(s), <N> Acknowledgment(s)
 - Scope-creep commits: <N> (<shas> if any)
