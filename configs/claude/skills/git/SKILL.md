@@ -1,7 +1,7 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, split a branch into stacked PRs, navigate stacks, or sync.
-argument-hint: "[commit | squash | push | rebase | fix | correct | split | stack | sync] [context]"
+description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, merging PRs, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, split a branch into stacked PRs, navigate stacks, merge a PR, or sync.
+argument-hint: "[commit | squash | push | rebase | fix | correct | split | stack | sync | merge] [context]"
 ---
 
 # Git Operations
@@ -51,6 +51,10 @@ MUST read operations/stack.md before executing.
 Fetch latest, clean up merged branches, and restack the stack.
 MUST read operations/sync.md before executing.
 
+### Merge
+Merge a PR via the GitHub API, then sync the local stack by default (runs the Sync operation after a successful merge unless the user opted out). Detects the repo's merge-strategy convention (merge commit / squash / rebase) and forwards `--delete-branch` so sync can prune cleanly.
+MUST read operations/merge.md before executing.
+
 ## Combined Operations
 
 Multi-operation sequences and ambiguous phrasings that need explicit routing:
@@ -71,6 +75,10 @@ Multi-operation sequences and ambiguous phrasings that need explicit routing:
 - **"split"** / **"split this branch"** / **"split for review"** / **"stack this"** → Split
 - **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
 - **"sync"** / **"pull latest"** / **"update from main"** → Sync
+- **"merge"** / **"merge this PR"** / **"merge #N"** / **"merge the first PR"** → Merge (which runs Sync afterwards by default)
+- **"merge and sync"** → Merge (explicit; same as the default)
+- **"merge without sync"** / **"merge only"** / **"merge and skip sync"** / **"just merge"** → Merge with the sync-afterwards step skipped. After explaining what was skipped, point the user at `/git sync` for when they want to catch up.
+- **"merge and push"** → Merge (with sync), then any restacked upstack branches force-pushed via the post-sync step described in `operations/merge.md` step 7
 - **"go up"** / **"next branch"** / **"go down"** / **"previous branch"** → Stack (navigate)
 - **"reorder"** / **"move this branch"** / **"put this on top of X"** / **"rebase X after Y"** / **"rebase onto"** / **"change the base"** → Stack (reorder)
 - **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
