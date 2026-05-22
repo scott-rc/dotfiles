@@ -10,6 +10,8 @@ Shared patterns used across git skill operations. Reference this file for consis
 - Dotfiles Exception
 - Main Branch Protection
 - Branch Naming
+- Safe Branch Creation
+- Upstream Sanity Check
 - Branch Context File
 - Fetch Safety
 - Scope Verification
@@ -70,6 +72,54 @@ All new branches MUST use the `sc/` prefix, e.g. `sc/fix-login-redirect`.
 - When suggesting or creating branch names, MUST use `sc/<kebab-case-slug>`
 - The `gwt` fish function adds the `sc/` prefix automatically for worktrees -- MUST NOT add it when calling `gwt`
 - This rule applies to all other branch creation or suggestion contexts
+
+## Safe Branch Creation
+
+`git-spice` tracks branch relationships in its own state (`refs/spice/data`), not in git's `branch.<name>.merge` config. When `gs branch submit` pushes, it consults — in order: (1) git-spice's stored upstream-branch-name, (2) the local git upstream IF it points at the submission remote, (3) the local branch name. Priority 2 is the trap: a local `branch.<name>.merge=refs/heads/main` (origin) causes the submit to push to `refs/heads/main` on origin instead of `refs/heads/<name>`.
+
+MUST use:
+```bash
+git-spice branch create <name> --no-prompt
+```
+
+`gs branch create` runs `git checkout -b <name>` from the current branch without a startpoint, so it does NOT set `branch.<name>.merge`. The new branch has no git upstream config until the first `gs branch submit`, which then persists the correct upstream-branch-name in git-spice's state. This is the idiomatic git-spice flow.
+
+Acceptable fallback (e.g., when not using git-spice):
+```bash
+git switch --no-track -c <name>
+```
+
+MUST NOT use:
+```bash
+# WRONG -- sets branch.<name>.merge = refs/heads/main, causing
+# `git-spice branch submit` to push to refs/heads/main on origin.
+git checkout -b <name> origin/main
+git switch -c <name> origin/main         # same problem
+git branch <name> origin/main            # same problem
+```
+
+The bug is near-silent: git-spice DOES emit an `INF` log line before pushing (`INF <name>: Using upstream name 'main'` and `INF <name>: If this is incorrect, cancel this operation and run 'git branch --unset-upstream <name>'.`), but the rest of submit output looks routine and ends with `INF Pushed <name>`. MUST NOT dismiss git-spice's INF logs — they include the cancel-and-fix instruction when this trap fires.
+
+If a branch was already created the wrong way, before any `gs branch submit`:
+```bash
+git branch --unset-upstream <name>   # removes branch.<name>.merge
+```
+Then re-run the Upstream Sanity Check below to confirm.
+
+## Upstream Sanity Check
+
+Defense-in-depth before `gs branch submit` for a feature branch. Even though Safe Branch Creation prevents the common cause, branches sometimes arrive with stray upstream config (manually-created, checked out from a colleague's PR, etc.). Run this in push.md before submitting:
+
+```bash
+BRANCH=$(git branch --show-current)
+MERGE_REF=$(git config --get "branch.$BRANCH.merge" 2>/dev/null)
+case "$MERGE_REF" in
+  ""|"refs/heads/$BRANCH") ;;  # ok: no upstream, or correctly tracking own ref
+  *) echo "REFUSED: branch '$BRANCH' has upstream merge='$MERGE_REF' (would push there, not to refs/heads/$BRANCH). Fix with: git branch --unset-upstream $BRANCH"; exit 1 ;;
+esac
+```
+
+If the check fails, MUST stop and fix before submitting. The fix is `git branch --unset-upstream <name>`; the next submit will then push to `refs/heads/<name>` correctly (per git-spice's priority-3 fallback to the local branch name).
 
 ## Branch Context File
 

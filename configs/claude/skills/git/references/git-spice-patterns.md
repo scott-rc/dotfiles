@@ -93,6 +93,23 @@ git-spice branch submit --update-only --no-prompt
 git-spice branch submit --update-only --force --no-prompt
 ```
 
+### Upstream-name resolution (canary)
+
+When deciding which remote ref to push to, `gs branch submit` uses this priority:
+
+1. **Stored upstream-branch-name** in git-spice state (set by a prior successful submit).
+2. **Local git upstream** (`branch.<name>.merge`) IF it points at the submission remote (e.g., `origin/main`).
+3. **Local branch name** (via `UnusedBranchName` for collision safety).
+
+Priority 2 is a trap: a stray `branch.<name>.merge=refs/heads/main` from `git checkout -b <name> origin/main` causes the submit to push to `refs/heads/main` on origin. git-spice emits this canary INF log when it falls into priority 2:
+
+```
+INF <branch>: Using upstream name '<resolved>'
+INF <branch>: If this is incorrect, cancel this operation and run 'git branch --unset-upstream <branch>'.
+```
+
+MUST treat the canary as actionable. If `<resolved>` does not match the local branch name, HALT and run `git branch --unset-upstream <branch>` before re-submitting. The Upstream Sanity Check in references/git-patterns.md catches this case proactively in `push.md`.
+
 ## Commit via Git-Spice
 
 For tracked branches, use `git-spice commit create` instead of `git commit`. This commits and auto-restacks any upstack branches:

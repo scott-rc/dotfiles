@@ -34,6 +34,7 @@ Push commits and create/update PR.
 
 5. **Push to remote**:
    - `git fetch origin`
+   - **Upstream sanity check**: MUST run the Upstream Sanity Check from references/git-patterns.md before invoking `git-spice branch submit`. If the local branch's `branch.<name>.merge` config does not match `refs/heads/<name>`, HALT — `git-spice branch submit` would push to the wrong remote ref (typically the base branch on unprotected repos). The check error message includes the unset-upstream fix command; apply it, re-run the check, and only then proceed.
    - **Detect divergence**: `.push.behind > 0` from step 3 reflects pre-fetch state and is useful for anticipating whether a force push may be needed (e.g., preparing the user). After `git fetch origin`, run `git rev-list --left-right --count origin/$(git branch --show-current)...HEAD` for the authoritative post-fetch divergence state — fetch can change the picture. Left count > 0 means force push is needed. If the remote tracking branch doesn't exist, this is a first push (no force needed).
    - **Select flag**: Use `--update-only` if the branch has a PR (`.change` is non-null from step 3); use `--no-publish` if it does not. See the Push via Git-Spice pattern in references/git-spice-patterns.md for flag details.
    - **Regular push**: `git-spice branch submit <flag> --no-prompt`
