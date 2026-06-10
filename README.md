@@ -205,14 +205,23 @@ Custom CLI tools.
 
 | Skill | Description |
 |-------|-------------|
+| `agents-sdk/` | Builds AI agents on Cloudflare Workers with the Agents SDK — stateful agents, durable Workflows, WebSockets, scheduled tasks, MCP servers, and React hooks; biases toward Cloudflare docs over pretrained knowledge. |
 | `brainstorm/` | Interviews the user relentlessly about a plan or design, walking each branch of the decision tree until shared understanding is reached. |
+| `cloudflare/` | Comprehensive Cloudflare platform skill covering Workers, Pages, storage (KV, D1, R2), AI (Workers AI, Vectorize), feature flags, networking, security, and infrastructure-as-code; biases toward Cloudflare docs. |
+| `cloudflare-email-service/` | Sends and receives transactional email with Cloudflare Email Service (Email Sending + Email Routing) — Workers bindings, REST API, deliverability (SPF/DKIM/DMARC), and wrangler setup. |
 | `code/` | Writes, reviews, tests, and optimizes code, and designs architectural refactors — enforces TDD for new features and bug fixes, runs code review, benchmarks, and mutation testing. |
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, and writes handoff files for session continuity. |
+| `durable-objects/` | Creates and reviews Cloudflare Durable Objects — stateful coordination, RPC methods, SQLite storage, alarms, and WebSockets; covers Workers integration and Vitest testing. |
 | `git/` | Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, and GitHub interactions. |
 | `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with commit checkpoints (`execute`), and retrospects with auto-proposed Fixup phases on completion (`review`). |
 | `prd/` | Creates a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at `./tmp/<name>/plan.md`. |
+| `sandbox-sdk/` | Builds sandboxed applications for secure code execution with the Sandbox SDK — code interpreters, CI/CD, and interactive dev environments; covers lifecycle, commands, files, and preview URLs. |
 | `slack-messaging/` | Enforces Slack formatting rules and tool selection when sending Slack messages via the Slack MCP integration. |
+| `turnstile-spin/` | Sets up Cloudflare Turnstile end-to-end — scans the codebase, creates the widget, deploys a siteverify Worker, and writes frontend snippets; mirrors developers.cloudflare.com/turnstile/spin. |
 | `ubiquitous-language/` | Extracts a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms; saves to `UBIQUITOUS_LANGUAGE.md`. |
+| `web-perf/` | Analyzes web performance via Chrome DevTools MCP — Core Web Vitals (LCP, INP, CLS), render-blocking resources, network dependency chains, layout shifts, and caching issues. |
+| `workers-best-practices/` | Reviews and authors Cloudflare Workers code against production best practices — streaming, floating promises, global state, secrets, bindings, and observability. |
+| `wrangler/` | Cloudflare Workers CLI for deploying and managing Workers, KV, R2, D1, Vectorize, Hyperdrive, Workers AI, Containers, Queues, Workflows, and Secrets Store. |
 
 Each skill follows this directory structure:
 
