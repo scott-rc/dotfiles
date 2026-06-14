@@ -14,7 +14,7 @@ This installs Homebrew, packages from `Brewfile`, Nix, and creates symlinks from
 
 ### lib.sh
 
-Shared shell library sourced by `apply.sh` and `test_apply.sh`. Contains color constants, numeric log-level functions (`log_debug`, `log_info`, `log_warn`, `log_error`), section/success formatters (`log_section`, `log_success`), `run_with_spinner()` for background commands with animated progress indicators (bypassed in debug mode), and `ensure_symlink()`.
+Shared shell library sourced by `apply.sh` and `test_apply.sh`. Contains color constants, numeric log-level functions (`log_debug`, `log_info`, `log_warn`, `log_error`), section/success formatters (`log_section`, `log_success`), `run_with_spinner()` for background commands with animated progress indicators (animation is bypassed in debug mode and when output is piped/redirected to a non-TTY, where it prints plain status lines instead; failures dump the captured output), and `ensure_symlink()`.
 
 ### apply.sh
 
@@ -26,14 +26,16 @@ The main setup script that:
 4. Creates symlinks using `ensure_symlink()` (backs up existing files to `.bak`)
 5. Adds Fish shell to `/etc/shells`
 6. Configures iTerm2 preferences via `defaults write`
-7. Installs Nix package manager if missing
-8. Sets up Rust toolchain and wasm32-wasip1 target via rustup
+7. Installs Nix package manager if missing (and `nixpkgs-fmt` via `nix profile`)
+8. Puts rustup's cargo/rustc proxies on `PATH` (the stable toolchain + `wasm32-wasip1` target are installed declaratively via the rustup `postinstall` hook in the `Brewfile`)
 9. Builds CLI tools via Cargo workspace (md, tui, boom) and standalone gd from `~/Code/personal/gd/`
 10. Uses sudo for `/etc/*` paths (e.g., nix.conf)
 
+The script puts Homebrew (`brew shellenv`) and Nix (`nix-daemon.sh`) on `PATH` early so brew-/nix-installed tools are callable later in the run.
+
 ### Brewfile
 
-All Homebrew packages are declared here and installed eagerly during setup.
+All Homebrew packages are declared here and installed eagerly during setup. Beyond formulae and casks, `brew bundle` also manages: the Rust toolchain (via a `postinstall:` hook on `rustup`) and VSCode extensions (`vscode "..."` entries — installed through the `code` CLI; `brew bundle cleanup` will uninstall any VSCode extension not listed). Local Cargo tools (md, boom, gd) stay in `apply.sh` because `brew bundle`'s `cargo` entries only install from crates.io.
 
 ### configs/
 

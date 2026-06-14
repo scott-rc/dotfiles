@@ -58,60 +58,76 @@ log_success() {
 
 # Run a command with a spinner animation.
 # Usage: run_with_spinner "label" command [args...]
-# - Shows spinner while command runs
-# - On success: replaces spinner with checkmark
-# - On failure: replaces spinner with X, dumps captured output, returns non-zero
-# - In debug mode: skips spinner, shows raw output
-# - In quiet mode (warn/error): runs silently
+# Behavior by mode (so output stays useful both live and in captured logs):
+# - debug (LOG_LEVEL=debug): no spinner, command output streams live
+# - quiet (LOG_LEVEL=warn/error): runs silently
+# - interactive TTY: animated spinner; on failure, dumps captured output
+# - non-TTY (piped/redirected to a file): no animation (no \r spam); prints a
+#   plain "▸ label" line, then "✔/✖ label"; on failure, dumps captured output
+# On failure it always returns the command's non-zero exit code.
 run_with_spinner() {
 	local label="$1"
 	shift
 
-	# Debug mode: skip spinner, show raw output
-	if [[ $(_log_level_num "$LOG_LEVEL") -le 0 ]]; then
-		echo -e "  ${CYAN}▸${RESET} $label"
-		"$@"
-		echo -e "  ${GREEN}✔${RESET} $label"
-		return
-	fi
+	local level
+	level=$(_log_level_num "$LOG_LEVEL")
 
 	# Silent mode (warn/error): run without any output
-	if [[ $(_log_level_num "$LOG_LEVEL") -gt 1 ]]; then
+	if [[ $level -gt 1 ]]; then
 		"$@" >/dev/null 2>&1
 		return
 	fi
 
-	local logfile
+	# Debug mode: skip spinner, stream output live for easy debugging
+	if [[ $level -le 0 ]]; then
+		echo -e "  ${CYAN}▸${RESET} $label"
+		local exit_code=0
+		"$@" || exit_code=$?
+		if [[ $exit_code -eq 0 ]]; then
+			echo -e "  ${GREEN}✔${RESET} $label"
+		else
+			echo -e "  ${RED}✖${RESET} $label ${RED}(exit $exit_code)${RESET}"
+		fi
+		return "$exit_code"
+	fi
+
+	local logfile exit_code=0
 	logfile=$(mktemp)
 
-	# Run the command and spinner in a subshell to isolate the trap
-	(
-		local spinner_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-		local pid
+	if [[ -t 1 ]]; then
+		# Interactive TTY: animate a spinner in a subshell while the command runs.
+		(
+			local spinner_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+			local pid
 
-		"$@" > "$logfile" 2>&1 &
-		pid=$!
+			"$@" > "$logfile" 2>&1 &
+			pid=$!
 
-		trap 'kill $pid 2>/dev/null' EXIT
+			trap 'kill $pid 2>/dev/null' EXIT
 
-		local i=0
-		while kill -0 "$pid" 2>/dev/null; do
-			local char="${spinner_chars:i%${#spinner_chars}:1}"
-			printf "\r  %s %s" "$char" "$label"
-			i=$((i + 1))
-			sleep 0.08
-		done
+			local i=0
+			while kill -0 "$pid" 2>/dev/null; do
+				local char="${spinner_chars:i%${#spinner_chars}:1}"
+				printf "\r  %s %s" "$char" "$label"
+				i=$((i + 1))
+				sleep 0.08
+			done
 
-		trap - EXIT
+			trap - EXIT
 
-		local exit_code=0
-		wait "$pid" || exit_code=$?
+			local code=0
+			wait "$pid" || code=$?
 
-		printf "\r\033[K"
+			printf "\r\033[K"
 
-		exit "$exit_code"
-	)
-	local exit_code=$?
+			exit "$code"
+		)
+		exit_code=$?
+	else
+		# Non-interactive (piped/redirected): no animation, just capture output.
+		echo -e "  ${CYAN}▸${RESET} $label"
+		"$@" > "$logfile" 2>&1 || exit_code=$?
+	fi
 
 	if [[ $exit_code -eq 0 ]]; then
 		echo -e "  ${GREEN}✔${RESET} $label"
@@ -119,6 +135,7 @@ run_with_spinner() {
 		echo -e "  ${RED}✖${RESET} $label"
 		echo -e "  ${RED}Command failed with exit code $exit_code. Output:${RESET}"
 		sed 's/^/    /' "$logfile"
+		echo -e "  ${YELLOW}Re-run with LOG_LEVEL=debug for live output.${RESET}"
 	fi
 
 	rm -f "$logfile"

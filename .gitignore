@@ -4,6 +4,9 @@ configs/nu/history.txt
 tmp/
 receipt.json
 
+# Backups created by apply.sh's ensure_symlink()
+*.bak
+
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,windows,visualstudiocode,jetbrains+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,windows,visualstudiocode,jetbrains+all
 

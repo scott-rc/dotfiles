@@ -36,6 +36,10 @@ else
 	run_with_spinner "Updating Homebrew" /opt/homebrew/bin/brew update --force
 fi
 
+# Put Homebrew on PATH for the rest of this script so brew-installed tools
+# (bat, nixpkgs-fmt, cargo, etc.) are callable without a hardcoded path.
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
 run_with_spinner "Installing packages from Brewfile" /opt/homebrew/bin/brew bundle --file="$WORKSPACE_ROOT/Brewfile"
 
 log_section "Bat"
@@ -61,15 +65,8 @@ else
 	fish_changed=true
 fi
 
-# shellcheck disable=SC2016
-if /opt/homebrew/bin/fish -c 'contains /opt/homebrew/bin $fish_user_paths'; then
-	log_debug "Homebrew is already in fish_user_paths"
-else
-	log_info "Adding Homebrew to fish_user_paths"
-	# shellcheck disable=SC2016
-	/opt/homebrew/bin/fish -c 'set -U fish_user_paths /opt/homebrew/bin $fish_user_paths'
-	fish_changed=true
-fi
+# Homebrew's PATH is set in conf.d/00-homebrew.fish (via `brew shellenv`), so it
+# lives in this repo rather than a fragile `set -U fish_user_paths` universal variable.
 
 if [[ "$fish_changed" == "false" ]]; then
 	log_success "Fish configured"
@@ -138,12 +135,22 @@ log_success "Cursor symlinks"
 log_section "Nix"
 
 nix_changed=false
-if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]; then
+nix_daemon_profile="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+if [ -f "$nix_daemon_profile" ]; then
 	log_debug "Nix is already installed"
 else
 	log_info "Installing Nix"
 	sh <(curl -L https://nixos.org/nix/install)
 	nix_changed=true
+fi
+
+# Put Nix on PATH for the rest of this script so `nix` is callable.
+# Relax `nounset` while sourcing: the profile script isn't written for `set -u`.
+if [ -f "$nix_daemon_profile" ]; then
+	set +u
+	# shellcheck source=/dev/null
+	source "$nix_daemon_profile"
+	set -u
 fi
 
 ensure_symlink "$CONFIGS/nix/nix.conf" "/etc/nix/nix.conf"
@@ -161,22 +168,15 @@ fi
 
 log_section "Rust"
 
+# The toolchain (stable + wasm32-wasip1) is installed declaratively via the
+# rustup `postinstall` hook in the Brewfile. Here we only put rustup's cargo/rustc
+# proxies on PATH (they are not keg-linked) so the Tools build below can run.
 RUSTUP_BIN="/opt/homebrew/opt/rustup/bin"
-rust_changed=false
 if [ -x "$RUSTUP_BIN/rustup" ]; then
 	export PATH="$RUSTUP_BIN:$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$PATH"
-	if ! rustup toolchain list 2>/dev/null | grep -q "stable"; then
-		run_with_spinner "Installing Rust stable toolchain" rustup default stable
-		rust_changed=true
-	fi
-	if ! rustup target list --installed 2>/dev/null | grep -q "wasm32-wasip1"; then
-		run_with_spinner "Adding wasm32-wasip1 target" rustup target add wasm32-wasip1
-		rust_changed=true
-	fi
-fi
-
-if [[ "$rust_changed" == "false" ]]; then
 	log_success "Rust toolchain ready"
+else
+	log_warn "rustup not found at $RUSTUP_BIN — skipping Rust tools"
 fi
 
 log_section "Tools"
