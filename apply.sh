@@ -94,6 +94,20 @@ ensure_symlink "$CONFIGS/zellij/config.kdl" "$HOME/.config/zellij/config.kdl"
 ensure_symlink "$CONFIGS/zellij/layouts" "$HOME/.config/zellij/layouts"
 ensure_symlink "$CONFIGS/zsh/.zshrc" "$HOME/.zshrc"
 
+# The zellij config references the zjstatus plugin (a .wasm binary) which is not
+# a Homebrew formula, so fetch it from GitHub releases. Pinned for reproducibility.
+ZJSTATUS_VERSION="v0.23.0"
+ZJSTATUS_WASM="$HOME/.config/zellij/plugins/zjstatus.wasm"
+if [ -f "$ZJSTATUS_WASM" ]; then
+	log_debug "zjstatus plugin already installed at $ZJSTATUS_WASM"
+else
+	mkdir -p "$(dirname "$ZJSTATUS_WASM")"
+	run_with_spinner "Downloading zjstatus $ZJSTATUS_VERSION" \
+		curl -fsSL -o "$ZJSTATUS_WASM" \
+		"https://github.com/dj95/zjstatus/releases/download/$ZJSTATUS_VERSION/zjstatus.wasm"
+	log_success "zjstatus plugin installed"
+fi
+
 expected_iterm2_prefs="$CONFIGS/iterm2"
 current_iterm2_prefs=$(defaults read com.googlecode.iterm2 PrefsCustomFolder 2>/dev/null || echo "")
 if [ "$current_iterm2_prefs" = "$expected_iterm2_prefs" ]; then

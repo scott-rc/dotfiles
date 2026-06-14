@@ -65,7 +65,7 @@ Configuration directories symlinked to their expected locations:
 | `nvim/` | `~/.config/nvim` — modular Neovim 0.12 config with vim.pack plugin manager, native LSP, native statusline, snacks.nvim (picker, explorer, scroll, indent), satellite.nvim, format-on-save (conform.nvim), codelens, undotree |
 | `terminal/` | macOS Terminal.app color theme (GitHub Dark; imported manually, not symlinked) |
 | `zed/` | `~/.config/zed/{settings.json,keymap.json}` |
-| `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin) |
+| `zellij/` | `~/.config/zellij/{config.kdl,layouts}` (status bar via [zjstatus](https://github.com/dj95/zjstatus) WASM plugin, which `apply.sh` downloads to `~/.config/zellij/plugins/zjstatus.wasm` at a pinned version since it is not a Homebrew formula) |
 | `zsh/` | `~/.zshrc` |
 
 ### Fish Shell Structure
