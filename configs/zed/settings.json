@@ -1,17 +1,35 @@
 {
+  "cli_default_open_behavior": "new_window",
+  "lsp": {
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always",
+          },
+        },
+        "javascript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always",
+          },
+        },
+      },
+      "enable_lsp_tasks": true,
+    },
+  },
   "use_system_prompts": false,
   "use_system_path_prompts": false,
   "icon_theme": {
     "mode": "light",
     "light": "VSCode Icons for Zed (Dark Official Icons)",
-    "dark": "VSCode Icons for Zed (Dark Official Icons)"
+    "dark": "VSCode Icons for Zed (Dark Official Icons)",
   },
   "agent": {
     "dock": "right",
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-sonnet-4-5"
-    }
+      "model": "claude-sonnet-4-5",
+    },
   },
   "buffer_font_size": 14,
   "buffer_font_family": "MonoLisa",
@@ -19,40 +37,40 @@
   "buffer_font_fallbacks": ["MonaspiceAr Nerd Font Mono"],
   "buffer_font_features": {
     "liga": true,
-    "calt": true
+    "calt": true,
   },
   "collaboration_panel": {
-    "dock": "right"
+    "dock": "right",
   },
   "diff_view_style": "unified",
   "edit_predictions": {
-    "provider": "copilot"
+    "provider": "copilot",
   },
   "git": {
     "hunk_style": "staged_hollow",
     "inline_blame": {
-      "enabled": false
-    }
+      "enabled": false,
+    },
   },
   "git_panel": {
     "tree_view": true,
-    "dock": "right"
+    "dock": "right",
   },
   "outline_panel": {
-    "dock": "right"
+    "dock": "right",
   },
   "project_panel": {
     "dock": "right",
-    "default_width": 320
+    "default_width": 320,
   },
   "theme": {
     "mode": "dark",
     "light": "GitHub Light",
-    "dark": "GitHub Dark Dimmed"
+    "dark": "GitHub Dark Dimmed",
   },
   "vim_mode": true,
   "vim": {
-    "use_system_clipboard": "never"
+    "use_system_clipboard": "never",
   },
   "format_on_save": "on",
   "ensure_final_newline_on_save": true,
@@ -64,7 +82,7 @@
     "cursor_shape": "bar",
     "env": {
       // "ZELLIJ_AUTO_ATTACH": "true",
-      "ZELLIJ_AUTO_EXIT": "true"
+      "ZELLIJ_AUTO_EXIT": "true",
     },
     "font_family": "MonaspiceAr Nerd Font Mono",
     "font_size": 14,
@@ -73,8 +91,8 @@
     "shell": {
       "with_arguments": {
         "program": "/opt/homebrew/bin/fish",
-        "args": ["-l", "-i"]
-      }
-    }
-  }
+        "args": ["-l", "-i"],
+      },
+    },
+  },
 }

@@ -140,7 +140,7 @@ Three modifier layers to avoid conflicts:
 
 #### Zed Git Diff
 
-Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors the Neovim workflow where possible.
+Git panel toggle with hunk-level staging. Mirrors the Neovim workflow where possible.
 
 | Shortcut | Context | Action |
 |----------|---------|--------|
@@ -148,14 +148,6 @@ Git panel toggle with hunk-level staging and vim-style leader bindings. Mirrors 
 | `Cmd+Shift+G` | Global | Toggle inline/split diff view |
 | `Cmd+1` | Global | Focus git panel changes list |
 | `Cmd+1` | Git panel | Focus back to editor |
-| `Space gd` | Editor (normal) | Working tree diff |
-| `Space gc` | Editor (normal) | Branch diff (vs default branch) |
-| `Space gs` | Editor (normal) | Stage file |
-| `Space gu` | Editor (normal) | Unstage file |
-| `Space gr` | Editor (normal) | Restore hunk |
-| `Space gR` | Editor (normal) | Restore file |
-| `Space gh` | Editor (normal) | File history |
-| `Space gp` | Editor (normal) | Toggle inline diff hunks |
 | `]c` / `[c` | Editor (normal) | Next/prev hunk (built-in vim) |
 | `d o` | Editor (normal) | Expand diff hunk inline (built-in vim) |
 | `d u` / `d U` | Editor (normal) | Stage hunk / stage all (built-in vim) |

@@ -81,14 +81,14 @@
       "shift-l": "vim::EndOfLine",
 
       // Git
-      "space g d": "git::Diff",
-      "space g c": "git::BranchDiff",
-      "space g s": "git::StageFile",
-      "space g u": "git::UnstageFile",
-      "space g r": "git::Restore",
-      "space g shift-r": "git::RestoreFile",
-      "space g h": "git::FileHistory",
-      "space g p": "editor::ToggleSelectedDiffHunks",
+      // "space g d": "git::Diff",
+      // "space g c": "git::BranchDiff",
+      // "space g s": "git::StageFile",
+      // "space g u": "git::UnstageFile",
+      // "space g r": "git::Restore",
+      // "space g shift-r": "git::RestoreFile",
+      // "space g h": "git::FileHistory",
+      // "space g p": "editor::ToggleSelectedDiffHunks",
     },
   },
 
@@ -111,6 +111,7 @@
     "context": "ProjectPanel",
     "bindings": {
       "cmd-e": "workspace::ToggleRightDock",
+      "space": "vim::Enter",
     },
   },
   {
