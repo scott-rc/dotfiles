@@ -95,17 +95,6 @@
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
-  "spinnerTipsEnabled": false,
-  "effortLevel": "high",
-  "showClearContextOnPlanAccept": true,
-  "autoMemoryEnabled": false,
-  "theme": "dark-daltonized",
-  "editorMode": "vim",
-  "verbose": true,
-  "autoCompactEnabled": false,
-  "remoteControlAtStartup": true,
-  "agentPushNotifEnabled": true,
-  "trustedDirectories": ["/Users/scott/Code/gadget", "/Users/scott/Code/personal"],
   "extraKnownMarketplaces": {
     "cloudflare": {
       "source": {
@@ -113,5 +102,21 @@
         "repo": "cloudflare/skills"
       }
     }
-  }
+  },
+  "spinnerTipsEnabled": false,
+  "effortLevel": "high",
+  "showClearContextOnPlanAccept": true,
+  "tui": "fullscreen",
+  "autoMemoryEnabled": false,
+  "theme": "dark-daltonized",
+  "editorMode": "vim",
+  "verbose": true,
+  "autoCompactEnabled": false,
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "trustedDirectories": [
+    "/Users/scott/Code/gadget",
+    "/Users/scott/Code/personal"
+  ],
+  "model": "claude-fable-5[1m]"
 }
