@@ -59,6 +59,8 @@ Push commits and create/update PR.
 
 9. **Create new PR**: If no PR exists (or old PR was merged/closed), and the dotfiles exception does not apply: if the branch context file is missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write the PR title and description inline following references/pr-writer-rules.md and create the PR.
 
+   **Nav comment refresh**: If the stack metadata from step 3 shows any OTHER branch in this stack with a PR (`.change != null`), the just-created PR changed the stack's PR set — MUST run the Nav Comment Refresh pattern from references/git-spice-patterns.md so every stack PR's navigation comment shows the full current topology. The refresh is idempotent, so running it after each creation in a stack built one push at a time is harmless.
+
 10. **Update existing PR**: If a PR exists and new commits were pushed that aren't reflected in the current description: if the context file is somehow missing, run the Branch Context Creation pattern from references/git-patterns.md first (MUST follow the full pattern including the user confirmation step). Then write an updated PR title and description inline following references/pr-writer-rules.md. If no new commits were pushed (e.g., force push of same content), skip the update.
 
 11. **Report PR URL** to the user.

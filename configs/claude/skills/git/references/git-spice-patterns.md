@@ -18,6 +18,7 @@ git-spice patterns for stacked branch management. Reference this file for all gi
 - Stack Navigation
 - Branch Fold
 - Stack Submit
+- Nav Comment Refresh
 - CR Discovery
 
 ## Detection
@@ -224,6 +225,24 @@ Updating existing PRs:
 git-spice stack submit --update-only --no-prompt
 git-spice stack submit --update-only --force --no-prompt
 ```
+
+## Nav Comment Refresh
+
+Each PR's git-spice navigation comment shows the stack **as it existed when that PR was last submitted**. Any operation that changes the stack's PR set or topology leaves earlier PRs' comments stale — a PR created before its upstack siblings shows only a partial stack, and a reorder leaves comments describing the old shape.
+
+After ANY of the following, MUST finish by refreshing navigation comments across the whole stack:
+
+- Creating a PR on a branch whose stack contains other PRs (sequential one-at-a-time `branch submit` creates)
+- Reordering or re-basing branches in a stack that has open PRs (`branch onto`, `upstack onto`, restack-after-move)
+- Folding or deleting a branch out of a stack with open PRs
+
+Refresh command (run from any branch in the stack):
+
+```bash
+git-spice stack submit --update-only --no-prompt
+```
+
+Add `--force` when branches were rebased. This pushes and re-submits every PR in the stack, rewriting each navigation comment with the full current topology. `--update-only` silently skips branches that have no PR, so the refresh is safe mid-way through building a stack (this is the one case where `--update-only` runs on a stack where not every branch has a PR — see Stack Submit above). It is idempotent and safe when nothing changed. A single `stack submit --fill` run that creates all PRs at once does NOT need a follow-up refresh — one submit run knows the whole stack; staleness comes from sequential single-branch submits or later topology changes.
 
 ## CR Discovery
 
