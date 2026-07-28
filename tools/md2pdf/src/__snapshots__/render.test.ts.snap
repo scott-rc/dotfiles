@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fixture body markup matches snapshot 1`] = `
+"<div class="prose prose-sm max-w-none"><h1>Ada Lovelace</h1>
+<p><strong>Analyst and Programmer</strong><br/>
+London, England</p>
+<ul>
+<li>Email: <a href="mailto:ada@example.com">ada@example.com</a></li>
+<li>LinkedIn: <a href="https://www.linkedin.com/in/ada">www.linkedin.com/in/ada</a></li>
+</ul>
+<h2>Summary</h2>
+<p>Wrote the <em>first algorithm</em> intended for a machine, with a focus on <strong>analytical engines</strong> and <del>calculators</del> computers.</p>
+<h2>Experience</h2>
+<h3>Analytical Engine — Programmer</h3>
+<p><em>1842 – 1843 (1 year) · London</em></p>
+<ul>
+<li>Translated Menabrea&#x27;s memoir and appended original notes</li>
+<li>Designed the first published algorithm for computing Bernoulli numbers</li>
+</ul>
+<h2>Education</h2>
+<p>University of London<br/>
+Mathematics and Science</p></div>"
+`;

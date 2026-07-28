@@ -14,7 +14,7 @@
 
 ### Node Tools
 
-- `tools/md2pdf/` -- markdown-to-PDF CLI (pnpm-managed, runs from source via tsx)
+- `tools/md2pdf/` -- markdown-to-PDF CLI: react-markdown + Tailwind v4 typography compiled at render time, Inter embedded as data URIs, Puppeteer print to A4; pnpm-managed, runs from source via tsx (no build step)
 
 ### Fish Shell
 
@@ -30,6 +30,7 @@
 - `./apply.sh` -- full setup (Homebrew, Nix, symlinks, Cargo tools)
 - `cargo build --release` in `tools/` (workspace root) -- build all Cargo workspace tools
 - `cargo test` in `tools/<name>/` -- per-Cargo-tool tests
+- `pnpm typecheck` / `pnpm test` in `tools/md2pdf/` -- md2pdf TypeScript check and Vitest suite
 
 ---
 
