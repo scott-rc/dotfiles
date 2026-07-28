@@ -12,6 +12,10 @@
 - `tools/tui/` is a workspace dependency of `tools/md/`
 - `gd` lives in its own repo at `~/Code/personal/gd/` (inlines its own copy of `tui`)
 
+### Node Tools
+
+- `tools/md2pdf/` -- markdown-to-PDF CLI (pnpm-managed, runs from source via tsx)
+
 ### Fish Shell
 
 - `configs/fish/conf.d/` -- auto-loaded config files; each MUST have `status is-interactive` guard
@@ -24,8 +28,8 @@
 ## Build & Test
 
 - `./apply.sh` -- full setup (Homebrew, Nix, symlinks, Cargo tools)
-- `cargo build --release` in `tools/` (workspace root) -- build all tools
-- `cargo test` in `tools/<name>/` -- per-tool tests
+- `cargo build --release` in `tools/` (workspace root) -- build all Cargo workspace tools
+- `cargo test` in `tools/<name>/` -- per-Cargo-tool tests
 
 ---
 
