@@ -211,5 +211,11 @@ if command -v cargo &>/dev/null; then
 	log_success "Tools built and linked"
 fi
 
+if command -v pnpm &>/dev/null; then
+	run_with_spinner "Installing md2pdf dependencies" bash -c "cd \"$WORKSPACE_ROOT/tools/md2pdf\" && pnpm install --frozen-lockfile 2>&1"
+else
+	log_warn "pnpm not found — skipping md2pdf dependencies"
+fi
+
 echo ""
 echo -e "${GREEN}✨ Setup complete!${RESET}"

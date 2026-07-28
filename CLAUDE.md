@@ -4,7 +4,7 @@
 
 ### Setup
 
-- `apply.sh` is the main setup script: installs Homebrew/Nix, runs `brew bundle` on `Brewfile`, creates symlinks, builds Cargo tools
+- `apply.sh` is the main setup script: installs Homebrew/Nix, runs `brew bundle` on `Brewfile`, creates symlinks, builds Cargo tools, installs md2pdf's pnpm dependencies
 - Symlinks use `ensure_symlink()` and back up existing files to `.bak`
 
 ### Cargo Tools
@@ -14,7 +14,7 @@
 
 ### Node Tools
 
-- `tools/md2pdf/` -- markdown-to-PDF CLI: react-markdown + Tailwind v4 typography compiled at render time, Inter embedded as data URIs, Puppeteer print to A4; pnpm-managed, runs from source via tsx (no build step)
+- `tools/md2pdf/` -- markdown-to-PDF CLI: react-markdown + Tailwind v4 typography compiled at render time, Inter embedded as data URIs, Puppeteer print to A4; pnpm-managed, runs from source via tsx (no build step); exposed globally via the `md2pdf` fish function
 
 ### Fish Shell
 
