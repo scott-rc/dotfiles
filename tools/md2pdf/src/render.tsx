@@ -24,8 +24,9 @@ const tailwindInput = `
 @plugin "@tailwindcss/typography";
 `;
 
-// The typography plugin's defaults request 500 for links, 800 for h1,
-// 600-700 for other headings and strong, and italic for emphasis. An
+// Every weight/style pair the compiled prose CSS can request: 500 for links
+// and blockquotes (italic), 800 for h1 and 900 for strong inside h1, 600-700
+// for other headings and strong (also in italic when nested in emphasis). An
 // undercovered set would make Chromium silently synthesize faux faces.
 const interFaces = [
   { weight: 400, style: "normal" },
@@ -33,7 +34,11 @@ const interFaces = [
   { weight: 600, style: "normal" },
   { weight: 700, style: "normal" },
   { weight: 800, style: "normal" },
+  { weight: 900, style: "normal" },
   { weight: 400, style: "italic" },
+  { weight: 500, style: "italic" },
+  { weight: 600, style: "italic" },
+  { weight: 700, style: "italic" },
 ];
 
 // Resume tuning: tighter vertical rhythm than stock prose-sm, plus print

@@ -15,15 +15,25 @@ test("document embeds typography rules, page-break CSS, and Inter font faces", a
   // Headings stay attached to the content that follows them.
   expect(document).toMatch(/break-after:\s*avoid/);
 
-  // Inter faces embedded as data URIs: normal 400/500/600/700/800 + italic 400.
-  for (const weight of [400, 500, 600, 700, 800]) {
+  // Inter faces embedded as data URIs, covering every weight/style pair the
+  // compiled prose CSS can request.
+  const faces: Array<[number, string]> = [
+    [400, "normal"],
+    [500, "normal"],
+    [600, "normal"],
+    [700, "normal"],
+    [800, "normal"],
+    [900, "normal"],
+    [400, "italic"],
+    [500, "italic"],
+    [600, "italic"],
+    [700, "italic"],
+  ];
+  for (const [weight, style] of faces) {
     expect(document).toMatch(
-      new RegExp(`font-style:\\s*normal;[^}]*font-weight:\\s*${weight};[^}]*data:font/woff2;base64,`),
+      new RegExp(`font-style:\\s*${style};[^}]*font-weight:\\s*${weight};[^}]*data:font/woff2;base64,`),
     );
   }
-  expect(document).toMatch(
-    /font-style:\s*italic;[^}]*font-weight:\s*400;[^}]*data:font\/woff2;base64,/,
-  );
 });
 
 test("body renders soft line breaks as <br>", async () => {
