@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { closeBrowser, htmlToPdf } from "./pdf.js";
 import { renderMarkdown } from "./render.js";
 
-const usage = "usage: md2pdf <input.md> [-o <output.pdf>]";
+const usage = "usage: md2pdf <input.md> [-o <output.pdf>] [--single-page]";
 
 function defaultOutputPath(input: string): string {
   const stripped = input.replace(/\.(md|markdown)$/i, "");
@@ -15,12 +15,13 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-let values: { output?: string };
+let values: { output?: string; "single-page"?: boolean };
 let positionals: string[];
 try {
   ({ values, positionals } = parseArgs({
     options: {
       output: { type: "string", short: "o" },
+      "single-page": { type: "boolean" },
     },
     allowPositionals: true,
   }));
@@ -40,7 +41,7 @@ try {
 
 try {
   const { document } = await renderMarkdown(markdown);
-  const pdf = await htmlToPdf(document);
+  const pdf = await htmlToPdf(document, { singlePage: values["single-page"] });
   const output = values.output ?? defaultOutputPath(input);
   await writeFile(output, pdf);
   console.log(output);
