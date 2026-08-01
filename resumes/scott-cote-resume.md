@@ -8,7 +8,7 @@ Ottawa, Ontario, Canada
 
 ## Summary
 
-Senior software engineer at Gadget, where I design and own core platform infrastructure. I build the systems the platform runs on — the Kubernetes control plane that scales and routes every tenant's compute, and the official CLI that is the local development experience for everyone building on it. I'm drawn to the hard problems in multi-tenant systems: fairness, isolation, zero-downtime operation, and real-time sync, owned end to end from architecture to production. Outside of work I stay close to the languages and tooling I enjoy most — TypeScript, Go, and Rust.
+Senior software engineer at Gadget, where I design and own core platform infrastructure. I build the systems the platform runs on: the Kubernetes control plane that scales and routes every tenant's compute, and the official CLI that is the local development experience for everyone building on it. The problems I keep coming back to are the hard ones in multi-tenant systems, like fairness, isolation, zero-downtime operation, and real-time sync, and I own them end to end from architecture to production. Outside of work I stay close to the languages and tooling I enjoy most: TypeScript, Go, and Rust.
 
 ## Experience
 
@@ -16,13 +16,13 @@ Senior software engineer at Gadget, where I design and own core platform infrast
 
 _March 2022 – Present (4 years 5 months) · Ottawa, ON_
 
-- Respond to production incidents as part of the on-call rotation and turn root causes into permanent fixes (automated vacuum healing, WAL-slot recovery, queue auto-repair sweeps) across Postgres, Elasticsearch, ClickHouse, Temporal, and Kubernetes.
-- Designed and built Skipper, a Go-based Kubernetes orchestrator (router + autoscaling controller) that replaced Fission for serving customer app processes, featuring gRPC/Protobuf communication, hashring-based pod assignment, zone-aware routing, profile-guided optimization of hot paths, and an embedded live-observability web UI.
-- Created and maintain ggt, Gadget's open-source developer CLI, from the ground up (a bidirectional file-sync engine with hashing-based conflict detection, deploys, source control, and shell completions), along with the platform-side sync protocol it talks to.
-- Act as a core maintainer of DateiLager (Go/gRPC filesystem service): shipped transport tuning and chunked large-response streaming, enriched its OpenTelemetry instrumentation, built reproducible filesystem benchmarks (hardlinks, reflinks, LVM) to guide caching strategy, and drove its release-and-upgrade cadence across the platform.
-- Implemented real-time search indexing pipeline: a Go WAL listener on Postgres logical replication feeding batched Elasticsearch index workers, with Temporal-driven backfills that reindexed every model of every app on the platform.
-- Migrated platform observability from Loki to ClickHouse: designed the log/trace schemas, added Lucene query syntax to the log viewer, rewrote search as memory-bounded two-stage queries, validated the cutover with shadow query comparison, and right-sized the cluster before decommissioning Loki entirely.
-- Contributed to cloud cost and reliability initiatives through node-pool architecture (tiered gold/silver/bronze pools, backup pools for machine-type stockouts), topology-aware service routing, and workload bin-packing improvements.
+- Respond to production incidents on the on-call rotation and turn root causes into permanent fixes across Postgres, Elasticsearch, ClickHouse, Temporal, and Kubernetes, including automated vacuum healing, WAL-slot recovery, and queue auto-repair sweeps.
+- Designed and built Skipper, a Go Kubernetes orchestrator (router plus autoscaling controller) that replaced Fission for serving customer app processes. It uses gRPC for communication, hashring-based pod assignment, and zone-aware routing, with profile-guided optimization on the hot paths and an embedded web UI for live observability.
+- Created and maintain ggt, Gadget's open-source developer CLI, along with the platform-side sync protocol it talks to. It handles bidirectional file sync with hash-based conflict detection, deploys, source control, and shell completions.
+- Core maintainer of DateiLager, a Go and gRPC filesystem service. Shipped transport tuning and chunked streaming for large responses, enriched its OpenTelemetry instrumentation, built reproducible filesystem benchmarks (hardlinks, reflinks, LVM) to guide caching strategy, and drive its release and upgrade cadence across the platform.
+- Built the real-time search indexing pipeline: a Go WAL listener on Postgres logical replication feeds batched Elasticsearch index workers, and Temporal-driven backfills have reindexed every model of every app on the platform.
+- Drove the Loki to ClickHouse log platform migration. Designed the trace and platform-log schemas, standardized Lucene query syntax across log search, rewrote search as memory-bounded two-stage queries, validated the cutover with shadow query comparison, and right-sized the cluster before decommissioning Loki.
+- Contributed to cloud cost and reliability work through node-pool architecture (tiered gold, silver, and bronze pools with backups for machine-type stockouts), topology-aware service routing, and workload placement and right-sizing improvements.
 
 ### Spoonity Inc. — Full Stack Developer
 
