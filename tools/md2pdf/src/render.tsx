@@ -52,7 +52,7 @@ body {
 .prose h3 { margin-top: 1.1em; margin-bottom: 0.3em; }
 .prose p { margin-top: 0.4em; margin-bottom: 0.4em; }
 .prose ul, .prose ol { margin-top: 0.4em; margin-bottom: 0.4em; }
-.prose li { margin-top: 0.15em; margin-bottom: 0.15em; }
+.prose li { margin-top: 0.35em; margin-bottom: 0.35em; }
 .prose h1, .prose h2, .prose h3, .prose h4 {
   break-after: avoid;
   break-inside: avoid;

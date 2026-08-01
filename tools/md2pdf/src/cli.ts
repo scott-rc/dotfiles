@@ -21,7 +21,7 @@ try {
   ({ values, positionals } = parseArgs({
     options: {
       output: { type: "string", short: "o" },
-      "single-page": { type: "boolean" },
+      "single-page": { type: "boolean", default: true },
     },
     allowPositionals: true,
   }));
