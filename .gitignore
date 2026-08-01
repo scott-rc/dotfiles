@@ -3,6 +3,7 @@ configs/fish/fish_variables
 configs/nu/history.txt
 tmp/
 receipt.json
+resumes/*.pdf
 
 # Backups created by apply.sh's ensure_symlink()
 *.bak
