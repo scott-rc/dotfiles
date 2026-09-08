@@ -35,6 +35,7 @@ brew "go"
 brew "node"
 brew "pnpm"
 brew "typescript-language-server"
+brew "python3"
 
 # Cloud & infrastructure
 cask "gcloud-cli"
