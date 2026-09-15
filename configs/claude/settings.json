@@ -73,6 +73,7 @@
       "~/go/pkg/mod"
     ]
   },
+  "model": "fable[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -117,6 +118,5 @@
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
     "/Users/scott/Code/personal"
-  ],
-  "model": "claude-fable-5[1m]"
+  ]
 }
