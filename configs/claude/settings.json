@@ -92,10 +92,7 @@
     "command": "~/.claude/statusline",
     "padding": 0
   },
-  "enabledPlugins": {
-    "gopls-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
+  "enabledPlugins": {},
   "extraKnownMarketplaces": {
     "cloudflare": {
       "source": {
