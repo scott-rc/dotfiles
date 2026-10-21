@@ -67,9 +67,9 @@
     "default_width": 320,
   },
   "theme": {
-    "mode": "dark",
-    "light": "GitHub Light",
-    "dark": "GitHub Dark Dimmed",
+    "mode": "system",
+    "light": "GitHub Dark Dimmed",
+    "dark": "GitHub Dark",
   },
   "vim_mode": true,
   "vim": {
