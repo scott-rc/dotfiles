@@ -206,7 +206,7 @@ Custom CLI tools.
 | `code/` | Writes, reviews, tests, and optimizes code, and designs architectural refactors — enforces TDD for new features and bug fixes, runs code review, benchmarks, and mutation testing. |
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, and writes handoff files for session continuity. |
 | `durable-objects/` | Creates and reviews Cloudflare Durable Objects — stateful coordination, RPC methods, SQLite storage, alarms, and WebSockets; covers Workers integration and Vitest testing. |
-| `git/` | Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, and GitHub interactions. |
+| `git/` | Preferences for git and GitHub work -- branch naming, commit scope and messages, PR descriptions, review-thread handling, CI reruns, history rewrites, merging, and outbound text formatting. |
 | `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with commit checkpoints (`execute`), and retrospects with auto-proposed Fixup phases on completion (`review`). |
 | `prd/` | Creates a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at `./tmp/<name>/plan.md`. |
 | `sandbox-sdk/` | Builds sandboxed applications for secure code execution with the Sandbox SDK — code interpreters, CI/CD, and interactive dev environments; covers lifecycle, commands, files, and preview URLs. |

@@ -1,117 +1,67 @@
 ---
 name: git
-description: Handles git commits, pushes, PRs, rebases, CI triage and monitoring, code review, branch splitting with stacked PRs via git-spice, merging PRs, and GitHub interactions -- use when the user asks to commit, push, amend, squash, rebase, create or update PRs, fix CI, review code, split a branch into stacked PRs, navigate stacks, merge a PR, or sync.
-argument-hint: "[commit | squash | push | rebase | fix | correct | split | stack | sync | merge] [context]"
+description: Preferences for any git or GitHub work -- committing, amending, squashing, rebasing, pushing, creating or updating PRs, handling review threads, fixing CI, and merging. Use whenever the user asks to commit, push, open or update a PR, address review feedback, fix CI, rebase, squash, or merge.
 ---
 
-# Git Operations
+# Git
 
-## Current State
-- Branch: !`git branch --show-current`
-- Status: !`git status --short`
-- Stack: !`git rev-parse --verify refs/spice/data 2>/dev/null && git-spice log short 2>/dev/null || echo "(not initialized)"`
+Conventions for git and GitHub work. These are preferences, not procedures: do the work the way a careful engineer would, and follow these rules where they apply.
 
-Route to the appropriate operation based on user intent.
+## Branches
 
-## Operations
+- New branches use the `sc/` prefix (`sc/<kebab-slug>`). No other prefix.
+- In the `dotfiles` repo, committing and pushing directly to `main` is fine. Everywhere else, ask before committing on `main`/`master` and offer to create a branch.
+- Fetch with `git fetch origin`. Never `git fetch origin <branch>:<branch>` -- it fails when the branch is checked out in another worktree.
+- `gwt` and `gwc` are fish functions. Call them via `fish -c '...'` from Bash.
 
-### Commit
-Commit outstanding changes with a well-formatted message. Also handles amend (fold changes into the last commit) -- see the Amend mode in `operations/commit.md`.
-MUST read operations/commit.md before executing.
+## Commits
 
-### Squash
-Squash all commits on the current branch into a single commit.
-MUST read operations/squash.md before executing.
+- "Commit this" / "commit my changes" means the files touched in this session, with no prompt. If other modified files exist and the user did not say "commit all", ask which to include.
+- If the changes mix concerns (a refactor beside a bug fix), split into one commit per concern, most foundational first, without asking the user to pick an order. Ask only when a file genuinely belongs to either.
+- Draft the message from the diff, not from `git log`. Imperative mood, capitalized, subject under 72 characters, no `feat:`/`fix:` prefixes. Explain why, not what.
+- Never `--no-verify`. If a hook fails, fix the cause and retry.
+- Amend: if the amended file set differs from the original, offer to rewrite the message; otherwise keep it. If the branch is already pushed, offer a force push (see Rewriting history).
 
-### Rebase
-Fetch latest and rebase onto base branch.
-MUST read operations/rebase.md before executing.
+## Pull requests
 
-### Push
-Push commits and create/update PR with title/description per guidelines. Also handles refresh description (update PR description without new commits) -- see the Refresh Description mode in `operations/push.md`.
-MUST read operations/push.md before executing.
+- The diff is the source of truth. Commit messages, branch history, and session memory are hints and often describe intermediate states; every claim in the description must be verifiable against the diff.
+- Describe the net change, not the journey. Scan the draft for journey language per the no-historical-narration rule; a "replaced X with Y" claim stands only if the `-` lines actually show X.
+- Explain why. Do not enumerate files, types, helpers, or functions; name only what a reviewer needs to orient.
+- Keep it short -- a few sentences for a typical PR. Do not wrap lines; GitHub wraps.
+- Title: imperative, under 70 characters, derived from the diff.
+- Never reference `tmp/`, gitignored, or other local-only paths. Restate the relevant rationale inline instead.
+- No invented numbers, percentages, or performance claims unless they appear literally in the diff.
+- When updating an existing PR, preserve any bot-appended sections (BugBot, Dependabot) that are not part of the new text.
+- Write multi-line bodies to a per-PR file under `tmp/` and pass `--body-file`; inlining them in `--body` mangles quoting.
+- The motivation comes from the conversation or the user's request. If neither has it, ask one question before writing the description.
 
-### Fix
-Auto-detect and fix CI failures, unresolved review threads, and PR description quality issues.
-MUST read operations/fix.md before executing.
+## Review threads
 
-### Correct
-Propagate a user correction about what a change does to all affected artifacts (commit message, branch context, changesets, PR title/description).
-MUST read operations/correct.md before executing.
+- Fetch unresolved threads with `~/.claude/skills/git/scripts/get-pr-comments.sh` (`--unreplied`, `--count`, `--summary`, `--pr N`). The REST comment id and owner/repo it returns are what the reply and reaction endpoints need.
+- Bot threads (bugbot, dependabot, any automated reviewer) are handled autonomously: fix valid findings, or thumbs-down and reply with a one-line reason when the finding does not apply.
+- Human threads require explicit user approval before applying a code fix and before posting any reply. Show each draft reply beside the reviewer's comment and offer approve / skip / edit.
+- Reply in-thread via `gh api repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies -F body=@<file>`. Never `gh pr comment` for thread replies, and never pass `commit_id`/`path`/`line` -- that opens a new thread.
+- Fixed threads get a thumbs-up and a reply linking the commit.
 
-### Split
-Split a large branch into stacked branches for easier code review. Analyzes the diff, proposes a stack grouped by concern, creates branches, and opens PRs.
-MUST read operations/split.md before executing.
+## CI
 
-### Stack
-Navigate and manage stacked branches tracked by git-spice — move up/down, reorder, restack, list, track/untrack branches, fold a branch into its base (with downstream PR migration), delete a branch or stack, show branch diff, or squash branch commits.
-MUST read operations/stack.md before executing.
+- Rerun rather than fix when the failure is transient infrastructure (timeout, 429, 502/503/504, OOM, runner lost, no space left) or when the same workflow has also failed on the base branch in the last week.
+- Snapshot mismatches, type errors, and lint errors are always real, even if the base branch has similar failures.
 
-### Sync
-Fetch latest, clean up merged branches, and restack the stack.
-MUST read operations/sync.md before executing.
+## Rewriting history
 
-### Merge
-Merge a PR via the GitHub API, then sync the local stack by default (runs the Sync operation after a successful merge unless the user opted out). Detects the repo's merge-strategy convention (merge commit / squash / rebase) and forwards `--delete-branch` so sync can prune cleanly.
-MUST read operations/merge.md before executing.
+- Force push is opt-in. After an amend, squash, or rebase, present the choice; never force push unprompted.
+- Before any force push, check `gh pr list --base <this-branch> --state open`. If PRs target this branch, warn and offer to re-base them (`gh pr edit <n> --base <this-branch's-base>`) first -- GitHub can auto-close or auto-merge them otherwise.
 
-## Combined Operations
+## Merge
 
-Multi-operation sequences and ambiguous phrasings that need explicit routing:
+- Match the repo's existing strategy (merge commit, squash, or rebase) from recent history on the default branch. Ask if it is mixed.
+- `gh pr merge <n> --<strategy> --delete-branch`.
+- Never `--admin` to bypass failing required checks. Never merge a draft unless the user asks to mark it ready first.
 
-- **"commit this"** / **"commit these changes"** / **"commit my changes"** / **"commit what I changed"** → Commit (session-scoped: session files only, no ask)
-- **"commit this and push"** / **"commit these changes and push"** → Commit (session-scoped), then Push
-- **"commit and push"** → Commit (default scope), then Push
-- **"amend and push"** → Commit (amend mode), then push
-- **"squash and push"** → Squash, then push (push's uncommitted-changes check is redundant after squash)
-- **"squash and update description"** / **"squash and update PR"** → Squash through Report (skip push offer), then Push (Refresh Description mode). Set `context` to note the squash. After refresh, offer force push since history was rewritten.
-- **"push, then monitor"** → Push, then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix if CI failed
-- **"rerun, then monitor"** → Run `~/.claude/skills/git/scripts/rerun.sh`, then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix if CI failed
-- **"review and push"** / **"fix reviews and push"** → Fix, then push
-- **"fix CI"** / **"debug CI"** / **"why is CI failing"** → Fix (not check-ci)
-- **"address review comments"** / **"fix review feedback"** / **"fix bugbot comments"** → Fix
-- **"update the before/after"** / **"edit the PR body"** / **"change part of the description"** → Push (Refresh Description mode) (all PR body modifications, even targeted section edits, go through the Refresh Description flow)
-- **"that's not what this does"** / **"those were introduced in this PR"** / **"that flag doesn't exist"** / **"fix the commit message"** → Correct (propagates to all artifacts, not just the one being discussed)
-- **"split"** / **"split this branch"** / **"split for review"** / **"stack this"** → Split
-- **"split and push"** → Split (the split flow already includes pushing each branch and creating stacked PRs)
-- **"sync"** / **"pull latest"** / **"update from main"** → Sync
-- **"merge"** / **"merge this PR"** / **"merge #N"** / **"merge the first PR"** → Merge (which runs Sync afterwards by default)
-- **"merge and sync"** → Merge (explicit; same as the default)
-- **"merge without sync"** / **"merge only"** / **"merge and skip sync"** / **"just merge"** → Merge with the sync-afterwards step skipped. After explaining what was skipped, point the user at `/git sync` for when they want to catch up.
-- **"merge and push"** → Merge (with sync), then any restacked upstack branches force-pushed via the post-sync step described in `operations/merge.md` step 7
-- **"go up"** / **"next branch"** / **"go down"** / **"previous branch"** → Stack (navigate)
-- **"reorder"** / **"move this branch"** / **"put this on top of X"** / **"rebase X after Y"** / **"rebase onto"** / **"change the base"** → Stack (reorder)
-- **"restack"** / **"update the stack"** / **"restack upstack"** → Stack (restack)
-- **"show stack"** / **"list branches"** / **"where am I"** → Stack (list)
-- **"track this branch"** → Stack (track)
-- **"untrack this branch"** / **"stop tracking this branch"** → Stack (untrack)
-- **"fold this branch"** / **"merge into base"** / **"combine branches"** / **"combine upstack"** / **"combine into one PR"** → Stack (fold)
-- **"delete this branch"** / **"remove from stack"** → Stack (delete)
-- **"show diff"** / **"what changed in this branch"** / **"branch diff"** → Stack (diff)
-- **"squash branch commits"** / **"squash this branch"** → Stack (branch squash) — note: distinct from the top-level Squash operation; Stack's branch-squash uses `git-spice branch squash` directly for quick in-stack squashing, while the Squash operation has the full flow with scope verification, message drafting, and optional push
-- **"fix the stack"** / **"fix all PRs"** / **"fix every branch"** / **"fix every PR"** → Fix (Stack Mode)
-- **"fix the stack, then monitor"** → Fix (Stack Mode), then start `gh run watch` (Bash with `run_in_background: true`) and follow it via Monitor; when it exits, run Fix (Stack Mode) again if any branch's CI failed
+## Outbound text
 
-## Monitoring
+Applies to commit messages, PR titles and bodies, and review replies:
 
-To watch CI after a push, run `gh run watch` as a backgrounded Bash command (`run_in_background: true`) and follow its output via Monitor. When the watch process exits, the run has reached a terminal state — invoke Fix to handle any failures, unresolved review threads, or description issues. For a stack of PRs, repeat the watch + Fix cycle per branch, or run Fix in Stack Mode once all watches have settled.
-
-## References
-
-Reference files:
-- references/git-patterns.md - Shared patterns: base branch detection, dotfiles exception, main branch protection, fetch safety, scope verification, script paths, local fix commands
-- references/git-spice-patterns.md - git-spice patterns: detection, initialization, error recovery, stack metadata via JSON, push/commit/amend/squash via git-spice, rebase conflict resolution, branch fold, stack submit, CR discovery
-- references/git-spice-cli.md - git-spice skill conventions (non-interactive rule, branch prefix, command name) and links to official LLM-friendly CLI docs
-- references/github-text.md - Universal formatting rules for all outbound text: commit messages, PR titles/descriptions, review comments (ASCII only, backtick code refs, safe posting)
-- references/pr-writer-rules.md - PR title and description writing rules
-- references/commit-message-format.md - Commit message format rules
-- references/ci-triage.md - GitHub Actions CI failure classification: log fetching, transient/flake/real criteria, rerun commands (used by Fix operation)
-- references/buildkite-handling.md - Buildkite log fetching, umbrella check handling, and auto-retry detection (used by Fix operation)
-
-Scripts:
-- scripts/get-pr-comments.sh - Fetches unresolved PR review threads; `--pr N` targets a specific PR, `--unreplied` filters to threads needing a reply, `--count` prints just the integer count, `--summary` prints a compact summary (one header line plus one line per thread) (used by Fix operation)
-- scripts/get-failed-runs.sh - Retrieves run database IDs for failed CI checks on a branch (used by Fix operation)
-- scripts/sanitize.sh - In-place ASCII text sanitizer with optional mode rules (`--commit-msg`, `--title`)
-- scripts/check-ci.sh - Checks CI status and prints a grouped summary (failed/pending/passed); `--pr N` targets a specific PR instead of the current branch
-- scripts/rerun.sh - Re-triggers the most recent failed CI run on the current branch with fallback to full rerun
-- scripts/branch-context-path.sh - Prints the branch context file path (`./tmp/branches/<sanitized-branch>/context.md`); `--branch NAME` targets a specific branch instead of the current checkout
+- ASCII only: `--` not em dashes, straight quotes, `...` not an ellipsis character. Non-ASCII corrupts through the `gh` CLI.
+- Wrap anything containing `~` or `*` in backticks; bare they trigger strikethrough and emphasis.

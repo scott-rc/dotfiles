@@ -54,7 +54,7 @@ This mapping lets `plan review` cross-reference every phase against its commit a
 
 **e. Push (only on request).** The default is **one commit per phase on the working branch**; the plan's phases accumulate as a linear series of commits and ship together when the user decides. Do NOT push, open a PR, or checkpoint the user about pushing after each phase — proceed directly to the next phase. Push only when the user asks for it in this turn, or a durable preference (a CLAUDE.md or session instruction) pre-authorizes per-phase pushing.
 
-When the user opts to push a phase, invoke `Skill(git, push)`. Capture the PR URL from the push report (or via `git-spice log short --json` after the push completes) and record it on a `**PR**:` line directly under the existing `**Commit**:` line:
+When the user opts to push a phase, invoke `Skill(git, push)`. Capture the PR URL from the push report (or via `gh pr view --json url -q .url` after the push completes) and record it on a `**PR**:` line directly under the existing `**Commit**:` line:
 
 ```markdown
 ## Phase N: <Title>
@@ -67,7 +67,7 @@ When the user opts to push a phase, invoke `Skill(git, push)`. Capture the PR UR
 ...
 ```
 
-Phases that were not pushed have no `**PR**:` line. When a phase's PR has already been opened on a prior turn (resumed session), do not re-push for the same SHA — verify the recorded PR URL still matches `git-spice log short --json` and continue.
+Phases that were not pushed have no `**PR**:` line. When a phase's PR has already been opened on a prior turn (resumed session), do not re-push for the same SHA — verify the recorded PR URL still matches `gh pr view --json url -q .url` and continue.
 
 The `**PR**:` line is for human and agent reuse: future agents resuming the plan see at a glance which phases have been pushed for review and which still sit on the local branch.
 
