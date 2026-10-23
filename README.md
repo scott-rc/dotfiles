@@ -207,8 +207,7 @@ Custom CLI tools.
 | `compose/` | Creates, updates, reviews, and improves Claude Code skills, CLAUDE.md rules, and session prompts, and writes handoff files for session continuity. |
 | `durable-objects/` | Creates and reviews Cloudflare Durable Objects — stateful coordination, RPC methods, SQLite storage, alarms, and WebSockets; covers Workers integration and Vitest testing. |
 | `git/` | Preferences for git and GitHub work -- branch naming, commit scope and messages, PR descriptions, review-thread handling, CI reruns, history rewrites, merging, and outbound text formatting. |
-| `plan/` | Turns a Brief-populated plan file into phased work (`create`), executes it phase-by-phase with commit checkpoints (`execute`), and retrospects with auto-proposed Fixup phases on completion (`review`). |
-| `prd/` | Creates a PRD through user interview, codebase exploration, and module design, saved as the Brief section of a plan file at `./tmp/<name>/plan.md`. |
+| `plan/` | Conventions for phased implementation plans at `tmp/<name>/plan.md`: a Brief, checkbox-criteria phases, and one commit per phase. |
 | `sandbox-sdk/` | Builds sandboxed applications for secure code execution with the Sandbox SDK — code interpreters, CI/CD, and interactive dev environments; covers lifecycle, commands, files, and preview URLs. |
 | `slack-messaging/` | Enforces Slack formatting rules and tool selection when sending Slack messages via the Slack MCP integration. |
 | `turnstile-spin/` | Sets up Cloudflare Turnstile end-to-end — scans the codebase, creates the widget, deploys a siteverify Worker, and writes frontend snippets; mirrors developers.cloudflare.com/turnstile/spin. |

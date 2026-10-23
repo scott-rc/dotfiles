@@ -14,7 +14,7 @@ Every finding MUST follow the format: `file:line — severity — one-sentence p
 
 ## Instructions
 
-**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation (notably `plan execute`'s review phase) — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
+**Loop mode**: When the user requests "loop", "review and loop", or "review and fix loop" — or when invoked programmatically by another operation — the review operation drives an evaluate-fix cycle after the initial evaluation. Both quick and thorough paths feed into the loop phase (steps 15–20) instead of stopping or offering a fix plan. Without loop mode, the operation behaves as a single-pass review. In loop mode, skip all user-facing prompts (scope-size confirmation in step 3, scope decomposition confirmation in step 9) — default to thorough for any scope exceeding the quick threshold.
 
 1. **Identify review scope**:
    Determine what code to review. If the user specifies files, functions, or a diff, use that. If unspecified, ask what they want reviewed.
@@ -123,7 +123,7 @@ Every finding MUST follow the format: `file:line — severity — one-sentence p
     If a specific finding recurs after a fix attempt, mark it as "acknowledged, not addressed" with rationale and exclude it from further iterations. This can unblock convergence even if the finding itself remains.
 
 19. **Report non-convergence**:
-    Present the remaining findings (grouped by severity) and the termination reason (no progress / regression). Let the caller decide next steps — for an interactive user, ask what to do; for `plan execute`'s review phase, hand the findings back for the phase-level halt behavior (no commit, append to plan, prompt user).
+    Present the remaining findings (grouped by severity) and the termination reason (no progress / regression). Let the caller decide next steps — for an interactive user, ask what to do; for a programmatic caller, hand the findings back.
 
 20. **Persist final findings**:
     Write `./tmp/branches/<sanitized-branch>/review.md` using the review artifact format below. Add loop metadata fields to the Metadata section:

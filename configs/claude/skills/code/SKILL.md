@@ -32,7 +32,7 @@ MUST read operations/benchmark.md before executing.
 
 ### Architect
 
-Design an architectural refactor. Identifies shallow modules or friction points (discovery mode) or takes a specified target, frames the problem, dispatches 4 parallel design subagents with different constraints, and writes the chosen design as the `## Brief` of a plan file at `./tmp/<target>/plan.md`. Does NOT implement — the plan's Brief is terminal output for this operation; hand off to `plan create` to phase it into runnable work.
+Design an architectural refactor. Identifies shallow modules or friction points (discovery mode) or takes a specified target, frames the problem, dispatches 4 parallel design subagents with different constraints, and writes the chosen design as the `## Brief` of a plan file at `./tmp/<target>/plan.md`. Does NOT implement — the plan's Brief is terminal output for this operation; the plan skill phases it into runnable work.
 MUST read operations/architect.md before executing.
 
 ## Combined Operations
@@ -41,8 +41,8 @@ Users often request multiple operations together. Handle these as follows:
 
 **Default: TDD for any behavior change.** When the request adds new functionality or fixes a bug, use Write (TDD mode) — don't wait for the user to say "TDD" or "write tests first".
 
-- **plan / design / "how should I implement"** → `plan create` (plan skill)
-- **"continue implementing" / "implement plan" / "execute plan" / "run plan"** (with a plan file path) → `plan execute` (plan skill)
+- **plan / design / "how should I implement"** → plan skill
+- **"continue implementing" / "implement plan" / "execute plan" / "run plan"** (with a plan file path) → plan skill
 - **add feature / write** (new behavior) → Write (TDD mode)
 - **implement / full cycle / build and verify** → Write (TDD mode), then Review (loop mode) on all changed files
 - **implement with mutation testing / harden** → Write (TDD mode), then Test (Mutate mode), then Review (loop mode) on all changed files
@@ -68,7 +68,7 @@ Users often request multiple operations together. Handle these as follows:
 - **mutate / mutation test / test my tests** → Test (Mutate mode)
 - **add coverage then mutate** → Test (Coverage mode), then Test (Mutate mode)
 - **skip tests / no tests / just the code** → Write (Apply mode — user opts out of TDD)
-- **design and implement** (for a refactor) → Architect (writes Brief to `tmp/<target>/plan.md`), then user reviews the Brief, then `plan create <plan-path>` phases it, then `plan execute <plan-path>` runs it
+- **design and implement** (for a refactor) → Architect (writes Brief to `tmp/<target>/plan.md`), then user reviews the Brief, then the plan skill phases and executes it
 
 **When to use Write (Apply mode) instead of TDD**: refactoring already-tested code, config file changes, shell scripts, glue code, one-line fixes where a test would be pure overhead, or when the user explicitly opts out.
 
