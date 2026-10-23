@@ -45,14 +45,14 @@ abbr --add grh git reset --hard
 abbr --add grh! 'git reset --hard && git clean -fd'
 abbr --add grs git reset --soft
 abbr --add gr~ git reset HEAD~
-# abbr --add gs git status --short --branch
+abbr --add gs git status --short --branch
 # abbr --add gsp git-spice
-# abbr --add gst git stash
-# abbr --add gstp git stash pop
-# abbr --add gsts git stash save
-abbr --add gs git-spice
-abbr --add gsl git-spice ls
-abbr --add gsrs git-spice repo sync
-abbr --add gss git status --short --branch
-abbr --add gssr git-spice stack restack
-abbr --add gsss git-spice stack submit
+abbr --add gst git stash
+abbr --add gstp git stash pop
+abbr --add gsts git stash save
+# abbr --add gs git-spice
+# abbr --add gsl git-spice ls
+# abbr --add gsrs git-spice repo sync
+# abbr --add gss git status --short --branch
+# abbr --add gssr git-spice stack restack
+# abbr --add gsss git-spice stack submit
