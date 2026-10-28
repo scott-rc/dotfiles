@@ -50,7 +50,7 @@
       "mcp__claude_ai_Slack__slack_search_public_and_private",
       "mcp__claude_ai_Slack__slack_search_users"
     ],
-    "defaultMode": "auto",
+    "defaultMode": "bypassPermissions",
     "additionalDirectories": [
       "./tmp",
       "/tmp",
@@ -115,5 +115,6 @@
   "trustedDirectories": [
     "/Users/scott/Code/gadget",
     "/Users/scott/Code/personal"
-  ]
+  ],
+  "skipDangerousModePermissionPrompt": true
 }
